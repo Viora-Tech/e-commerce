@@ -1,20 +1,10 @@
-import {
-  Body,
-  Column,
-  Container,
-  Head,
-  Html,
-  Img,
-  Link,
-  Preview,
-  Row,
-  Section,
-  Text,
-} from '@react-email/components'
+import { Body, Container, Head, Html, Preview } from '@react-email/components'
 import type { ReactNode } from 'react'
 import type { EmailBrandInfo } from '../types'
 import { EmailFooter } from './footer'
-import { theme, whatsappLink } from './theme'
+import { EmailHeader } from './header'
+import { HelpBox } from './help-box'
+import { theme } from './theme'
 
 type EmailLayoutProps = {
   previewText: string
@@ -27,6 +17,11 @@ type EmailLayoutProps = {
   /** Team alerts and platform mail: no menu row, no help box, no socials. */
   internal?: boolean | undefined
   labels: LayoutLabels
+  /**
+   * A merchant's saved design draws its own header, help box and footer as blocks
+   * (`design/`), so the shell keeps only the card.
+   */
+  bare?: boolean | undefined
   children: ReactNode
 }
 
@@ -66,20 +61,9 @@ export function EmailLayout({
   footerNote,
   internal,
   labels,
+  bare,
   children,
 }: EmailLayoutProps) {
-  const shop = brand?.shopUrl ?? null
-  const logo = brand?.logoUrl ?? null
-  const logoWidth = Math.min(Math.max(brand?.logoWidth ?? 150, 60), 220)
-  const menu = shop
-    ? [
-        { label: labels.shop, url: shop },
-        { label: labels.track, url: `${shop}/track-order` },
-        { label: labels.contact, url: `${shop}/pages/contact` },
-      ]
-    : []
-  const wa = whatsappLink(brand?.supportPhone)
-
   return (
     <Html>
       <Head>
@@ -106,109 +90,24 @@ export function EmailLayout({
             overflow: 'hidden',
           }}
         >
-          <Section className="k-pad" style={{ padding: '40px 48px 0', textAlign: 'center' }}>
-            {logo ? (
-              <Link href={shop ?? undefined}>
-                <Img
-                  src={logo}
-                  alt={storeName}
-                  width={logoWidth}
-                  style={{ margin: '0 auto', maxWidth: '100%', height: 'auto' }}
-                />
-              </Link>
-            ) : (
-              <Text
-                style={{
-                  margin: 0,
-                  fontSize: '22px',
-                  fontWeight: 700,
-                  letterSpacing: '0.16em',
-                  textTransform: 'uppercase',
-                  color: theme.ink,
-                }}
-              >
-                {storeName}
-              </Text>
-            )}
-            <Text
-              style={{
-                margin: 0,
-                padding: '18px 0 18px',
-                borderBottom: `1px solid ${theme.border}`,
-                fontSize: '14px',
-                lineHeight: '18px',
-              }}
-            >
-              {!internal
-                ? menu.map((m) => (
-                    <Link
-                      key={m.url}
-                      href={m.url}
-                      style={{ color: theme.body, textDecoration: 'none', margin: '0 12px' }}
-                    >
-                      {m.label}
-                    </Link>
-                  ))
-                : null}
-            </Text>
-          </Section>
+          {bare ? null : (
+            <EmailHeader storeName={storeName} brand={brand} menu={!internal} labels={labels} />
+          )}
 
           {children}
 
-          {!internal ? (
-            <Section className="k-pad" style={{ padding: '36px 48px 0' }}>
-              <Row
-                style={{
-                  backgroundColor: theme.soft,
-                  borderRadius: '8px',
-                }}
-              >
-                <Column className="k-stack" style={{ padding: '18px 0 18px 22px' }}>
-                  <Text style={{ margin: 0, fontSize: '16px', lineHeight: '22px', color: theme.ink }}>
-                    {labels.helpTitle}
-                  </Text>
-                  <Text
-                    style={{ margin: '2px 0 0', fontSize: '13px', lineHeight: '18px', color: theme.body }}
-                  >
-                    {labels.helpBody}
-                    {brand?.supportPhone ? labels.helpWhatsapp(brand.supportPhone) : ''}
-                  </Text>
-                </Column>
-                {wa ? (
-                  <Column
-                    className="k-stack"
-                    style={{ width: '140px', padding: '18px 22px', textAlign: 'right' }}
-                  >
-                    <Link
-                      href={wa}
-                      style={{
-                        display: 'inline-block',
-                        padding: '7px 14px',
-                        border: `1px solid ${theme.ink}`,
-                        borderRadius: '4px',
-                        backgroundColor: theme.page,
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        color: theme.ink,
-                        textDecoration: 'none',
-                      }}
-                    >
-                      {labels.whatsappUs}
-                    </Link>
-                  </Column>
-                ) : null}
-              </Row>
-            </Section>
-          ) : null}
+          {!internal && !bare ? <HelpBox brand={brand} labels={labels} /> : null}
 
-          <EmailFooter
-            brand={brand}
-            storeAddress={storeAddress}
-            footerNote={footerNote}
-            unsubscribeUrl={unsubscribeUrl}
-            internal={internal}
-            labels={labels}
-          />
+          {bare ? null : (
+            <EmailFooter
+              brand={brand}
+              storeAddress={storeAddress}
+              footerNote={footerNote}
+              unsubscribeUrl={unsubscribeUrl}
+              internal={internal}
+              labels={labels}
+            />
+          )}
         </Container>
       </Body>
     </Html>

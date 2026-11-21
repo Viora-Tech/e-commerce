@@ -9,6 +9,8 @@ type EmailFooterProps = {
   footerNote: string
   unsubscribeUrl?: string | undefined
   internal?: boolean | undefined
+  /** Draw the socials row; defaults to every customer email (not team alerts). */
+  showSocial?: boolean | undefined
   labels: LayoutLabels
 }
 
@@ -28,7 +30,9 @@ const ORDER = ['instagram', 'youtube', 'whatsapp', 'x', 'twitter']
  * The store's socials for the footer: its own links, plus WhatsApp from the support number when
  * it has not listed WhatsApp itself. At most six, http(s) links only.
  */
-function socialLinks(brand: EmailBrandInfo | undefined): { platform: string; url: string }[] {
+export function socialLinks(
+  brand: EmailBrandInfo | undefined,
+): { platform: string; url: string }[] {
   const listed = (brand?.social ?? []).filter((s) => /^https?:\/\//i.test(s.url))
   const wa = whatsappLink(brand?.supportPhone)
   const all =
@@ -49,9 +53,10 @@ export function EmailFooter({
   footerNote,
   unsubscribeUrl,
   internal,
+  showSocial = !internal,
   labels,
 }: EmailFooterProps) {
-  const social = internal ? [] : socialLinks(brand)
+  const social = showSocial ? socialLinks(brand) : []
   const address = brand?.address ?? storeAddress
   return (
     <Section
@@ -64,45 +69,14 @@ export function EmailFooter({
         textAlign: 'center',
       }}
     >
-      {social.length > 0 ? (
-        <Row style={{ width: 'auto', margin: '0 auto 16px' }}>
-          {social.map((s) => {
-            const icon = ICONS[s.platform]
-            const src = icon ? emailAsset(brand?.shopUrl, icon) : null
-            return (
-              <Column key={s.url} style={{ padding: '0 4px' }}>
-                <Link href={s.url} style={{ textDecoration: 'none' }}>
-                  {src ? (
-                    <Img src={src} width="34" height="34" alt={s.platform} style={{ display: 'block' }} />
-                  ) : (
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        width: '34px',
-                        height: '34px',
-                        lineHeight: '34px',
-                        borderRadius: '17px',
-                        backgroundColor: theme.ink,
-                        color: '#ffffff',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        textAlign: 'center',
-                      }}
-                    >
-                      {s.platform.slice(0, 2).toUpperCase()}
-                    </span>
-                  )}
-                </Link>
-              </Column>
-            )
-          })}
-        </Row>
-      ) : null}
+      {social.length > 0 ? <SocialRow brand={brand} links={social} /> : null}
       <Text style={{ margin: '0 0 6px', fontSize: '13px', lineHeight: '19px', color: theme.body }}>
         {footerNote}
       </Text>
       {address ? (
-        <Text style={{ margin: '0 0 4px', fontSize: '12px', lineHeight: '18px', color: theme.muted }}>
+        <Text
+          style={{ margin: '0 0 4px', fontSize: '12px', lineHeight: '18px', color: theme.muted }}
+        >
           {address}
         </Text>
       ) : null}
@@ -114,5 +88,56 @@ export function EmailFooter({
         </Text>
       ) : null}
     </Section>
+  )
+}
+
+/** The store's social icons in one centred row (footer, or a Social block in a saved design). */
+export function SocialRow({
+  brand,
+  links = socialLinks(brand),
+}: {
+  brand?: EmailBrandInfo | undefined
+  links?: { platform: string; url: string }[] | undefined
+}) {
+  if (links.length === 0) return null
+  return (
+    <Row style={{ width: 'auto', margin: '0 auto 16px' }}>
+      {links.map((s) => {
+        const icon = ICONS[s.platform]
+        const src = icon ? emailAsset(brand?.shopUrl, icon) : null
+        return (
+          <Column key={s.url} style={{ padding: '0 4px' }}>
+            <Link href={s.url} style={{ textDecoration: 'none' }}>
+              {src ? (
+                <Img
+                  src={src}
+                  width="34"
+                  height="34"
+                  alt={s.platform}
+                  style={{ display: 'block' }}
+                />
+              ) : (
+                <span
+                  style={{
+                    display: 'inline-block',
+                    width: '34px',
+                    height: '34px',
+                    lineHeight: '34px',
+                    borderRadius: '17px',
+                    backgroundColor: theme.ink,
+                    color: '#ffffff',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    textAlign: 'center',
+                  }}
+                >
+                  {s.platform.slice(0, 2).toUpperCase()}
+                </span>
+              )}
+            </Link>
+          </Column>
+        )
+      })}
+    </Row>
   )
 }

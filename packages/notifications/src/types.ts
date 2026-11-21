@@ -1,5 +1,5 @@
-import type { TemplateId } from './template-ids'
 import type { PerformanceReport } from './report-types'
+import type { TemplateId } from './template-ids'
 import type { ChannelTemplateSpec, ChannelTemplateStatus } from './template-types'
 
 /**
@@ -61,6 +61,11 @@ export type TemplateData = {
   brand?: EmailBrandInfo | undefined
   /** Set when the merchant edited the subject or added a note before sending. */
   custom?: CustomMessage | undefined
+  /**
+   * The store's saved design for this email (Settings → Notifications → Edit design), attached
+   * at send time by the store's channels. Unknown until parsed: a broken one is ignored.
+   */
+  design?: unknown
   /** Absent for messages about a cart that is not an order yet. */
   orderNumber?: number | undefined
   /** Set while the order is still a draft (a draft invoice): shown as #D12 instead. */

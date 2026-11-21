@@ -1,13 +1,20 @@
 import { render } from '@react-email/render'
 import { createElement } from 'react'
+import { designFor } from '../design/design-for'
+import { DesignedEmail } from '../design/designed-email'
+import { designTextLines, introOverride } from '../design/plain-text'
+import { fillVariables } from '../design/variables'
 import { PerformanceReportEmail } from '../emails/performance-report'
 import { TransactionalEmail } from '../emails/transactional-email'
 import type { TemplateData, TemplateId } from '../types'
-import { sharedContent as shared, templateContent } from './content'
 import { composeEmail } from './compose'
+import { sharedContent as shared, templateContent } from './content'
 import { footerReason } from './content-footer'
-import { primaryActionFor } from './primary-action'
 import { reportPlainText, reportWords } from './content-reports'
+import { INTERNAL, PLATFORM_TEMPLATE_IDS, REPORTS } from './internal'
+import { primaryActionFor } from './primary-action'
+
+export { PLATFORM_TEMPLATE_IDS }
 
 export type EmailBody = { subject: string; text: string; html: string }
 export type WhatsappBody = { text: string }
@@ -72,18 +79,6 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'plan_bill',
   'bug_report_update',
   'purchase_order',
-]
-
-/**
- * Templates the platform sends about itself (through the platform email account), never a store's
- * own customer messages. They are not in Settings → Notifications and a merchant cannot switch them off.
- */
-export const PLATFORM_TEMPLATE_IDS: readonly TemplateId[] = [
-  'staff_invite',
-  'email_change_code',
-  'email_changed',
-  'plan_bill',
-  'bug_report_update',
 ]
 
 /** Human names for the dev preview list and the admin's document-template picker. */
@@ -246,20 +241,6 @@ function parcelsBlock(d: TemplateData, template: TemplateId) {
   }
 }
 
-/** Team alerts and platform mail: a plainer email with no store menu or help block. */
-const INTERNAL: ReadonlySet<TemplateId> = new Set<TemplateId>([
-  'staff_new_order',
-  'staff_daily_summary',
-  'staff_weekly_report',
-  'staff_monthly_report',
-  'contact_message',
-  'question_asked',
-  'affiliate_application',
-  'unpaid_cancel_notice',
-  'purchase_order',
-  ...PLATFORM_TEMPLATE_IDS,
-])
-
 const DELIVERY_STEP: Partial<Record<TemplateId, number>> = {
   order_placed: 0,
   payment_received: 0,
@@ -314,13 +295,6 @@ function storeCreditRows(d: TemplateData): { label: string; amount: string }[] {
   ]
 }
 
-/** The team reports render through their own layout when the report data is there. */
-const REPORTS: ReadonlySet<TemplateId> = new Set<TemplateId>([
-  'staff_daily_summary',
-  'staff_weekly_report',
-  'staff_monthly_report',
-])
-
 export async function renderEmail(template: TemplateId, d: TemplateData): Promise<EmailBody> {
   if (d.report && REPORTS.has(template)) {
     const subject = d.custom?.subject?.trim() || templateContent[template].subject(d)
@@ -345,12 +319,17 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
   // The merchant's own note from the "Review email" dialog, under the intro.
   const note = d.custom?.message?.trim() || undefined
 
+  // A merchant's saved design (Edit design); null keeps the built-in email.
+  const design = designFor(template, d)
+  const override = design ? introOverride(design.blocks, d) : {}
+
   const text = squash([
-    c.heading(d),
+    override.heading ?? c.heading(d),
     '',
-    c.intro(d),
+    override.lead ?? c.intro(d),
     ...(creditLine ? ['', creditLine] : []),
     ...(note ? ['', note] : []),
+    ...(design ? designTextLines(design.blocks, d) : []),
     '',
     ...(gc
       ? [
@@ -376,13 +355,47 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
     shared.footer(d),
   ])
 
-  const subject = d.custom?.subject?.trim() || c.subject(d)
+  const subject =
+    d.custom?.subject?.trim() ||
+    (design?.subject ? fillVariables(design.subject, d).trim() : '') ||
+    c.subject(d)
   // Extra links go under the body as text lines (document links, installed-app links);
   // the primary action already carries the main call to action as a button.
   const primaryAction = primaryActionFor(template, d)
   // Messages already built from the shared blocks (emails/blocks), batch by batch.
   const composed = composeEmail(template, d, primaryAction)
   const extraLinks = (d.links ?? []).filter((l) => l.url !== primaryAction?.url)
+
+  if (design) {
+    try {
+      const html = await render(
+        createElement(DesignedEmail, {
+          data: d,
+          brand: d.brand,
+          storeAddress: d.storeAddress,
+          footerNote: footerReason(template, d),
+          labels: shared.layout,
+          previewText: subject,
+          eyebrow: composed?.eyebrow ?? eyebrowFor(template, d),
+          heading: composed?.heading ?? c.heading(d),
+          lead: composed?.lead ?? c.intro(d),
+          paragraphs: [
+            creditLine,
+            ...((composed?.ownsNote ? undefined : note)?.split(/\n+/).filter(Boolean) ?? []),
+          ].filter((t): t is string => Boolean(t)),
+          blocks: design.blocks,
+          internal: INTERNAL.has(template),
+        }),
+      )
+      return { subject, text, html }
+    } catch (err) {
+      // An order email never fails over a design: send the built-in one instead.
+      console.warn('email design failed to render; sending the built-in email', {
+        template,
+        error: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }
 
   const html = await render(
     createElement(TransactionalEmail, {
