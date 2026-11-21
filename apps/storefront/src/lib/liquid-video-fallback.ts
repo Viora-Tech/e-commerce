@@ -5,6 +5,7 @@
  * is ready (autoplay blocked by a phone's data saver or low-power mode, a slow network).
  * WHY: owner, 21 Nov 2026: a slide whose video does not load stayed a black box on phones; the
  * picture must show then. A video that plays never shows its cover (owner, 17 Nov 2026).
+ * Themes that keep the picture in `data-poster` (Glide's hero carousel) are covered the same way.
  * WHERE: appended to the theme shim (`liquid-shim.ts`), so it runs on every Liquid page.
  */
 
@@ -18,7 +19,7 @@ export const VIDEO_FALLBACK_SCRIPT = `(function () {
   function watch(v) {
     if (v.__coverWatch) return;
     v.__coverWatch = true;
-    var cover = v.getAttribute('data-cover');
+    var cover = v.getAttribute('data-cover') || v.getAttribute('data-poster');
     if (!cover) return;
     function show() { if (!v.getAttribute('poster')) v.setAttribute('poster', cover); }
     v.addEventListener('error', show);
@@ -29,7 +30,7 @@ export const VIDEO_FALLBACK_SCRIPT = `(function () {
     }, ${COVER_FALLBACK_MS});
   }
   function scan() {
-    Array.prototype.forEach.call(doc.querySelectorAll('video[data-cover]'), watch);
+    Array.prototype.forEach.call(doc.querySelectorAll('video[data-cover], video[data-poster]'), watch);
   }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', scan);
   else scan();

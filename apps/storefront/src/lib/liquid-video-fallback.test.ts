@@ -44,4 +44,12 @@ describe('hero video cover fallback', () => {
     vi.advanceTimersByTime(COVER_FALLBACK_MS)
     expect(v.getAttribute('poster')).toBeNull()
   })
+  it("uses a theme's data-poster when there is no data-cover", () => {
+    document.body.innerHTML =
+      '<video autoplay muted data-poster="/m/slide-3-poster.jpg"><source src="/m/s3.mp4"></video>'
+    const v = document.querySelector('video') as HTMLVideoElement
+    run()
+    v.querySelector('source')?.dispatchEvent(new Event('error'))
+    expect(v.getAttribute('poster')).toBe('/m/slide-3-poster.jpg')
+  })
 })
