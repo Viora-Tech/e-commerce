@@ -3,18 +3,20 @@
 import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
-import SettingsCard from '@/components/settings/settings-card'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
+import { deliveryOptionQuestionsContent } from '@/data/delivery-option-questions'
 import { deliveryOptionSectionsContent } from '@/data/delivery-option-sections'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { useCopy } from '@/hooks/use-copy'
 import { CARRIERS } from './format'
 import InlineWarning from './inline-warning'
+import { ONE_COURIER } from './option-answers'
 import { ALL_COURIERS, type OptionForm as Form } from './option-form-state'
+import OptionSection from './option-section'
 import RouteSelectorRow from './route-selector-row'
 import RupeeField from './rupee-field'
 
-type OptionCouriersCardProps = {
+type OptionCouriersFieldsProps = {
   form: Form
   onChange: (next: Form) => void
 }
@@ -26,14 +28,16 @@ const NO_PREFERENCE = 'none'
 const MAX_CHOICES = [2, 3, 4, 5, 6, 7, 8] as const
 
 /**
- * "Which couriers show" on an option's page (owner, 21 Nov 2026): speed and pick first, then
- * whether shoppers may pick the courier (with how many and which to hide), courier names, and
- * last the fine-tuning (preferred courier, prefer direct, allowed routes).
+ * "Which couriers show" in an option page's "More settings" (owner, 21 Nov 2026): the pick
+ * first, then whether shoppers may pick the courier (with how many and which to hide), courier
+ * names, and last the fine-tuning (preferred courier, prefer direct, allowed routes). Speed is
+ * with the name; "one courier only" is question 2.
  */
-export default function OptionCouriersCard({ form, onChange }: OptionCouriersCardProps) {
+export default function OptionCouriersFields({ form, onChange }: OptionCouriersFieldsProps) {
   // Hooks
   const copy = useCopy(deliveryOptionsContent)
   const sections = useCopy(deliveryOptionSectionsContent)
+  const q = useCopy(deliveryOptionQuestionsContent)
 
   // Helpers
   const set =
@@ -51,18 +55,8 @@ export default function OptionCouriersCard({ form, onChange }: OptionCouriersCar
   const s = sections.sections.couriers
 
   return (
-    <SettingsCard title={s.title} description={s.help} bodyClassName="gap-4">
+    <OptionSection title={s.title} help={s.help}>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <ChoiceField
-          id="opt-speed"
-          label={r.speed}
-          value={form.speed}
-          options={(['standard', 'express'] as const).map((v) => ({
-            value: v,
-            label: r.speeds[v],
-          }))}
-          onChange={(v) => onChange({ ...form, speed: v === 'express' ? 'express' : 'standard' })}
-        />
         <ChoiceField
           id="opt-strategy"
           label={r.strategy}
@@ -91,7 +85,7 @@ export default function OptionCouriersCard({ form, onChange }: OptionCouriersCar
           onChange={set('showNames')}
         />
       </div>
-      {form.couriersList ? (
+      {form.couriersList && form.couriersMax !== String(ONE_COURIER) ? (
         <div className="flex flex-col gap-3 rounded-lg border border-hairline p-3">
           <ChoiceField
             id="opt-couriers-max"
@@ -109,6 +103,13 @@ export default function OptionCouriersCard({ form, onChange }: OptionCouriersCar
             description={k.hideSlowerHelp}
             checked={form.hideSlowerDearer}
             onChange={set('hideSlowerDearer')}
+          />
+          <SettingsToggleRow
+            id="opt-same-price"
+            label={q.more.sameAsFirst}
+            description={q.more.sameAsFirstHelp}
+            checked={form.couriersExtra === 'none'}
+            onChange={(on) => set('couriersExtra')(on ? 'none' : 'difference')}
           />
           {form.strategy === 'fastest' && form.hideSlowerDearer ? (
             <InlineWarning>{k.hideSlowerFastest}</InlineWarning>
@@ -175,6 +176,6 @@ export default function OptionCouriersCard({ form, onChange }: OptionCouriersCar
           </Button>
         </div>
       )}
-    </SettingsCard>
+    </OptionSection>
   )
 }

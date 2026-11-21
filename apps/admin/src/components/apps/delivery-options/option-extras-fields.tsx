@@ -1,24 +1,24 @@
 'use client'
 
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
-import SettingsCard from '@/components/settings/settings-card'
 import { deliveryOptionSectionsContent } from '@/data/delivery-option-sections'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { useCopy } from '@/hooks/use-copy'
 import CodFeeField from './cod-fee-field'
 import type { OptionForm as Form } from './option-form-state'
+import OptionSection from './option-section'
 import RupeeField from './rupee-field'
 
-type OptionExtrasCardProps = {
+type OptionExtrasFieldsProps = {
   form: Form
   onChange: (next: Form) => void
 }
 
 /**
- * "Insurance and cash on delivery" on an option's page (owner, 21 Nov 2026): parcel insurance
+ * "Insurance and cash on delivery" in an option page's "More settings" (owner, 21 Nov 2026): parcel insurance
  * at checkout (and from which order value), then cash on delivery and how its fee shows.
  */
-export default function OptionExtrasCard({ form, onChange }: OptionExtrasCardProps) {
+export default function OptionExtrasFields({ form, onChange }: OptionExtrasFieldsProps) {
   // Hooks
   const copy = useCopy(deliveryOptionsContent)
   const sections = useCopy(deliveryOptionSectionsContent)
@@ -36,7 +36,7 @@ export default function OptionExtrasCard({ form, onChange }: OptionExtrasCardPro
   const express = form.speed === 'express'
 
   return (
-    <SettingsCard title={s.title} description={s.help} bodyClassName="gap-4">
+    <OptionSection title={s.title} help={s.help}>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <ChoiceField
           id="opt-insurance"
@@ -77,6 +77,6 @@ export default function OptionExtrasCard({ form, onChange }: OptionExtrasCardPro
           <CodFeeField id="opt-cod-fee" value={form.codFee} onChange={set('codFee')} />
         )}
       </div>
-    </SettingsCard>
+    </OptionSection>
   )
 }

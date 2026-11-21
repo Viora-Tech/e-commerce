@@ -102,9 +102,10 @@ export const OptionCouriersSchema = z.object({
   show: z.enum(['one', 'list']).default('one'),
   /**
    * Cards at most, the pick included; null: every courier that fits (the default from 20 Nov
-   * 2026). Options saved earlier keep their number (2 to 8 then).
+   * 2026). Options saved earlier keep their number (2 to 8 then). 1: only the included courier
+   * shows, the admin's "Can shoppers pick a faster courier? No" (owner, 21 Nov 2026).
    */
-  max: z.number().int().min(2).max(20).nullable().default(null),
+  max: z.number().int().min(1).max(20).nullable().default(null),
   /** +₹37 shows as +₹39. */
   roundTo9: z.boolean().default(true),
   /**
