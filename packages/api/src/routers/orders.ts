@@ -353,14 +353,16 @@ export const ordersRouter = {
   /** Take a booked shipment off its pickup and manifest, back to Booked; the label stays live. */
   returnShipmentToBooked: can(permissions.ORDERS_FULFIL)
     .input(z.object({ shipmentId: z.uuid() }))
-    .handler(async ({ context, input }) =>
-      returnStoreShipmentToBooked(
+    .handler(async ({ context, input }) => {
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      return returnStoreShipmentToBooked(
         context.tx,
         context.scope.storeId,
+        shipping,
         input.shipmentId,
         context.session.user.email,
-      ),
-    ),
+      )
+    }),
 
   /** After pickup: ask the courier to bring the parcel back; it moves to Returned (RTO). */
   sendBackShipment: can(permissions.ORDERS_FULFIL)

@@ -43,8 +43,10 @@ export type ShipmentRow = {
   trackingUrl: string | null
   /** The courier app takes cancellations over its API. */
   courierCancels: boolean
-  /** On a pickup (To be picked up): it can go back to Booked. */
+  /** On a pickup (To be picked up): it can go back to Booked, unless `pickupByCourier`. */
   onPickup?: boolean
+  /** The courier's name when it schedules its own pickup at booking (RapidShyp). */
+  pickupByCourier?: string | null
   /** The courier's AWB; booked rows only. */
   waybill?: string
   /** To book: the open parcel the row books; null when the order ships whole. */
@@ -101,6 +103,7 @@ export const rowFromShipment = (s: ShipmentItem): ShipmentRow => ({
   trackingUrl: s.trackingUrl,
   courierCancels: s.courierCancels,
   onPickup: s.pickupId !== null,
+  pickupByCourier: s.pickupByCourier,
   waybill: s.waybill,
   lost: {
     waybill: s.waybill,

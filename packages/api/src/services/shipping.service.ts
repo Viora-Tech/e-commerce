@@ -36,6 +36,7 @@ import { logger } from '@commerce/observability/logging'
 import { CourierError, describeCourierFailureForStaff, isValidPincode } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
 import { and, eq } from 'drizzle-orm'
+import { pickupByCourier } from './courier-pickup'
 
 export async function updateStoreShipping(tx: StoreTx, storeId: string, shipping: unknown) {
   const [s] = await tx.update(store).set({ shipping }).where(eq(store.id, storeId)).returning()
@@ -439,10 +440,21 @@ export async function markStoreShipmentCancelled(
 export async function returnStoreShipmentToBooked(
   tx: StoreTx,
   storeId: string,
+  registry: ShippingRegistry,
   shipmentId: string,
   author: string | null = null,
 ) {
-  return returnShipmentToBooked({ storeId, tx }, shipmentId, { author }).catch((err) => {
+  const [row] = await tx
+    .select({ provider: shipment.provider })
+    .from(shipment)
+    .where(eq(shipment.id, shipmentId))
+  if (!row) throw new ORPCError('NOT_FOUND')
+  // A courier that scheduled its own pickup at booking is refused (`PickupScheduledByCourier`).
+  const byCourier = pickupByCourier(registry, row.provider)
+  return returnShipmentToBooked({ storeId, tx }, shipmentId, {
+    author,
+    pickupByCourier: byCourier,
+  }).catch((err) => {
     if (err instanceof ShipmentNotOnPickup) {
       throw new ORPCError('PRECONDITION_FAILED', { message: err.message })
     }
@@ -484,7 +496,10 @@ export async function describeShipment(
     canRequestPickup:
       (!row.pickupId || missed) &&
       row.status === 'created' &&
+      !pickupByCourier(registry, row.provider) &&
       (registry.get(row.provider)?.capabilities.includes('pickup') ?? false),
+    /* The courier's name when it scheduled its own pickup at booking: only Cancel shipment stops it. */
+    pickupByCourier: pickupByCourier(registry, row.provider),
     cancelBlock: cancelBlock(row, { courierCancels: courierCancels(registry, row.provider) }),
   }
 }

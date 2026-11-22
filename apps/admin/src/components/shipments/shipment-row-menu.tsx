@@ -152,6 +152,7 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
           status={row.status ?? 'created'}
           onPickup={Boolean(row.onPickup)}
           courierCancels={row.courierCancels}
+          pickupByCourier={row.pickupByCourier}
           onDone={onChanged}
         />
       ) : null}
