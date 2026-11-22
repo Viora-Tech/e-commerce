@@ -48,7 +48,8 @@ export default function PartlyShippedCard({ order, canShip }: PartlyShippedCardP
 
   // Render logic
   const live = order.parcels.filter((p) => p.status !== 'cancelled')
-  const shipped = parts.parcels.filter((p) => p.shipment).length
+  // A parcel that left without a label here (marked shipped, or before the import) counts too.
+  const shipped = parts.parcels.filter((p) => p.shipment || p.packed).length
   const imageOf = new Map(order.lines.map((l) => [l.id, l.imageUrl]))
   const partOf = new Map(parts.parcels.map((p) => [p.id, p]))
   const title = (
@@ -120,9 +121,11 @@ function ParcelBlock({
 }: ParcelBlockProps) {
   // Render logic
   const label = part?.shipment ?? null
+  const sent = !label && (part?.packed ?? false)
   const availabilityOf = new Map(part?.lines.map((l) => [l.orderLineId, l.availability]))
   const waits = part?.lines.some((l) => l.availability.preorder || l.availability.restockOn)
-  const lines = label ? parcel.lines : parcel.lines.filter((l) => l.quantity > l.fulfilledQuantity)
+  const whole = label || sent
+  const lines = whole ? parcel.lines : parcel.lines.filter((l) => l.quantity > l.fulfilledQuantity)
 
   return (
     <li className="flex flex-col gap-3 px-5 py-4">
@@ -131,6 +134,8 @@ function ParcelBlock({
           {copy.parcel(n)}
           {label ? (
             <StatusLabel kind="shipment" value={label.status} variant="soft" />
+          ) : sent ? (
+            <StatusChip tone="neutral">{copy.fulfilled}</StatusChip>
           ) : (
             <StatusChip tone="attention">{copy.toShip}</StatusChip>
           )}
@@ -158,7 +163,7 @@ function ParcelBlock({
       <ul className="flex flex-col gap-2">
         {lines.map((l) => {
           const a = availabilityOf.get(l.orderLineId)
-          const quantity = label ? l.quantity : l.quantity - l.fulfilledQuantity
+          const quantity = whole ? l.quantity : l.quantity - l.fulfilledQuantity
           const note = a?.preorder
             ? copy.preorder(a.preorder.arrivesOn ? short(a.preorder.arrivesOn) : null)
             : a && a.inStock < quantity
@@ -191,6 +196,8 @@ function ParcelBlock({
             label.deliveryBy ? weekday(label.deliveryBy) : null,
           )}
         </p>
+      ) : sent ? (
+        <p className="text-caption text-muted-foreground">{copy.noLabel}</p>
       ) : waits ? (
         <p className="text-caption text-muted-foreground">{copy.readyWhen(orderNumber, n, of)}</p>
       ) : null}

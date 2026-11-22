@@ -1,6 +1,6 @@
-import { errorText } from '@/lib/api-errors'
+'use client'
 
-;('use client')
+import { errorText } from '@/lib/api-errors'
 
 /**
  * SOURCE OF TRUTH KEYWORDS: useManifestSheet, print pickup manifest

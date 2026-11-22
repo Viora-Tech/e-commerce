@@ -95,6 +95,8 @@ export default [
     chip: (shipped, of) => `कुछ भेजा गया · ${of} में से ${shipped} पार्सल`,
     parcel: (n) => `पार्सल ${n}`,
     toShip: 'भेजना है',
+    fulfilled: 'भेजा जा चुका',
+    noLabel: 'यहाँ लेबल के बिना भेजा गया (भेजा हुआ मार्क किया, या ऑर्डर आने से पहले)।',
     track: 'ट्रैक करें',
     createShipment: 'शिपमेंट बनाएं',
     label: (courier, awb, shipped, deliveryBy) =>
