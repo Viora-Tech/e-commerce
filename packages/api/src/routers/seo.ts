@@ -1,4 +1,4 @@
-import { loadSeoReport, permissions } from '@commerce/core'
+import { loadSeoHealth, loadSeoReport, permissions } from '@commerce/core'
 import { can } from '../procedures'
 import { agentReadinessCheck } from '../services/agent-readiness.service'
 
@@ -15,4 +15,7 @@ export const seoRouter = {
   agentReadiness: can(permissions.SETTINGS_READ).handler(({ context }) =>
     agentReadinessCheck(context.tx, context.scope.storeId),
   ),
+
+  /** Settings → Store health › SEO: counts of the search-listing gaps, with the first few items. */
+  health: can(permissions.SETTINGS_READ).handler(({ context }) => loadSeoHealth(context.tx)),
 }

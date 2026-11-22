@@ -14,13 +14,14 @@ import { api } from '@/lib/api-client'
 import { SEVERITY_TONE } from '@/lib/store-health'
 import AgentReadinessCard from './agent-readiness-card'
 import HealthIssueRow from './health-issue-row'
+import SeoHealthCard from './seo-health-card'
 
 type StoreHealthPageProps = {
   /** The server's first check; null when it failed. */
   initial: StoreHealthReport | null
 }
 
-/** Settings → Store health: one card per severity, worst first, each problem with its fix link; then the AI shopping agents check. */
+/** Settings → Store health: one card per severity, worst first, each problem with its fix link; then the SEO and AI shopping agents checks. */
 export default function StoreHealthPage({ initial }: StoreHealthPageProps) {
   // Hooks
   const copy = useCopy(storeHealthContent)
@@ -102,6 +103,7 @@ export default function StoreHealthPage({ initial }: StoreHealthPageProps) {
           </SettingsCard>
         ))
       )}
+      <SeoHealthCard />
       <AgentReadinessCard />
     </div>
   )

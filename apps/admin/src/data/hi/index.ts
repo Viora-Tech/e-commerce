@@ -147,6 +147,7 @@ import searchConsole from './search-console'
 import searchDiscovery from './search-discovery'
 import searchFilters from './search-filters'
 import selectProducts from './select-products'
+import seoHealth from './seo-health'
 import seoKeywords from './seo-keywords'
 import seoReport from './seo-report'
 import settings from './settings'
@@ -353,6 +354,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...storeData,
   ...storeHealth,
   ...agentReadiness,
+  ...seoHealth,
   ...storageWarning,
   ...table,
   ...themeCode,

@@ -16,6 +16,7 @@ import {
 import { and, eq, isNotNull, sql } from 'drizzle-orm'
 import { notSystemTest } from '../catalog/system-test'
 import { searchStatsByPath } from '../search-console/service'
+import { type SeoHealthReport, seoHealth } from '../store-health/seo-health'
 import {
   type SeoItem,
   type SeoLinkContext,
@@ -238,4 +239,16 @@ export async function loadSeoReport(tx: StoreTx, storeId?: string): Promise<SeoR
       }))
     : items
   return seoReport(withSearch, await linkContext(tx))
+}
+
+/**
+ * Settings → Store health › SEO: the short summary over the same live items the SEO report reads
+ * (no Google numbers, no link checks). Read only.
+ */
+export async function loadSeoHealth(tx: StoreTx): Promise<SeoHealthReport> {
+  return seoHealth([
+    ...(await loadSeoProductItems(tx)),
+    ...(await collectionItems(tx)),
+    ...(await pageItems(tx)),
+  ])
 }
