@@ -11,6 +11,7 @@ import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { campaignEditorContent } from '@/data/marketing-campaigns'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
 import type { CampaignForm } from './form-state'
@@ -23,8 +24,6 @@ type TestSendDialogProps = {
   defaultTo: string
 }
 
-const copy = campaignEditorContent.test
-
 /** Sends the current, possibly unsaved, email to one address. */
 export default function TestSendDialog({
   open,
@@ -33,6 +32,7 @@ export default function TestSendDialog({
   defaultTo,
 }: TestSendDialogProps) {
   // Hooks
+  const copy = useCopy(campaignEditorContent.test)
   const [to, setTo] = useState(defaultTo)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)

@@ -6,7 +6,7 @@ import CampaignsTabs from '@/components/growth/campaigns/campaigns-tabs'
 import PageBody from '@/components/layout/page-body'
 import PageHeaderSkeleton from '@/components/layout/page-header-skeleton'
 import ResourceTable from '@/components/table/resource-table'
-import { campaignsContent } from '@/data/marketing-campaigns'
+import { campaignReportContent, campaignsContent } from '@/data/marketing-campaigns'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 
 /* Automations and Create campaign. */
@@ -21,6 +21,7 @@ function noop() {}
 export default function CampaignsSkeleton() {
   // Hooks
   const copy = useCopy(campaignsContent)
+  const reportCopy = useCopy(campaignReportContent)
   const fmt = useFormat()
 
   // Render logic
@@ -30,7 +31,7 @@ export default function CampaignsSkeleton() {
       <CampaignsTabs value="campaigns" />
       <ResourceTable
         resourceName={copy.resource}
-        columns={campaignColumns(copy, fmt)}
+        columns={campaignColumns(copy, fmt, reportCopy.rate)}
         items={[]}
         getId={(c) => c.id}
         href={() => ''}

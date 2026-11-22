@@ -10,6 +10,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import Link from 'next/link'
 import { campaignEditorContent } from '@/data/marketing-campaigns'
+import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -20,11 +21,10 @@ type DiscountCodeFieldProps = {
   onChange: (code: string) => void
 }
 
-const copy = campaignEditorContent.fields
-
 /** Picks an active code from Discounts, so an email never promises a code that does not work. */
 export default function DiscountCodeField({ id, value, onChange }: DiscountCodeFieldProps) {
   // Hooks
+  const copy = useCopy(campaignEditorContent.fields)
   const { data: codes } = useLoad(async () => {
     const r = await api.discounts.list({ page: 1, perPage: 100, lifecycle: 'active' })
     return r.items.flatMap((d) => (d.code ? [{ code: d.code, title: d.title }] : []))

@@ -14,6 +14,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import Link from 'next/link'
 import { campaignEditorContent } from '@/data/marketing-campaigns'
+import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 
@@ -27,17 +28,9 @@ type WhatsappTemplateCardProps = {
   /** Drop the card frame when nested in another card. */
   bare?: boolean | undefined
 }
-
-const copy = campaignEditorContent.whatsapp
 /* Inside an automation step the list sits in the step's own card, so it drops its frame. */
 const BARE_CARD = 'gap-3 rounded-none border-0 bg-transparent py-0 shadow-none ring-0'
 const keyOf = (t: { name: string; language: string }) => `${t.name}|${t.language}`
-
-function problemText(t: Exclude<TemplatesResult, { ok: true }>): string {
-  if (t.reason === 'no_channel') return campaignEditorContent.channel.noWhatsapp
-  if (t.reason === 'error') return copy.error(t.message ?? '')
-  return copy.none
-}
 
 /** Approved-template picker with one input per {{n}} placeholder. */
 export default function WhatsappTemplateCard({
@@ -46,6 +39,17 @@ export default function WhatsappTemplateCard({
   onChange,
   bare,
 }: WhatsappTemplateCardProps) {
+  // Hooks
+  const campaignEditorCopy = useCopy(campaignEditorContent)
+  const copy = useCopy(campaignEditorContent.whatsapp)
+
+  // Derived
+  function problemText(t: Exclude<TemplatesResult, { ok: true }>): string {
+    if (t.reason === 'no_channel') return campaignEditorCopy.channel.noWhatsapp
+    if (t.reason === 'error') return copy.error(t.message ?? '')
+    return copy.none
+  }
+
   // Event handlers
   const handlePick = (key: string) => {
     if (!templates?.ok) return
@@ -82,7 +86,7 @@ export default function WhatsappTemplateCard({
               <AlertDescription>
                 {problemText(templates)}{' '}
                 <Link href={routes.settings.notifications()} className="underline">
-                  {campaignEditorContent.channel.settings}
+                  {campaignEditorCopy.channel.settings}
                 </Link>
               </AlertDescription>
             </Alert>

@@ -12,6 +12,7 @@ import { Card } from '@commerce/ui/shadcn/card'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { useState } from 'react'
 import { campaignEditorContent } from '@/data/marketing-campaigns'
+import { useCopy } from '@/hooks/use-copy'
 
 type EmailPreviewProps = {
   storeName: string
@@ -24,8 +25,6 @@ type EmailPreviewProps = {
   /** A sample basket for cart and checkout automations. */
   sampleCart?: boolean | undefined
 }
-
-const copy = campaignEditorContent.preview
 
 const SAMPLE_MERGE = {
   first_name: 'Asha',
@@ -55,6 +54,7 @@ export default function EmailPreview({
   sampleCart,
 }: EmailPreviewProps) {
   // Hooks
+  const copy = useCopy(campaignEditorContent.preview)
   const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop')
 
   // Render logic

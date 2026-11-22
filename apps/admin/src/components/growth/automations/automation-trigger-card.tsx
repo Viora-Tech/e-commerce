@@ -10,6 +10,7 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/sh
 import { Input } from '@commerce/ui/shadcn/input'
 import DataCard from '@/components/layout/data-card'
 import { automationEditorContent, automationsContent } from '@/data/marketing-automations'
+import { useCopy } from '@/hooks/use-copy'
 
 type AutomationTriggerCardProps = {
   trigger: AutomationTrigger
@@ -17,14 +18,16 @@ type AutomationTriggerCardProps = {
   onChange: (settings: AutomationSettings) => void
 }
 
-const copy = automationEditorContent.trigger
-
 /** What starts the automation, its timing and who it may reach. */
 export default function AutomationTriggerCard({
   trigger,
   settings,
   onChange,
 }: AutomationTriggerCardProps) {
+  // Hooks
+  const copy = useCopy(automationEditorContent).trigger
+  const automationsCopy = useCopy(automationsContent)
+
   // Render logic
   const quietDefault = TRIGGER_QUIET_MINUTES[trigger]
   const minutes = settings.afterMinutes ?? quietDefault ?? 60
@@ -32,7 +35,7 @@ export default function AutomationTriggerCard({
   return (
     <DataCard title={copy.title}>
       <FieldGroup>
-        <p className="text-body">{automationsContent.triggers[trigger]}</p>
+        <p className="text-body">{automationsCopy.triggers[trigger]}</p>
         {quietDefault !== null ? (
           <Field className="max-w-72">
             <FieldLabel htmlFor="after-minutes">{copy.afterMinutes}</FieldLabel>

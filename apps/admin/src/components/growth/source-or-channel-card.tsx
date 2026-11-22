@@ -3,7 +3,8 @@
 import type { CampaignRow, ChannelRow, SourceRow } from '@commerce/api'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { useState } from 'react'
-import { growthOverviewContent as copy } from '@/data/growth'
+import { growthOverviewContent } from '@/data/growth'
+import { useCopy } from '@/hooks/use-copy'
 import ChannelTableCard from './channel-table-card'
 import SourceTableCard from './source-table-card'
 
@@ -22,6 +23,7 @@ export default function SourceOrChannelCard({
   campaigns,
 }: SourceOrChannelCardProps) {
   // Hooks
+  const copy = useCopy(growthOverviewContent)
   const [view, setView] = useState<View>('source')
 
   // Event handlers

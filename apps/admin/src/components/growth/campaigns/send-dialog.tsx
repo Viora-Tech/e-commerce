@@ -11,6 +11,7 @@ import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { campaignEditorContent } from '@/data/marketing-campaigns'
+import { useCopy } from '@/hooks/use-copy'
 
 type SendDialogProps = {
   open: boolean
@@ -20,8 +21,6 @@ type SendDialogProps = {
   error: string | null
   onConfirm: (at: Date | null) => void
 }
-
-const copy = campaignEditorContent.schedule
 
 /** `datetime-local` wants local wall time without seconds. */
 function localInput(d: Date): string {
@@ -39,6 +38,7 @@ export default function SendDialog({
   onConfirm,
 }: SendDialogProps) {
   // Hooks
+  const copy = useCopy(campaignEditorContent.schedule)
   const [mode, setMode] = useState<'now' | 'later'>('now')
   const [at, setAt] = useState(() => localInput(new Date(Date.now() + 3_600_000)))
 

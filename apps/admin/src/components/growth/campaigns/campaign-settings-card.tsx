@@ -12,6 +12,7 @@ import {
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import { campaignEditorContent } from '@/data/marketing-campaigns'
+import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import type { CampaignForm } from './form-state'
 
@@ -22,8 +23,6 @@ type CampaignSettingsCardProps = {
   reach: number | null
   onChange: (patch: Partial<CampaignForm>) => void
 }
-
-const copy = campaignEditorContent
 const ALL = 'all'
 
 /** Name, audience (segment with a live reach count) and, for email, subject and preview text. */
@@ -33,6 +32,9 @@ export default function CampaignSettingsCard({
   reach,
   onChange,
 }: CampaignSettingsCardProps) {
+  // Hooks
+  const copy = useCopy(campaignEditorContent)
+
   // Render logic
   const items = {
     [ALL]: copy.audience.all,

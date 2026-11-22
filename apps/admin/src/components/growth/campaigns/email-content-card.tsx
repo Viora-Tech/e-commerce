@@ -33,8 +33,6 @@ type EmailContentCardProps = {
   /** Drop the card frame when nested in another card. */
   bare?: boolean | undefined
 }
-
-const copy = campaignEditorContent
 /* Inside an automation step the list sits in the step's own card, so it drops its frame. */
 const BARE_CARD = 'gap-3 rounded-none border-0 bg-transparent py-0 shadow-none ring-0'
 
@@ -64,6 +62,7 @@ export default function EmailContentCard({
   bare,
 }: EmailContentCardProps) {
   // Hooks
+  const copy = useCopy(campaignEditorContent)
   const sortLabels = useCopy(reorderLabels)
   const [open, setOpen] = useState<string | null>(blocks[1]?.id ?? blocks[0]?.id ?? null)
 

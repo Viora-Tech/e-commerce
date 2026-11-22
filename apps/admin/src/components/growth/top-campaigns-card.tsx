@@ -8,19 +8,22 @@ import StatusChip from '@/components/layout/status-chip'
 import LinkRow from '@/components/table/link-row'
 import SimpleTable from '@/components/table/simple-table'
 import { growthOverviewContent } from '@/data/growth'
+import { useCopy } from '@/hooks/use-copy'
 import { formatPaiseWhole } from '@/lib/money'
 
 type TopCampaignsCardProps = { rows: CampaignRow[] }
 
-const copy = growthOverviewContent.campaigns
-
-function sourceLabel(row: CampaignRow): string {
-  if (row.kind !== 'utm') return copy.kinds[row.kind]
-  return [row.source, row.medium].filter(Boolean).join(' / ') || '-'
-}
-
 /** Campaigns ranked by the sales they drove: tagged links, email and WhatsApp sends, automations. */
 export default function TopCampaignsCard({ rows }: TopCampaignsCardProps) {
+  // Hooks
+  const copy = useCopy(growthOverviewContent).campaigns
+
+  // Derived
+  function sourceLabel(row: CampaignRow): string {
+    if (row.kind !== 'utm') return copy.kinds[row.kind]
+    return [row.source, row.medium].filter(Boolean).join(' / ') || '-'
+  }
+
   // Render logic
   const c = copy.columns
 

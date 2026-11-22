@@ -5,6 +5,7 @@ import {
 } from '@commerce/core/marketing'
 import { Card } from '@commerce/ui/shadcn/card'
 import { campaignEditorContent } from '@/data/marketing-campaigns'
+import { useCopy } from '@/hooks/use-copy'
 
 type WhatsappPreviewProps = {
   value: WhatsappTemplateRef | null
@@ -13,10 +14,11 @@ type WhatsappPreviewProps = {
   storeName: string
 }
 
-const copy = campaignEditorContent.whatsapp
-
 /** The broadcast as a chat bubble, with sample values for merge tags. */
 export default function WhatsappPreview({ value, body, storeName }: WhatsappPreviewProps) {
+  // Hooks
+  const copy = useCopy(campaignEditorContent.whatsapp)
+
   // Render logic
   const merge = { first_name: 'Asha', name: 'Asha Menon', store_name: storeName }
   const filled = value?.variables.map((v) => applyMergeTags(v, merge)) ?? []

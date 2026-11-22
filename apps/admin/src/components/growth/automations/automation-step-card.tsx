@@ -16,6 +16,7 @@ import WhatsappTemplateCard, {
 import DataCard from '@/components/layout/data-card'
 import DialogContent from '@/components/layout/dialog-content'
 import { automationEditorContent, durationLabel } from '@/data/marketing-automations'
+import { useCopy } from '@/hooks/use-copy'
 
 type AutomationStepCardProps = {
   step: AutomationStep
@@ -29,14 +30,6 @@ type AutomationStepCardProps = {
   onRemove: () => void
 }
 
-const copy = automationEditorContent.steps
-const FIELD_OPTIONS = CONDITION_FIELDS.map((f) => ({ value: f, label: copy.fields[f] }))
-const OP_OPTIONS = (['gte', 'lte', 'eq'] as const).map((o) => ({ value: o, label: copy.ops[o] }))
-const BOOL_OPTIONS = [
-  { value: 'true', label: copy.yes },
-  { value: 'false', label: copy.no },
-]
-
 /** One step of an automation: its timing, its controls and the fields for its type. */
 export default function AutomationStepCard({
   step,
@@ -49,7 +42,16 @@ export default function AutomationStepCard({
   onRemove,
 }: AutomationStepCardProps) {
   // Hooks
+  const copy = useCopy(automationEditorContent).steps
   const [preview, setPreview] = useState(false)
+
+  // Derived
+  const fieldOptions = CONDITION_FIELDS.map((f) => ({ value: f, label: copy.fields[f] }))
+  const opOptions = (['gte', 'lte', 'eq'] as const).map((o) => ({ value: o, label: copy.ops[o] }))
+  const boolOptions = [
+    { value: 'true', label: copy.yes },
+    { value: 'false', label: copy.no },
+  ]
 
   // Render logic
   const when = offsetMinutes > 0 ? copy.after(durationLabel(offsetMinutes)) : copy.immediately
@@ -95,7 +97,7 @@ export default function AutomationStepCard({
             id={`${step.id}-field`}
             label={copy.field}
             value={step.field}
-            options={FIELD_OPTIONS}
+            options={fieldOptions}
             onChange={(field) =>
               onChange({
                 ...step,
@@ -111,7 +113,7 @@ export default function AutomationStepCard({
               id={`${step.id}-value`}
               label={copy.value}
               value={step.value}
-              options={BOOL_OPTIONS}
+              options={boolOptions}
               onChange={(value) => onChange({ ...step, value })}
             />
           ) : (
@@ -120,7 +122,7 @@ export default function AutomationStepCard({
                 id={`${step.id}-op`}
                 label={copy.op}
                 value={step.op}
-                options={OP_OPTIONS}
+                options={opOptions}
                 onChange={(op) => onChange({ ...step, op: op as typeof step.op })}
               />
               <Field>

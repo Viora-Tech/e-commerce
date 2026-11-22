@@ -7,6 +7,7 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { campaignEditorContent } from '@/data/marketing-campaigns'
+import { useCopy } from '@/hooks/use-copy'
 import DiscountCodeField from './discount-code-field'
 import EmailImageField from './email-image-field'
 import EmailProductsPicker from './email-products-picker'
@@ -24,8 +25,6 @@ type TextFieldProps = {
   help?: string | undefined
   placeholder?: string | undefined
 }
-
-const copy = campaignEditorContent.fields
 
 function TextField({ id, label, value, onChange, help, placeholder }: TextFieldProps) {
   return (
@@ -75,6 +74,9 @@ function NumberField({ id, label, value, min, max, onChange, help }: NumberField
 
 /** The settings of one email block; which fields show depends on the block type. */
 export default function EmailBlockFields({ block, onChange }: EmailBlockFieldsProps) {
+  // Hooks
+  const copy = useCopy(campaignEditorContent.fields)
+
   // Helpers
   const id = (field: string) => `${block.id}-${field}`
 

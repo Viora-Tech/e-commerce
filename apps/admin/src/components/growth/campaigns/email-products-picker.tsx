@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import SearchField from '@/components/fields/search-field'
 import ProductThumb from '@/components/products/product-thumb'
 import { campaignEditorContent } from '@/data/marketing-campaigns'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
 
@@ -20,7 +21,6 @@ type EmailProductsPickerProps = {
 type Row = Awaited<ReturnType<typeof api.products.list>>['items'][number]
 
 const MAX = 6
-const copy = campaignEditorContent.fields
 
 function toItem(p: Row): Items[number] {
   return {
@@ -35,6 +35,7 @@ function toItem(p: Row): Items[number] {
 /** Search active products and add up to six to a products block; each keeps a snapshot for the email. */
 export default function EmailProductsPicker({ items, onChange }: EmailProductsPickerProps) {
   // Hooks
+  const copy = useCopy(campaignEditorContent.fields)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Row[]>([])
 

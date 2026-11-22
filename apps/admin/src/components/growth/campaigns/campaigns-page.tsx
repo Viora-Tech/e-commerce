@@ -11,7 +11,7 @@ import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import { growthCampaignTabsContent } from '@/data/growth-home'
-import { campaignsContent } from '@/data/marketing-campaigns'
+import { campaignReportContent, campaignsContent } from '@/data/marketing-campaigns'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -43,6 +43,7 @@ export default function CampaignsPage({ campaigns, performance, tabs }: Campaign
   // Hooks
   const copy = useCopy(campaignsContent)
   const tabsCopy = useCopy(growthCampaignTabsContent)
+  const reportCopy = useCopy(campaignReportContent)
   const fmt = useFormat()
   const [tab, setTab] = useState<Tab | null>(null)
   const [query, setQuery] = useState('')
@@ -106,7 +107,7 @@ export default function CampaignsPage({ campaigns, performance, tabs }: Campaign
     >
       <ResourceTable
         resourceName={copy.resource}
-        columns={campaignColumns(copy, fmt, { rows: ytd, copy: tabsCopy })}
+        columns={campaignColumns(copy, fmt, reportCopy.rate, { rows: ytd, copy: tabsCopy })}
         items={items}
         getId={(c) => c.id}
         href={(c) => routes.growth.campaign(c.id)}
