@@ -308,6 +308,9 @@ export default [
       close: 'बंद करें',
       sendTest: 'मुझे टेस्ट भेजें',
       frameTitle: (name: string) => `${name} का ईमेल प्रीव्यू`,
+      back: 'नोटिफ़िकेशन',
+      edit: 'बदलें',
+      notFound: 'यह मैसेज मौजूद नहीं है।',
     },
 
     test: {

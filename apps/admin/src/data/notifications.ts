@@ -333,6 +333,10 @@ export const notificationsSettingsContent = {
     close: 'Close',
     sendTest: 'Send me a test',
     frameTitle: (name: string) => `Email preview of ${name}`,
+    /** The message's own page (owner, 22 Nov 2026, Shopify's email page). */
+    back: 'Notifications',
+    edit: 'Edit',
+    notFound: 'This message does not exist.',
   },
 
   test: {

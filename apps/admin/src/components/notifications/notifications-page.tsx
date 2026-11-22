@@ -21,15 +21,13 @@ import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
-import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import AdvancedSection from './advanced-section'
-import DesignEditorDialog from './design/design-editor-dialog'
 import MessageRow from './message-row'
-import PreviewDialog from './preview-dialog'
 import SenderEmailCard from './sender-email-card'
 import SendingCard from './sending-card'
 import type { MessageRowData, NotificationsOverview, SenderEmailOverview } from './types'
+import { useSendTest } from './use-send-test'
 
 type MessageId = Parameters<typeof api.notifications.setMessage>[0]['id']
 
@@ -62,9 +60,6 @@ export default function NotificationsPage() {
   const rowsCopy = useCopy(settingsRowsContent)
   const [data, setData] = useState<NotificationsOverview | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
-  const [testing, setTesting] = useState<string | null>(null)
-  const [previewing, setPreviewing] = useState<string | null>(null)
-  const [designing, setDesigning] = useState<string | null>(null)
   const [senderEmail, setSenderEmail] = useState<SenderEmailOverview | null>(null)
   const [openRow] = useQueryState('open')
 
@@ -73,6 +68,7 @@ export default function NotificationsPage() {
     setData(overview)
     return overview
   })
+  const { testing, sendTest } = useSendTest(data)
   // The Sender email row shows the address (#68); reload it on the way back from its detail.
   // biome-ignore lint/correctness/useExhaustiveDependencies: `openRow` re-runs the load
   useEffect(() => {
@@ -112,9 +108,7 @@ export default function NotificationsPage() {
           saving={saving === m.id}
           testing={testing === m.id}
           onToggle={(on) => handleToggle(m, on)}
-          onPreview={() => setPreviewing(m.id)}
-          onTest={() => handleTest(m)}
-          onEditDesign={() => setDesigning(m.id)}
+          onTest={() => void sendTest(m.id)}
         />
       ))}
     </SettingsTable>
@@ -133,34 +127,6 @@ export default function NotificationsPage() {
     } finally {
       setSaving(null)
     }
-  }
-
-  const handleTest = async (m: MessageRowData) => {
-    if (!data?.canSendTest) {
-      toast.info(copy.test.noChannel)
-      return
-    }
-    setTesting(m.id)
-    try {
-      const r = await api.notifications.sendTest({ id: m.id as MessageId })
-      if (!r.ok) toast.error(r.error === 'no_channel' ? copy.test.noChannel : copy.test.failed)
-      else if (data.channels.email.state === 'connected' || data.platformEmail) {
-        toast.success(copy.test.sent(r.to))
-      } else toast.success(copy.test.sentLog)
-    } catch (err) {
-      toast.error(errorText(err, copy.test.failed))
-    } finally {
-      setTesting(null)
-    }
-  }
-
-  const handleClosePreview = () => setPreviewing(null)
-
-  const handleDesignSaved = (id: string, designed: boolean) => patchMessage(id, { designed })
-
-  const handlePreviewTest = () => {
-    const m = data?.messages.find((row) => row.id === previewing)
-    if (m) void handleTest(m)
   }
 
   // Early returns
@@ -278,19 +244,6 @@ export default function NotificationsPage() {
         ) : null}
       </SettingsDrill>
       <HelpFooter page="notifications" />
-
-      <PreviewDialog
-        messageId={previewing}
-        onClose={handleClosePreview}
-        onTest={handlePreviewTest}
-        testing={previewing !== null && testing === previewing}
-      />
-
-      <DesignEditorDialog
-        messageId={designing}
-        onClose={() => setDesigning(null)}
-        onSaved={handleDesignSaved}
-      />
     </div>
   )
 }

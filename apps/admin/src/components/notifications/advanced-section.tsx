@@ -15,6 +15,7 @@ import { toast } from 'sonner'
 import { notificationsSettingsContent } from '@/data/notifications'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type AdvancedSectionProps = {
   devLog: boolean
@@ -46,7 +47,7 @@ export default function AdvancedSection({ devLog, onChanged }: AdvancedSectionPr
       toast.success(on ? copy.devLogOn : copy.devLogOff)
       await onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : setupCopy.list.saveFailed)
+      toast.error(errorText(err, setupCopy.list.saveFailed))
     } finally {
       setSaving(false)
     }
