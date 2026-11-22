@@ -40,10 +40,10 @@ import DelhiveryRechargeButton from '@/components/apps/delhivery/recharge-button
 import DelhiveryShipmentsPage from '@/components/apps/delhivery/shipments-page'
 import DeliveryOptionsHeaderAction from '@/components/apps/delivery-options/header-action'
 import DeliveryOptionPage from '@/components/apps/delivery-options/option-page'
-import DeliveryOptionsSectionPage from '@/components/apps/delivery-options/options-section-page'
-import DeliveryOverviewSectionPage from '@/components/apps/delivery-options/overview-section-page'
-import DeliveryRoutesSectionPage from '@/components/apps/delivery-options/routes-section-page'
-import DeliveryRulesSectionPage from '@/components/apps/delivery-options/rules-section-page'
+import DeliveryOptionsPage from '@/components/apps/delivery-options/options-page'
+import DeliveryOptionsOverviewPage from '@/components/apps/delivery-options/overview-page'
+import DeliveryRoutesPage from '@/components/apps/delivery-options/routes-page'
+import DeliveryRulesPage from '@/components/apps/delivery-options/rules-page'
 import DhlExpressConnectPage from '@/components/apps/dhl-express/connect-page'
 import DhlExpressOverviewPage from '@/components/apps/dhl-express/overview-page'
 import DtdcConnectPage from '@/components/apps/dtdc/connect-page'
@@ -211,10 +211,10 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
   'delivery-options': {
     HeaderAction: DeliveryOptionsHeaderAction,
     pages: {
-      '': DeliveryOverviewSectionPage,
-      options: DeliveryOptionsSectionPage,
-      routes: DeliveryRoutesSectionPage,
-      rules: DeliveryRulesSectionPage,
+      '': DeliveryOptionsOverviewPage,
+      options: DeliveryOptionsPage,
+      routes: DeliveryRoutesPage,
+      rules: DeliveryRulesPage,
       'options/[id]': DeliveryOptionPage,
     },
   },

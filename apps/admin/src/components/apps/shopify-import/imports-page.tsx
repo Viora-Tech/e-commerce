@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import BackgroundWorkNotice from '@/components/media/background-work-notice'
+import StatusLabel from '@/components/status/status-label'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { shopifyImportSettingsContent } from '@/data/shopify-import-settings'
@@ -15,7 +16,6 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
 import RemainingCard from './remaining-card'
-import RunStatusLabel from './run-status-label'
 import StorageNotice from './storage-notice'
 import TrafficCard from './traffic-card'
 import { type RunListItem, totals } from './types'
@@ -59,7 +59,13 @@ const columnsFor = (
     id: 'status',
     title: all.home.columns.status,
     className: 'whitespace-nowrap',
-    render: (r) => <RunStatusLabel status={r.status} preview={r.dryRun} />,
+    // A finished dry run reads "Preview ready"; everything else is the run's own status.
+    render: (r) => (
+      <StatusLabel
+        kind="importRun"
+        value={r.status === 'completed' && r.dryRun ? 'preview' : r.status}
+      />
+    ),
   },
   {
     id: 'result',
