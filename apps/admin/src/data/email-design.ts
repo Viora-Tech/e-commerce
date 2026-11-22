@@ -47,6 +47,16 @@ export const emailDesignContent = {
     lockedLabel: 'Locked',
     builtInNote: 'Built-in words, filled in for each order. You can move or remove it.',
     unsaved: 'Unsaved changes',
+    undo: 'Undo',
+    redo: 'Redo',
+    undoShortcut: 'Undo (Ctrl+Z)',
+    redoShortcut: 'Redo (Ctrl+Shift+Z)',
+    duplicate: (name: string) => `Duplicate ${name}`,
+    addHint: 'Drag a block into the list, or click it to add it below the selected block.',
+    full: 'This email has the most blocks it can hold. Remove one to add another.',
+    dropEnd: 'Drop here to add at the end',
+    settings: 'Block settings',
+    settingsOf: (name: string) => `Settings: ${name}`,
   },
   preview: {
     title: 'Preview with a sample order',
@@ -159,5 +169,11 @@ export const emailDesignContent = {
     dropped: (name: string, position: number, total: number) =>
       `${name} dropped at position ${position} of ${total}.`,
     cancelled: (name: string) => `Moving ${name} cancelled.`,
+    newPicked: (name: string) => `Picked up a new ${name} block.`,
+    newOver: (name: string, position: number, total: number) =>
+      `New ${name} goes in at position ${position} of ${total}.`,
+    newDropped: (name: string, position: number, total: number) =>
+      `New ${name} added at position ${position} of ${total}.`,
+    newCancelled: (name: string) => `Adding ${name} cancelled.`,
   },
 }

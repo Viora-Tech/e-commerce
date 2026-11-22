@@ -4,6 +4,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { emailDesignContent as copy } from '@/data/email-design'
 import DesignEditorSidebar from './design-editor-sidebar'
+import DesignSettingsPanel from './design-settings-panel'
 import { removeBlock } from './design-state'
 
 vi.mock('@/lib/api-client', () => ({ api: {} }))
@@ -70,8 +71,36 @@ describe('Edit design: locked blocks', () => {
     expect(removeBlock(design, 'intro')).toBe(design)
   })
 
+  it('duplicates a free block below it, but never an order block or the intro', () => {
+    const onChange = setup()
+    expect(
+      screen.queryByRole('button', { name: copy.editor.duplicate(copy.slots.items as string) }),
+    ).toBeNull()
+    expect(
+      screen.queryByRole('button', { name: copy.editor.duplicate(copy.blocks.intro) }),
+    ).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: copy.editor.duplicate(copy.blocks.text) }))
+    const next = onChange.mock.calls[0]?.[0] as EmailTemplateDesign
+    expect(next.blocks).toHaveLength(design.blocks.length + 1)
+    expect(next.blocks.at(-1)).toMatchObject({ type: 'text', text: 'Hello {{nope}}' })
+  })
+
+  it('adds a block from the palette with a click (Enter from the keyboard)', () => {
+    const onChange = setup('logo')
+    fireEvent.click(screen.getByRole('button', { name: copy.blocks.heading }))
+    const next = onChange.mock.calls[0]?.[0] as EmailTemplateDesign
+    expect(next.blocks[1]?.type).toBe('heading')
+  })
+
   it('flags a word this email cannot fill in', () => {
-    setup('hello')
+    render(
+      <DesignSettingsPanel
+        design={design}
+        variables={['customer_name']}
+        selected="hello"
+        onChange={vi.fn()}
+      />,
+    )
     expect(screen.getByRole('alert').textContent).toBe(copy.variables.unknown('{{nope}}'))
   })
 })

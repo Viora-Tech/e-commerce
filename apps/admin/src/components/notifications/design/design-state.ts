@@ -1,4 +1,5 @@
 import {
+  DESIGN_LIMITS,
   type DesignBlock,
   type EmailTemplateDesign,
   type FreeBlock,
@@ -61,14 +62,72 @@ export function isEditable(block: DesignBlock): boolean {
   return block.type !== 'slot'
 }
 
+/** Whether another block fits (the server keeps the first 60). */
+export function canAdd(design: EmailTemplateDesign): boolean {
+  return design.blocks.length < DESIGN_LIMITS.blocks
+}
+
 export function addBlock(design: EmailTemplateDesign, block: FreeBlock, after?: string) {
   const at = after ? design.blocks.findIndex((b) => b.id === after) : -1
-  const blocks = [...design.blocks]
   // Without a selection, new blocks go above the footer when there is one.
-  const footer = blocks.findIndex((b) => b.type === 'footer')
-  const index = at !== -1 ? at + 1 : footer !== -1 ? footer : blocks.length
-  blocks.splice(index, 0, block)
+  const footer = design.blocks.findIndex((b) => b.type === 'footer')
+  const index = at !== -1 ? at + 1 : footer !== -1 ? footer : design.blocks.length
+  return insertBlock(design, block, index)
+}
+
+/** Puts a new block at a place in the list (a block dragged in from the palette). */
+export function insertBlock(
+  design: EmailTemplateDesign,
+  block: FreeBlock,
+  index: number,
+): EmailTemplateDesign {
+  if (!canAdd(design)) return design
+  const at = Math.max(0, Math.min(index, design.blocks.length))
+  const blocks = [...design.blocks]
+  blocks.splice(at, 0, block)
   return { ...design, blocks }
+}
+
+/** Moves the block at `from` to `to` (drag or keyboard); out of range leaves the design as is. */
+export function moveBlock(design: EmailTemplateDesign, from: number, to: number) {
+  const n = design.blocks.length
+  if (from === to || from < 0 || to < 0 || from >= n || to >= n) return design
+  const blocks = [...design.blocks]
+  const [moved] = blocks.splice(from, 1)
+  if (!moved) return design
+  blocks.splice(to, 0, moved)
+  return { ...design, blocks }
+}
+
+/** Whether a block can be copied: the merchant's own blocks only (one intro, one of each slot). */
+export function canDuplicate(block: DesignBlock): block is FreeBlock {
+  return block.type !== 'slot' && block.type !== 'intro'
+}
+
+/** A copy of a free block with a new id, right below it; `id` is the copy's (to select it). */
+export function duplicateBlock(
+  design: EmailTemplateDesign,
+  id: string,
+): { design: EmailTemplateDesign; id: string | null } {
+  const index = design.blocks.findIndex((b) => b.id === id)
+  const block = design.blocks[index]
+  if (!block || !canDuplicate(block) || !canAdd(design)) return { design, id: null }
+  const copy = { ...block, id: newId(block.type) } as FreeBlock
+  return { design: insertBlock(design, copy, index + 1), id: copy.id }
+}
+
+/**
+ * The body of "Save design": exactly the JSON the server stores (email_template_design).
+ * The subject is trimmed and dropped when empty; nothing else is added.
+ */
+export function savePayload(design: EmailTemplateDesign): EmailTemplateDesign {
+  const subject = design.subject?.trim()
+  return {
+    version: design.version,
+    ...(subject ? { subject } : {}),
+    blocks: design.blocks,
+    removed: design.removed,
+  }
 }
 
 /** Removes a block; a locked one stays. A removed built-in line is remembered as removed. */

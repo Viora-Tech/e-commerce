@@ -33,6 +33,16 @@ export default [
       lockedLabel: 'लॉक',
       builtInNote: 'पहले से लिखे शब्द, हर ऑर्डर के लिए भरे जाते हैं। इसे हिला या हटा सकते हैं।',
       unsaved: 'बदलाव सेव नहीं हुए',
+      undo: 'वापस लें',
+      redo: 'फिर से करें',
+      undoShortcut: 'वापस लें (Ctrl+Z)',
+      redoShortcut: 'फिर से करें (Ctrl+Shift+Z)',
+      duplicate: (name: string) => `${name} की कॉपी बनाएं`,
+      addHint: 'ब्लॉक को सूची में खींचें, या चुने हुए ब्लॉक के नीचे जोड़ने के लिए उस पर क्लिक करें।',
+      full: 'इस ईमेल में और ब्लॉक नहीं आ सकते। नया जोड़ने के लिए कोई एक हटाएं।',
+      dropEnd: 'आख़िर में जोड़ने के लिए यहां छोड़ें',
+      settings: 'ब्लॉक की सेटिंग',
+      settingsOf: (name: string) => `सेटिंग: ${name}`,
     },
     preview: {
       title: 'सैंपल ऑर्डर के साथ प्रीव्यू',
@@ -144,6 +154,12 @@ export default [
       dropped: (name: string, position: number, total: number) =>
         `${name} ${total} में से ${position} पर रखा।`,
       cancelled: (name: string) => `${name} हिलाना रद्द हुआ।`,
+      newPicked: (name: string) => `नया ${name} ब्लॉक उठाया।`,
+      newOver: (name: string, position: number, total: number) =>
+        `नया ${name} ${total} में से ${position} नंबर पर आएगा।`,
+      newDropped: (name: string, position: number, total: number) =>
+        `नया ${name} ${total} में से ${position} नंबर पर जुड़ गया।`,
+      newCancelled: (name: string) => `${name} जोड़ना रद्द हुआ।`,
     },
   }),
 ]

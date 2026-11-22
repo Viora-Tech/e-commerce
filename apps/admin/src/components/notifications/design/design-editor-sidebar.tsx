@@ -1,30 +1,21 @@
 'use client'
 
-import {
-  DESIGN_LIMITS,
-  type DesignBlock,
-  type EmailTemplateDesign,
-  type FreeBlockType,
-  unknownVariables,
-} from '@commerce/notifications/design'
+import { DESIGN_LIMITS, type EmailTemplateDesign } from '@commerce/notifications/design'
 import { emailDesignContent } from '@/data/email-design'
 import { useCopy } from '@/hooks/use-copy'
-import DesignBlockList from './design-block-list'
-import DesignBlockSettings from './design-block-settings'
-import DesignPalette from './design-palette'
-import { addBlock, blockProblem, newBlock, removeBlock, updateBlock } from './design-state'
+import DesignOutline from './design-outline'
 import DesignTextField from './design-text-field'
-import DesignVariables from './design-variables'
 
 type DesignEditorSidebarProps = {
   design: EmailTemplateDesign
   variables: readonly string[]
   selected: string | null
   onSelect: (id: string | null) => void
-  onChange: (design: EmailTemplateDesign) => void
+  /** `group` folds a run of typing into one undo step. */
+  onChange: (design: EmailTemplateDesign, group?: string) => void
 }
 
-/** The editor's left side: subject, blocks to add, the email's blocks in order and the selected one's settings. */
+/** The editor's left side: the subject line, blocks to add and the email's blocks in order. */
 export default function DesignEditorSidebar({
   design,
   variables,
@@ -35,29 +26,7 @@ export default function DesignEditorSidebar({
   // Hooks
   const copy = useCopy(emailDesignContent)
 
-  // Event handlers
-  const handleAdd = (type: FreeBlockType) => {
-    const block = newBlock(type)
-    onChange(addBlock(design, block, selected ?? undefined))
-    onSelect(block.id)
-  }
-
-  const handleRemove = (id: string) => {
-    onChange(removeBlock(design, id))
-    if (selected === id) onSelect(null)
-  }
-
-  const handleReorder = (blocks: DesignBlock[]) => onChange({ ...design, blocks })
-
   // Render logic
-  const block = design.blocks.find((b) => b.id === selected) ?? null
-  const unknown = [
-    ...new Set([
-      ...unknownVariables(design.subject ?? '', variables),
-      ...(block ? (blockProblem(block, variables)?.unknown ?? []) : []),
-    ]),
-  ]
-
   return (
     <div className="flex flex-col gap-5">
       <DesignTextField
@@ -66,24 +35,15 @@ export default function DesignEditorSidebar({
         value={design.subject ?? ''}
         hint={copy.editor.subjectHint}
         maxLength={DESIGN_LIMITS.subject}
-        onChange={(subject) => onChange({ ...design, subject: subject || undefined })}
+        onChange={(subject) => onChange({ ...design, subject: subject || undefined }, 'subject')}
       />
-      <DesignPalette onAdd={handleAdd} />
-      <DesignBlockList
-        blocks={design.blocks}
-        selected={selected}
+      <DesignOutline
+        design={design}
         variables={variables}
-        onReorder={handleReorder}
+        selected={selected}
         onSelect={onSelect}
-        onRemove={handleRemove}
+        onChange={(next) => onChange(next)}
       />
-      <div className="rounded-lg border border-border p-3">
-        <DesignBlockSettings
-          block={block}
-          onChange={(patch) => block && onChange(updateBlock(design, block.id, patch))}
-        />
-      </div>
-      <DesignVariables variables={variables} unknown={unknown} />
     </div>
   )
 }

@@ -1,13 +1,13 @@
 'use client'
 
 import type { DesignBlock } from '@commerce/notifications/design'
-import { Lock, Trash2, TriangleAlert } from '@commerce/ui/icons'
+import { Copy, Lock, Trash2, TriangleAlert } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import type { ReactNode } from 'react'
 import { emailDesignContent } from '@/data/email-design'
 import { useCopy } from '@/hooks/use-copy'
-import { blockSummary, blockTitle, isLocked } from './design-state'
+import { blockSummary, blockTitle, canDuplicate, isLocked } from './design-state'
 
 type DesignBlockRowProps = {
   block: DesignBlock
@@ -16,13 +16,18 @@ type DesignBlockRowProps = {
   selected: boolean
   /** The block has something to fix before saving (a bad link, a word that does not fill in). */
   problem: boolean
+  /** A new block from the palette would land here: a line shows above the row. */
+  dropAbove: boolean
+  /** The email holds the most blocks it can (no Duplicate). */
+  full: boolean
   onSelect: () => void
   onRemove: () => void
+  onDuplicate: () => void
 }
 
 /**
- * One block in the editor's list: the drag handle, its name and first words, then a lock for
- * the order's own blocks or a remove button for everything else.
+ * One block in the editor's list: the drag handle, its name and first words, then Duplicate for
+ * the merchant's own blocks and a lock for the order's own blocks or Remove for everything else.
  */
 export default function DesignBlockRow({
   block,
@@ -30,8 +35,11 @@ export default function DesignBlockRow({
   isDragging,
   selected,
   problem,
+  dropAbove,
+  full,
   onSelect,
   onRemove,
+  onDuplicate,
 }: DesignBlockRowProps) {
   // Hooks
   const copy = useCopy(emailDesignContent)
@@ -44,12 +52,19 @@ export default function DesignBlockRow({
   return (
     <div
       className={cn(
-        'flex items-center gap-1 rounded-md border bg-card py-1 pr-1 pl-0.5',
+        'relative flex items-center gap-1 rounded-md border bg-card py-1 pr-1 pl-0.5',
         selected ? 'border-primary' : 'border-border',
         problem && 'border-destructive',
         isDragging && 'shadow-md',
       )}
     >
+      {dropAbove ? (
+        <span
+          aria-hidden="true"
+          className="absolute inset-x-0 -top-1.5 h-0.5 rounded-full bg-primary"
+          data-testid="drop-line"
+        />
+      ) : null}
       {handle}
       <button
         type="button"
@@ -67,6 +82,18 @@ export default function DesignBlockRow({
           <span className="w-full truncate text-caption text-muted-foreground">{summary}</span>
         ) : null}
       </button>
+      {canDuplicate(block) ? (
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          aria-label={copy.editor.duplicate(title)}
+          disabled={full}
+          onClick={onDuplicate}
+        >
+          <Copy aria-hidden="true" className="size-4" />
+        </Button>
+      ) : null}
       {locked ? (
         <span
           className="inline-flex size-8 shrink-0 items-center justify-center text-muted-foreground"
