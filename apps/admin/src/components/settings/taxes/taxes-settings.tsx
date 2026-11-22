@@ -8,7 +8,7 @@ import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-rows'
 import LoadFailed from '@/components/states/load-failed'
 import { settingsRowsContent } from '@/data/settings-rows'
-import { taxesContent as copy } from '@/data/taxes'
+import { taxesContent } from '@/data/taxes'
 import { useCopy } from '@/hooks/use-copy'
 import type { LoadFailure } from '@/hooks/use-load'
 import { useSetupNext } from '@/hooks/use-setup-next'
@@ -60,6 +60,7 @@ export default function TaxesSettings({
   header,
 }: TaxesSettingsProps) {
   // Hooks
+  const copy = useCopy(taxesContent)
   const rowsCopy = useCopy(settingsRowsContent)
   const announceSetup = useSetupNext()
   const [view, setView] = useState<TaxesView | null>(null)

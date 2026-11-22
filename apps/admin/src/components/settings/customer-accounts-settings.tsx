@@ -21,12 +21,9 @@ import LoginAppDialog from '@/components/settings/login-app-dialog'
 import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-rows'
 import SignInExtrasCard from '@/components/settings/sign-in-extras-card'
 import SignInProvidersCard from '@/components/settings/sign-in-providers-card'
-import {
-  customerAccountsContent as copy,
-  LOGIN_METHOD_COPY,
-  PROVIDER_COPY,
-} from '@/data/customer-accounts'
+import { customerAccountsContent, LOGIN_METHOD_COPY, PROVIDER_COPY } from '@/data/customer-accounts'
 import { settingsContent } from '@/data/settings'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
@@ -48,6 +45,8 @@ type Loaded = {
 /** Settings → Customer accounts: guest checkout, and every way customers can sign in. */
 export default function CustomerAccountsSettings() {
   // Hooks
+  const copy = useCopy(customerAccountsContent)
+  const settingsCopy = useCopy(settingsContent)
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [form, setForm] = useState<Settings | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
@@ -146,9 +145,9 @@ export default function CustomerAccountsSettings() {
     <div className="flex flex-col gap-4">
       <SaveBar
         open={dirty && !none}
-        message={settingsContent.general.unsaved}
+        message={settingsCopy.general.unsaved}
         saveLabel={copy.save}
-        discardLabel={settingsContent.general.discard}
+        discardLabel={settingsCopy.general.discard}
         onSave={handleSave}
         onDiscard={() => saved && setForm(JSON.parse(saved) as Settings)}
         saving={busy}

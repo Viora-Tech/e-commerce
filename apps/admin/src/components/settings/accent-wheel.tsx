@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { appearanceContent } from '@/data/appearance'
+import { useCopy } from '@/hooks/use-copy'
 import { type Hsv, hexToHsv, hsvToHex, wheelPoint, wheelPosition } from '@/lib/color-wheel'
 
 type AccentWheelProps = {
@@ -9,8 +10,6 @@ type AccentWheelProps = {
   value: string
   onChange: (hex: string) => void
 }
-
-const copy = appearanceContent.accent
 
 /** Arrow keys move the handle this many degrees of hue / this much saturation. */
 const HUE_STEP = 5
@@ -22,6 +21,7 @@ const SAT_STEP = 0.05
  */
 export default function AccentWheel({ value, onChange }: AccentWheelProps) {
   // Hooks
+  const copy = useCopy(appearanceContent).accent
   const ref = useRef<HTMLDivElement>(null)
   // The wheel keeps its own hue while saturation or brightness is zero (grey has no hue).
   const [hsv, setHsv] = useState<Hsv>(() => hexToHsv(value))

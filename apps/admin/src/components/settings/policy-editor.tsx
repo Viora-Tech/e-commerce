@@ -18,8 +18,9 @@ import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsTextRow from '@/components/settings/settings-text-row'
 import InlineState from '@/components/states/inline-state'
-import { policyEditorContent as copy, policiesContent } from '@/data/policies'
+import { policiesContent, policyEditorContent } from '@/data/policies'
 import { settingsContent } from '@/data/settings'
+import { useCopy } from '@/hooks/use-copy'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
@@ -51,6 +52,9 @@ export default function PolicyEditor({
   storefrontOrigin,
 }: PolicyEditorProps) {
   // Hooks
+  const copy = useCopy(policyEditorContent)
+  const settingsCopy = useCopy(settingsContent)
+  const policiesCopy = useCopy(policiesContent)
   const announceSetup = useSetupNext()
   const [policy, setPolicy] = useState<StorePolicy | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
@@ -161,19 +165,17 @@ export default function PolicyEditor({
     <div className="flex flex-col gap-4">
       <SaveBar
         open={dirty}
-        message={settingsContent.general.unsaved}
+        message={settingsCopy.general.unsaved}
         saveLabel={copy.save}
-        discardLabel={settingsContent.general.discard}
+        discardLabel={settingsCopy.general.discard}
         onSave={handleSave}
         onDiscard={handleDiscard}
         saving={busy}
       />
       <PageHeader
-        title={policiesContent.names[type]}
+        title={policiesCopy.names[type]}
         subtitle={
-          policy?.updatedAt
-            ? copy.updated(formatDate(policy.updatedAt))
-            : policiesContent.hints[type]
+          policy?.updatedAt ? copy.updated(formatDate(policy.updatedAt)) : policiesCopy.hints[type]
         }
         back={{ label: copy.back, href: routes.settings.policies() }}
         actions={

@@ -9,7 +9,8 @@ import { Textarea } from '@commerce/ui/shadcn/textarea'
 import type { ReactNode } from 'react'
 import DataCard from '@/components/layout/data-card'
 import StatusLabel from '@/components/status/status-label'
-import { providerSettingsContent as copy } from '@/data/provider-settings'
+import { providerSettingsContent } from '@/data/provider-settings'
+import { useCopy } from '@/hooks/use-copy'
 
 /** One field of a provider's config, as its factory declares it. */
 export type ProviderFieldDef = {
@@ -49,6 +50,9 @@ type ProviderFieldProps = {
 }
 
 function ProviderField({ providerId, field: f, value, onChange }: ProviderFieldProps) {
+  // Hooks
+  const copy = useCopy(providerSettingsContent)
+
   // Early returns
   const id = fieldId(providerId, f.key)
   if (f.type === 'boolean') {
@@ -117,6 +121,7 @@ export default function ProviderCard({
   extra,
   noConfigText,
 }: ProviderCardProps) {
+  const copy = useCopy(providerSettingsContent)
   const switchId = `provider-${provider.id}-enabled`
 
   return (

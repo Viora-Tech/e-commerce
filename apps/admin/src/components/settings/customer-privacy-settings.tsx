@@ -13,7 +13,7 @@ import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import AskAgainDialog from '@/components/settings/ask-again-dialog'
 import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-rows'
-import { customerPrivacyContent as copy } from '@/data/customer-privacy'
+import { customerPrivacyContent } from '@/data/customer-privacy'
 import { settingsContent } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy } from '@/hooks/use-copy'
@@ -52,6 +52,8 @@ const clampDays = (raw: string): number =>
  */
 export default function CustomerPrivacySettings() {
   // Hooks
+  const copy = useCopy(customerPrivacyContent)
+  const settingsCopy = useCopy(settingsContent)
   const rowsCopy = useCopy(settingsRowsContent)
   const [overview, setOverview] = useState<Overview | null>(null)
   const [form, setForm] = useState<Form | null>(null)
@@ -137,9 +139,9 @@ export default function CustomerPrivacySettings() {
     <div className="flex flex-col gap-4">
       <SaveBar
         open={dirty}
-        message={settingsContent.general.unsaved}
+        message={settingsCopy.general.unsaved}
         saveLabel={copy.save}
-        discardLabel={settingsContent.general.discard}
+        discardLabel={settingsCopy.general.discard}
         onSave={handleSave}
         onDiscard={() => saved && setForm(JSON.parse(saved) as Form)}
         saving={busy}

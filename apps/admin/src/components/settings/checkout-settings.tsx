@@ -29,7 +29,7 @@ import { checkoutRulesContent } from '@/data/checkout-rules'
 import {
   checkoutBrandingContent,
   checkoutRecommendedContent,
-  checkoutSettingsContent as copy,
+  checkoutSettingsContent,
 } from '@/data/checkout-settings'
 import { PAYMENTS_PAGE_HREF } from '@/data/payments-setup'
 import { settingsContent } from '@/data/settings'
@@ -55,6 +55,8 @@ const formOf = (v: Loaded): Form => ({ settings: v.settings, codFee: v.codFee })
  */
 export default function CheckoutSettings() {
   // Hooks
+  const copy = useCopy(checkoutSettingsContent)
+  const settingsCopy = useCopy(settingsContent)
   const brandingCopy = useCopy(checkoutBrandingContent)
   const recCopy = useCopy(checkoutRecommendedContent)
   const rules = useCopy(checkoutRulesContent)
@@ -241,9 +243,9 @@ export default function CheckoutSettings() {
     <div className="flex flex-col gap-4">
       <SaveBar
         open={dirty}
-        message={settingsContent.general.unsaved}
+        message={settingsCopy.general.unsaved}
         saveLabel={copy.save}
-        discardLabel={settingsContent.general.discard}
+        discardLabel={settingsCopy.general.discard}
         onSave={handleSave}
         onDiscard={handleDiscard}
         saving={busy}

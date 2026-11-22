@@ -8,6 +8,7 @@ import Link from 'next/link'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsTextRow from '@/components/settings/settings-text-row'
 import { taxesContent } from '@/data/taxes'
+import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import type { TaxesErrors, TaxesFormState } from './taxes-form'
 
@@ -19,8 +20,6 @@ type RegistrationCardProps = {
   managed: boolean
 }
 
-const copy = taxesContent.registration
-
 /** GSTIN (with the state its first two digits name), legal name and registered address. */
 export default function RegistrationCard({
   form,
@@ -28,6 +27,9 @@ export default function RegistrationCard({
   onPatch,
   managed,
 }: RegistrationCardProps) {
+  // Hooks
+  const copy = useCopy(taxesContent.registration)
+
   // Helpers
   const patchAddress = (p: Partial<TaxesFormState['address']>) =>
     onPatch({ address: { ...form.address, ...p } })

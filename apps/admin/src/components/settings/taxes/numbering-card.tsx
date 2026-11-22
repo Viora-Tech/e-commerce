@@ -8,6 +8,7 @@ import SwitchRow from '@/components/fields/switch-row'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsTextRow from '@/components/settings/settings-text-row'
 import { taxesContent } from '@/data/taxes'
+import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import type { TaxesErrors, TaxesFormState } from './taxes-form'
 
@@ -23,8 +24,6 @@ type NumberingCardProps = {
   onChange: (numbering: Numbering) => void
 }
 
-const copy = taxesContent.numbering
-
 /**
  * Prefix, next number and the yearly restart of the domestic tax-invoice
  * series the GST invoices app numbers from, with a live preview.
@@ -37,6 +36,9 @@ export default function NumberingCard({
   errors,
   onChange,
 }: NumberingCardProps) {
+  // Hooks
+  const copy = useCopy(taxesContent.numbering)
+
   // Helpers
   const patch = (p: Partial<Numbering>) => onChange({ ...numbering, ...p })
 

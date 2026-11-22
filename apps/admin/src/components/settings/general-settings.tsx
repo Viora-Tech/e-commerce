@@ -23,6 +23,7 @@ import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-
 import LoadFailed from '@/components/states/load-failed'
 import { settingsContent } from '@/data/settings'
 import { taxesContent } from '@/data/taxes'
+import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
@@ -38,20 +39,9 @@ import StoreDataSection from './store-data-section'
 
 type Loaded = NonNullable<Awaited<ReturnType<typeof api.store.getGeneral>>>
 type Errors = Partial<Record<string, string>>
-
-const copy = settingsContent.general
-const movedCopy = taxesContent.movedFromGeneral
 const TAXES_HREF = '/settings/taxes'
-const timezoneItems = Object.fromEntries(copy.timezones.map((t) => [t.value, t.label]))
 /** ₹6,499: the price the format field previews. */
 const SAMPLE_PAISE = 649_900
-
-/** The format's help line, with how a sample price reads once it is valid. */
-function moneyFormatHelp(format: string): string {
-  const trimmed = format.trim()
-  if (!trimmed || !isMoneyFormat(trimmed)) return copy.locale.moneyFormatHelp
-  return `${copy.locale.moneyFormatHelp} ${copy.locale.moneyFormatPreview(formatStoreMoney(SAMPLE_PAISE, trimmed))}`
-}
 
 /** Zod issues keyed by dotted path, e.g. `address.pincode`. */
 /** Whether any of `keys` failed validation (a row shows "Needs a fix"). */
@@ -71,6 +61,8 @@ function validate(form: StoreGeneral): Errors {
  */
 export default function GeneralSettings() {
   // Hooks
+  const copy = useCopy(settingsContent).general
+  const movedCopy = useCopy(taxesContent.movedFromGeneral)
   const announceSetup = useSetupNext()
   const router = useRouter()
   const [form, setForm] = useState<Loaded | null>(null)
@@ -89,6 +81,15 @@ export default function GeneralSettings() {
     }
     return g
   })
+
+  // Derived
+  const timezoneItems = Object.fromEntries(copy.timezones.map((t) => [t.value, t.label]))
+  /** The format's help line, with how a sample price reads once it is valid. */
+  function moneyFormatHelp(format: string): string {
+    const trimmed = format.trim()
+    if (!trimmed || !isMoneyFormat(trimmed)) return copy.locale.moneyFormatHelp
+    return `${copy.locale.moneyFormatHelp} ${copy.locale.moneyFormatPreview(formatStoreMoney(SAMPLE_PAISE, trimmed))}`
+  }
 
   // Helpers
   const patch = (p: Partial<Loaded>) => setForm((f) => (f ? { ...f, ...p } : f))

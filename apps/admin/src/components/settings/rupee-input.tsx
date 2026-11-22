@@ -8,7 +8,8 @@ import {
   InputGroupText,
 } from '@commerce/ui/shadcn/input-group'
 import { useState } from 'react'
-import { checkoutSettingsContent as copy } from '@/data/checkout-settings'
+import { checkoutSettingsContent } from '@/data/checkout-settings'
+import { useCopy } from '@/hooks/use-copy'
 import SettingsRow from './settings-row'
 
 type RupeeInputProps = {
@@ -25,6 +26,7 @@ const toText = (paise: number): string => (paise > 0 ? String(paise / 100) : '0'
 /** One rupee amount with a ₹ prefix and a plain hint. */
 export default function RupeeInput({ id, label, hint, paise, onChange }: RupeeInputProps) {
   // Hooks
+  const copy = useCopy(checkoutSettingsContent)
   const [text, setText] = useState(toText(paise))
 
   // Event handlers

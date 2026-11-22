@@ -1,15 +1,14 @@
 import type { StoreGeneral } from '@commerce/core/store-settings'
 import { Progress } from '@commerce/ui/shadcn/progress'
 import { settingsContent } from '@/data/settings'
+import { useCopy } from '@/hooks/use-copy'
 
 type GeneralCompletionProps = {
   /** The saved details (not unsaved edits), so the count matches what customers see. */
   details: StoreGeneral
 }
 
-type DetailKey = keyof typeof copy.items
-
-const copy = settingsContent.general.completion
+type DetailKey = keyof typeof settingsContent.general.completion.items
 
 const filled = (v: string) => v.trim().length > 0
 
@@ -25,6 +24,9 @@ export function detailsDone(d: StoreGeneral): Record<DetailKey, boolean> {
 
 /** "3 of 4 details done", a bar, and what is still missing, in plain words. */
 export default function GeneralCompletion({ details }: GeneralCompletionProps) {
+  // Hooks
+  const copy = useCopy(settingsContent).general.completion
+
   // Render logic
   const done = detailsDone(details)
   const keys = Object.keys(done) as DetailKey[]

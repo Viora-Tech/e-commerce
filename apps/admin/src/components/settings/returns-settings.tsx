@@ -10,7 +10,7 @@ import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import ChoiceList from '@/components/returns/choice-list'
 import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-rows'
 import LoadFailed from '@/components/states/load-failed'
-import { returnSettingsContent as copy, returnsContent } from '@/data/returns'
+import { returnSettingsContent, returnsContent } from '@/data/returns'
 import { settingsContent } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy } from '@/hooks/use-copy'
@@ -35,6 +35,9 @@ const clampDays = (raw: string): number => {
  */
 export default function ReturnsSettings() {
   // Hooks
+  const copy = useCopy(returnSettingsContent)
+  const settingsCopy = useCopy(settingsContent)
+  const returnsCopy = useCopy(returnsContent)
   const rowsCopy = useCopy(settingsRowsContent)
   const [form, setForm] = useState<ReturnPolicy | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
@@ -116,9 +119,9 @@ export default function ReturnsSettings() {
     <div className="flex flex-col gap-4">
       <SaveBar
         open={dirty}
-        message={settingsContent.general.unsaved}
+        message={settingsCopy.general.unsaved}
         saveLabel={copy.save}
-        discardLabel={settingsContent.general.discard}
+        discardLabel={settingsCopy.general.discard}
         onSave={handleSave}
         onDiscard={handleDiscard}
         saving={busy}
@@ -185,7 +188,7 @@ export default function ReturnsSettings() {
                 <SwitchRow
                   key={code}
                   id={`reason-${code}`}
-                  label={returnsContent.reasons[code]}
+                  label={returnsCopy.reasons[code]}
                   checked={form.reasons.includes(code)}
                   onChange={(on) => handleReason(code, on)}
                   className="py-3"

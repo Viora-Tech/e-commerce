@@ -10,7 +10,8 @@ import { useRef, useState } from 'react'
 import SwitchRow from '@/components/fields/switch-row'
 import PaymentAdjustmentFields from '@/components/settings/payment-adjustment-fields'
 import RupeeInput from '@/components/settings/rupee-input'
-import { checkoutSettingsContent as content } from '@/data/checkout-settings'
+import { checkoutSettingsContent } from '@/data/checkout-settings'
+import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import SettingsCard from './settings-card'
 import SettingsRow from './settings-row'
@@ -23,8 +24,6 @@ type CodRulesCardProps = {
   onFee: (fee: PaymentAdjustment | null) => void
 }
 
-const copy = content.cod
-
 /** Settings → Checkout: cash on delivery fee, limit, blocked PIN codes and the WhatsApp flag. */
 export default function CodRulesCard({
   codEnabled,
@@ -34,6 +33,7 @@ export default function CodRulesCard({
   onFee,
 }: CodRulesCardProps) {
   // Hooks
+  const copy = useCopy(checkoutSettingsContent.cod)
   const [text, setText] = useState(rules.blockedPincodes.join('\n'))
   const [invalid, setInvalid] = useState<string[]>([])
   const [tooMany, setTooMany] = useState(false)

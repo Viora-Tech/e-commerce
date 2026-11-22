@@ -12,6 +12,7 @@ import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-rows'
 import LoadFailed from '@/components/states/load-failed'
 import { appearanceContent } from '@/data/appearance'
+import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { writeAccentCookie } from '@/lib/accent-cookie'
 import { api } from '@/lib/api-client'
@@ -27,28 +28,6 @@ import ThemeModeField from './theme-mode-field'
 
 type Loaded = Awaited<ReturnType<typeof api.appearance.get>>
 
-const copy = appearanceContent
-
-/** "Blue" for a preset, the hex code for anything else. */
-function colourName(hex: string | null): string {
-  const value = hex ?? DEFAULT_ACCENT
-  const preset = ACCENT_PRESETS.find((p) => p.hex === value)
-  return preset ? (copy.accent.presets[preset.id] ?? value) : value
-}
-
-/** The theme row's value: "Light", "Dark" or "System". */
-function modeName(theme: string | undefined): string {
-  if (theme === 'light') return copy.mode.light
-  if (theme === 'dark') return copy.mode.dark
-  return copy.mode.system
-}
-
-function sourceLine(loaded: Loaded): string {
-  if (loaded.mine) return copy.accent.source.mine
-  if (loaded.storeDefault) return copy.accent.source.store
-  return copy.accent.source.default
-}
-
 type AppearanceSettingsProps = {
   /** The member's product page layout, read from the cookie on the server. Account › Appearance
    *  passes it to show that card too; Settings › Appearance leaves it out. */
@@ -62,6 +41,7 @@ type AppearanceSettingsProps = {
  */
 export default function AppearanceSettings({ productLayout }: AppearanceSettingsProps) {
   // Hooks
+  const copy = useCopy(appearanceContent)
   const router = useRouter()
   const { theme } = useTheme()
   const [loaded, setLoaded] = useState<Loaded | null>(null)
@@ -73,6 +53,25 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
     setDraft(r.effective ?? DEFAULT_ACCENT)
     return r
   })
+
+  // Derived
+  /** "Blue" for a preset, the hex code for anything else. */
+  function colourName(hex: string | null): string {
+    const value = hex ?? DEFAULT_ACCENT
+    const preset = ACCENT_PRESETS.find((p) => p.hex === value)
+    return preset ? (copy.accent.presets[preset.id] ?? value) : value
+  }
+  /** The theme row's value: "Light", "Dark" or "System". */
+  function modeName(theme: string | undefined): string {
+    if (theme === 'light') return copy.mode.light
+    if (theme === 'dark') return copy.mode.dark
+    return copy.mode.system
+  }
+  function sourceLine(loaded: Loaded): string {
+    if (loaded.mine) return copy.accent.source.mine
+    if (loaded.storeDefault) return copy.accent.source.store
+    return copy.accent.source.default
+  }
 
   // Helpers
   /** Stores the answer, caches it for the next server render and re-renders the layout. */
