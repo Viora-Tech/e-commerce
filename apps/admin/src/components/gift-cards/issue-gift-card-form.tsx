@@ -19,8 +19,8 @@ import DataCard from '@/components/layout/data-card'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
-import { giftCardIssueContent as copy, GIFT_CARD_PRESETS } from '@/data/gift-cards'
-import { useFormat } from '@/hooks/use-copy'
+import { GIFT_CARD_PRESETS, giftCardIssueContent } from '@/data/gift-cards'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
@@ -40,6 +40,7 @@ function positivePaise(text: string): number | null {
 /** Shopify's "Create gift card": value, code, expiry, customer or recipient, optional email. */
 export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
   // Hooks
+  const copy = useCopy(giftCardIssueContent)
   const router = useRouter()
   const format = useFormat()
   const [value, setValue] = useState(String(GIFT_CARD_PRESETS[1]))

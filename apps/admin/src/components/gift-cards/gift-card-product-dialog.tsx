@@ -14,6 +14,7 @@ import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { GIFT_CARD_PRODUCT_DEFAULTS, giftCardProductsContent } from '@/data/gift-cards'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
 import { formatPaise } from '@/lib/money'
@@ -23,8 +24,6 @@ type GiftCardProductDialogProps = {
   onOpenChange: (open: boolean) => void
   onCreated: () => void
 }
-
-const copy = giftCardProductsContent.dialog
 const DEFAULT_PAISE = GIFT_CARD_PRODUCT_DEFAULTS.map((r) => r * 100)
 
 /** Rupees typed in the field to whole paise; null when it is not a positive amount. */
@@ -40,6 +39,7 @@ export default function GiftCardProductDialog({
   onCreated,
 }: GiftCardProductDialogProps) {
   // Hooks
+  const copy = useCopy(giftCardProductsContent.dialog)
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [values, setValues] = useState<number[]>(DEFAULT_PAISE)
@@ -51,7 +51,7 @@ export default function GiftCardProductDialog({
     setTitle(copy.defaultName)
     setValues(DEFAULT_PAISE)
     setDraft('')
-  }, [open])
+  }, [open, copy])
 
   // Event handlers
   const handleAdd = () => {

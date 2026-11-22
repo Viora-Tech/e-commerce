@@ -11,7 +11,8 @@ import {
 import { useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
-import { giftCardSettingsContent as copy, GIFT_CARD_EXPIRY_MONTHS } from '@/data/gift-cards'
+import { GIFT_CARD_EXPIRY_MONTHS, giftCardSettingsContent } from '@/data/gift-cards'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type GiftCardSettingsCardProps = {
@@ -23,6 +24,7 @@ const NEVER = 'never'
 /** Store-wide expiry for gift cards sold on the storefront. Saves on change. */
 export default function GiftCardSettingsCard({ initial }: GiftCardSettingsCardProps) {
   // Hooks
+  const copy = useCopy(giftCardSettingsContent)
   const [value, setValue] = useState(initial.expiryMonths ? String(initial.expiryMonths) : NEVER)
   const [busy, setBusy] = useState(false)
 

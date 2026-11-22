@@ -2,6 +2,7 @@ import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import { giftCardDetailContent } from '@/data/gift-cards'
+import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 
 type CustomerCardProps = {
@@ -14,10 +15,11 @@ type CustomerCardProps = {
   }
 }
 
-const copy = giftCardDetailContent.customer
-
 /** Who the card belongs to, and where its code was sent. */
 export default function CustomerCard({ card }: CustomerCardProps) {
+  // Hooks
+  const copy = useCopy(giftCardDetailContent.customer)
+
   // Render logic
   const recipient = card.recipientEmail && card.recipientEmail !== card.customerEmail
 

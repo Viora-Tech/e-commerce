@@ -8,7 +8,8 @@ import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
 import StatusLabel from '@/components/status/status-label'
-import { giftCardDetailContent as copy } from '@/data/gift-cards'
+import { giftCardDetailContent } from '@/data/gift-cards'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
@@ -27,6 +28,7 @@ type GiftCardDetailProps = { initial: GiftCardDetailData }
 /** One gift card: balance and history on the left, customer, expiry and notes on the right. */
 export default function GiftCardDetail({ initial }: GiftCardDetailProps) {
   // Hooks
+  const copy = useCopy(giftCardDetailContent)
   const [card, setCard] = useState(initial)
   const [busy, setBusy] = useState<string | null>(null)
 

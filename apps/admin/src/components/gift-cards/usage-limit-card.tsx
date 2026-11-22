@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import { giftCardDetailContent } from '@/data/gift-cards'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type UsageLimitCardProps = {
@@ -14,11 +15,11 @@ type UsageLimitCardProps = {
   onChanged: () => Promise<void>
 }
 
-const copy = giftCardDetailContent.usage
-
 /** How many checkouts may spend the card, with inline edit (#993); no limit by default. */
 export default function UsageLimitCard({ card, onChanged }: UsageLimitCardProps) {
   // Hooks
+  const copy = useCopy(giftCardDetailContent.usage)
+  const giftCardDetailCopy = useCopy(giftCardDetailContent)
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(card.usageLimit ? String(card.usageLimit) : '')
   /** `set` or `clear` while saving, so only the pressed button spins. */
@@ -33,7 +34,7 @@ export default function UsageLimitCard({ card, onChanged }: UsageLimitCardProps)
       setEditing(false)
       await onChanged()
     } catch {
-      toast.error(giftCardDetailContent.failed)
+      toast.error(giftCardDetailCopy.failed)
     } finally {
       setBusy(null)
     }
