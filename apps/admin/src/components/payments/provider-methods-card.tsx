@@ -18,8 +18,6 @@ type ProviderMethodsCardProps = {
   onReload: () => Promise<void>
 }
 
-const nameOf = (id: string): string => gatewayCatalogue.find((g) => g.id === id)?.name ?? id
-
 /**
  * A provider page's "Payment methods": each way to pay the provider takes with its checkout
  * switch (the same switch as "Supported methods", so it applies to every provider), and which
@@ -31,6 +29,7 @@ export default function ProviderMethodsCard({
   onReload,
 }: ProviderMethodsCardProps) {
   // Hooks
+  const gatewayCatalogueCopy = useCopy(gatewayCatalogue)
   const {
     provider: { methods: copy },
   } = useCopy(paymentProvidersContent)
@@ -38,6 +37,9 @@ export default function ProviderMethodsCard({
   const announceSetup = useSetupNext()
   const [methods, setMethods] = useState<CheckoutMethodRow[]>(setup.methods)
   const [saving, setSaving] = useState(false)
+
+  // Derived
+  const nameOf = (id: string): string => gatewayCatalogueCopy.find((g) => g.id === id)?.name ?? id
 
   // Event handlers
   const handleToggle = async (id: string, on: boolean) => {

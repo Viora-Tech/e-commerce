@@ -8,7 +8,8 @@ import { toast } from 'sonner'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import CodRulesCard from '@/components/settings/cod-rules-card'
 import LoadFailed from '@/components/states/load-failed'
-import { checkoutSettingsContent as copy } from '@/data/checkout-settings'
+import { checkoutSettingsContent } from '@/data/checkout-settings'
+import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
@@ -28,6 +29,7 @@ const draftOf = (v: CheckoutSettingsView): Draft => ({ cod: v.settings.cod, codF
  */
 export default function CodSettingsSection({ codOn }: CodSettingsSectionProps) {
   // Hooks
+  const copy = useCopy(checkoutSettingsContent)
   const [loaded, setLoaded] = useState<CheckoutSettingsView | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
   const [key, setKey] = useState(0)

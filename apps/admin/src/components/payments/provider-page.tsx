@@ -41,9 +41,6 @@ type ProviderPageProps = {
 /** The websites card's id, which the "Razorpay is blocking payments" banner links to. */
 const WEBSITES_ID = 'razorpay-websites'
 
-const monogramOf = (id: string) =>
-  gatewayCatalogue.find((g) => g.id === id)?.monogram ?? id.slice(0, 2)
-
 /**
  * One payment provider's page (Settings → Payments → Razorpay), Shopify style: its name and
  * status with Manage keys and More actions (make main, deactivate), then About, Live/Test,
@@ -65,6 +62,9 @@ export default function ProviderPage({ providerId }: ProviderPageProps) {
     if (hash) requestAnimationFrame(() => document.getElementById(hash)?.scrollIntoView())
     return s
   })
+
+  // Derived
+  const monogramOf = (id: string) => catalogue.find((g) => g.id === id)?.monogram ?? id.slice(0, 2)
 
   // Helpers
   const reload = async () => {

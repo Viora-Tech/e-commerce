@@ -32,8 +32,6 @@ type RouteMethodsCardProps = {
 
 const ONLINE: readonly RoutedMethodId[] = ['upi', 'card', 'netbanking', 'wallet', 'emi']
 
-const nameOf = (id: string): string => gatewayCatalogue.find((g) => g.id === id)?.name ?? id
-
 /**
  * "Route methods" (audit #148): one row per online way to pay with the active gateway that takes
  * it. A gateway that cannot take a method is not offered for it. Shown once two or more
@@ -41,10 +39,14 @@ const nameOf = (id: string): string => gatewayCatalogue.find((g) => g.id === id)
  */
 export default function RouteMethodsCard({ setup, methods, onReload }: RouteMethodsCardProps) {
   // Hooks
+  const gatewayCatalogueCopy = useCopy(gatewayCatalogue)
   const { routes: copy } = useCopy(paymentRoutingContent)
   const names = useCopy(methodNames)
   const [routes, setRoutes] = useState<Record<string, string | null>>(setup.routing.methods)
   const [saving, setSaving] = useState(false)
+
+  // Derived
+  const nameOf = (id: string): string => gatewayCatalogueCopy.find((g) => g.id === id)?.name ?? id
 
   // Helpers
   const activeIds = () => setup.routing.gateways.filter((g) => g.active).map((g) => g.id)
