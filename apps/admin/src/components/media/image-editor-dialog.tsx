@@ -4,7 +4,7 @@ import { AiIcon, RefreshCw, RotateCcw, Save } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Cropper, { type Area } from 'react-easy-crop'
 import { toast } from 'sonner'
 import DialogContent from '@/components/layout/dialog-content'
@@ -13,6 +13,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import type { MediaTileItem } from '@/components/media/media-tile'
 import { imageEditorContent } from '@/data/image-editor'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import {
   adjustFilter,
@@ -62,8 +63,10 @@ export default function ImageEditorDialog({
 }: ImageEditorDialogProps) {
   // Hooks
   const copy = useCopy(imageEditorContent)
-  const [img, setImg] = useState<HTMLImageElement | null>(null)
-  const [failed, setFailed] = useState(false)
+  const { data: img, failed } = useLoad(
+    async () => (item ? loadEditableImage(item.url) : null),
+    [item],
+  )
   const [shape, setShape] = useState<Shape>('free')
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
@@ -73,17 +76,6 @@ export default function ImageEditorDialog({
   const [flipY, setFlipY] = useState(false)
   const [adjust, setAdjust] = useState<ImageAdjust>(NO_ADJUST)
   const [busy, setBusy] = useState(false)
-
-  useEffect(() => {
-    if (!item) return
-    let live = true
-    loadEditableImage(item.url)
-      .then((loaded) => live && setImg(loaded))
-      .catch(() => live && setFailed(true))
-    return () => {
-      live = false
-    }
-  }, [item])
 
   // Event handlers
   const handleReset = () => {

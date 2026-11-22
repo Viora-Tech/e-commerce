@@ -2,16 +2,14 @@
 
 import { ExternalLink, MessageSquare } from '@commerce/ui/icons'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
 import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
 import { appsContent } from '@/data/apps'
 import { chatwootContent } from '@/data/chatwoot'
 import { useCopy, useLocale } from '@/hooks/use-copy'
-import type { LoadFailure } from '@/hooks/use-load'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
-import { isForbidden } from '@/lib/forbidden'
 import { formatAgo } from '@/lib/format-date'
 
 type View = Awaited<ReturnType<typeof api.chatwoot.conversations.customer>>
@@ -47,26 +45,8 @@ export default function ConversationsCard({ kind, id }: ConversationsCardProps) 
   const apps = useCopy(appsContent)
   const content = useCopy(chatwootContent)
   const locale = useLocale()
-  const [view, setView] = useState<View | null>(null)
   /** Our own read failed (not Chatwoot): the card says so with Try again (or no-access). */
-  const [failed, setFailed] = useState<LoadFailure | false>(false)
-  const [attempt, setAttempt] = useState(0)
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is Try again
-  useEffect(() => {
-    let live = true
-    setFailed(false)
-    loadFor(kind, id)
-      .then((v) => {
-        if (live) setView(v)
-      })
-      .catch((err: unknown) => {
-        if (live) setFailed(isForbidden(err) ? 'no-access' : 'error')
-      })
-    return () => {
-      live = false
-    }
-  }, [kind, id, attempt])
+  const { data: view, failed, retry } = useLoad(() => loadFor(kind, id), [kind, id])
 
   // Early returns
   if (failed && !view) {
@@ -75,7 +55,7 @@ export default function ConversationsCard({ kind, id }: ConversationsCardProps) 
         <LoadFailedState
           heading={apps.couldNotLoad.conversations}
           failed={failed}
-          onRetry={() => setAttempt((n) => n + 1)}
+          onRetry={retry}
         />
       </DataCard>
     )

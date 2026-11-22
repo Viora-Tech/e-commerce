@@ -10,10 +10,10 @@ import {
 } from '@commerce/ui/shadcn/collapsible'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
 import ScrollSection from '@/components/layout/scroll-section'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 
 type RunProblemGroupsProps = {
@@ -54,25 +54,14 @@ export default function RunProblemGroups({ runId, version }: RunProblemGroupsPro
   const copy = useCopy(shopifyImportContent.run)
   const labels = useCopy(shopifyImportContent.resources)
   const fmt = useFormat()
-  const [groups, setGroups] = useState<IssueGroup[] | null>(null)
-
-  useEffect(() => {
-    if (!version) return
-    let live = true
-    api.shopifyImport
-      .issueGroups({ runId })
-      .then((next) => {
-        if (live) setGroups(next)
-      })
-      .catch(() => {
-        if (live) setGroups([])
-      })
-    return () => {
-      live = false
-    }
-  }, [runId, version])
+  // A failed read shows no groups, as an empty list.
+  const { data, failed } = useLoad(
+    async () => (version ? api.shopifyImport.issueGroups({ runId }) : null),
+    [runId, version],
+  )
 
   // Early returns
+  const groups: IssueGroup[] | null = failed ? [] : data
   if (groups === null) return <Skeleton className="h-16 w-full" />
 
   // Render logic

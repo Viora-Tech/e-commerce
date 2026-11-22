@@ -5,7 +5,6 @@ import { Pencil, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
@@ -16,6 +15,7 @@ import DeleteRowMenu from '@/components/table/delete-row-menu'
 import RowActionsCell from '@/components/table/row-actions-cell'
 import { shippingRatesContent } from '@/data/shipping-rates'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -42,23 +42,11 @@ export default function ShippingProfilesCard() {
   const rowMenu = ratesCopy.rowMenu
   const fmt = useFormat()
   const { hasPermission } = usePermissions()
-  const [profiles, setProfiles] = useState<LoadedProfile[] | null>(null)
-  const [failed, setFailed] = useState(false)
-
-  useEffect(() => {
-    let live = true
-    api.shipping.profiles
-      .list()
-      .then((p) => {
-        if (live) setProfiles(p)
-      })
-      .catch(() => {
-        if (live) setFailed(true)
-      })
-    return () => {
-      live = false
-    }
-  }, [])
+  const {
+    data: profiles,
+    failed,
+    setData: setProfiles,
+  } = useLoad<LoadedProfile[]>(() => api.shipping.profiles.list())
 
   // Handlers
   const handleDelete = async (id: string) => {

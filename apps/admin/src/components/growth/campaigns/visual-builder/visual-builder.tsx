@@ -15,6 +15,7 @@ import MediaPickDialog, { type PickedMedia } from '@/components/media/media-pick
 import InlineState from '@/components/states/inline-state'
 import { emailBuilderContent } from '@/data/email-builder'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import BuilderDiscountDialog from './builder-discount-dialog'
 import BuilderLinkDialog from './builder-link-dialog'
@@ -56,31 +57,12 @@ export default function VisualBuilder({
 }: VisualBuilderProps) {
   // Hooks
   const copy = useCopy(emailBuilderContent)
-  const [brand, setBrand] = useState<EmailBrand | null>(null)
+  const { data: brand, failed, retry } = useLoad<EmailBrand>(() => api.marketing.emailBrand())
   const [pick, setPick] = useState<PickRequest | null>(null)
   const [imagePick, setImagePick] = useState<AssetsCustomData | null>(null)
   const [dialog, setDialog] = useState<'templates' | 'discard' | null>(null)
-  const [failed, setFailed] = useState(false)
-  const [attempt, setAttempt] = useState(0)
   const containerRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<Editor | null>(null)
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` (Try again) re-runs the read
-  useEffect(() => {
-    let live = true
-    setFailed(false)
-    api.marketing
-      .emailBrand()
-      .then((b) => {
-        if (live) setBrand(b)
-      })
-      .catch(() => {
-        if (live) setFailed(true)
-      })
-    return () => {
-      live = false
-    }
-  }, [attempt])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: built once per open; a new `design` must not rebuild the canvas
   useEffect(() => {
@@ -190,11 +172,7 @@ export default function VisualBuilder({
       <div className="relative min-h-0 flex-1">
         {brand ? null : failed ? (
           <div className="absolute inset-0 flex items-center justify-center">
-            <InlineState
-              kind="error"
-              heading={copy.builder.loadFailed}
-              onRetry={() => setAttempt((n) => n + 1)}
-            />
+            <InlineState kind="error" heading={copy.builder.loadFailed} onRetry={retry} />
           </div>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center gap-2 text-body text-muted-foreground">

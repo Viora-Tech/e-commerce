@@ -6,13 +6,14 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { Switch } from '@commerce/ui/shadcn/switch'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
 
@@ -35,20 +36,13 @@ export default function AddAffiliateDialog({
   const [social, setSocial] = useState('')
   const [approve, setApprove] = useState(true)
   const [programId, setProgramId] = useState('')
-  const [programs, setPrograms] = useState<{ id: string; name: string; isDefault: boolean }[]>([])
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
-    if (!open) return
-    let cancelled = false
-    api.affiliates.programs.list().then((all) => {
-      if (cancelled) return
-      setPrograms(all.filter((p) => !p.archivedAt))
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [open])
+  // A failed read leaves the program choice off; the default program is used.
+  const { data: programList } = useLoad(
+    async () => (open ? (await api.affiliates.programs.list()).filter((p) => !p.archivedAt) : null),
+    [open],
+  )
 
   // Event handlers
   const handleSave = async (e: React.FormEvent) => {
@@ -70,6 +64,7 @@ export default function AddAffiliateDialog({
   }
 
   // Render logic
+  const programs = programList ?? []
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent busy={busy}>

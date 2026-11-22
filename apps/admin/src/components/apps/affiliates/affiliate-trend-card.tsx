@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@commerce/ui/shadcn/table'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
 import DataCard from '@/components/layout/data-card'
@@ -18,10 +18,9 @@ import EmptyState from '@/components/layout/empty-state'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
-
-type Trend = Awaited<ReturnType<typeof api.affiliates.trend>>
 
 /** Saves text as a file in the browser; nothing leaves except to the merchant's disk. */
 function saveFile(name: string, text: string) {
@@ -39,17 +38,8 @@ export default function AffiliateTrendCard() {
   const { overview, failed } = useCopy(affiliatesContent)
   const f = useFormat()
   const [by, setBy] = useState<'week' | 'month'>('week')
-  const [data, setData] = useState<Trend | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    api.affiliates.trend({ by }).then((r) => {
-      if (!cancelled) setData(r)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [by])
+  // A failed read leaves the card off, as before the first answer.
+  const { data } = useLoad(() => api.affiliates.trend({ by }), [by])
 
   // Event handlers
   const handleCsv = async () => {

@@ -4,7 +4,7 @@ import { Plus, TriangleAlert } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import EmptyState from '@/components/layout/empty-state'
@@ -12,6 +12,7 @@ import CreateReturnDialog from '@/components/returns/create-return-dialog'
 import StatusLabel from '@/components/status/status-label'
 import { orderReturnsContent, returnsContent } from '@/data/returns'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
 
@@ -55,28 +56,13 @@ export default function OrderReturnsCard({
   const copy = useCopy(orderReturnsContent)
   const fmt = useFormat()
   const returnsCopy = useCopy(returnsContent)
-  const [state, setState] = useState<State | null>(null)
   const [creating, setCreating] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
-  const [hidden, setHidden] = useState(false)
-
-  useEffect(() => {
-    // reloadKey only re-runs the fetch after a return is created.
-    if (reloadKey < 0) return
-    let live = true
-    api.returns
-      .forOrder({ orderId })
-      .then((s) => {
-        if (live) setState(s)
-      })
-      // A failed read hides the card, as one with nothing to show.
-      .catch(() => {
-        if (live) setHidden(true)
-      })
-    return () => {
-      live = false
-    }
-  }, [orderId, reloadKey])
+  // A failed read hides the card, as one with nothing to show.
+  const { data: state, failed: hidden } = useLoad(
+    () => api.returns.forOrder({ orderId }),
+    [orderId, reloadKey],
+  )
 
   // Event handlers
   const handleCreated = () => {

@@ -6,7 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import SaveErrorAlert from '@/components/approvals/save-error-alert'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
@@ -15,6 +15,7 @@ import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { campaignEditorContent as copy } from '@/data/marketing-campaigns'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
@@ -74,24 +75,17 @@ export default function CampaignEditor({
   const [saved, setSaved] = useState(() => JSON.stringify(start))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [reach, setReach] = useState<number | null>(null)
-  const [templates, setTemplates] = useState<TemplatesResult | null>(null)
+  const { data: reach } = useLoad(
+    async () =>
+      (await api.marketing.campaigns.audience({ kind: form.kind, segmentId: form.segmentId }))
+        .count,
+    [form.kind, form.segmentId],
+  )
+  const { data: templates } = useLoad<TemplatesResult | null>(
+    async () => (form.kind === 'whatsapp' ? api.marketing.campaigns.whatsappTemplates() : null),
+    [form.kind],
+  )
   const [dialog, setDialog] = useState<'test' | 'send' | 'delete' | null>(null)
-
-  useEffect(() => {
-    let live = true
-    api.marketing.campaigns.audience({ kind: form.kind, segmentId: form.segmentId }).then((r) => {
-      if (live) setReach(r.count)
-    })
-    return () => {
-      live = false
-    }
-  }, [form.kind, form.segmentId])
-
-  useEffect(() => {
-    if (form.kind !== 'whatsapp') return
-    api.marketing.campaigns.whatsappTemplates().then(setTemplates)
-  }, [form.kind])
 
   // Helpers
   const patch = (p: Partial<CampaignForm>) => setForm((f) => ({ ...f, ...p }))

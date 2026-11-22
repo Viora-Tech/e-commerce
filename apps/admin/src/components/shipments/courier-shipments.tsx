@@ -7,13 +7,15 @@ import {
   type ShipmentTab,
 } from '@commerce/core/shipment-tabs'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useState } from 'react'
 import PillTabs from '@/components/layout/pill-tabs'
 import ResourceTable from '@/components/table/resource-table'
+import { appsContent } from '@/data/apps'
 import { shipmentFiltersContent } from '@/data/order-list-filters'
 import { shipmentLostContent } from '@/data/shipment-lost'
 import { shipmentPartsContent, shipmentsContent } from '@/data/shipments'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import { parseRowsPerPage } from '@/lib/rows-per-page'
@@ -30,8 +32,6 @@ import ShipmentRowMenu from './shipment-row-menu'
 import ShipmentsBulkActions from './shipments-bulk-actions'
 
 type BookedTab = Exclude<ShipmentTab, 'toBook'>
-type Counts = Awaited<ReturnType<typeof api.shipments.counts>>
-
 type CourierShipmentsProps = {
   /** The courier id (`shipment.provider`); only its shipments are listed and counted. */
   provider: string
@@ -47,6 +47,7 @@ function CourierShipmentsContent({ provider, providerLabel }: CourierShipmentsPr
   const partsCopy = useCopy(shipmentPartsContent)
   const lostCopy = useCopy(shipmentLostContent)
   const filterCopy = useCopy(shipmentFiltersContent)
+  const apps = useCopy(appsContent)
   const fmt = useFormat()
   const [q, setQ] = useQueryStates(
     {
@@ -58,29 +59,13 @@ function CourierShipmentsContent({ provider, providerLabel }: CourierShipmentsPr
     },
     { shallow: true },
   )
-  const [rows, setRows] = useState<ShipmentRow[]>([])
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [counts, setCounts] = useState<Counts | null>(null)
   const [selected, setSelected] = useState<string[]>([])
   const [reloadKey, setReloadKey] = useState(0)
-  useEffect(() => {
-    if (reloadKey < 0) return
-    let live = true
-    api.shipments
-      .counts({ provider })
-      .then((c) => live && setCounts(c))
-      .catch(() => undefined)
-    return () => {
-      live = false
-    }
-  }, [provider, reloadKey])
-  useEffect(() => {
-    if (reloadKey < 0) return
-    let live = true
-    setLoading(true)
-    api.shipments
-      .list({
+  // A failed count read leaves the tabs without counts.
+  const { data: counts } = useLoad(() => api.shipments.counts({ provider }), [provider, reloadKey])
+  const { data, failed, loading, retry } = useLoad(
+    () =>
+      api.shipments.list({
         page: q.page,
         perPage: parseRowsPerPage(q.perPage),
         search: q.query || undefined,
@@ -89,17 +74,9 @@ function CourierShipmentsContent({ provider, providerLabel }: CourierShipmentsPr
         ...shipmentFilterInput(q),
         // After the panel's filters: this page is one courier's, whatever the URL says.
         provider,
-      })
-      .then((r) => {
-        if (!live) return
-        setRows(r.items.map(rowFromShipment))
-        setTotal(r.total)
-      })
-      .finally(() => live && setLoading(false))
-    return () => {
-      live = false
-    }
-  }, [q, provider, reloadKey])
+      }),
+    [q, provider, reloadKey],
+  )
 
   // Event handlers
   const handleTab = (next: BookedTab) => {
@@ -112,6 +89,8 @@ function CourierShipmentsContent({ provider, providerLabel }: CourierShipmentsPr
   }
 
   // Render logic
+  const rows: ShipmentRow[] = data ? data.items.map(rowFromShipment) : []
+  const total = data?.total ?? 0
   const { tab, query, page } = q
   // No Courier filter: the page is already one courier's.
   const groups = shipmentFilterGroups(q, filterCopy, (patch) => setQ({ ...patch, page: 1 }), [])
@@ -133,6 +112,7 @@ function CourierShipmentsContent({ provider, providerLabel }: CourierShipmentsPr
       href={(r) => routes.orders.shipment(r.orderId, r.fulfillmentOrderId ?? undefined)}
       rowActions={(r) => <ShipmentRowMenu row={r} onChanged={handleDone} />}
       loading={loading}
+      error={failed ? { heading: apps.couldNotLoad.shipments, onRetry: retry } : undefined}
       query={query}
       onQueryChange={(next) => setQ({ query: next, page: 1 })}
       onClearAll={() => setQ({ ...CLEAR_SHIPMENT_FILTERS, query: '', page: 1 })}

@@ -4,11 +4,11 @@ import { Copy, Download } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { toDataURL, toString as toSvg } from 'qrcode'
-import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import { reviewToolsContent } from '@/data/review-tools'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 
 type ReviewQrCardProps = {
   title: string
@@ -88,17 +88,7 @@ async function drawCard(
 export default function ReviewQrCard({ title, url, storeName }: ReviewQrCardProps) {
   // Hooks
   const { qr: copy } = useCopy(reviewToolsContent)
-  const [png, setPng] = useState<string | null>(null)
-  const [failed, setFailed] = useState(false)
-  useEffect(() => {
-    let live = true
-    toDataURL(url, OPTIONS)
-      .then((data) => live && setPng(data))
-      .catch(() => live && setFailed(true))
-    return () => {
-      live = false
-    }
-  }, [url])
+  const { data: png, failed } = useLoad(() => toDataURL(url, OPTIONS), [url])
 
   // Event handlers
   const handleCard = async () => {
