@@ -1,7 +1,15 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { Database, Images, LayoutGrid, ListView, Search, Upload } from '@commerce/ui/icons'
+import {
+  Database,
+  ImagePlus,
+  Images,
+  LayoutGrid,
+  ListView,
+  Search,
+  Upload,
+} from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
@@ -9,6 +17,7 @@ import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { type FormEvent, Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import FileDropzone from '@/components/fields/file-dropzone'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
@@ -25,7 +34,6 @@ import AltTextDialog from './alt-text-dialog'
 import BackgroundWorkNotice from './background-work-notice'
 import { displayName, FILE_TABS, type FileTab, fileKind, formatBytes } from './file-meta'
 import ImageEditorDialog from './image-editor-dialog'
-import MediaDropzone from './media-dropzone'
 import MediaFileRows from './media-file-rows'
 import MediaFolderBar from './media-folder-bar'
 import MediaTile, { type MediaTileAction } from './media-tile'
@@ -90,7 +98,7 @@ function fetchMedia(
 
 function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
   // Hooks
-  const { library: copy } = useCopy(mediaContent)
+  const { library: copy, dropzone: dropCopy } = useCopy(mediaContent)
   const { title: editImageLabel } = useCopy(imageEditorContent)
   const fileInput = useRef<HTMLInputElement>(null)
   const [{ page, perPage, query, type, view, folder }, setQ] = useQueryStates(
@@ -297,7 +305,13 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
           body={copy.empty.body}
           action={
             <div className="w-full max-w-md">
-              <MediaDropzone onFiles={handleFiles} />
+              <FileDropzone
+                onFiles={handleFiles}
+                accept={mediaContent.accept}
+                copy={dropCopy}
+                icon={ImagePlus}
+                className="py-8"
+              />
             </div>
           }
         />

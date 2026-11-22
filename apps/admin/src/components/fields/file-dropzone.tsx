@@ -1,25 +1,41 @@
 'use client'
 
-import { Upload } from '@commerce/ui/icons'
+import type { IconComponent } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { type DragEvent, useRef, useState } from 'react'
-import { purchaseDocumentsContent } from '@/data/purchase-documents'
-import { useCopy } from '@/hooks/use-copy'
 
-type DocumentDropProps = {
+type FileDropzoneProps = {
   onFiles: (files: File[]) => void
-  uploading: boolean
+  /** The file input's `accept` ("application/pdf,image/png"). */
+  accept: string
+  /** What the box says: idle, while files are dragged over it, and while they upload. */
+  copy: { idle: string; active: string; hint?: string | undefined; uploading?: string | undefined }
+  icon: IconComponent
+  /** Files are uploading: the box says so and is busy. */
+  uploading?: boolean | undefined
   disabled?: boolean | undefined
+  /** A small strip (under an existing grid) instead of the tall target; the hint is left out. */
+  compact?: boolean | undefined
+  className?: string | undefined
 }
-
-const ACCEPT = 'application/pdf,image/jpeg,image/png'
 
 const filesFrom = (list: FileList | null): File[] => (list ? Array.from(list) : [])
 
-/** Drop target for bills: PDF, JPG or PNG, click to choose. */
-export default function DocumentDrop({ onFiles, uploading, disabled }: DocumentDropProps) {
+/**
+ * The one drop target for files (owner, 22 Nov 2026: media library, bills): drop files on it or
+ * click to choose. A button with a hidden file input, so it is reachable by keyboard.
+ */
+export default function FileDropzone({
+  onFiles,
+  accept,
+  copy,
+  icon: Icon,
+  uploading = false,
+  disabled,
+  compact,
+  className,
+}: FileDropzoneProps) {
   // Hooks
-  const { drop: copy } = useCopy(purchaseDocumentsContent)
   const inputRef = useRef<HTMLInputElement>(null)
   const [over, setOver] = useState(false)
 
@@ -43,7 +59,7 @@ export default function DocumentDrop({ onFiles, uploading, disabled }: DocumentD
   }
 
   // Render logic
-  const label = uploading ? copy.uploading : over ? copy.active : copy.idle
+  const label = uploading && copy.uploading ? copy.uploading : over ? copy.active : copy.idle
 
   return (
     <>
@@ -56,22 +72,24 @@ export default function DocumentDrop({ onFiles, uploading, disabled }: DocumentD
         disabled={disabled}
         aria-busy={uploading || undefined}
         className={cn(
-          'flex h-full min-h-20 w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed px-4 py-4 text-center',
+          'flex w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed px-4 text-center',
           'text-muted-foreground transition-[border-color,background-color,color] duration-150 ease-out',
           'hover:border-primary hover:bg-primary-soft/40 focus-visible:outline-2 focus-visible:outline-ring',
           over && 'border-primary bg-primary-soft/60 text-foreground',
+          compact ? 'py-3' : 'py-6',
           disabled && 'opacity-60',
+          className,
         )}
       >
-        <Upload className="size-4" aria-hidden />
+        <Icon className={compact ? 'size-4' : 'size-5'} aria-hidden />
         <span className="text-body-strong">{label}</span>
-        <span className="text-caption">{copy.hint}</span>
+        {compact || !copy.hint ? null : <span className="text-caption">{copy.hint}</span>}
       </button>
       <input
         ref={inputRef}
         type="file"
         multiple
-        accept={ACCEPT}
+        accept={accept}
         onChange={handleChange}
         className="sr-only"
         tabIndex={-1}

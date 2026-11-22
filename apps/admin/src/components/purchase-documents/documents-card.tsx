@@ -5,10 +5,12 @@ import {
   PURCHASE_DOCUMENT_MAX_BYTES,
   type PurchaseDocumentKind,
 } from '@commerce/core/inventory'
+import { Upload } from '@commerce/ui/icons'
 import { CardContent } from '@commerce/ui/shadcn/card'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import FileDropzone from '@/components/fields/file-dropzone'
 import OptionSelect from '@/components/landed-cost/option-select'
 import type { ChargeOwner } from '@/components/landed-cost/types'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
@@ -17,7 +19,6 @@ import EmptyState from '@/components/layout/empty-state'
 import { PURCHASE_DOCUMENT_KINDS, purchaseDocumentsContent } from '@/data/purchase-documents'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import DocumentDrop from './document-drop'
 import DocumentRow, { type DocumentSummary } from './document-row'
 import ReviewDialog from './review-dialog'
 
@@ -140,7 +141,15 @@ export default function DocumentsCard({ owner, aiReading, onApplied }: Documents
             />
           </Field>
           <div className="min-w-0 flex-1">
-            <DocumentDrop disabled={uploading} uploading={uploading} onFiles={handleFiles} />
+            <FileDropzone
+              disabled={uploading}
+              uploading={uploading}
+              onFiles={handleFiles}
+              accept="application/pdf,image/jpeg,image/png"
+              copy={copy.drop}
+              icon={Upload}
+              className="h-full min-h-20 py-4"
+            />
           </div>
         </CardContent>
       ) : null}
