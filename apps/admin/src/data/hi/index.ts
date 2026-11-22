@@ -148,6 +148,7 @@ import searchConsole from './search-console'
 import searchDiscovery from './search-discovery'
 import searchFilters from './search-filters'
 import selectProducts from './select-products'
+import seoAssistant from './seo-assistant'
 import seoHealth from './seo-health'
 import seoKeywords from './seo-keywords'
 import seoReport from './seo-report'
@@ -367,6 +368,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...searchFilters,
   ...searchConsole,
   ...seoReport,
+  ...seoAssistant,
   ...seoKeywords,
   ...umami,
   ...meilisearch,

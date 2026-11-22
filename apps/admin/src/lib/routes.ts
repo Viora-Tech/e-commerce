@@ -258,6 +258,7 @@ export const routes = {
     blog: () => '/online-store/blog',
     preferences: () => '/online-store/preferences',
     seo: () => '/online-store/seo',
+    seoAssistant: () => '/online-store/seo/assistant',
   },
 
   salesChannels: {

@@ -79,6 +79,8 @@ export type SeoAssistantRow = {
   queries: SeoAssistantQuery[]
   /** The SEO report's issue kinds for this item, most important first. */
   gaps: SeoIssueKind[]
+  /** Each gap's detail (a length, a count, the other item's title), in the same order. */
+  gapDetails: (string | null)[]
   opportunity: number
   inBand: boolean
 }
@@ -92,6 +94,7 @@ export type SeoAssistantSource = {
   seoTitle: string | null
   seoDescription: string | null
   gaps: SeoIssueKind[]
+  gapDetails?: (string | null)[] | undefined
 }
 
 export const assistantPath = (resource: SeoAssistantResource, handle: string): string =>
@@ -117,6 +120,7 @@ export function assistantRows(
     if (!current || current.impressions === 0) continue
     rows.push({
       ...item,
+      gapDetails: item.gapDetails ?? item.gaps.map(() => null),
       path,
       current,
       previous: search.previous.get(path) ?? EMPTY_STATS,

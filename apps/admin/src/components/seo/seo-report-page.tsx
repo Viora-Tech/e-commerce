@@ -10,6 +10,7 @@ import { routes } from '@/lib/routes'
 import SeoFixCard, { type SeoFixField } from './seo-fix-card'
 import SeoIssuesCard from './seo-issues-card'
 import SeoScoreCard from './seo-score-card'
+import SeoTabs from './seo-tabs'
 
 type SeoReportPageProps = {
   report: SeoReport
@@ -34,6 +35,7 @@ export default function SeoReportPage({ report, aiBulk }: SeoReportPageProps) {
   return (
     <PageBody>
       <PageHeader title={copy.title} subtitle={copy.subtitle} />
+      <SeoTabs value="report" />
       <div className="grid gap-6 md:grid-cols-2">
         <SeoScoreCard report={report} />
         <SeoFixCard fixable={report.fixable} aiOn={aiBulk} max={AI_RUN_MAX} onFix={handleFix} />

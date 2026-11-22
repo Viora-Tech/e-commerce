@@ -84,9 +84,11 @@ export async function seoAssistantRows(tx: StoreTx, storeId: string): Promise<Se
       : { ...item, search: current.get(assistantPath(item.resource, item.handle)) },
   )
   const gaps = new Map<string, SeoIssueKind[]>()
+  const details = new Map<string, (string | null)[]>()
   for (const issue of seoReport(items).issues) {
     const key = `${issue.resource}:${issue.id}`
     gaps.set(key, [...(gaps.get(key) ?? []), issue.kind])
+    details.set(key, [...(details.get(key) ?? []), issue.detail])
   }
   return assistantRows(
     items
@@ -99,6 +101,7 @@ export async function seoAssistantRows(tx: StoreTx, storeId: string): Promise<Se
         seoTitle: i.seoTitle,
         seoDescription: i.seoDescription,
         gaps: gaps.get(`${i.resource}:${i.id}`) ?? [],
+        gapDetails: details.get(`${i.resource}:${i.id}`) ?? [],
       })),
     {
       current,

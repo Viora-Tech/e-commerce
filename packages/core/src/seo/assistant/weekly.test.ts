@@ -20,6 +20,7 @@ const row = (
   previous: { clicks: 4, impressions: 180, ctr: 0.02, position: before },
   queries: [{ query: `${id} price`, clicks: 1, impressions: 50, ctr: 0.02, position }],
   gaps: [],
+  gapDetails: [],
   opportunity: 100,
   inBand: true,
   ...extra,
