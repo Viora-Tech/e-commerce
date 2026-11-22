@@ -40,8 +40,8 @@ beforeEach(() => {
 
 describe('templateLabel', () => {
   it('names the default template by its kind and an alternate with its suffix', () => {
-    expect(templateLabel({ key: 'home', suffix: '' })).toBe(copy.names.home)
-    expect(templateLabel({ key: 'product', suffix: 'preorder' })).toBe(
+    expect(templateLabel({ key: 'home', suffix: '' }, copy)).toBe(copy.names.home)
+    expect(templateLabel({ key: 'product', suffix: 'preorder' }, copy)).toBe(
       copy.alternate(copy.names.product, 'preorder'),
     )
   })

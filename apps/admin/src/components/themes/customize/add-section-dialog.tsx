@@ -4,6 +4,7 @@ import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dial
 import DialogContent from '@/components/layout/dialog-content'
 import DialogHeader from '@/components/layout/dialog-header'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import type { CustomizeDoc } from '@/lib/customize-doc'
 import { groupForZone, type InsertTarget } from '@/lib/customize-insert'
 import { useCustomizePuck } from '@/lib/customize-puck'
@@ -15,8 +16,6 @@ type AddSectionDialogProps = {
   onClose: () => void
 }
 
-const copy = customizeContent.insertDialog
-
 /**
  * The Add section browser for a "+" clicked on the canvas. A dialog in the
  * admin document rather than a popover, because the "+" lives inside the
@@ -24,6 +23,7 @@ const copy = customizeContent.insertDialog
  */
 export default function AddSectionDialog({ target, onClose }: AddSectionDialogProps) {
   // Hooks
+  const copy = useCopy(customizeContent.insertDialog)
   const data = useCustomizePuck((s) => s.appState.data as unknown as CustomizeDoc)
 
   // Render logic

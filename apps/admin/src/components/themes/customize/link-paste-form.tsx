@@ -6,6 +6,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { type FormEvent, useId, useState } from 'react'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { normalisePastedUrl } from '@/lib/customize-links'
 
 type LinkPasteFormProps = {
@@ -15,8 +16,6 @@ type LinkPasteFormProps = {
   onNewTab?: ((value: boolean) => void) | undefined
 }
 
-const copy = customizeContent.link
-
 /**
  * The picker's footer: "Paste a link" for anything outside the store (checked
  * before it's used: http(s), mailto, tel, a site path or `#anchor` only), and
@@ -24,6 +23,7 @@ const copy = customizeContent.link
  */
 export default function LinkPasteForm({ onPick, newTab, onNewTab }: LinkPasteFormProps) {
   // Hooks
+  const copy = useCopy(customizeContent.link)
   const [pasted, setPasted] = useState('')
   const [invalid, setInvalid] = useState(false)
   const switchId = useId()

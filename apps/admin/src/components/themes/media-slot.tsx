@@ -5,7 +5,8 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Image from 'next/image'
 import { useState } from 'react'
 import MediaPickDialog from '@/components/media/media-pick-dialog'
-import { themesContent as copy } from '@/data/themes'
+import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 
 type MediaSlotProps = {
   label: string
@@ -18,6 +19,7 @@ type MediaSlotProps = {
 /** One brand image (logo, favicon) picked from the media library. */
 export default function MediaSlot({ label, help, dialogTitle, value, onChange }: MediaSlotProps) {
   // Hooks
+  const copy = useCopy(themesContent)
   const [picking, setPicking] = useState(false)
 
   // Event handlers

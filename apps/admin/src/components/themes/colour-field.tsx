@@ -2,7 +2,8 @@
 
 import { Input } from '@commerce/ui/shadcn/input'
 import { useId, useState } from 'react'
-import { themesContent as copy } from '@/data/themes'
+import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 
 type ColourFieldProps = {
   label: string
@@ -22,6 +23,7 @@ function normaliseHex(text: string): string | null {
 /** Swatch plus hex box. The swatch opens the system picker; the box takes typed or pasted hex. */
 export default function ColourField({ label, value, onChange }: ColourFieldProps) {
   // Hooks
+  const copy = useCopy(themesContent)
   const id = useId()
   const [draft, setDraft] = useState<string | null>(null)
 

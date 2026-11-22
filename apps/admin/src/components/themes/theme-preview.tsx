@@ -9,7 +9,8 @@ import {
 import { cn } from '@commerce/ui/lib/utils'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useRef, useState } from 'react'
-import { themesContent as copy } from '@/data/themes'
+import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 
 export type PreviewDevice = 'desktop' | 'tablet' | 'mobile'
 
@@ -41,6 +42,7 @@ export default function ThemePreview({
   previewToken,
 }: ThemePreviewProps) {
   // Hooks
+  const copy = useCopy(themesContent)
   // Counts page loads inside the frame; each one announces itself and needs the draft again.
   const [loads, setLoads] = useState(0)
   const frame = useRef<HTMLIFrameElement>(null)

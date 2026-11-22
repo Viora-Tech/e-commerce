@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/pop
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { type TemplateChange, useTemplateManager } from '@/lib/use-template-manager'
 import TemplateList from './template-list'
 import TemplateManagerDialogs from './template-manager-dialogs'
@@ -26,9 +27,7 @@ type TemplatePickerProps = {
   onManaged: (change: TemplateChange) => void
 }
 
-const copy = customizeContent.templates
-
-export const templateLabel = (ref: TemplateRef) =>
+export const templateLabel = (ref: TemplateRef, copy: typeof customizeContent.templates) =>
   ref.suffix ? copy.alternate(copy.names[ref.key], ref.suffix) : copy.names[ref.key]
 
 /**
@@ -46,6 +45,7 @@ export default function TemplatePicker({
   onManaged,
 }: TemplatePickerProps) {
   // Hooks
+  const copy = useCopy(customizeContent.templates)
   const [open, setOpen] = useState(false)
   const manager = useTemplateManager({ themeId, alternates, onChanged: onManaged })
 
@@ -79,7 +79,7 @@ export default function TemplatePicker({
               ) : (
                 <Home className="size-4 shrink-0" aria-hidden weight="regular" />
               )}
-              <span className="min-w-0 flex-1 truncate">{templateLabel(value)}</span>
+              <span className="min-w-0 flex-1 truncate">{templateLabel(value, copy)}</span>
               <ChevronDown aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
             </button>
           }

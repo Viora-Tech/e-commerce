@@ -1,5 +1,6 @@
 import { cn } from '@commerce/ui/lib/utils'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { SECTION_PREVIEWS } from '@/lib/section-previews'
 
 type SectionPictureProps = {
@@ -9,8 +10,6 @@ type SectionPictureProps = {
   fit: 'tile' | 'card'
   className?: string
 }
-
-const copy = customizeContent.addSection
 
 /** Below this height-to-width, a section is a band (an announcement bar) and is shown whole. */
 const BAND = 0.3
@@ -26,6 +25,9 @@ export const hasSectionPicture = (type: string): boolean => type in SECTION_PREV
  * admin (pictures from `bun run section-previews`, apps/admin/scripts/section-previews).
  */
 export default function SectionPicture({ type, label, fit, className }: SectionPictureProps) {
+  // Hooks
+  const copy = useCopy(customizeContent.addSection)
+
   // Render logic
   const ratio = SECTION_PREVIEWS[type] ?? BAND
   const band = fit === 'tile' && ratio < BAND

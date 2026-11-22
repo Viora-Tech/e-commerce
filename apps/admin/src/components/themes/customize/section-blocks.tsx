@@ -10,6 +10,7 @@ import {
 } from '@commerce/ui/shadcn/dropdown-menu'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { CHROME_FOCUS, CHROME_ROW_HOVER, CHROME_TRANSITION } from '@/lib/customize-chrome'
 import type { BlockList } from '@/lib/customize-insert'
 
@@ -19,8 +20,6 @@ type SectionBlocksProps = {
   onAdd: (key: string) => void
   onRemove: (key: string, index: number) => void
 }
-
-const copy = customizeContent.tree
 
 const ADD_ROW = cn(
   'flex h-8 w-full items-center gap-2 rounded-lg pl-2 text-left text-xs text-muted-foreground data-[popup-open]:bg-muted/60',
@@ -37,6 +36,7 @@ const ADD_ROW = cn(
  */
 export default function SectionBlocks({ lists, onSelect, onAdd, onRemove }: SectionBlocksProps) {
   // Hooks
+  const copy = useCopy(customizeContent.tree)
   const reducedMotion = useReducedMotion()
 
   // Render logic

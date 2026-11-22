@@ -4,6 +4,7 @@ import { TEMPLATE_SUFFIX } from '@commerce/core/theme'
 import NameDialog from '@/components/fields/name-dialog'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import type { useTemplateManager } from '@/lib/use-template-manager'
 import { usedLabel } from './template-list'
 
@@ -11,15 +12,16 @@ type TemplateManagerDialogsProps = {
   manager: ReturnType<typeof useTemplateManager>
 }
 
-const copy = customizeContent.templates
-
 /** A template manager's rename and delete dialogs, kept outside the picker's popover. */
 export default function TemplateManagerDialogs({ manager }: TemplateManagerDialogsProps) {
+  // Hooks
+  const copy = useCopy(customizeContent.templates)
+
   // Early returns
   const pending = manager.pending
   if (pending?.action === 'rename') {
     const renameCopy = copy.renameDialog
-    const used = usedLabel(manager, pending.kind, pending.suffix)
+    const used = usedLabel(manager, pending.kind, pending.suffix, copy)
     return (
       <NameDialog
         key={`${pending.kind}.${pending.suffix}`}
@@ -42,7 +44,7 @@ export default function TemplateManagerDialogs({ manager }: TemplateManagerDialo
 
   // Render logic
   const deleteCopy = copy.deleteDialog
-  const used = usedLabel(manager, pending.kind, pending.suffix)
+  const used = usedLabel(manager, pending.kind, pending.suffix, copy)
   return (
     <ConfirmDialog
       tone="destructive"

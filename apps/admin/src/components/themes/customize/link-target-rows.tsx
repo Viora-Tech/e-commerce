@@ -5,6 +5,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import Image from 'next/image'
 import type { ReactNode } from 'react'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { LINK_KIND_ICONS } from '@/lib/customize-link-icons'
 import type { LinkKind, LinkTarget, RecentLink } from '@/lib/customize-links'
 
@@ -25,8 +26,6 @@ type LinkTargetRowsProps = {
 
 export type { Row as LinkRow }
 
-const copy = customizeContent.link
-
 const ROW =
   'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-caption font-normal outline-none transition-colors duration-150 hover:bg-muted focus-visible:bg-muted motion-reduce:transition-none'
 
@@ -42,6 +41,9 @@ export default function LinkTargetRows({
   onPick,
   onOpenKind,
 }: LinkTargetRowsProps) {
+  // Hooks
+  const copy = useCopy(customizeContent.link)
+
   // Early returns
   if (rows.length === 0) return null
 

@@ -39,8 +39,6 @@ type TemplateListProps = {
   fill?: boolean | undefined
 }
 
-const copy = customizeContent.templates
-
 /**
  * Figma's page list (381:6609 in the Pages panel, 369:125349 in the top bar's popover): a 40px
  * search, uppercase "PAGES" / "TEMPLATES" labels, 35px rows with the kind's glyph, the open one
@@ -74,6 +72,7 @@ export function usedLabel(
   manager: ReturnType<typeof useTemplateManager>,
   kind: AlternateKind,
   suffix: string,
+  copy: typeof customizeContent.templates,
 ): string {
   const n = manager.usedBy(kind, suffix)
   return n > 0 ? copy.usedBy(n, kind) : ''
@@ -97,6 +96,7 @@ export default function TemplateList({
   fill,
 }: TemplateListProps) {
   // Hooks
+  const copy = useCopy(customizeContent.templates)
   const groups = useCopy(customizeContent.groups)
   const panels = useCopy(customizeContent.panels)
 
@@ -143,7 +143,7 @@ export default function TemplateList({
                     </CommandItem>
                     {isAlternateKind(key)
                       ? own.map((a) => {
-                          const used = usedLabel(manager, key, a.suffix)
+                          const used = usedLabel(manager, key, a.suffix, copy)
                           return (
                             <CommandItem
                               key={templateName(key, a.suffix)}

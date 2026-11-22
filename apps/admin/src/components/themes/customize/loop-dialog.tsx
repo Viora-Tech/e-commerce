@@ -24,6 +24,7 @@ import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { dynamicSourcesContent } from '@/data/dynamic-sources'
+import { useCopy } from '@/hooks/use-copy'
 import { guessMap, type LoopCatalog, loadLoopCatalog, sourceFields } from '@/lib/customize-loops'
 
 type LoopDialogProps = {
@@ -35,8 +36,6 @@ type LoopDialogProps = {
   onCancel: () => void
   onConfirm: (spec: LoopSpec) => void
 }
-
-const copy = dynamicSourcesContent.loops
 const NONE = '__none'
 
 /**
@@ -51,6 +50,7 @@ export default function LoopDialog({
   onConfirm,
 }: LoopDialogProps) {
   // Hooks
+  const copy = useCopy(dynamicSourcesContent.loops)
   const [catalog, setCatalog] = useState<LoopCatalog | null>(null)
   const [failed, setFailed] = useState(false)
   const [source, setSource] = useState(current?.source ?? '')

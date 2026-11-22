@@ -5,6 +5,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import { SortableList } from '@commerce/ui/sortable'
 import { useState } from 'react'
 import { customizeContent, sectionSortLabels } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { CHROME_META } from '@/lib/customize-chrome'
 import { sectionName } from '@/lib/customize-insert'
 import { useCustomizePuck } from '@/lib/customize-puck'
@@ -25,8 +26,6 @@ type SlotZoneListProps = {
 
 type Item = { id: string; section: TemplateSection }
 
-const copy = customizeContent.tree
-
 /**
  * One slot of a container in the Sections tree: its blocks as draggable rows
  * (reordering is a Puck `reorder` on the slot's zone), an insert line between
@@ -35,6 +34,7 @@ const copy = customizeContent.tree
  */
 export default function SlotZoneList({ zone, label, items, parentName, depth }: SlotZoneListProps) {
   // Hooks
+  const copy = useCopy(customizeContent.tree)
   const dispatch = useCustomizePuck((s) => s.dispatch)
   const selector = useCustomizePuck((s) => s.appState.ui.itemSelector)
   const components = useCustomizePuck((s) => s.config.components)

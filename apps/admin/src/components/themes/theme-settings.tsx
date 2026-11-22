@@ -1,7 +1,8 @@
 'use client'
 
 import type { Theme } from '@commerce/core/theme'
-import { themesContent as copy } from '@/data/themes'
+import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 import BrandSettings from './brand-settings'
 import ButtonSettings from './button-settings'
 import CardSettings from './card-settings'
@@ -18,6 +19,7 @@ type ThemeSettingsProps = {
 
 /** The left panel: every theme setting, grouped and collapsible. */
 export default function ThemeSettings({ theme, mode, onChange }: ThemeSettingsProps) {
+  const copy = useCopy(themesContent)
   return (
     <div className="flex flex-col">
       <SettingGroup title={copy.groups.colours} defaultOpen>

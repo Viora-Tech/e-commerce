@@ -2,7 +2,8 @@
 
 import type { Theme } from '@commerce/core/theme'
 import SwitchRow from '@/components/fields/switch-row'
-import { themesContent as copy } from '@/data/themes'
+import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 import RangeField from './range-field'
 
 type LayoutSettingsProps = {
@@ -12,6 +13,9 @@ type LayoutSettingsProps = {
 
 /** Page width, section rhythm, section corners, input radius and border weight. */
 export default function LayoutSettings({ theme, onChange }: LayoutSettingsProps) {
+  // Hooks
+  const copy = useCopy(themesContent)
+
   // Helpers
   const setLayout = (patch: Partial<Theme['layout']>) =>
     onChange({ ...theme, layout: { ...theme.layout, ...patch } })

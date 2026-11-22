@@ -1,7 +1,8 @@
 'use client'
 
 import type { Theme } from '@commerce/core/theme'
-import { themesContent as copy } from '@/data/themes'
+import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 import MediaSlot from './media-slot'
 import RangeField from './range-field'
 
@@ -12,6 +13,9 @@ type BrandSettingsProps = {
 
 /** Logo, logo width and favicon. Presets never touch these. */
 export default function BrandSettings({ theme, onChange }: BrandSettingsProps) {
+  // Hooks
+  const copy = useCopy(themesContent)
+
   // Helpers
   const setBrand = (patch: Partial<Theme['brand']>) =>
     onChange({ ...theme, brand: { ...theme.brand, ...patch } })

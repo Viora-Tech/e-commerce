@@ -7,6 +7,7 @@ import { useReducedMotion } from 'motion/react'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { deleteWithCollapse } from '@/lib/customize-canvas-motion'
 import { copiedBlock, copyBlock } from '@/lib/customize-clipboard'
 import { type CustomizeDoc, MAIN_ZONE } from '@/lib/customize-doc'
@@ -16,8 +17,6 @@ import { insertCopyActions, stepActions, zoneItems } from '@/lib/customize-slots
 import { useStorageScope } from '@/lib/storage-scope'
 
 const EDITABLE_TAGS = new Set(['input', 'textarea', 'select'])
-
-const copy = customizeContent.clipboard
 
 /**
  * Shortcuts on top of Puck's own, for sections and nested blocks alike:
@@ -40,6 +39,7 @@ const copy = customizeContent.clipboard
  */
 export default function CustomizeHotkeys() {
   // Hooks
+  const copy = useCopy(customizeContent.clipboard)
   const dispatch = useCustomizePuck((s) => s.dispatch)
   const getPuck = useGetPuck()
   // Re-attaching on selection keeps the listener on the preview iframe's document,
@@ -172,7 +172,7 @@ export default function CustomizeHotkeys() {
     return () => {
       for (const doc of docs) doc.removeEventListener('keydown', handleKeyDown, true)
     }
-  }, [dispatch, getPuck, reducedMotion, selectionKey, storageScope])
+  }, [copy, dispatch, getPuck, reducedMotion, selectionKey, storageScope])
 
   // Render logic
   return null

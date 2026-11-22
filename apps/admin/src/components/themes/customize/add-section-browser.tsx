@@ -57,8 +57,6 @@ type AddSectionBrowserProps = {
   fill?: boolean
 }
 
-const copy = customizeContent.addSection
-
 /** Groups that are not library categories, folded by the same switch. */
 const MINE = 'mine'
 const APPS = 'apps'
@@ -80,6 +78,8 @@ export default function AddSectionBrowser({
   fill,
 }: AddSectionBrowserProps) {
   // Hooks
+  const mySectionsCopy = useCopy(customizeContent.mySections)
+  const copy = useCopy(customizeContent.addSection)
   const [kind, setKind] = useState<AddKind>('sections')
   const [query, setQuery] = useState('')
   const [hovered, setHovered] = useState<string | null>(null)
@@ -132,7 +132,7 @@ export default function AddSectionBrowser({
   const handleAddCopy = (section: CustomSection) => {
     const block = section.block as TemplateSection
     for (const action of insertCopyActions({ zone, index }, block, count)) dispatch(action)
-    toast.success(customizeContent.mySections.added(section.name))
+    toast.success(mySectionsCopy.added(section.name))
     finish()
   }
 
@@ -279,6 +279,9 @@ export default function AddSectionBrowser({
 
 /** Figma's "Sections | Blocks" segmented switch (369:4903): a muted track, the chosen one raised. */
 function KindSwitch({ value, onChange }: { value: AddKind; onChange: (kind: AddKind) => void }) {
+  // Hooks
+  const copy = useCopy(customizeContent.addSection)
+
   // Render logic
   return (
     <div

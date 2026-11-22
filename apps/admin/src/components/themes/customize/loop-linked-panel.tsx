@@ -5,6 +5,7 @@ import { DynamicSource } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { dynamicSourcesContent } from '@/data/dynamic-sources'
+import { useCopy } from '@/hooks/use-copy'
 import { CHROME_META } from '@/lib/customize-chrome'
 import { type LoopCatalog, loadLoopCatalog, loadLoopRows } from '@/lib/customize-loops'
 
@@ -17,10 +18,12 @@ type LoopLinkedPanelProps = {
   onUnlink: () => void
 }
 
-const copy = dynamicSourcesContent.loops
-
 /** The source's name as the merchant knows it: the content type's name, or the collection's title. */
-function sourceLabel(source: string, catalog: LoopCatalog | null): string {
+function sourceLabel(
+  source: string,
+  catalog: LoopCatalog | null,
+  copy: typeof dynamicSourcesContent.loops,
+): string {
   const parsed = parseLoopSource(source)
   if (!parsed) return copy.unknown
   if (parsed.scope === 'metaobject') {
@@ -43,6 +46,7 @@ export default function LoopLinkedPanel({
   onUnlink,
 }: LoopLinkedPanelProps) {
   // Hooks
+  const copy = useCopy(dynamicSourcesContent.loops)
   const [catalog, setCatalog] = useState<LoopCatalog | null>(null)
   const [count, setCount] = useState<number | null>(null)
 
@@ -79,7 +83,7 @@ export default function LoopLinkedPanel({
         <div className="flex min-w-0 flex-col">
           <span className={CHROME_META}>{copy.linked}</span>
           <span className="truncate text-caption font-medium text-foreground">
-            {sourceLabel(spec.source, catalog)}
+            {sourceLabel(spec.source, catalog, copy)}
           </span>
           <span className="text-xs text-muted-foreground">
             {count === null ? copy.loading : count > 0 ? copy.rows(count) : copy.none}

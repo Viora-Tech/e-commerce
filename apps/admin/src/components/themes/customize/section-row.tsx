@@ -27,6 +27,7 @@ import {
 import { type KeyboardEvent, type MouseEvent, type ReactNode, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import {
   CHROME_FOCUS,
   CHROME_ROW,
@@ -66,9 +67,6 @@ type SectionRowProps = {
   onMoveDown?: (() => void) | undefined
 }
 
-const copy = customizeContent.tree
-const toolbar = customizeContent.toolbar
-
 /**
  * One section in the tree, Shopify-style: drag handle, glyph, name, the eye
  * (always visible while hidden) and a "more" menu (also on right-click, Figma 696:87006):
@@ -95,6 +93,9 @@ export default function SectionRow({
   onMoveDown,
 }: SectionRowProps) {
   // Hooks
+  const clipboardCopy = useCopy(customizeContent.clipboard)
+  const copy = useCopy(customizeContent.tree)
+  const toolbar = useCopy(customizeContent.toolbar)
   const storageScope = useStorageScope()
   const [renaming, setRenaming] = useState(false)
   const [draft, setDraft] = useState(name)
@@ -115,7 +116,7 @@ export default function SectionRow({
 
   const handleCopy = () => {
     copyBlock(storageScope, section)
-    toast.success(customizeContent.clipboard.copied(name))
+    toast.success(clipboardCopy.copied(name))
   }
 
   const handleContextMenu = (e: MouseEvent<HTMLDivElement>) => {

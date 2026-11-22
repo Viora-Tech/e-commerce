@@ -23,6 +23,8 @@ const rem = (px: number) => `${px / 16}rem`
 /** Theme settings › Buttons: corners, filled or outline, a live sample, then the rest. */
 export default function ThemeButtonsGroup({ theme, mode, onChange }: ThemeButtonsGroupProps) {
   // Hooks
+  const buttonsCopy = useCopy(themesContent.buttons)
+  const unitsCopy = useCopy(themesContent.units)
   const copy = useCopy(customizeContent.themePanel)
 
   // Helpers
@@ -83,18 +85,18 @@ export default function ThemeButtonsGroup({ theme, mode, onChange }: ThemeButton
       </div>
       <MoreSettings label={copy.moreButtons}>
         <SwitchRow
-          label={themesContent.buttons.uppercase}
+          label={buttonsCopy.uppercase}
           checked={theme.buttons.uppercase}
           onChange={(uppercase) => setButtons({ uppercase })}
           weight="normal"
         />
         <RangeField
-          label={themesContent.buttons.radius}
+          label={buttonsCopy.radius}
           value={theme.shape.buttonRadius}
           min={0}
           max={40}
           step={1}
-          format={themesContent.units.px}
+          format={unitsCopy.px}
           onChange={setRadius}
         />
       </MoreSettings>

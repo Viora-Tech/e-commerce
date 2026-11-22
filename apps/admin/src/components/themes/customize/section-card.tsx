@@ -9,6 +9,7 @@ import { type FocusEvent, type KeyboardEvent, type MouseEvent, useState } from '
 import { createPortal } from 'react-dom'
 import { appIcon as appIconFor } from '@/apps/app-icons'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import {
   CHROME_FOCUS,
   CHROME_META,
@@ -37,8 +38,6 @@ type SectionCardProps = {
 }
 
 type Anchor = { top: number; left: number }
-
-const copy = customizeContent.addSection
 
 /** Room kept between the hover preview and the viewport's edges. */
 const EDGE = 12
@@ -76,6 +75,7 @@ export default function SectionCard({
   layout = 'row',
 }: SectionCardProps) {
   // Hooks
+  const copy = useCopy(customizeContent.addSection)
   const reducedMotion = useReducedMotion()
   const [anchor, setAnchor] = useState<Anchor | null>(null)
 

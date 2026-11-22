@@ -4,7 +4,7 @@ import { ReviewsCarousel, type StoreReviews } from '@commerce/blocks'
 import { APP_BLOCK_MISSING_ATTR, APP_BLOCK_SLOT_ATTR } from '@commerce/core/theme-import'
 import { type RefObject, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { canvasAppBlocksContent as copy } from '@/data/canvas-app-blocks'
+import { canvasAppBlocksContent } from '@/data/canvas-app-blocks'
 import { themeEditorAppsContent } from '@/data/theme-editor-apps'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -28,6 +28,7 @@ const CAROUSEL_REVIEWS = 12
  */
 export default function CanvasAppBlocks({ box, html }: CanvasAppBlocksProps) {
   // Hooks
+  const copy = useCopy(canvasAppBlocksContent)
   const [slot, setSlot] = useState<HTMLElement | null>(null)
   const [reviews, setReviews] = useState<StoreReviews | null>(null)
   const apps = useCopy(themeEditorAppsContent)

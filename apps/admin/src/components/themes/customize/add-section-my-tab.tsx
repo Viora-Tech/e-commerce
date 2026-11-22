@@ -7,6 +7,7 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Image from 'next/image'
 import { toast } from 'sonner'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import {
   CHROME_FOCUS,
   CHROME_META,
@@ -23,8 +24,6 @@ type MySectionsTabProps = {
   onAdd: (section: CustomSection) => void
 }
 
-const copy = customizeContent.mySections
-
 const dateLabel = (iso: string) => formatPattern(iso, { day: 'numeric', month: 'short' })
 
 /**
@@ -34,6 +33,7 @@ const dateLabel = (iso: string) => formatPattern(iso, { day: 'numeric', month: '
  */
 export default function MySectionsTab({ query, onAdd }: MySectionsTabProps) {
   // Hooks
+  const copy = useCopy(customizeContent.mySections)
   const { status, items } = useMySections(useEditingThemeId())
 
   // Event handlers

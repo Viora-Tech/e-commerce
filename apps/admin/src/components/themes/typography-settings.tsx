@@ -2,7 +2,8 @@
 
 import { FONT_PAIRINGS, THEME_FONTS, type Theme } from '@commerce/core/theme'
 import { cn } from '@commerce/ui/lib/utils'
-import { themesContent as copy } from '@/data/themes'
+import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 import FontPicker from './font-picker'
 import RangeField from './range-field'
 
@@ -21,6 +22,9 @@ export default function TypographySettings({
   onChange,
   pickers = true,
 }: TypographySettingsProps) {
+  // Hooks
+  const copy = useCopy(themesContent)
+
   // Helpers
   const setFonts = (patch: Partial<Theme['fonts']>) =>
     onChange({ ...theme, fonts: { ...theme.fonts, ...patch } })

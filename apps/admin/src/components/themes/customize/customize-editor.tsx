@@ -9,7 +9,7 @@ import '@/styles/vendor-editor.css'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { customizeContent } from '@/data/customize'
-import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { createCustomizeConfig } from '@/lib/customize-config'
 import { type CustomizeDoc, composeDoc, normalizeDoc } from '@/lib/customize-doc'
@@ -57,6 +57,7 @@ import ResourcePicker from './resource-picker'
 import SectionRemovedToast from './section-removed-toast'
 import TemplatePicker, { type TemplateRef, templateLabel } from './template-picker'
 import ThemePanel from './theme-panel'
+import { useEditorMessages } from './use-editor-messages'
 
 type CustomizeEditorProps = {
   theme: ThemeItem
@@ -79,13 +80,12 @@ type CustomizeEditorProps = {
 }
 
 type Loaded = { ref: TemplateRef; doc: CustomizeDoc; nonce: number }
-const copy = customizeContent.bar
 
 /**
- * Online Store › Themes › Customize. Puck is the engine: one document per template
- * (with the header and footer groups as root zones), so the tree, the preview,
- * the inspector and undo all share Puck's state. Edits autosave as drafts of this
- * theme; Save commits them, which for the live theme is what shoppers see.
+ * Online Store › Themes › Customize. Puck is the engine: one document per template (with the header
+ * and footer groups as root zones), so the tree, the preview, the inspector and undo all share
+ * Puck's state. Edits autosave as drafts of this theme; Save commits them, which for the live theme
+ * is what shoppers see.
  */
 export default function CustomizeEditor({
   theme,
@@ -100,6 +100,8 @@ export default function CustomizeEditor({
   liveName,
 }: CustomizeEditorProps) {
   // Hooks
+  const copy = useCopy(customizeContent.bar)
+  const messages = useEditorMessages()
   const [record, setRecord] = useState(theme)
   const [settings, setSettings] = useState(theme.settings)
   const [ref, setRef] = useState<TemplateRef>({ key: initial.template, suffix: initial.suffix })
@@ -159,7 +161,7 @@ export default function CustomizeEditor({
       },
       () => {
         window.clearTimeout(timer)
-        toast.error(themesContent.failed)
+        toast.error(messages.themes.failed)
         setSwitching(false)
         if (active) setLoadFailed(true)
       },
@@ -262,9 +264,9 @@ export default function CustomizeEditor({
     setPublishing(true)
     try {
       setRecord(await api.themes.publish({ id: record.id }))
-      toast.success(themesContent.editor.published)
+      toast.success(messages.editor.published)
     } catch {
-      toast.error(themesContent.library.failed)
+      toast.error(messages.library.failed)
     } finally {
       setPublishing(false)
     }
@@ -287,12 +289,12 @@ export default function CustomizeEditor({
     try {
       await drafts.flush()
       await api.themes.templates.create({ themeId: record.id, template: kind, suffix, basedOn })
-      toast.success(customizeContent.createDialog.created)
+      toast.success(messages.createDialog.created)
       setCreating('closed')
       setSwitching(true)
       setRef({ key: kind, suffix })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : customizeContent.createDialog.failed)
+      toast.error(err instanceof Error ? err.message : messages.createDialog.failed)
       setCreating('open')
     }
   }
@@ -444,7 +446,7 @@ export default function CustomizeEditor({
               device={device}
               loading={switching}
               store={store}
-              templateLabel={templateLabel(ref)}
+              templateLabel={templateLabel(ref, messages.templates)}
               template={ref.key}
               previewResource={previewResource}
               aiEnabled={ai.assistant}

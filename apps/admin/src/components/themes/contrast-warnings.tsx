@@ -1,11 +1,15 @@
 import type { ContrastWarning } from '@commerce/core/theme'
 import { TriangleAlert } from '@commerce/ui/icons'
-import { themesContent as copy } from '@/data/themes'
+import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 
 type ContrastWarningsProps = { warnings: ContrastWarning[] }
 
 /** Colour pairs below WCAG AA (4.5:1). Advisory: the merchant can still save. */
 export default function ContrastWarnings({ warnings }: ContrastWarningsProps) {
+  // Hooks
+  const copy = useCopy(themesContent)
+
   // Early returns
   if (warnings.length === 0) return null
 

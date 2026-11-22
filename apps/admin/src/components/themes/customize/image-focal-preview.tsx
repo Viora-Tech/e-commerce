@@ -6,6 +6,7 @@ import { motion, useReducedMotion } from 'motion/react'
 import type { KeyboardEvent, MouseEvent } from 'react'
 import type { MediaVariants } from '@/components/media/media-pick-types'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 
 type ImageFocalPreviewProps = {
   url: string
@@ -16,8 +17,6 @@ type ImageFocalPreviewProps = {
   thumbhash: string | null
   onFocal: (focal: FocalPoint) => void
 }
-
-const copy = customizeContent.image
 
 /** Arrow keys move the point 5% at a time, 1% with Shift held. */
 const KEY_STEP: Record<string, [number, number]> = {
@@ -43,6 +42,7 @@ export default function ImageFocalPreview({
   onFocal,
 }: ImageFocalPreviewProps) {
   // Hooks
+  const copy = useCopy(customizeContent.image)
   const reducedMotion = useReducedMotion()
 
   // Event handlers

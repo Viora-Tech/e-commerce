@@ -6,6 +6,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import { useState } from 'react'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { CHROME_FOCUS, CHROME_ROW_HOVER, CHROME_TRANSITION } from '@/lib/customize-chrome'
 import AddBlockPicker from './add-block-picker'
 import AddSectionBrowser from './add-section-browser'
@@ -27,8 +28,6 @@ type AddSectionPopoverProps = {
   slot?: boolean | undefined
 }
 
-const copy = customizeContent.tree
-
 /** The Sections tree's "+" points: the shared Add browser in a popover, inserting at `index`. */
 export default function AddSectionPopover({
   zone,
@@ -39,6 +38,7 @@ export default function AddSectionPopover({
   slot = false,
 }: AddSectionPopoverProps) {
   // Hooks
+  const copy = useCopy(customizeContent.tree)
   const [open, setOpen] = useState(false)
 
   // Render logic

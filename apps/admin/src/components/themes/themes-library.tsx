@@ -69,7 +69,6 @@ function download(theme: ThemeItem): void {
  * Online Store › Themes (Figma "Online store / Themes", 682:64096): the live theme with its
  * storefront preview, the theme library, and the Shopify import callout.
  */
-const deleteCopy = themesContent.deleteDialog
 
 export default function ThemesLibrary({
   initial,
@@ -81,6 +80,7 @@ export default function ThemesLibrary({
   performance = null,
 }: ThemesLibraryProps) {
   // Hooks
+  const deleteCopy = useCopy(themesContent.deleteDialog)
   const [themes, setThemes] = useState(initial)
   /** What is running ('publish:<id>', 'duplicate:<id>', 'add'…), so only the pressed button spins. */
   const [pending, setPending] = useState<string | null>(null)

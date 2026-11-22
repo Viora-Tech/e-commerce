@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { deleteWithCollapse, scrollToSection } from '@/lib/customize-canvas-motion'
 import type { CustomizeDoc } from '@/lib/customize-doc'
 import {
@@ -77,6 +78,7 @@ export default function SectionTreeItem({
   depth = 0,
 }: SectionTreeItemProps) {
   // Hooks
+  const arrayCopy = useCopy(customizeContent.array)
   const dispatch = useCustomizePuck((s) => s.dispatch)
   const fields = useCustomizePuck((s) => s.config.components[section.type]?.fields)
   const getPuck = useGetPuck()
@@ -154,7 +156,7 @@ export default function SectionTreeItem({
   const lists = sectionBlocks(
     section.props,
     fields as Record<string, BlockFieldLike> | undefined,
-    customizeContent.array.itemFallback,
+    arrayCopy.itemFallback,
   )
   const zones = slotZones(section.props, fields as SlotFields)
   const liquidSchema = liquidSchemaOf()

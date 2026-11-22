@@ -7,7 +7,8 @@ import {
   themeContrastWarnings,
 } from '@commerce/core/theme'
 import SwitchRow from '@/components/fields/switch-row'
-import { themesContent as copy } from '@/data/themes'
+import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 import ChoiceField from './choice-field'
 import ColourField from './colour-field'
 import ContrastWarnings from './contrast-warnings'
@@ -35,10 +36,7 @@ const ROLES: ColourRole[] = [
   'accent',
 ]
 const STATUS: (keyof StatusColors)[] = ['success', 'danger', 'sale']
-const DARK_DEFAULTS = (['system', 'light', 'dark'] as const).map((value) => ({
-  value,
-  label: copy.colours.darkDefaults[value],
-}))
+const DARK_DEFAULTS = ['system', 'light', 'dark'] as const
 
 const schemeOf = (theme: Theme, mode: 'light' | 'dark') => {
   const id = mode === 'light' ? theme.lightScheme : theme.darkScheme
@@ -55,6 +53,15 @@ export default function ColourSettings({
   onChange,
   roles = ROLES,
 }: ColourSettingsProps) {
+  // Hooks
+  const copy = useCopy(themesContent)
+
+  // Derived
+  const darkDefaults = DARK_DEFAULTS.map((value) => ({
+    value,
+    label: copy.colours.darkDefaults[value],
+  }))
+
   // Event handlers
   const handleRole = (role: ColourRole, hex: string) => {
     const id = schemeOf(theme, mode)?.id
@@ -111,7 +118,7 @@ export default function ColourSettings({
           <ChoiceField
             label={copy.colours.darkDefault}
             value={theme.darkMode.default}
-            options={DARK_DEFAULTS}
+            options={darkDefaults}
             onChange={(value) =>
               onChange({ ...theme, darkMode: { ...theme.darkMode, default: value } })
             }

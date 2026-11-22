@@ -4,6 +4,7 @@ import { ChevronDown } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { type ReactNode, useId } from 'react'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { CHROME_FOCUS } from '@/lib/customize-chrome'
 
 type AddSectionGroupProps = {
@@ -13,14 +14,13 @@ type AddSectionGroupProps = {
   children: ReactNode
 }
 
-const copy = customizeContent.addSection
-
 /**
  * One category of the Add panel (Figma 369:4912 "Left panel / Stack"): a 14px semibold heading
  * with a chevron that folds the group, its content below, a hairline under the group.
  */
 export default function AddSectionGroup({ title, open, onToggle, children }: AddSectionGroupProps) {
   // Hooks
+  const copy = useCopy(customizeContent.addSection)
   const bodyId = useId()
 
   // Render logic

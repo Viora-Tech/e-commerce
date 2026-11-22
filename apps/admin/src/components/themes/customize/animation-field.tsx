@@ -12,6 +12,7 @@ import {
 import { motion, useReducedMotion } from 'motion/react'
 import { useId, useState } from 'react'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { FIELD_CONTROL } from '@/lib/customize-field-styles'
 import FieldFrame from './field-frame'
 
@@ -21,8 +22,6 @@ type AnimationFieldProps = {
   value: string
   onChange: (value: string) => void
 }
-
-const copy = customizeContent.settingsControls
 
 /** The poses `section-reveal.tsx` starts a section from, so the preview plays the real thing. */
 const FROM: Record<string, { opacity: number; y?: number; scale?: number }> = {
@@ -38,6 +37,7 @@ const FROM: Record<string, { opacity: number; y?: number; scale?: number }> = {
  */
 export default function AnimationField({ label, options, value, onChange }: AnimationFieldProps) {
   // Hooks
+  const copy = useCopy(customizeContent.settingsControls)
   const id = useId()
   const reducedMotion = useReducedMotion()
   const [plays, setPlays] = useState(0)

@@ -19,6 +19,7 @@ import { toast } from 'sonner'
 import MediaPickDialog, { type PickedMedia } from '@/components/media/media-pick-dialog'
 import type { MediaVariants } from '@/components/media/media-pick-types'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { FIELD_CONTROL } from '@/lib/customize-field-styles'
 import { rejectReason, uploadFile } from '@/lib/upload'
 import ImageFocalPreview from './image-focal-preview'
@@ -37,8 +38,6 @@ type ImageFieldProps = {
 
 type Preview = { variants: MediaVariants | null; thumbhash: string | null }
 
-const copy = customizeContent.image
-
 const NO_PREVIEW: Preview = { variants: null, thumbhash: null }
 
 const asImage = (value: unknown) => (value ?? {}) as ImageValue
@@ -56,6 +55,7 @@ function withPicture(image: ImageValue, url: string, alt: string | null): ImageV
  */
 export default function ImageField({ value, onChange }: ImageFieldProps) {
   // Hooks
+  const copy = useCopy(customizeContent.image)
   const reducedMotion = useReducedMotion()
   const [picking, setPicking] = useState(false)
   const [dragOver, setDragOver] = useState(false)
