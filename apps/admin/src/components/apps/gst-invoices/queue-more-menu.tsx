@@ -12,6 +12,7 @@ import { gstInvoicesContent } from '@/data/gst-invoices'
 import { gstQueuePageContent } from '@/data/gst-queue-page'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 export type DateRange = { from: string; to: string }
 
@@ -60,7 +61,7 @@ export default function QueueMoreMenu({
       setDialog(null)
       onAdded()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : gstInvoicesContent.queue.failed)
+      toast.error(errorText(err, gstInvoicesContent.queue.failed))
     }
   }
   const handleDates = () => {

@@ -29,6 +29,7 @@ import StatusLabel from '@/components/status/status-label'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type RemainingCardProps = {
   /** Connected to Shopify; without it the counts are only what earlier previews saw. */
@@ -174,7 +175,7 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
       toast.success(action === 'preview' ? copy.previewStarted : copy.started)
       router.push(`${base}/runs/${run.id}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.startFailed)
+      toast.error(errorText(err, copy.startFailed))
       setBusy(null)
     }
   }

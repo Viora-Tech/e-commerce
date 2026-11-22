@@ -40,6 +40,7 @@ import { gstInvoicesContent } from '@/data/gst-invoices'
 import { tableContent as tableCopy } from '@/data/table'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatPattern } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
@@ -176,7 +177,7 @@ export default function InvoicesList() {
       await fn()
       toast.dismiss(id)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed, { id })
+      toast.error(errorText(err, copy.failed), { id })
     } finally {
       setBusy(null)
     }

@@ -14,6 +14,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type AddAffiliateDialogProps = {
   open: boolean
@@ -62,7 +63,7 @@ export default function AddAffiliateDialog({
       onOpenChange(false)
       onAdded()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : failed)
+      toast.error(errorText(err, failed))
     } finally {
       setBusy(false)
     }

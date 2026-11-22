@@ -13,6 +13,7 @@ import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import type { LoadFailure } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { isForbidden } from '@/lib/forbidden'
 import { routes } from '@/lib/routes'
 import AiSummarySettings from './ai-summary-settings'
@@ -60,7 +61,7 @@ export default function SettingsPage() {
       setSaved(JSON.stringify(next))
       toast.success(copy.settings.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.list.failed)
+      toast.error(errorText(err, copy.list.failed))
     } finally {
       setBusy(false)
     }

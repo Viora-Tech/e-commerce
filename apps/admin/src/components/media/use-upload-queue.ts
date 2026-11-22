@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { mediaContent } from '@/data/media'
+import { errorText } from '@/lib/api-errors'
 import { rejectReason, type UploadedMedia, uploadFile } from '@/lib/upload'
 
 export type PendingUpload = {
@@ -31,7 +32,7 @@ export function useUploadQueue(onDone: (item: UploadedMedia) => void) {
       onDone(done)
       return true
     } catch (err) {
-      update(entry.key, { error: err instanceof Error ? err.message : mediaContent.errors.generic })
+      update(entry.key, { error: errorText(err, mediaContent.errors.generic) })
       return false
     }
   }

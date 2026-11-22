@@ -14,6 +14,7 @@ import { codRtoContent } from '@/data/cod-rto'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import RiskChip from './risk-chip'
 
@@ -48,7 +49,7 @@ export default function OrderCard({ orderId }: OrderCardProps) {
       setData(await api.codRto.forOrder({ orderId }))
       toast.success(done)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
     }

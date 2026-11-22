@@ -13,6 +13,7 @@ import { domainsContent as copy, domainEdgeContent } from '@/data/domains'
 import { useCopy } from '@/hooks/use-copy'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type ConnectDomainDialogProps = {
@@ -69,7 +70,7 @@ export default function ConnectDomainDialog({
           : undefined,
       })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.dialog.failed)
+      toast.error(errorText(err, copy.dialog.failed))
     } finally {
       setSaving(false)
     }

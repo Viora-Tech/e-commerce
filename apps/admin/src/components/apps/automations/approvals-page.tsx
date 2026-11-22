@@ -17,6 +17,7 @@ import { automationPiecesContent, automationsContent } from '@/data/automations'
 import { useAutomationCatalogue } from '@/hooks/use-automation-catalogue'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import type { LoadFailure } from '@/hooks/use-load'
+import { errorText } from '@/lib/api-errors'
 import { automationApi } from '@/lib/automation-api'
 import { actionLabel } from '@/lib/automation-labels'
 import { automationRoutes, recordHref } from '@/lib/automation-routes'
@@ -56,7 +57,7 @@ export default function ApprovalsPage() {
       setItems((rows) => (rows ?? []).filter((r) => r.stepRunId !== item.stepRunId))
       toast.success(approve ? copy.approved : copy.declined)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setDeciding(null)
     }

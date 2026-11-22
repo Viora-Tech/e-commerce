@@ -10,6 +10,7 @@ import PageHeader from '@/components/layout/page-header'
 import { searchDiscoveryContent } from '@/data/search-discovery'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import RecommendationRowCard from './recommendation-row-card'
 
@@ -38,7 +39,7 @@ export default function RecommendationEditor({ params: { productId = '' } }: App
       setLoaded((prev) => (prev ? { ...prev, picks } : prev))
       toast.success(copy.editor.saved)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     }
   }
 

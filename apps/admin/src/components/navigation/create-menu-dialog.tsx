@@ -16,6 +16,7 @@ import FormDialog from '@/components/layout/form-dialog'
 import { menusContent } from '@/data/menus'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type CreateMenuDialogProps = {
   open: boolean
@@ -39,7 +40,7 @@ export default function CreateMenuDialog({ open, onOpenChange }: CreateMenuDialo
       onOpenChange(false)
       router.push(`/content/menus/${m.id}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

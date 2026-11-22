@@ -14,6 +14,7 @@ import TemplateSelectCard from '@/components/themes/template-select-card'
 import { articleFormContent, blogListContent } from '@/data/blog'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import ArticleImageCard from './article-image-card'
 import ArticleMainCard from './article-main-card'
@@ -94,7 +95,7 @@ export default function ArticleForm({
         router.replace(routes.content.blogPost(id))
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.saveFailed)
+      toast.error(errorText(err, copy.saveFailed))
     } finally {
       setBusy(false)
     }
@@ -112,7 +113,7 @@ export default function ArticleForm({
       toast.success(copy.deletedToast)
       router.push(routes.content.blogPosts())
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.saveFailed)
+      toast.error(errorText(err, copy.saveFailed))
       setBusy(false)
       setDeleting(false)
     }

@@ -11,6 +11,7 @@ import StatusChip from '@/components/layout/status-chip'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type RegistrationRowProps = {
   registration: GstRegistrationView
@@ -39,7 +40,7 @@ export default function RegistrationRow({
       toast.success(done)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     } finally {
       setBusy(false)
     }

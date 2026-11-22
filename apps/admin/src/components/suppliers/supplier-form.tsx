@@ -27,7 +27,7 @@ import SaveBar from '@/components/layout/save-bar'
 import { supplierFormContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { focusField } from '@/lib/api-errors'
+import { errorText, focusField } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import SupplierContactsField, { type ContactDraft } from './supplier-contacts-field'
 import SupplierOrdersCard from './supplier-orders-card'
@@ -122,7 +122,7 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
       if (supplier) router.refresh()
       else router.replace(routes.stock.supplier(id))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -135,7 +135,7 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
       toast.success(copy.deleted)
       router.push(LIST)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     }
   }
 

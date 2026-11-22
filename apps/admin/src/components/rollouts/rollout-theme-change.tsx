@@ -18,6 +18,7 @@ import DataCard from '@/components/layout/data-card'
 import { rolloutsContent } from '@/data/rollouts'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type RolloutThemeChangeProps = {
@@ -60,7 +61,7 @@ export default function RolloutThemeChange({
       onChange(made.id)
       toast.success(copy.copied)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     } finally {
       setCopying(false)
     }

@@ -18,6 +18,7 @@ import { monthlyExpensesContent } from '@/data/monthly-expenses'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import ExpenseDialog from './expense-dialog'
 
 type View = Awaited<ReturnType<typeof api.monthlyExpenses.list>>
@@ -80,7 +81,7 @@ export default function MonthlyExpensesSettings() {
       setDeleting(null)
       reload()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       throw err
     }
   }

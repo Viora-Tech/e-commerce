@@ -7,6 +7,7 @@ import SettingsCard from '@/components/settings/settings-card'
 import { marketsContent } from '@/data/markets'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type MarketSuggestionCardProps = {
   /** The saved setting (`store.preferences.markets.suggestMarket`). */
@@ -36,7 +37,7 @@ export default function MarketSuggestionCard({
       toast.success(next ? copy.on : copy.off)
     } catch (err) {
       setOn(!next)
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setSaving(false)
     }

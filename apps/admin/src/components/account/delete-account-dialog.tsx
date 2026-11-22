@@ -14,6 +14,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { accountContent } from '@/data/account'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { authClient } from '@/lib/auth-client'
 import { routes } from '@/lib/routes'
 
@@ -73,7 +74,7 @@ export default function DeleteAccountDialog({
       await api.account.sendDeletionCode()
       setCodeSent(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.failed)
+      setError(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -90,7 +91,7 @@ export default function DeleteAccountDialog({
       await authClient.signOut().catch(() => undefined)
       window.location.assign(routes.login())
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.failed)
+      setError(errorText(err, copy.failed))
       setBusy(false)
     }
   }

@@ -1,4 +1,6 @@
-'use client'
+import { errorText } from '@/lib/api-errors'
+
+;('use client')
 
 /**
  * SOURCE OF TRUTH KEYWORDS: useLabelSheet, label paper choice
@@ -93,7 +95,7 @@ export function useLabelSheet() {
       }
     } catch (err) {
       tab?.close()
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setPrinting(false)
     }

@@ -12,6 +12,7 @@ import { documentReviewContent, purchaseDocumentsContent } from '@/data/purchase
 import { chargesContent } from '@/data/purchasing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import ReviewCharges from './review-charges'
 import ReviewDetails from './review-details'
 import ReviewLines from './review-lines'
@@ -24,8 +25,6 @@ type ReviewDialogProps = {
   onApplied: () => void
   onReset: () => void
 }
-
-const message = (err: unknown, fallback: string) => (err instanceof Error ? err.message : fallback)
 
 /** The document on the left, what the AI read on the right; nothing is saved until Apply. */
 export default function ReviewDialog({ id, onOpenChange, onApplied, onReset }: ReviewDialogProps) {
@@ -86,7 +85,7 @@ export default function ReviewDialog({ id, onOpenChange, onApplied, onReset }: R
       toast.success(copy.applied)
       onApplied()
     } catch (err) {
-      toast.error(message(err, docCopy.failed))
+      toast.error(errorText(err, docCopy.failed))
     } finally {
       setBusy(false)
     }
@@ -100,7 +99,7 @@ export default function ReviewDialog({ id, onOpenChange, onApplied, onReset }: R
       setReview({ ...review, document: { ...review.document, status: 'ready', appliedAt: null } })
       onReset()
     } catch (err) {
-      toast.error(message(err, docCopy.failed))
+      toast.error(errorText(err, docCopy.failed))
     }
   }
 

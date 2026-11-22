@@ -19,6 +19,7 @@ import TableEmptyRow from '@/components/table/table-empty-row'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type Trend = Awaited<ReturnType<typeof api.affiliates.trend>>
 
@@ -56,7 +57,7 @@ export default function AffiliateTrendCard() {
       const { csv } = await api.affiliates.ledgerCsv()
       saveFile('affiliate-commissions.csv', csv)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : failed)
+      toast.error(errorText(err, failed))
     }
   }
 

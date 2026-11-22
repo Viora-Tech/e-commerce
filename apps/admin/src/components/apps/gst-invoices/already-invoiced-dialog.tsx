@@ -9,6 +9,7 @@ import FormDialog from '@/components/layout/form-dialog'
 import { gstAlreadyInvoicedContent } from '@/data/gst-already-invoiced'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { QueueRow } from './queue-page'
 import TextField from './text-field'
 
@@ -52,7 +53,7 @@ export default function AlreadyInvoicedDialog({
       toast.success(copy.recorded(r?.number ?? number.trim().toUpperCase()))
       onRecorded()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     }
   }
 

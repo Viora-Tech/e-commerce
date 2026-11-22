@@ -23,6 +23,7 @@ import { gstInvoicesContent } from '@/data/gst-invoices'
 import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatDay } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
@@ -80,7 +81,7 @@ export default function InvoiceDetail({ params }: AppPageProps) {
       setDoc(d)
       if (done) toast.success(done)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.cancel)
+      toast.error(errorText(err, copy.cancel))
     } finally {
       setBusy(null)
     }

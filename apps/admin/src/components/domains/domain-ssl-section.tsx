@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { domainCertificateContent, domainEdgeContent, domainsContent } from '@/data/domains'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 const copy = domainsContent.detail
 
@@ -31,7 +32,7 @@ export default function DomainSslSection({ domain, canManage, onChange }: Domain
       onChange(await api.domains.retryCertificate({ id: domain.id }))
       toast.success(certificate.retryStarted)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : certificate.retryFailed)
+      toast.error(errorText(err, certificate.retryFailed))
     } finally {
       setRetrying(false)
     }

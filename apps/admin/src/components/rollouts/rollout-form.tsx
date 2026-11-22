@@ -18,6 +18,7 @@ import { rolloutsContent } from '@/data/rollouts'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import AddChangesDialog, { type ChangeKind } from './add-changes-dialog'
 import RolloutActions from './rollout-actions'
@@ -98,7 +99,7 @@ export default function RolloutForm({ rollout, data, results = null }: RolloutFo
       toast.success(copy.toasts.saved)
       router.refresh()
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : copy.toasts.failed)
+      setServerError(errorText(err, copy.toasts.failed))
     } finally {
       setBusy(false)
     }

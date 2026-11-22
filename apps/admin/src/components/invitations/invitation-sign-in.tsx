@@ -11,6 +11,7 @@ import {
 import { Input } from '@commerce/ui/shadcn/input'
 import { type FormEvent, useState } from 'react'
 import { invitationContent } from '@/data/invitations'
+import { errorText } from '@/lib/api-errors'
 import { authClient } from '@/lib/auth-client'
 
 type InvitationSignInProps = {
@@ -54,7 +55,7 @@ export default function InvitationSignIn({ email, onSignedIn }: InvitationSignIn
       await onSignedIn()
     } catch (err) {
       setBusy(false)
-      setError(err instanceof Error ? err.message : copy.acceptFailed)
+      setError(errorText(err, copy.acceptFailed))
     }
   }
 

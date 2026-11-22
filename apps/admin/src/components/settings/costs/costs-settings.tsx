@@ -29,6 +29,7 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import FeeRateRow, { type FeeRateText } from './fee-rate-row'
 
 type View = Awaited<ReturnType<typeof api.profitCosts.get>>
@@ -154,7 +155,7 @@ export default function CostsSettings() {
       setForm(formOf(next))
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

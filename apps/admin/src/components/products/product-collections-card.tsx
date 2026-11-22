@@ -13,6 +13,7 @@ import { productCollectionsCardContent, productCollectionsContent } from '@/data
 import { useCopy } from '@/hooks/use-copy'
 import type { LoadFailure } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { isForbidden } from '@/lib/forbidden'
 import { collectionIdsToSave } from './collection-pick'
 import ProductCollectionsField, { type CollectionOption } from './product-collections-field'
@@ -102,7 +103,7 @@ export default function ProductCollectionsCard({
       setSaved(collectionIds)
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

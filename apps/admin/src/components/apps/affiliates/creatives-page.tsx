@@ -18,6 +18,7 @@ import { affiliatesContent } from '@/data/affiliates'
 import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type Creative = Awaited<ReturnType<typeof api.affiliates.creatives.list>>[number]
 type Draft = {
@@ -81,7 +82,7 @@ export default function CreativesPage() {
       setDraft(null)
       setReload((n) => n + 1)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : failed)
+      toast.error(errorText(err, failed))
     } finally {
       setBusy(false)
     }
@@ -91,7 +92,7 @@ export default function CreativesPage() {
       await api.affiliates.creatives.archive({ id: c.id, archived: !c.archivedAt })
       setReload((n) => n + 1)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : failed)
+      toast.error(errorText(err, failed))
     }
   }
 

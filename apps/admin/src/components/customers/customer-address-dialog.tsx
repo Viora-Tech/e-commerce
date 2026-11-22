@@ -22,7 +22,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { customerAddressesContent } from '@/data/customer-addresses'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { fieldErrorsOf } from '@/lib/api-errors'
+import { errorText, fieldErrorsOf } from '@/lib/api-errors'
 import AddressFields, { type AddressValue, EMPTY_ADDRESS } from './address-fields'
 import { ADDRESS_ROLES, type AddressRole, flagsFor, roleOf } from './address-roles'
 import type { CustomerAddressRow } from './customer-detail-types'
@@ -126,7 +126,7 @@ export default function CustomerAddressDialog({
       onClose()
     } catch (err) {
       setErrors(fieldErrorsOf(err))
-      toast.error(err instanceof Error ? err.message : copy.dialog.failed)
+      toast.error(errorText(err, copy.dialog.failed))
     } finally {
       setSaving(false)
     }

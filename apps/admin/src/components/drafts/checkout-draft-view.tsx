@@ -18,6 +18,7 @@ import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-
 import { checkoutDraftContent, draftsContent } from '@/data/drafts'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import CheckoutDraftEditButton from './checkout-draft-edit-button'
 import { type LinkChannel, linkTooSoon } from './checkout-draft-send-link'
@@ -100,11 +101,7 @@ export default function CheckoutDraftView({ draft: d }: CheckoutDraftViewProps) 
     } catch (err) {
       const soon = linkTooSoon(err)
       toast.error(
-        soon
-          ? copy.linkTooSoon(soon.channel, soon.minutes)
-          : err instanceof Error && err.message
-            ? err.message
-            : copy.failedAction,
+        soon ? copy.linkTooSoon(soon.channel, soon.minutes) : errorText(err, copy.failedAction),
       )
     }
   }
@@ -126,7 +123,7 @@ export default function CheckoutDraftView({ draft: d }: CheckoutDraftViewProps) 
       if (r?.number && r.number > 0) toast.success(copy.converted(r.number))
       router.push(routes.orders.detail(d.id))
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failedAction)
+      toast.error(errorText(err, copy.failedAction))
       throw err
     }
   }
@@ -137,7 +134,7 @@ export default function CheckoutDraftView({ draft: d }: CheckoutDraftViewProps) 
       if (r.number > 0) toast.success(copy.converted(r.number))
       router.push(routes.orders.detail(d.id))
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failedAction)
+      toast.error(errorText(err, copy.failedAction))
       throw err
     }
   }
@@ -148,7 +145,7 @@ export default function CheckoutDraftView({ draft: d }: CheckoutDraftViewProps) 
       toast.success(listCopy.deleted(1))
       router.push(routes.orders.drafts())
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failedAction)
+      toast.error(errorText(err, copy.failedAction))
       throw err
     }
   }

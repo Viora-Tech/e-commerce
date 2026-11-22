@@ -15,6 +15,7 @@ import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { GIFT_CARD_PRODUCT_DEFAULTS, giftCardProductsContent } from '@/data/gift-cards'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatPaise } from '@/lib/money'
 
 type GiftCardProductDialogProps = {
@@ -77,7 +78,7 @@ export default function GiftCardProductDialog({
       onOpenChange(false)
       router.push(`/products/${id}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

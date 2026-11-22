@@ -22,6 +22,7 @@ import { staffContent } from '@/data/staff'
 import { useCopy } from '@/hooks/use-copy'
 import { refreshPermissions, usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 export type EditableRole = {
@@ -108,7 +109,7 @@ export default function RoleEditor({ initial }: RoleEditorProps) {
       router.push(routes.settings.staffRoles())
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.errors.load)
+      toast.error(errorText(err, copy.errors.load))
     } finally {
       setSaving(false)
     }

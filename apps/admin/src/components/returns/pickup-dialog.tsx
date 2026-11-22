@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import FormDialog from '@/components/layout/form-dialog'
 import { returnDetailContent } from '@/data/returns'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import ChoiceList from './choice-list'
 import type { PickupChoice, ReturnDetail } from './return-types'
 
@@ -50,7 +51,7 @@ export default function PickupDialog({ detail, mode, onClose, onDone }: PickupDi
       }
       onDone()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : returnDetailContent.failed)
+      toast.error(errorText(err, returnDetailContent.failed))
     } finally {
       setBusy(false)
     }

@@ -16,6 +16,7 @@ import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import ReturnCustomReasons from './return-custom-reasons'
 import ReturnsRulesCard from './returns-rules-card'
 import SettingsCard from './settings-card'
@@ -69,7 +70,7 @@ export default function ReturnsSettings() {
       setSaved(JSON.stringify(next))
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

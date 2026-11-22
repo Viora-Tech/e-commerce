@@ -12,6 +12,7 @@ import SelectProductsDialog, {
 import { shippingRatesContent } from '@/data/shipping-rates'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type GeneralMoveCardProps = {
   canManage: boolean
@@ -40,7 +41,7 @@ export default function GeneralMoveCard({ canManage, onError }: GeneralMoveCardP
       toast.success(copy.moveHere.moved(moved))
       router.refresh()
     } catch (err) {
-      onError(err instanceof Error ? err.message : copy.toasts.failed)
+      onError(errorText(err, copy.toasts.failed))
     } finally {
       setBusy(false)
     }

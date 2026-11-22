@@ -15,6 +15,7 @@ import SectionHead from '@/components/layout/section-head'
 import { analyticsContent } from '@/data/analytics'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import ReportsAsk from './reports-ask'
 import SavedReportCard from './saved-report-card'
@@ -50,7 +51,7 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
       toast.success(c.saved.renamed)
       setRenaming(null)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     }
   }
   const handleDelete = async () => {
@@ -60,7 +61,7 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
       setSaved((all) => all.filter((s) => s.id !== deleting.id))
       toast.success(c.saved.deleted)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     } finally {
       setDeleting(null)
     }

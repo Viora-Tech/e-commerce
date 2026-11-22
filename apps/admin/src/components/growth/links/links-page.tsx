@@ -16,6 +16,7 @@ import { growthCampaignTabsContent } from '@/data/growth-home'
 import { linkQrContent } from '@/data/growth-report'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { Formatters } from '@/lib/format'
 import { routes } from '@/lib/routes'
 import { runBatched } from '@/lib/run-batched'
@@ -160,7 +161,7 @@ export default function LinksPage({ storefrontOrigin, tabs }: LinksPageProps) {
       toast.success(copy.deleted)
       reload()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     } finally {
       setDeleting(null)
     }

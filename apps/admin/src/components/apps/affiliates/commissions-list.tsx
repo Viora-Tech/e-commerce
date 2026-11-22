@@ -24,6 +24,7 @@ import {
   commissionFilterInput,
 } from '@/lib/affiliate-list-filters'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type Affiliate = { id: string; name: string }
@@ -105,7 +106,7 @@ function CommissionsTable() {
       toast.success(copy.commissions.approvedDue(r.approved, r.reversed))
       handleChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

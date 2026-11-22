@@ -7,6 +7,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { RunDetail } from './types'
 
 type RunStopButtonProps = {
@@ -33,7 +34,7 @@ export default function RunStopButton({ run, onStopped }: RunStopButtonProps) {
       toast.success(result.status === 'cancelled' ? copy.stop.done : copy.stop.asked)
       onStopped()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.stop.failed)
+      toast.error(errorText(err, copy.stop.failed))
       throw err
     } finally {
       setBusy(false)

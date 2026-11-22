@@ -13,6 +13,7 @@ import FormDialog from '@/components/layout/form-dialog'
 import { customerAccountsContent, PROVIDER_COPY } from '@/data/customer-accounts'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type LoginAppDialogProps = {
   provider: LoginProvider | null
@@ -54,7 +55,7 @@ export default function LoginAppDialog({
       onSaved()
       onOpenChange(false)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : content.sheet.failed)
+      toast.error(errorText(err, content.sheet.failed))
     } finally {
       setBusy(false)
     }

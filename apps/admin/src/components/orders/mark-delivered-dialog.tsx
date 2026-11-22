@@ -10,6 +10,7 @@ import { orderDetailContent } from '@/data/order-detail'
 import { ordersContent } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type MarkDeliveredDialogProps = {
   /** The order to mark; null keeps the dialog closed. */
@@ -47,7 +48,7 @@ export default function MarkDeliveredDialog({
       toast.success(copy.delivered.done)
       onDone()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : list.bulk.failed)
+      toast.error(errorText(err, list.bulk.failed))
       throw err
     }
   }

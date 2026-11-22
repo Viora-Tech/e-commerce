@@ -16,6 +16,7 @@ import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { campaignEditorContent as copy } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import CampaignSettingsCard from './campaign-settings-card'
 import EmailContentSwitch from './email-content-switch'
@@ -115,7 +116,7 @@ export default function CampaignEditor({
       if (!campaign && id) router.replace(routes.growth.campaign(id))
       else router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.toasts.failed)
+      setError(errorText(err, copy.toasts.failed))
     } finally {
       setBusy(false)
     }
@@ -137,7 +138,7 @@ export default function CampaignEditor({
       router.replace(routes.growth.campaign(id))
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.toasts.failed)
+      setError(errorText(err, copy.toasts.failed))
     } finally {
       setBusy(false)
     }
@@ -152,7 +153,7 @@ export default function CampaignEditor({
       router.push(routes.growth.campaigns())
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.toasts.failed)
+      setError(errorText(err, copy.toasts.failed))
       setBusy(false)
     }
   }

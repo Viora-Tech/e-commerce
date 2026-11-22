@@ -16,6 +16,7 @@ import { analyticsContent } from '@/data/analytics'
 import { useCopy } from '@/hooks/use-copy'
 import type { RangeState } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import QueryAiInput from './query-ai-input'
 import QueryEditorCard from './query-editor-card'
@@ -45,7 +46,7 @@ function savedRange(q: ParsedQuery): RangeState {
   return { key: 'custom', from: days.from, to: days.to }
 }
 
-const errorMessage = (err: unknown) => (err instanceof Error ? err.message : String(err))
+const errorMessage = (err: unknown) => errorText(err, String(err))
 
 /**
  * Figma "Analytics · Report — query editor", closer to Shopify's ShopifyQL editor: the query

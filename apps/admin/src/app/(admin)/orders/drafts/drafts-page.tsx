@@ -22,6 +22,7 @@ import { draftFiltersContent } from '@/data/order-list-filters'
 import { saleSourceContent } from '@/data/sale-source'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import {
   CLEAR_DRAFT_FILTERS,
   DRAFT_FILTER_PARAMS,
@@ -133,7 +134,7 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
       removing.clear()
       await refresh()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.deleteFailed)
+      toast.error(errorText(err, copy.deleteFailed))
       throw err
     }
   }
@@ -145,7 +146,7 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
       toast.success(copy.invoiceSentOne(r.sentTo))
       await refresh()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.sendFailed)
+      toast.error(errorText(err, copy.sendFailed))
     }
   }
 
@@ -157,7 +158,7 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
       sending.clear()
       await refresh()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.sendFailed)
+      toast.error(errorText(err, copy.sendFailed))
       throw err
     }
   }

@@ -8,6 +8,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type MarkPaidDialogProps = {
   payoutId: string | null
@@ -30,7 +31,7 @@ export default function MarkPaidDialog({ payoutId, onOpenChange, onPaid }: MarkP
       setReference('')
       onPaid()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : failed)
+      toast.error(errorText(err, failed))
       throw err
     }
   }

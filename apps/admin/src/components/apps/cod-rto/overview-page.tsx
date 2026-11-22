@@ -25,6 +25,7 @@ import { codRtoContent } from '@/data/cod-rto'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import PeriodTabs, { type Period } from './period-tabs'
 import RiskChip from './risk-chip'
@@ -55,7 +56,7 @@ export default function OverviewPage() {
       toast.success(copy.overview.scored(r.scored, r.left))
       setData(await api.codRto.overview({ days: Number(period) }))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     } finally {
       setScoring(false)
     }

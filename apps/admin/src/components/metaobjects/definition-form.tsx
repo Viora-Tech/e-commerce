@@ -14,6 +14,7 @@ import SaveBar from '@/components/layout/save-bar'
 import { definitionFormContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import DefinitionDetailsCard from './definition-details-card'
 import DefinitionFieldsCard from './definition-fields-card'
@@ -86,7 +87,7 @@ export default function DefinitionForm({ definition, targets }: DefinitionFormPr
         router.replace(entriesPath(type))
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -101,7 +102,7 @@ export default function DefinitionForm({ definition, targets }: DefinitionFormPr
       toast.success(copy.delete.done)
       router.push(routes.content.contentTypes())
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       setBusy(false)
     }
   }

@@ -12,6 +12,7 @@ import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { returnDetailContent } from '@/data/returns'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type RejectDialogProps = {
   returnId: string
@@ -39,7 +40,7 @@ export default function RejectDialog({ returnId, open, onClose, onDone }: Reject
       setNote('')
       onDone()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : returnDetailContent.failed)
+      toast.error(errorText(err, returnDetailContent.failed))
     } finally {
       setBusy(false)
     }

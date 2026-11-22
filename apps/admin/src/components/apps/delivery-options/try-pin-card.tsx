@@ -17,6 +17,7 @@ import { deliveryOptionsContent } from '@/data/delivery-options'
 import { discountFormContent } from '@/data/discounts'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { TryPinResult } from './format'
 import TryPinCards from './try-pin-cards'
 import TryPinLines, { type TryPinLine } from './try-pin-lines'
@@ -77,7 +78,7 @@ export default function TryPinCard({ result, onResult }: TryPinCardProps) {
         }),
       )
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

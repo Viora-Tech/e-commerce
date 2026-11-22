@@ -18,6 +18,7 @@ import { marketsContent } from '@/data/markets'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import { marketOverrides } from './market-overrides'
 import MarketRow from './market-row'
@@ -73,7 +74,7 @@ export default function MarketsList({
       router.refresh()
     } catch (err) {
       setEnabledNow((now) => ({ ...now, [market.id]: market.enabled }))
-      toast.error(err instanceof Error ? err.message : copy.toasts.failed)
+      toast.error(errorText(err, copy.toasts.failed))
     } finally {
       setSwitching(null)
     }
@@ -88,7 +89,7 @@ export default function MarketsList({
       setDeleting(null)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.toasts.failed)
+      toast.error(errorText(err, copy.toasts.failed))
       throw err
     }
   }

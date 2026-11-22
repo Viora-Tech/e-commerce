@@ -28,6 +28,7 @@ import {
 } from '@/data/customer-accounts'
 import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import SettingsCard from './settings-card'
 import SettingsDrill from './settings-drill'
@@ -93,7 +94,7 @@ export default function CustomerAccountsSettings() {
       setSaved(JSON.stringify(settings))
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

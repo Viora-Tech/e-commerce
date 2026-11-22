@@ -11,6 +11,7 @@ import SettingsCard from '@/components/settings/settings-card'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type Entry = { id: string; kind: BlocklistKind; hint: string; note: string }
 
@@ -43,7 +44,7 @@ export default function BlocklistCard() {
       setNote('')
       toast.success(copy.blocklist.added)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : failed)
+      toast.error(errorText(err, failed))
     } finally {
       setBusy(false)
     }
@@ -53,7 +54,7 @@ export default function BlocklistCard() {
       await api.affiliates.blocklist.remove({ id })
       setEntries((list) => (list ?? []).filter((x) => x.id !== id))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : failed)
+      toast.error(errorText(err, failed))
     }
   }
 

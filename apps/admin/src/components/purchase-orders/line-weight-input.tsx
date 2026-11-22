@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { purchaseOrderFormContent } from '@/data/inventory'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type LineWeightInputProps = {
   /** The saved order; null while creating, when the weight can't be saved yet. */
@@ -52,7 +53,7 @@ export default function LineWeightInput({
       toast.success(copy.weightSaved)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.weightFailed)
+      toast.error(errorText(err, copy.weightFailed))
       setText(toText(savedGrams))
     }
   }

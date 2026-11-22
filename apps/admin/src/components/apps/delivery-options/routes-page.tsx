@@ -14,6 +14,7 @@ import { deliveryOptionsContent } from '@/data/delivery-options'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import ColumnHelpHead from './column-help-head'
 import { routeRows } from './courier-rows'
 import DeliveryWarnings from './delivery-warnings'
@@ -74,7 +75,7 @@ export default function DeliveryRoutesPage() {
       await api.deliveryOptions.saveRouteSetting({ ...(had ?? { key, enabled: true }), ...patch })
       changed()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

@@ -17,6 +17,7 @@ import { ordersBulkContent } from '@/data/orders-bulk'
 import { BULK_EDIT_IDS_KEY } from '@/data/orders-bulk-edit'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import type { OrdersBulkRequest } from './orders-bulk-dialogs'
 import { useOrderAppActions } from './use-order-app-actions'
@@ -97,7 +98,7 @@ export default function OrdersBulkActions({
     try {
       saveFile(await api.gstInvoices.bulkPrint({ ids: docIds }), 'open')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : bulkCopy.printFailed)
+      toast.error(errorText(err, bulkCopy.printFailed))
     } finally {
       setPrinting(false)
     }

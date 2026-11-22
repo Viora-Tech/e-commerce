@@ -23,6 +23,7 @@ import PillTabs from '@/components/layout/pill-tabs'
 import { emailBuilderContent } from '@/data/email-builder'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { loadDesign, readDesign } from './grapes-config'
 
 type BuilderTemplatesDialogProps = {
@@ -123,7 +124,7 @@ export default function BuilderTemplatesDialog({
       if (row) setOpenedId(row.id)
       await refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     } finally {
       setBusy(null)
     }

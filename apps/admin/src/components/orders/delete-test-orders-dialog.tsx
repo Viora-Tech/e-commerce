@@ -5,6 +5,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { ordersContent } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type DeleteTestOrdersDialogProps = {
   open: boolean
@@ -32,7 +33,7 @@ export default function DeleteTestOrdersDialog({
       toast.success(copy.done(deleted))
       onDeleted()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       throw err
     }
   }

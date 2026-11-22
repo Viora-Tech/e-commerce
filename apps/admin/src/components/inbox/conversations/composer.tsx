@@ -9,6 +9,7 @@ import { type KeyboardEvent, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { inboxConversationsContent } from '@/data/inbox-conversations'
 import { useCopy } from '@/hooks/use-copy'
+import { errorText } from '@/lib/api-errors'
 import { matchQuickReplies } from '@/lib/inbox-view'
 import { uploadFile } from '@/lib/upload'
 import DiscountShareDialog from './discount-share-dialog'
@@ -71,7 +72,7 @@ export default function Composer({
       await onSend(message)
       return true
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       return false
     } finally {
       setBusy(false)
@@ -101,7 +102,7 @@ export default function Composer({
       const uploaded = await uploadFile(file)
       await onSend({ kind: 'image', mediaId: uploaded.id })
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
       if (fileRef.current) fileRef.current.value = ''

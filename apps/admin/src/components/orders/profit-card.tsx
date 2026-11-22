@@ -16,6 +16,7 @@ import TotalsList, { type TotalsLine } from '@/components/layout/totals-list'
 import { profitCardContent } from '@/data/order-cards'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type ProfitCardProps = {
@@ -85,7 +86,7 @@ export default function ProfitCard({ orderId, shipment }: ProfitCardProps) {
       toast.success(copy.courierSaved)
       setReloadKey((k) => k + 1)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setSaving(false)
     }

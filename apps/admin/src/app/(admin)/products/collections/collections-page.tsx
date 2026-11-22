@@ -18,6 +18,7 @@ import { bulkActionsContent } from '@/data/bulk-actions'
 import { collectionFormContent, collectionsListContent } from '@/data/collections'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import {
   CLEAR_COLLECTION_FILTERS,
   COLLECTION_FILTER_PARAMS,
@@ -79,7 +80,7 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
       setRows((prev) => prev.filter((r) => r.id !== target.id))
       toast.success(copy.list.deleted)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.list.deleteFailed)
+      toast.error(errorText(err, copy.list.deleteFailed))
     }
   }
 

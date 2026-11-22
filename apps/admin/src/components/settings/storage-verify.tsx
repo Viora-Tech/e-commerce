@@ -6,6 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { mediaContent } from '@/data/media'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import SettingsCard from './settings-card'
 
 type Verify = Awaited<ReturnType<typeof api.store.verifyStorage>>
@@ -24,7 +25,7 @@ export default function StorageVerify() {
     try {
       setResult(await api.store.verifyStorage())
     } catch (err) {
-      setResult({ ok: false, message: err instanceof Error ? err.message : 'Could not verify' })
+      setResult({ ok: false, message: errorText(err, 'Could not verify') })
     } finally {
       setBusy(false)
     }

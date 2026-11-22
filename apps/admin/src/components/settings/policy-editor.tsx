@@ -22,6 +22,7 @@ import { policyEditorContent as copy, policiesContent } from '@/data/policies'
 import { settingsContent } from '@/data/settings'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatDate } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
 
@@ -102,7 +103,7 @@ export default function PolicyEditor({
       setEditorKey((k) => k + 1)
       toast.success(copy.filled)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setFilling(false)
       setConfirming(false)
@@ -138,7 +139,7 @@ export default function PolicyEditor({
       toast.success(copy.saved)
       void announceSetup('policies')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

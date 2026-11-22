@@ -19,6 +19,7 @@ import { s3AppContent as appCopy, s3CorsRule, s3IamPolicy } from '@/data/s3'
 import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import CodeBlock from './code-block'
 import MoveFilesCard from './move-files-card'
 
@@ -86,7 +87,7 @@ export default function ConnectPage() {
     } catch (err) {
       setTest({
         status: 'error',
-        message: err instanceof Error ? err.message : 'Could not test the connection.',
+        message: errorText(err, 'Could not test the connection.'),
       })
     }
   }
@@ -108,7 +109,7 @@ export default function ConnectPage() {
       setSnapshot(JSON.stringify(saved))
       toast.success('Settings saved')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Save failed')
+      setError(errorText(err, 'Save failed'))
     } finally {
       setBusy(false)
     }

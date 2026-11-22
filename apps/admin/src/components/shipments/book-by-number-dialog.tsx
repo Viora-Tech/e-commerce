@@ -8,6 +8,7 @@ import FormDialog from '@/components/layout/form-dialog'
 import { shipmentsContent } from '@/data/shipments'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type BookByNumberDialogProps = {
   open: boolean
@@ -56,7 +57,7 @@ export default function BookByNumberDialog({
       setNumbersInput('')
       onShip(found.map((m) => m.id))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     }
   }
 

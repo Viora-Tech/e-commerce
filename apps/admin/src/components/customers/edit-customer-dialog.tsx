@@ -18,6 +18,7 @@ import { customerEmailContent } from '@/data/customer-merge'
 import { customerDetailContent } from '@/data/customers'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import type { CustomerDetail } from './customer-detail-types'
 
@@ -92,7 +93,7 @@ export default function EditCustomerDialog({
     } catch (err) {
       const other = takenBy(err)
       if (other) setEmailTakenBy(other)
-      else toast.error(err instanceof Error ? err.message : copy.edit.failed)
+      else toast.error(errorText(err, copy.edit.failed))
     } finally {
       setSaving(false)
     }

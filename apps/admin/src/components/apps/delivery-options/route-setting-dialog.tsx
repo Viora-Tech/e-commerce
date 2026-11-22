@@ -23,6 +23,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { CARRIERS, toNumber, toRupees } from './format'
 
 export type RouteSettingTarget =
@@ -107,7 +108,7 @@ export default function RouteSettingDialog({
       onSaved()
       onOpenChange(false)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
     }

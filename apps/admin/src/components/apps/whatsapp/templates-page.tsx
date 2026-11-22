@@ -16,6 +16,7 @@ import { whatsappAppContent } from '@/data/whatsapp-app'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import TemplateCard from './template-card'
 
 type Templates = Awaited<ReturnType<typeof api.platformApps.whatsappTemplates>>
@@ -64,7 +65,7 @@ export default function WhatsappTemplatesPage() {
       for (const r of failed) if (!r.ok) toast.error(copy.submit.failed(labelOf(r.id), r.error))
       setData(await api.platformApps.whatsappTemplates())
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.submit.error)
+      toast.error(errorText(err, copy.submit.error))
     } finally {
       setBusy(null)
     }

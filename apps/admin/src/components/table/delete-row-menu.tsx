@@ -7,6 +7,7 @@ import ActionMenu, { type ActionItem } from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { tableContent } from '@/data/table'
 import { useCopy } from '@/hooks/use-copy'
+import { errorText } from '@/lib/api-errors'
 
 type DeleteRowMenuProps = {
   /** The menu item, e.g. "Delete". */
@@ -55,7 +56,7 @@ export default function DeleteRowMenu({
     try {
       await onDelete()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : failed)
+      toast.error(errorText(err, failed))
       return
     } finally {
       setBusy(false)

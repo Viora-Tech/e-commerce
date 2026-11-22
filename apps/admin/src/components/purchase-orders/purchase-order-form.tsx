@@ -31,7 +31,7 @@ import {
 import { poCurrencyContent } from '@/data/purchasing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { focusField } from '@/lib/api-errors'
+import { errorText, focusField } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import CostSummaryCard from './cost-summary-card'
 import CurrencyCard from './currency-card'
@@ -101,7 +101,7 @@ export default function PurchaseOrderForm({
   const [dialog, setDialog] = useState<Dialog>(null)
 
   // Helpers
-  const message = (err: unknown) => (err instanceof Error ? err.message : copy.saveFailed)
+  const message = (err: unknown) => errorText(err, copy.saveFailed)
 
   const patch = (next: Partial<PoForm>) => setForm((f) => ({ ...f, ...next }))
 
@@ -222,7 +222,7 @@ export default function PurchaseOrderForm({
       toast.success(copy.duplicated)
       router.push(routes.stock.purchaseOrder(id))
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.duplicateFailed)
+      toast.error(errorText(err, copy.duplicateFailed))
     } finally {
       setBusy(false)
     }

@@ -17,6 +17,7 @@ import { gstAlreadyInvoicedContent } from '@/data/gst-already-invoiced'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatDay } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import OrderCardChanges from './order-card-changes'
@@ -102,7 +103,7 @@ export default function OrderCard({ orderId }: OrderCardProps) {
       await reload()
       if (done) toast.success(done)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
     }

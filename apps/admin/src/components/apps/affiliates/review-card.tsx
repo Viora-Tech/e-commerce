@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type ReviewCardProps = {
   affiliateId: string
@@ -29,7 +30,7 @@ export default function ReviewCard({ affiliateId, reasons, onChanged }: ReviewCa
       toast.success(d.review.cleared)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : failed)
+      toast.error(errorText(err, failed))
     } finally {
       setBusy(false)
     }

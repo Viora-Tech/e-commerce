@@ -18,6 +18,7 @@ import { backInStockContent } from '@/data/back-in-stock'
 import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import SelectField from './select-field'
 import SettingsSection from './settings-section'
 
@@ -73,7 +74,7 @@ export default function SettingsEditor() {
       setSaved(next)
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

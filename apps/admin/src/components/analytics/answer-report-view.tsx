@@ -16,6 +16,7 @@ import { analyticsContent } from '@/data/analytics'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { ANSWER_SLUG, answerReport, stashedAnswer } from '@/lib/answer-report'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import { useStorageScope } from '@/lib/storage-scope'
 import ReportChart from './report-chart'
@@ -71,7 +72,7 @@ export default function AnswerReportView({ saved: initialSaved }: AnswerReportVi
       toast.success(c.save.saved)
       router.replace(`${routes.analytics.answer()}?saved=${row.id}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     }
   }
 

@@ -13,6 +13,7 @@ import ResourceTable from '@/components/table/resource-table'
 import { type RedirectListItem, redirectsContent } from '@/data/redirects'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import ImportRedirectsDialog from './import-redirects-dialog'
 import RedirectActions from './redirect-actions'
@@ -93,7 +94,7 @@ export default function RedirectsList({ initial }: RedirectsListProps) {
       removing.clear()
       handleChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.actions.deleteFailed)
+      toast.error(errorText(err, copy.actions.deleteFailed))
       throw err
     }
   }

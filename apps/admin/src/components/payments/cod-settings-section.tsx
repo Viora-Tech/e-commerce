@@ -11,6 +11,7 @@ import LoadFailed from '@/components/states/load-failed'
 import { checkoutSettingsContent as copy } from '@/data/checkout-settings'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type CodSettingsSectionProps = {
   codOn: boolean
@@ -52,7 +53,7 @@ export default function CodSettingsSection({ codOn }: CodSettingsSectionProps) {
       setDraft(draftOf(next))
       toast.success(copy.cod.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setSaving(false)
     }

@@ -15,6 +15,7 @@ import { codRtoContent } from '@/data/cod-rto'
 import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import NumberRow from './number-row'
 
 type Verification = CodRtoSettings['verification']
@@ -63,7 +64,7 @@ export default function SettingsPage() {
       setSaved(JSON.stringify(next))
       toast.success(copy.settings.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

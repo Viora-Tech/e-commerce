@@ -36,6 +36,7 @@ import { settingsContent } from '@/data/settings'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import SettingsCard from './settings-card'
 
 type Form = { settings: Settings; codFee: PaymentAdjustment | null }
@@ -100,7 +101,7 @@ export default function CheckoutSettings() {
       setSaved(JSON.stringify(formOf(next)))
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

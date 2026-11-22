@@ -11,6 +11,7 @@ import { ordersContent } from '@/data/orders'
 import { ordersBulkContent } from '@/data/orders-bulk'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { canRemindToPay } from '@/lib/order-next-move'
 import { runBatched } from '@/lib/run-batched'
 
@@ -107,7 +108,7 @@ export default function OrdersBulkDialogs({
       toast.success(bulkCopy.tagsDone(updated))
       finish()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.bulk.failed)
+      toast.error(errorText(err, copy.bulk.failed))
       throw err
     }
   }

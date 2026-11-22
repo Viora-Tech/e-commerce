@@ -9,6 +9,7 @@ import SettingsCard from '@/components/settings/settings-card'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type LocationsRoutingCardProps = {
   maxParcels: number
@@ -39,7 +40,7 @@ export default function LocationsRoutingCard({ maxParcels, canManage }: Location
       router.refresh()
     } catch (err) {
       setValue(previous)
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setSaving(false)
     }

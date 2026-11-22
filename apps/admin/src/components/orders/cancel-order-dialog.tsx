@@ -32,6 +32,7 @@ import { storeCreditExpiryContent } from '@/data/store-credit-expiry'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { useStoreCreditReturn } from '@/hooks/use-store-credit-return'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { methodLabel, type OrderDetail } from './order-detail-types'
 
 type CancelOrderDialogProps = {
@@ -174,7 +175,7 @@ export default function CancelOrderDialog({
       toast.success(copy.done)
       onDone()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

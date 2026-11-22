@@ -13,6 +13,7 @@ import { backInStockContent } from '@/data/back-in-stock'
 import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type Row = Awaited<ReturnType<typeof api.backInStock.signups.list>>[number]
 
@@ -79,7 +80,7 @@ export default function SignupsList() {
       toast.success(copy.restockTagsDone(r.added, r.unmatched.length))
       setRows(await api.backInStock.signups.list({}))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     } finally {
       setImporting(false)
     }

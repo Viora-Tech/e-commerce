@@ -12,6 +12,7 @@ import PageHeader from '@/components/layout/page-header'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import ImportPreview from './import-preview'
 
@@ -65,7 +66,7 @@ export default function ImportPage() {
       }
       setPreview(r)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.errors.read)
+      toast.error(errorText(err, copy.errors.read))
       reset()
     } finally {
       setReading(false)
@@ -83,7 +84,7 @@ export default function ImportPage() {
       toast.success(copy.done(r.imported, r.photosToCopy))
       router.push(routes.apps.page('reviews'))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : reviewsContent.list.failed)
+      toast.error(errorText(err, reviewsContent.list.failed))
     } finally {
       setImporting(false)
     }

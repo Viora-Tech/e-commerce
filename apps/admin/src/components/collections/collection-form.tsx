@@ -18,6 +18,7 @@ import TemplateSelectCard from '@/components/themes/template-select-card'
 import { collectionDetailContent, collectionFormContent } from '@/data/collections'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import CollectionImageCard from './collection-image-card'
 import CollectionProductsCard from './collection-products-card'
@@ -103,7 +104,7 @@ export default function CollectionForm({ collection, storefrontOrigin }: Collect
         router.replace(routes.products.collection(id))
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.saveFailed)
+      toast.error(errorText(err, copy.saveFailed))
     } finally {
       setBusy(false)
     }
@@ -120,7 +121,7 @@ export default function CollectionForm({ collection, storefrontOrigin }: Collect
       toast.success(copy.deleted)
       router.push(routes.products.collections())
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.saveFailed)
+      toast.error(errorText(err, copy.saveFailed))
     } finally {
       setBusy(false)
     }

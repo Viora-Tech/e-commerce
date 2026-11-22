@@ -23,6 +23,7 @@ import { shopifyImportSettingsContent } from '@/data/shopify-import-settings'
 import { useCopy } from '@/hooks/use-copy'
 import type { LoadFailure } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { isForbidden } from '@/lib/forbidden'
 import SettingsPartCard from './settings-part-card'
 
@@ -117,7 +118,7 @@ export default function SettingsPage() {
       setChosen(chosenFrom(next.parts))
     } catch (err) {
       setCheckFailed(true)
-      toast.error(err instanceof Error ? err.message : copy.checkFailed)
+      toast.error(errorText(err, copy.checkFailed))
     } finally {
       setBusy(null)
     }
@@ -129,7 +130,7 @@ export default function SettingsPage() {
       setResults(await api.shopifyImport.importSettings({ parts: chosen }))
       toast.success(copy.imported)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.importFailed)
+      toast.error(errorText(err, copy.importFailed))
     } finally {
       setBusy(null)
     }

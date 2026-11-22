@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { analyticsContent } from '@/data/analytics'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type QueryAiInputProps = {
   /** `on`: the assistant is on for this store and member; `off`: say why it is not. */
@@ -47,7 +48,7 @@ export default function QueryAiInput({ state, current, onAnswer }: QueryAiInputP
         setProblem(copy.invalid(out.error.message))
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     } finally {
       setBusy(false)
     }

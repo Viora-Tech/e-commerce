@@ -12,6 +12,7 @@ import ApprovalDialog from '@/components/mcp/approval-dialog'
 import { assistantContent } from '@/data/assistant'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type Item = Awaited<ReturnType<typeof api.ai.activity>>['items'][number]
 
@@ -65,7 +66,7 @@ export default function AiActivityCard() {
       setItems((all) => (all ?? []).map((i) => (i.id === id ? view : i)))
       if (view.undoMessage) toast.success(view.undoMessage)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.card.failed)
+      toast.error(errorText(err, copy.card.failed))
     } finally {
       setUndoing(null)
     }

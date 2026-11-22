@@ -16,6 +16,7 @@ import RowActionsCell from '@/components/table/row-actions-cell'
 import { staffInvitesContent } from '@/data/staff-invites'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 export type PendingInviteRow = {
   id: string
@@ -69,7 +70,7 @@ export default function PendingInvitesCard({
       else toast.error(copy.emailFailed, { description: copy.emailFailedHelp })
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusyId(null)
     }
@@ -85,7 +86,7 @@ export default function PendingInvitesCard({
       toast.success(copy.cancelled)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusyId(null)
     }

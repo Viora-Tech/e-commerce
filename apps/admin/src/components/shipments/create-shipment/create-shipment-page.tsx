@@ -21,6 +21,7 @@ import { createShipmentContent } from '@/data/create-shipment'
 import { shipmentDetailsContent } from '@/data/shipping'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import ShipmentDetailsLoader from '../shipment-details-loader'
 import { bookShipment } from './book-shipment'
@@ -184,7 +185,7 @@ export default function CreateShipmentPage({
       const full = await api.orders.get({ id: orderId })
       if (full) setEditing(full)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     }
   }
   const handleCustomerSaved = () => {
@@ -269,7 +270,7 @@ export default function CreateShipmentPage({
         setMissingPlace(place)
         setDrawer(false)
         window.scrollTo({ top: 0, behavior: 'smooth' })
-      } else toast.error(err instanceof Error ? err.message : String(err))
+      } else toast.error(errorText(err, String(err)))
       if (split) handleSplitKept()
     } finally {
       setBusy(false)

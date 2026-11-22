@@ -21,6 +21,7 @@ import { catalogsContent } from '@/data/catalogs'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import {
   adjustmentBp,
@@ -121,7 +122,7 @@ export default function CatalogForm({ catalog, markets, catalogs }: CatalogFormP
       toast.success(copy.toasts.saved)
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.toasts.failed)
+      setError(errorText(err, copy.toasts.failed))
     } finally {
       setBusy(false)
     }
@@ -139,7 +140,7 @@ export default function CatalogForm({ catalog, markets, catalogs }: CatalogFormP
       toast.success(copy.toasts.deleted)
       router.push(routes.catalogs.list())
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.toasts.failed)
+      toast.error(errorText(err, copy.toasts.failed))
       throw err
     }
   }

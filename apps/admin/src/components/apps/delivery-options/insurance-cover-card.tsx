@@ -15,6 +15,7 @@ import SettingsCard from '@/components/settings/settings-card'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { type CoverDraftRow, coverDraftOf, coversOf, defaultRupees } from './cover-draft'
 import { protectCardOf, protectDraftOf } from './protect-draft'
 
@@ -59,7 +60,7 @@ export default function InsuranceCoverCard({ card, onChanged }: InsuranceCoverCa
       toast.success(copy.saved)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

@@ -14,6 +14,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { productBulkShippingContent } from '@/data/product-bulk-shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { bulkShippingChoice, KEEP, NONE } from './bulk-shipping-state'
 import { useBoxPresets } from './use-box-presets'
 
@@ -68,7 +69,7 @@ export default function BulkShippingDialog({ ids, onClose, onDone }: BulkShippin
       handleClose()
       onDone()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setSaving(false)
     }

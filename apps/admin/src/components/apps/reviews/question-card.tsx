@@ -12,6 +12,7 @@ import StatusLabel from '@/components/status/status-label'
 import { reviewToolsContent } from '@/data/review-tools'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type Row = Awaited<ReturnType<typeof api.reviews.questions.list>>['rows'][number]
@@ -38,7 +39,7 @@ export default function QuestionCard({ question, onChanged }: QuestionCardProps)
       toast.success(done)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
     }

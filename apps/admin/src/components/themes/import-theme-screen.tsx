@@ -16,6 +16,7 @@ import PageHeader from '@/components/layout/page-header'
 import { themeImportContent } from '@/data/theme-import'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import ImportSteps from './import-steps'
 
@@ -69,7 +70,7 @@ export default function ImportThemeScreen() {
       toast.success(copy.done(result.theme.name))
       router.push(routes.onlineStore.themeImport(result.theme.id))
     } catch (err) {
-      setError(err instanceof Error && err.message ? err.message : copy.failed)
+      setError(errorText(err, copy.failed))
       setBusy(false)
     }
   }

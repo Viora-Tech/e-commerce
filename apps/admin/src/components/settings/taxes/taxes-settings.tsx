@@ -13,6 +13,7 @@ import { useCopy } from '@/hooks/use-copy'
 import type { LoadFailure } from '@/hooks/use-load'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { isForbidden } from '@/lib/forbidden'
 import SettingsDrill, { type DrillHeader } from '../settings-drill'
 import SettingsDrillPanel from '../settings-drill-panel'
@@ -102,7 +103,7 @@ export default function TaxesSettings({
       toast.success(copy.saved)
       void announceSetup('taxes')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

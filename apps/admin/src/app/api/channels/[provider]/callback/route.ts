@@ -12,6 +12,7 @@ import { logger } from '@commerce/observability/logging'
 import { channelSyncQueue } from '@commerce/queue'
 import { type NextRequest, NextResponse } from 'next/server'
 import { adminUrl } from '@/lib/admin-origin'
+import { errorText } from '@/lib/api-errors'
 import { getSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { routes } from '@/lib/routes'
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest, { params }: Context) {
     logger.error('sales channel connect failed', {
       provider,
       channel: s.channel,
-      error: error instanceof Error ? error.message : String(error),
+      error: errorText(error, String(error)),
     })
     return done('failed', error instanceof ChannelApiError ? error.message : undefined)
   }

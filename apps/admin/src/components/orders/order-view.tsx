@@ -15,6 +15,7 @@ import { shipmentDetailsContent, shipmentPanelContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import CancelOrderDialog from './cancel-order-dialog'
 import CollectPaymentDialog from './collect-payment-dialog'
@@ -157,7 +158,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       toast.success(copy.moved(listCopy.marks[to].toLowerCase()))
       refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : listCopy.bulk.failed)
+      toast.error(errorText(err, listCopy.bulk.failed))
     } finally {
       setBusy(false)
     }
@@ -174,7 +175,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       toast.success(done(await run()))
       refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Courier request failed')
+      toast.error(errorText(err, 'Courier request failed'))
     } finally {
       setBusy(false)
     }

@@ -26,6 +26,7 @@ import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import { fieldTypeContent, newContentTypeContent, presetContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import { entriesPath } from './form-state'
 
@@ -68,7 +69,7 @@ export default function NewContentType() {
       toast.success(copy.created(name.trim() || METAOBJECT_PRESETS[preset].name))
       router.replace(`${entriesPath(type)}/new`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       setBusy(false)
     }
   }

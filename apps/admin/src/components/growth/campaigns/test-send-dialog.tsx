@@ -12,6 +12,7 @@ import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { campaignEditorContent } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { CampaignForm } from './form-state'
 
 type TestSendDialogProps = {
@@ -52,7 +53,7 @@ export default function TestSendDialog({
       toast.success(copy.sent(to.trim()))
       onOpenChange(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(errorText(err, String(err)))
     } finally {
       setBusy(false)
     }

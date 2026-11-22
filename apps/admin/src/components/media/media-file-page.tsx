@@ -24,6 +24,7 @@ import { imageEditorContent } from '@/data/image-editor'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatDateTime } from '@/lib/format-date'
 import { isEditableImage } from '@/lib/image-edit'
 import { routes } from '@/lib/routes'
@@ -63,7 +64,7 @@ export default function MediaFilePage({ file, usedIn, neighbours, filter }: Medi
     try {
       await api.media.delete({ id: file.id })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : mediaContent.errors.generic)
+      toast.error(errorText(err, mediaContent.errors.generic))
       throw err
     }
     toast.success(toasts.deleted)

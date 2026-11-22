@@ -19,6 +19,7 @@ import FormDialog from '@/components/layout/form-dialog'
 import { orderHoldContent } from '@/data/order-hold'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type HoldFulfillmentDialogProps = {
   /** The order to hold; null keeps the dialog closed. */
@@ -54,7 +55,7 @@ export default function HoldFulfillmentDialog({
       setNote('')
       onDone()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       throw err
     }
   }

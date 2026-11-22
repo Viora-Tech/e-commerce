@@ -18,6 +18,7 @@ import RowActionsCell from '@/components/table/row-actions-cell'
 import { staffContent } from '@/data/staff'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 export type StaffMemberRow = {
   id: string
@@ -63,7 +64,7 @@ export default function MembersCard({
       toast.success(copy.members.roleChanged)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.errors.load)
+      toast.error(errorText(err, copy.errors.load))
     }
   }
 

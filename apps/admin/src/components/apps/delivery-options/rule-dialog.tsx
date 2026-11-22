@@ -23,6 +23,7 @@ import { deliveryRuleFormContent } from '@/data/delivery-rule-form'
 import { discountFormContent } from '@/data/discounts'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { courierRows } from './courier-rows'
 import RuleCourierChips from './rule-courier-chips'
 import { draftOf, type RuleDraft, ruleErrors, ruleInputOf, withValidPreferred } from './rule-draft'
@@ -111,7 +112,7 @@ export default function RuleDialog({
       onSaved()
       onOpenChange(false)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -125,7 +126,7 @@ export default function RuleDialog({
       onSaved()
       onOpenChange(false)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

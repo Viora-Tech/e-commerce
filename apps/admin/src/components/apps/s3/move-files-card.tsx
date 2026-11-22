@@ -13,6 +13,7 @@ import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
 import type { LoadFailure } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { isForbidden } from '@/lib/forbidden'
 
 type Migration = Awaited<ReturnType<typeof api.store.storageMigrationStatus>>
@@ -86,7 +87,7 @@ export default function MoveFilesCard({ targetProviderId, targetLabel }: MoveFil
         void api.store.storageMigrationStatus().then(setMigration)
       }, POLL_MS)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failedToStart)
+      toast.error(errorText(err, copy.failedToStart))
     } finally {
       setStarting(false)
     }

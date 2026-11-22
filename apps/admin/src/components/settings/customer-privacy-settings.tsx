@@ -18,6 +18,7 @@ import { settingsContent } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import SettingsCard from './settings-card'
 import SettingsDrill from './settings-drill'
@@ -82,7 +83,7 @@ export default function CustomerPrivacySettings() {
       setSaved(JSON.stringify(formOf(next)))
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -97,7 +98,7 @@ export default function CustomerPrivacySettings() {
       setAsking(false)
       toast.success(copy.banner.askedAgain)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

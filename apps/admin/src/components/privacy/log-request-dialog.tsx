@@ -16,6 +16,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import ChoiceList from '@/components/returns/choice-list'
 import { logRequestContent as copy, SOURCE_LABEL } from '@/data/customer-privacy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type LogRequestDialogProps = {
   open: boolean
@@ -102,7 +103,7 @@ export default function LogRequestDialog({
       setPicked(customer ?? null)
       onLogged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

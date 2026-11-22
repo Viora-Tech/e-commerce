@@ -18,6 +18,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { useInboxLive } from '@/hooks/use-inbox-live'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import ConversationList, { type ConversationRow } from './conversation-list'
 import { CONVERSATIONS_FRAME } from './conversations-skeleton'
@@ -177,7 +178,7 @@ export default function ConversationsPage({ initialView, initialId }: Conversati
     } catch (err) {
       announce(id, prev)
       setReloadKey((k) => k + 1)
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       return
     }
     scheduleRefresh()

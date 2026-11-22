@@ -16,6 +16,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { purchaseOrderFormContent } from '@/data/inventory'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { type LoadedPurchaseOrder, toCount } from './form-state'
 
 type ReceiveDialogProps = {
@@ -104,7 +105,7 @@ export default function ReceiveDialog({
       onOpenChange(false)
       onReceived()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

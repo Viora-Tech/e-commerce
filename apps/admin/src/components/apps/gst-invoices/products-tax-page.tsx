@@ -16,6 +16,7 @@ import { appsContent } from '@/data/apps'
 import { gstProductTaxContent } from '@/data/gst-product-tax'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import ChoiceField from './choice-field'
 import ProductsTaxRow from './products-tax-row'
 import { HEAD } from './table-classes'
@@ -82,7 +83,7 @@ export default function ProductsTaxPage() {
       toast.success(copy.saved(r.products))
       setReload((n) => n + 1)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

@@ -9,6 +9,7 @@ import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
+import { errorText } from '@/lib/api-errors'
 import { authClient } from '@/lib/auth-client'
 import { routes } from '@/lib/routes'
 
@@ -48,7 +49,7 @@ export default function InstallStorePicker({
       }
       window.location.assign(routes.apps.install(appId, id))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       setBusyId(null)
     }
   }

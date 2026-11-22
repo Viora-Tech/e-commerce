@@ -10,6 +10,7 @@ import FormDialog from '@/components/layout/form-dialog'
 import { inboxContent } from '@/data/inbox'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 export type QuickReply = { id: string; title: string; body: string; shortcut: string }
 
@@ -45,7 +46,7 @@ export default function QuickReplyDialog({ reply, onClose, onSaved }: QuickReply
       toast.success(copy.quickReplies.saved)
       onSaved()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       throw err
     }
   }

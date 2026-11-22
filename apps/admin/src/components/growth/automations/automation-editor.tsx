@@ -33,6 +33,7 @@ import StatusChip from '@/components/layout/status-chip'
 import { automationEditorContent as copy } from '@/data/marketing-automations'
 import { campaignReportContent } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatPaiseWhole } from '@/lib/money'
 import { routes } from '@/lib/routes'
 import AutomationFlow from './automation-flow'
@@ -123,7 +124,7 @@ export default function AutomationEditor({
       toast.success(copy.saved)
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.failed)
+      setError(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -139,7 +140,7 @@ export default function AutomationEditor({
       toast.success(on ? copy.turnedOn : copy.turnedOff)
     } catch (err) {
       setActive(!on)
-      setError(err instanceof Error ? err.message : copy.failed)
+      setError(errorText(err, copy.failed))
     }
   }
 

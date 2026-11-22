@@ -18,6 +18,7 @@ import { deliveryOptionsContent } from '@/data/delivery-options'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import CourierListPreview from './courier-list-preview'
 import { courierRows } from './courier-rows'
@@ -110,7 +111,7 @@ export default function DeliveryOptionsPage() {
       await api.deliveryOptions.addPreset()
       reload()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
     }
@@ -142,7 +143,7 @@ export default function DeliveryOptionsPage() {
       toast.success(copy.saved)
       reload()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
     }

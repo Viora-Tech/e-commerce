@@ -21,6 +21,7 @@ import { ARTICLE_TABS, type ArticleTab, blogListContent } from '@/data/blog'
 import { filterPanelContent } from '@/data/filter-panel'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import {
   BLOG_POST_FILTER_PARAMS,
   type BlogPostFilters,
@@ -133,7 +134,7 @@ function BlogPostsContent({ initial, storefrontOrigin }: BlogPostsPageProps) {
       clear()
       await refresh().catch(() => setFailed(true))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.bulk.failed)
+      toast.error(errorText(err, copy.bulk.failed))
     } finally {
       setBusy(false)
     }

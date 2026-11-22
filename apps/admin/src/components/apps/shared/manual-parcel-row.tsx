@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import CopyButton from '@/components/fields/copy-button'
 import RelativeTime from '@/components/layout/relative-time'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 export type Parcel = {
   id: string
@@ -89,7 +90,7 @@ export default function ManualParcelRow({
       toast.success(copy.saved)
       onSaved()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     } finally {
       setSaving(false)
     }

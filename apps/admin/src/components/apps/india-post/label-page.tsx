@@ -14,6 +14,7 @@ import { indiaPostAppContent } from '@/data/india-post'
 import { useCopy } from '@/hooks/use-copy'
 import type { LoadFailure } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { isForbidden } from '@/lib/forbidden'
 import { routes } from '@/lib/routes'
 
@@ -39,7 +40,7 @@ export default function LabelPage({ params }: AppPageProps) {
           live &&
           setFailed({
             kind: isForbidden(err) ? 'no-access' : 'error',
-            reason: err instanceof Error && err.message ? err.message : copy.label.failed,
+            reason: errorText(err, copy.label.failed),
           }),
       )
     return () => {

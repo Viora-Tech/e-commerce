@@ -19,6 +19,7 @@ import { appsContent } from '@/data/apps'
 import { gstReturnsContent } from '@/data/gst-invoices'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { monthLabel, recentMonths } from './return-months'
 import { CELL, HEAD } from './table-classes'
 
@@ -70,7 +71,7 @@ export default function PeriodsTable({ gst, selected, onSelect, onChanged }: Per
       setPeriods(await api.gstInvoices.periods.list({ gstRegistrationId: gst }))
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
     }

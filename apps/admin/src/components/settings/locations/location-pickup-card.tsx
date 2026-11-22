@@ -13,6 +13,7 @@ import SettingsCard from '@/components/settings/settings-card'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type LocationPickupCardProps = {
   location: LocationBillingView
@@ -47,7 +48,7 @@ export default function LocationPickupCard({ location, canManage }: LocationPick
       toast.success(copy.saved)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setSaving(false)
     }

@@ -10,6 +10,7 @@ import { appsContent } from '@/data/apps'
 import { gstReturnsContent } from '@/data/gst-invoices'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatDate } from '@/lib/format-date'
 import Gstr1Card from './gstr1-card'
 import Gstr3bCard from './gstr3b-card'
@@ -46,7 +47,7 @@ export default function ReturnSummary({ gst, period }: ReturnSummaryProps) {
         if (!cancelled) setSummary(s)
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : copy.failed)
+        if (!cancelled) setError(errorText(err, copy.failed))
       })
     return () => {
       cancelled = true
@@ -59,7 +60,7 @@ export default function ReturnSummary({ gst, period }: ReturnSummaryProps) {
     try {
       saveFile(await fn())
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
     }

@@ -11,6 +11,7 @@ import { delhiveryAppContent } from '@/data/delhivery'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import OverviewTile from './overview-tile'
 
 type Wallet = Awaited<ReturnType<typeof api.shipments.wallets>>[number]
@@ -52,7 +53,7 @@ export default function WalletTile({ wallet, loading, onSaved }: WalletTileProps
       setOpen(false)
       onSaved()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     }
   }
 

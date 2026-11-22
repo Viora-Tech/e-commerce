@@ -8,6 +8,7 @@ import FormDialog from '@/components/layout/form-dialog'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type DuplicateProductDialogProps = {
@@ -39,7 +40,7 @@ export default function DuplicateProductDialog({
       onOpenChange(false)
       router.push(routes.products.detail(id))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       throw err
     }
   }

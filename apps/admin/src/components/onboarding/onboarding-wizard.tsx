@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { onboardingContent } from '@/data/onboarding'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { authClient } from '@/lib/auth-client'
 import LocationStep, { type LocationValue } from './location-step'
 import OnboardingScreen from './onboarding-screen'
@@ -72,7 +73,7 @@ export default function OnboardingWizard({
       router.push(created.nextPath)
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.createFailed)
+      setError(errorText(err, copy.createFailed))
       setSubmitting(false)
     }
   }

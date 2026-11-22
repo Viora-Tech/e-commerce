@@ -10,6 +10,7 @@ import DataCard from '@/components/layout/data-card'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import ConnectSteps from './connect-steps'
 
 type Connection = NonNullable<Awaited<ReturnType<typeof api.shopifyImport.connect>>>
@@ -37,7 +38,7 @@ export default function AppCredentialsForm({ onConnected }: AppCredentialsFormPr
       toast.success(copy.connected)
       onConnected(connection)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.connectFailed)
+      toast.error(errorText(err, copy.connectFailed))
     } finally {
       setBusy(false)
     }

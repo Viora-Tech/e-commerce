@@ -13,6 +13,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type AltTextDialogProps = {
   /** The item being edited, or null to keep the dialog closed. */
@@ -42,7 +43,7 @@ export default function AltTextDialog({ item, onClose, onSaved }: AltTextDialogP
       toast.success(copy.saved)
       onClose()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : mediaContent.errors.generic)
+      toast.error(errorText(err, mediaContent.errors.generic))
     } finally {
       setBusy(false)
     }

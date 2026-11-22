@@ -15,6 +15,7 @@ import StatusLabel from '@/components/status/status-label'
 import { transferFormContent } from '@/data/inventory'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import RouteCard from './route-card'
 import TransferLinesCard, { type TransferLine } from './transfer-lines-card'
@@ -82,7 +83,7 @@ export default function TransferForm({ transfer, locations }: TransferFormProps)
     try {
       await work()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.saveFailed)
+      toast.error(errorText(err, copy.saveFailed))
     } finally {
       setBusy(null)
     }

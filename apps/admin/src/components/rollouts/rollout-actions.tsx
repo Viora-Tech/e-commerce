@@ -11,6 +11,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { rolloutsContent } from '@/data/rollouts'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import RolloutEndDialog from './rollout-end-dialog'
 
@@ -43,7 +44,7 @@ export default function RolloutActions({ rollout: r, dirty }: RolloutActionsProp
       toast.success(done)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.toasts.failed)
+      toast.error(errorText(err, copy.toasts.failed))
       throw err
     } finally {
       setBusyKey(null)

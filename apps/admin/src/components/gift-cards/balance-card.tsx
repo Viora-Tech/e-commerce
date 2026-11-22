@@ -15,6 +15,7 @@ import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { giftCardDetailContent } from '@/data/gift-cards'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatPaise } from '@/lib/money'
 
 type BalanceCardProps = {
@@ -55,7 +56,7 @@ export default function BalanceCard({ card, onChanged }: BalanceCardProps) {
       setOpen(false)
       await onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.adjust.failed)
+      toast.error(errorText(err, copy.adjust.failed))
     } finally {
       setBusy(false)
     }

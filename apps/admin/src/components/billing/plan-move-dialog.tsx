@@ -17,6 +17,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { billingContent } from '@/data/billing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { billAmount, lastDay } from '@/lib/billing'
 import { routes } from '@/lib/routes'
 
@@ -67,7 +68,7 @@ export default function PlanMoveDialog({
         if (live) setQuote(q)
       })
       .catch((err: unknown) => {
-        if (live) setFailed(err instanceof Error && err.message ? err.message : '')
+        if (live) setFailed(errorText(err, ''))
       })
     return () => {
       live = false
@@ -92,7 +93,7 @@ export default function PlanMoveDialog({
         router.refresh()
       }
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.dialog.failed)
+      toast.error(errorText(err, copy.dialog.failed))
     } finally {
       setBusy(false)
     }

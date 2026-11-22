@@ -15,6 +15,7 @@ import { appearanceContent } from '@/data/appearance'
 import { useLoad } from '@/hooks/use-load'
 import { writeAccentCookie } from '@/lib/accent-cookie'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { ProductLayout } from '@/lib/product-layout'
 import AccentPicker from './accent-picker'
 import AccentPreview from './accent-preview'
@@ -85,7 +86,7 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
       router.refresh()
       toast.success(done)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.accent.failed)
+      toast.error(errorText(err, copy.accent.failed))
     } finally {
       setBusy(null)
     }

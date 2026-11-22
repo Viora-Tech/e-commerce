@@ -15,6 +15,7 @@ import { gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import GatewayGuide from './gateway-guide'
 import PaymentModeControl from './payment-mode-control'
 import RazorpayWebhookFields from './razorpay-webhook-fields'
@@ -135,7 +136,7 @@ export default function GatewayConnectForm({
       window.location.href = url
     } catch (err) {
       setRedirecting(false)
-      toast.error(err instanceof Error ? err.message : copy.saveFailed)
+      toast.error(errorText(err, copy.saveFailed))
     }
   }
 
@@ -145,7 +146,7 @@ export default function GatewayConnectForm({
       const r = await api.payments.testConnection({ providerId, fields: fieldsToSend(), mode })
       setTest({ status: r.ok ? 'ok' : 'error', message: r.message })
     } catch (err) {
-      setTest({ status: 'error', message: err instanceof Error ? err.message : copy.saveFailed })
+      setTest({ status: 'error', message: errorText(err, copy.saveFailed) })
     }
   }
 
@@ -165,7 +166,7 @@ export default function GatewayConnectForm({
       onConnected()
     } catch (err) {
       // Saving checks the keys first: a refusal shows under "Test connection" too.
-      const message = err instanceof Error ? err.message : copy.saveFailed
+      const message = errorText(err, copy.saveFailed)
       setTest({ status: 'error', message })
       toast.error(message)
     } finally {

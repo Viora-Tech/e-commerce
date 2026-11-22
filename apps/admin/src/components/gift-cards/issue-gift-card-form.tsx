@@ -22,6 +22,7 @@ import ProoflyPageBody from '@/components/layout/proofly-page-body'
 import { giftCardIssueContent as copy, GIFT_CARD_PRESETS } from '@/data/gift-cards'
 import { useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import CodeRevealDialog, { type IssuedCard } from './code-reveal-dialog'
 
@@ -75,7 +76,7 @@ export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
       })
       setIssued(r)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

@@ -9,6 +9,7 @@ import RowMenu from '@/components/table/row-menu'
 import { type MenuListItem, menusContent } from '@/data/menus'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import DeleteMenuDialog from './delete-menu-dialog'
 
 type MenuActionsProps = { menu: MenuListItem }
@@ -44,7 +45,7 @@ export default function MenuActions({ menu }: MenuActionsProps) {
       setRenaming(false)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : renameCopy.failed)
+      toast.error(errorText(err, renameCopy.failed))
     } finally {
       setBusy(false)
     }

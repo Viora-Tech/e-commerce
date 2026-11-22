@@ -12,6 +12,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { MediaFolder } from './use-media-folders'
 
 type MediaFolderDialogProps = {
@@ -45,7 +46,7 @@ export default function MediaFolderDialog({ folder, onClose, onSaved }: MediaFol
       onSaved(saved)
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.failed)
+      setError(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

@@ -9,6 +9,7 @@ import DataCard from '@/components/layout/data-card'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type ReplyCardProps = {
   reviewId: string
@@ -50,7 +51,7 @@ export default function ReplyCard({ reviewId, reply, onSaved }: ReplyCardProps) 
       )
       onSaved()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : reviewsContent.list.failed)
+      toast.error(errorText(err, reviewsContent.list.failed))
     } finally {
       setBusy(false)
     }
@@ -63,7 +64,7 @@ export default function ReplyCard({ reviewId, reply, onSaved }: ReplyCardProps) 
       const r = await api.reviews.writeReply({ id: reviewId })
       setText(r.reply)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : reviewsContent.list.failed)
+      toast.error(errorText(err, reviewsContent.list.failed))
     } finally {
       setWriting(false)
     }

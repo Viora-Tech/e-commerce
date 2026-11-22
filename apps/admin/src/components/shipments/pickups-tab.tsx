@@ -22,6 +22,7 @@ import { shipmentDetailsContent } from '@/data/shipping'
 import { statesContent } from '@/data/states'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { todayKey } from '@/lib/format-date'
 import { pickupRefusal, startingPickupPlan, TIME_24H } from './create-shipment/pickup-plan'
 
@@ -121,7 +122,7 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
       setSelected([])
       toast.success(actions.pickupDone(selected.length))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     } finally {
       setBusy(null)
     }
@@ -133,7 +134,7 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
       await api.shipments.createManifest({ pickupId })
       setReloadKey((k) => k + 1)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     } finally {
       setBusy(null)
     }

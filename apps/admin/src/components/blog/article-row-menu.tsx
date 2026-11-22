@@ -9,6 +9,7 @@ import RowMenu from '@/components/table/row-menu'
 import { blogListContent } from '@/data/blog'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import type { ArticleRow } from './article-columns'
 
@@ -39,7 +40,7 @@ export default function ArticleRowMenu({
       toast.success(message)
       await onChanged()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.bulk.failed)
+      toast.error(errorText(err, copy.bulk.failed))
       throw err
     }
   }

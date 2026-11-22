@@ -14,6 +14,7 @@ import { discountFormContent } from '@/data/discounts'
 import { shippingRatesContent } from '@/data/shipping-rates'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import ProfileProductRow from './profile-product-row'
 import { addRows, type ProfileProductRow as Row, tickVariant } from './profile-products-state'
 
@@ -84,7 +85,7 @@ export default function ProfileProductsCard({
       onChange(addRows(rows, fresh, picked))
       toast.success(copy.products.added(added))
     } catch (err) {
-      onError(err instanceof Error ? err.message : copy.toasts.failed)
+      onError(errorText(err, copy.toasts.failed))
     }
   }
 
@@ -109,7 +110,7 @@ export default function ProfileProductsCard({
       const ids = await api.shipping.profiles.collectionProducts({ collectionIds })
       await add(ids, new Map())
     } catch (err) {
-      onError(err instanceof Error ? err.message : copy.toasts.failed)
+      onError(errorText(err, copy.toasts.failed))
     }
   }
 

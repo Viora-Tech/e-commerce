@@ -16,6 +16,7 @@ import { analyticsContent } from '@/data/analytics'
 import type { LoadFailure } from '@/hooks/use-load'
 import { type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { downloadCsv } from '@/lib/csv'
 import { isForbidden } from '@/lib/forbidden'
 import { csvOf } from '@/lib/report-csv'
@@ -92,7 +93,7 @@ export default function ReportView({ report, initialRange, initial }: ReportView
       toast.success(analyticsContent.reports.save.saved)
       setSaving(false)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     }
   }
   const handleExport = () => {

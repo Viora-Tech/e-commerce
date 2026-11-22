@@ -27,6 +27,7 @@ import { reorderLabels } from '@/data/common'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import LocationOrderRow from './location-order-row'
 import LocationsRoutingCard from './locations-routing-card'
@@ -89,7 +90,7 @@ export default function LocationsSettings({ view }: LocationsSettingsProps) {
       router.refresh()
     } catch (err) {
       setOrder(previous)
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setMoving(false)
     }

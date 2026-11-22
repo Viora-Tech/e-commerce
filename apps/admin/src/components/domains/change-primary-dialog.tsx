@@ -14,6 +14,7 @@ import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { domainsContent as copy } from '@/data/domains'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type ChangePrimaryDialogProps = {
   open: boolean
@@ -50,7 +51,7 @@ export default function ChangePrimaryDialog({
       onOpenChange(false)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.errors.action)
+      toast.error(errorText(err, copy.errors.action))
     } finally {
       setSaving(false)
     }

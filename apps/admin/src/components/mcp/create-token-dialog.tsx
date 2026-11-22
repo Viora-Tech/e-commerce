@@ -25,6 +25,7 @@ import StatusChip from '@/components/layout/status-chip'
 import { mcpContent } from '@/data/mcp'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { claudeCodeCommand } from '@/lib/mcp'
 import { tokenScopes } from './can-do'
 import CodeSnippet from './code-snippet'
@@ -87,7 +88,7 @@ export default function CreateTokenDialog({
       setCreated(r)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.create.failed)
+      toast.error(errorText(err, copy.create.failed))
     } finally {
       setBusy(false)
     }

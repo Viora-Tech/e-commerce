@@ -16,6 +16,7 @@ import { reorderLabels } from '@/data/common'
 import { customDataContent, fieldTypeContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import MetafieldDefinitionDialog, {
   type MetafieldDefinitionRow,
 } from './metafield-definition-dialog'
@@ -56,7 +57,7 @@ export default function MetafieldDefinitionsCard({
       setRemoving(null)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.dialog.failed)
+      toast.error(errorText(err, copy.dialog.failed))
     } finally {
       setBusy(false)
     }

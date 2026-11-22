@@ -8,6 +8,7 @@ import FormDialog from '@/components/layout/form-dialog'
 import { orderCustomerContent } from '@/data/customer-merge'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { OrderDetail } from './order-detail-types'
 
 type ChangeCustomerDialogProps = {
@@ -45,7 +46,7 @@ export default function ChangeCustomerDialog({
       handleOpenChange(false)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setSaving(false)
     }

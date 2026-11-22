@@ -13,6 +13,7 @@ import ResourceTable from '@/components/table/resource-table'
 import { entryListContent } from '@/data/metaobjects'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import { entryColumns } from './entry-columns'
 import { entriesPath, type LoadedDefinition } from './form-state'
@@ -80,7 +81,7 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
       // The rows are read again; a failed read lands in the table with Try again.
       setAttempt((n) => n + 1)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.bulk.failed)
+      toast.error(errorText(err, copy.bulk.failed))
     } finally {
       setBusy(false)
     }

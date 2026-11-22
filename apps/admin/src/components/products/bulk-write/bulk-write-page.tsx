@@ -19,6 +19,7 @@ import PageHeader from '@/components/layout/page-header'
 import { assistantContent } from '@/data/assistant'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { type BulkWriteFrom, routes } from '@/lib/routes'
 import BulkWriteOptions from './bulk-write-options'
 import BulkWriteReview from './bulk-write-review'
@@ -127,7 +128,7 @@ export default function BulkWritePage({
       setJob(started)
       router.replace(routes.products.bulkWrite({ job: started.id, from }))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.bulk.failed)
+      toast.error(errorText(err, copy.bulk.failed))
     } finally {
       setBusy(false)
     }
@@ -151,7 +152,7 @@ export default function BulkWritePage({
       toast.success(copy.bulk.applied(result.applied))
       setJob(await api.ai.bulkJob({ id: job.id }))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.bulk.failed)
+      toast.error(errorText(err, copy.bulk.failed))
     } finally {
       setBusy(false)
     }

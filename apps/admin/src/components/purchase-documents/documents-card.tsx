@@ -19,6 +19,7 @@ import EmptyState from '@/components/layout/empty-state'
 import { PURCHASE_DOCUMENT_KINDS, purchaseDocumentsContent } from '@/data/purchase-documents'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import DocumentRow, { type DocumentSummary } from './document-row'
 import ReviewDialog from './review-dialog'
 
@@ -34,8 +35,6 @@ type DocumentsCardProps = {
 const POLL_MS = 2500
 
 const busy = (d: DocumentSummary) => d.status === 'pending' || d.status === 'reading'
-
-const message = (err: unknown, fallback: string) => (err instanceof Error ? err.message : fallback)
 
 /** Upload supplier and import bills, watch the AI read them, then check and apply each one. */
 export default function DocumentsCard({ owner, aiReading, onApplied }: DocumentsCardProps) {
@@ -75,7 +74,7 @@ export default function DocumentsCard({ owner, aiReading, onApplied }: Documents
       await api.purchaseDocuments.read({ id })
       toast.success(copy.readStarted)
     } catch (err) {
-      toast.error(message(err, copy.failed))
+      toast.error(errorText(err, copy.failed))
     }
     await refresh()
   }
@@ -99,7 +98,7 @@ export default function DocumentsCard({ owner, aiReading, onApplied }: Documents
         if (aiReading) await api.purchaseDocuments.read({ id: up.id }).catch(() => undefined)
       }
     } catch (err) {
-      toast.error(message(err, copy.failed))
+      toast.error(errorText(err, copy.failed))
     } finally {
       setUploading(false)
       await refresh()
@@ -113,7 +112,7 @@ export default function DocumentsCard({ owner, aiReading, onApplied }: Documents
       toast.success(copy.removed)
       await refresh()
     } catch (err) {
-      toast.error(message(err, copy.failed))
+      toast.error(errorText(err, copy.failed))
     } finally {
       setRemoving(null)
     }

@@ -30,6 +30,7 @@ import PageState from '@/components/states/page-state'
 import { accountContent } from '@/data/account'
 import { useCopy, useRegion } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type Loaded = Awaited<ReturnType<typeof api.account.notifications>>
@@ -113,7 +114,7 @@ export default function NotificationsPage() {
       setForm(formOf(prefs))
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setSaving(false)
     }

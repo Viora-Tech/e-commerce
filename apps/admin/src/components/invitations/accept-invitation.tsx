@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { invitationContent } from '@/data/invitations'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { authClient } from '@/lib/auth-client'
 import InvitationSignIn from './invitation-sign-in'
 
@@ -56,7 +57,7 @@ export default function AcceptInvitation({
       await join()
     } catch (err) {
       setBusy(false)
-      setError(err instanceof Error ? err.message : copy.acceptFailed)
+      setError(errorText(err, copy.acceptFailed))
     }
   }
 

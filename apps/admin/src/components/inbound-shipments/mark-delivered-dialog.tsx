@@ -6,6 +6,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { inboundShipmentFormContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type Outstanding = Awaited<ReturnType<typeof api.inboundShipments.outstanding>>
 
@@ -56,7 +57,7 @@ export default function MarkDeliveredDialog({
       onClose()
       onDone()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

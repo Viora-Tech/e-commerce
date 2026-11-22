@@ -25,6 +25,7 @@ import { useAutomationCatalogueLoad } from '@/hooks/use-automation-catalogue'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import type { LoadFailure } from '@/hooks/use-load'
 import { usePermissions } from '@/hooks/use-permissions'
+import { errorText } from '@/lib/api-errors'
 import { automationApi } from '@/lib/automation-api'
 import { nodeView } from '@/lib/automation-node-view'
 import { automationRoutes, recordHref } from '@/lib/automation-routes'
@@ -107,7 +108,7 @@ export default function RunPage({ params }: AppPageProps) {
       setRun(await automationApi.runs.retry(run.id))
       toast.success(copy.retried)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -119,7 +120,7 @@ export default function RunPage({ params }: AppPageProps) {
       setRun(await automationApi.runs.cancel(run.id))
       toast.success(copy.cancelled)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       throw err
     }
   }

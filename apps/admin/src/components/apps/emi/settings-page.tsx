@@ -19,6 +19,7 @@ import { appsContent } from '@/data/apps'
 import { emiContent as copy } from '@/data/emi'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
 
@@ -93,7 +94,7 @@ export default function SettingsPage() {
       setForm(next.settings)
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

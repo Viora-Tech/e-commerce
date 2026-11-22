@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import {
   MANUAL,
   type PackageForm,
@@ -68,7 +69,7 @@ export function useShipQuote(
       })
       .catch((err) => {
         setFailedKey(key)
-        toast.error(err instanceof Error ? err.message : String(err))
+        toast.error(errorText(err, String(err)))
       })
     return () => controller.abort()
   }, [key, retry, preferred])

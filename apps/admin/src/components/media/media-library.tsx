@@ -28,6 +28,7 @@ import { imageEditorContent } from '@/data/image-editor'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { isEditableImage } from '@/lib/image-edit'
 import { routes } from '@/lib/routes'
 import AltTextDialog from './alt-text-dialog'
@@ -238,7 +239,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
     try {
       await api.media.delete({ id: deleting.id })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : mediaContent.errors.generic)
+      toast.error(errorText(err, mediaContent.errors.generic))
       throw err
     }
     handleDeleted(deleting.id)

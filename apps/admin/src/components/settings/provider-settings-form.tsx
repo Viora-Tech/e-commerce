@@ -13,6 +13,7 @@ import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import LoadFailed from '@/components/states/load-failed'
 import { providerSettingsContent as copy } from '@/data/provider-settings'
 import { useLoad } from '@/hooks/use-load'
+import { errorText } from '@/lib/api-errors'
 import ProviderCard, { type ProviderDef } from './provider-card'
 import SectionTabs, { type SectionTab } from './section-tabs'
 import SettingsSection from './settings-section'
@@ -146,7 +147,7 @@ export default function ProviderSettingsForm<Extra extends object>({
       for (const l of linked) if (l.dirty) await l.save()
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.saveFailed)
+      toast.error(errorText(err, copy.saveFailed))
     } finally {
       setBusy(false)
     }

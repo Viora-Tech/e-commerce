@@ -6,7 +6,7 @@ import FormDialog from '@/components/layout/form-dialog'
 import { locationsContent } from '@/data/inventory'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { focusField } from '@/lib/api-errors'
+import { errorText, focusField } from '@/lib/api-errors'
 import LocationAddressFields, {
   EMPTY_LOCATION_DRAFT,
   type LocationDraft,
@@ -47,7 +47,7 @@ export default function AddLocationDialog({
       onOpenChange(false)
       onCreated(created)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

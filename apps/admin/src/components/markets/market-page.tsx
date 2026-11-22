@@ -37,6 +37,7 @@ import { marketsContent } from '@/data/markets'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { INTL_LOCALE } from '@/lib/i18n'
 import { routes } from '@/lib/routes'
 import MarketDialog, { type MarketPart } from './market-dialog'
@@ -104,7 +105,7 @@ export default function MarketPage({ market, markets, domains, catalog }: Market
       router.refresh()
     } catch (err) {
       setEnabled(!next)
-      toast.error(err instanceof Error ? err.message : copy.toasts.failed)
+      toast.error(errorText(err, copy.toasts.failed))
     } finally {
       setSwitching(false)
     }
@@ -119,7 +120,7 @@ export default function MarketPage({ market, markets, domains, catalog }: Market
       toast.success(outcome === 'deleted' ? copy.toasts.deleted : copy.toasts.disabled)
       router.push(routes.markets.list())
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.toasts.failed)
+      toast.error(errorText(err, copy.toasts.failed))
       throw err
     }
   }

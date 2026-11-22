@@ -17,6 +17,7 @@ import { domainEdgeContent, domainsContent } from '@/data/domains'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatDateTime } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
 import DnsRecordsCard from './dns-records-card'
@@ -80,7 +81,7 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
     try {
       await fn()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : domainsContent.errors.action)
+      toast.error(errorText(err, domainsContent.errors.action))
     } finally {
       setSaving(false)
     }
@@ -98,7 +99,7 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
       else if (next.status === 'pending') toast.info(copy.verification.stillPending)
       else toast.error(next.error ?? copy.verification.failed)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : domainsContent.errors.action)
+      toast.error(errorText(err, domainsContent.errors.action))
     } finally {
       setChecking(false)
     }

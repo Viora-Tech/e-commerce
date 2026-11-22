@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import { returnDetailContent } from '@/data/returns'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { type ReturnDetail, toRupees } from './return-types'
 
 type RtoCardProps = { detail: ReturnDetail; onChanged: () => void }
@@ -33,7 +34,7 @@ export default function RtoCard({ detail: r, onChanged }: RtoCardProps) {
       toast.success(copy.costSaved)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : returnDetailContent.failed)
+      toast.error(errorText(err, returnDetailContent.failed))
     } finally {
       setBusy(false)
     }

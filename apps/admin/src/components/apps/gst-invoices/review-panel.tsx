@@ -12,6 +12,7 @@ import { reorderLabels } from '@/data/common'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatPaise } from '@/lib/money'
 import type { QueueRow } from './queue-page'
 
@@ -59,7 +60,7 @@ export default function ReviewPanel({ rows, onBack, onIssued }: ReviewPanelProps
     try {
       await fn()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
     }

@@ -15,6 +15,7 @@ import { settingsContent } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import CreateTokenDialog from './create-token-dialog'
 import McpConnectGuide from './mcp-connect-guide'
@@ -57,7 +58,7 @@ export default function McpPage({ overview, grants, serverUrl }: McpPageProps) {
       toast.success(copy.saved)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.saveFailed)
+      toast.error(errorText(err, copy.saveFailed))
     } finally {
       setSaving(false)
     }

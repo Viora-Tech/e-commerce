@@ -13,6 +13,7 @@ import SettingsRow from '@/components/settings/settings-row'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type AffiliateProgramCardProps = {
   affiliateId: string
@@ -48,7 +49,7 @@ export default function AffiliateProgramCard({
       toast.success(copy.detail.moved)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     }
   }
   const handleSaveRate = async () => {
@@ -61,7 +62,7 @@ export default function AffiliateProgramCard({
       toast.success(copy.detail.rateSaved)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

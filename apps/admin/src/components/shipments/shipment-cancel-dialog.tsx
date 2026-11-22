@@ -7,6 +7,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { shipmentActionsContent, shipmentCancelContent } from '@/data/shipments'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type Choice = 'back' | 'shipment' | 'sendBack' | 'marked'
 
@@ -98,7 +99,7 @@ export default function ShipmentCancelDialog({
       }
       onDone()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : actions.failed)
+      toast.error(errorText(err, actions.failed))
       throw err
     }
   }

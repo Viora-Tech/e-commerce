@@ -6,6 +6,7 @@ import { ordersContent } from '@/data/orders'
 import { paymentRulesContent } from '@/data/payment-rules'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 /**
  * The order page's one-call actions (Restore order, Mark as unfulfilled, Mark as not delivered,
@@ -29,7 +30,7 @@ export function useOrderUndo(
       toast.success(done)
       onDone()
     } catch (err) {
-      toast.error(failed ?? (err instanceof Error ? err.message : listCopy.bulk.failed))
+      toast.error(failed ?? errorText(err, listCopy.bulk.failed))
     } finally {
       setBusy(false)
     }

@@ -8,6 +8,7 @@ import FormDialog from '@/components/layout/form-dialog'
 import { type RedirectListItem, redirectsContent } from '@/data/redirects'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type RedirectDialogProps = {
   /** Null creates a new redirect. */
@@ -32,7 +33,7 @@ export default function RedirectDialog({ redirect, onClose, onSaved }: RedirectD
       onSaved()
       onClose()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

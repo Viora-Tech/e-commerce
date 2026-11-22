@@ -12,6 +12,7 @@ import SettingsCard from '@/components/settings/settings-card'
 import { gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { base, instant } from '@/lib/motion'
 import GatewayConnectForm from './gateway-connect-form'
 import HelpFooter from './help-footer'
@@ -78,7 +79,7 @@ export default function SetupWizard({ setup, onReload, onDone }: SetupWizardProp
       setGateway(id)
       go('connect')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : setupCopy.add.installFailed)
+      toast.error(errorText(err, setupCopy.add.installFailed))
     } finally {
       setBusy(null)
     }

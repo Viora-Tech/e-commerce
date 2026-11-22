@@ -10,6 +10,7 @@ import { shopifyAppInstallContent } from '@/data/shopify-app-install'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 /**
  * "Install the Koomerce app": the merchant types their shop, Shopify asks them to approve the
@@ -30,7 +31,7 @@ export default function AppInstallForm() {
       const { url } = await api.shopifyImport.startAppInstall({ shopDomain })
       window.location.assign(url)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : install.failed)
+      toast.error(errorText(err, install.failed))
       setBusy(false)
     }
   }

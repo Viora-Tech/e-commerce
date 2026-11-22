@@ -32,6 +32,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { customDataContent, fieldDialogContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import FieldRules from './field-rules'
 import FieldTypeSelect from './field-type-select'
 
@@ -129,7 +130,7 @@ export default function MetafieldDefinitionDialog({
       onSaved()
       onClose()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

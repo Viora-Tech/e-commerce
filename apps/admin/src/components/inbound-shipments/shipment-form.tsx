@@ -20,6 +20,7 @@ import StatusLabel from '@/components/status/status-label'
 import { inboundShipmentFormContent } from '@/data/purchasing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import MarkDeliveredDialog from './mark-delivered-dialog'
 import ShipmentDetailsCard, { type ShipmentDraft } from './shipment-details-card'
@@ -97,7 +98,7 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
       if (shipment) router.refresh()
       else router.replace(routes.stock.inboundShipment(id))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -121,7 +122,7 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
         toast.error(copy.tracking.failed)
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.tracking.failed)
+      toast.error(errorText(err, copy.tracking.failed))
     } finally {
       setTracking(false)
     }
@@ -134,7 +135,7 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
       toast.success(copy.deleted)
       router.push(LIST)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     }
   }
 

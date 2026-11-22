@@ -18,6 +18,7 @@ import { automationPiecesContent, automationsContent } from '@/data/automations'
 import { useAutomationCatalogue } from '@/hooks/use-automation-catalogue'
 import { useCopy, useFormat, useLocale } from '@/hooks/use-copy'
 import type { LoadFailure } from '@/hooks/use-load'
+import { errorText } from '@/lib/api-errors'
 import { automationApi } from '@/lib/automation-api'
 import { triggerLabel } from '@/lib/automation-labels'
 import { automationRoutes } from '@/lib/automation-routes'
@@ -87,7 +88,7 @@ export default function WorkflowsPage() {
       const w = await automationApi.create({ triggerType: trigger.id, name: all.create.untitled })
       router.push(automationRoutes.workflow(w.id))
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : all.list.row.failed)
+      toast.error(errorText(err, all.list.row.failed))
     }
   }
 

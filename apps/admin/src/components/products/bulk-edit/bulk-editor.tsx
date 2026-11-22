@@ -14,6 +14,7 @@ import StatusChip from '@/components/layout/status-chip'
 import { bulkEditContent } from '@/data/bulk-edit'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import BulkColumnsMenu from './bulk-columns-menu'
 import { columnKeys, isEditableKey, STOCK_FOCUS_HIDDEN } from './bulk-edit-columns'
@@ -149,7 +150,7 @@ export default function BulkEditor({ sheet, productIds, stockFocus }: BulkEditor
       await reload()
       toast.success(copy.removeVariants.done(result.removed))
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.removeVariants.failed)
+      toast.error(errorText(err, copy.removeVariants.failed))
     }
   }
 
@@ -184,7 +185,7 @@ export default function BulkEditor({ sheet, productIds, stockFocus }: BulkEditor
         },
       )
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.errors.saveFailed)
+      toast.error(errorText(err, copy.errors.saveFailed))
     } finally {
       setSaving(false)
     }

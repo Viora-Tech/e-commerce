@@ -9,6 +9,7 @@ import SettingsRow from '@/components/settings/settings-row'
 import { meilisearchContent } from '@/data/meilisearch'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type View = Awaited<ReturnType<typeof api.meilisearch.get>>
 
@@ -32,7 +33,7 @@ export default function IndexCard({ view, onChanged }: IndexCardProps) {
       await onChanged()
       toast.success(copy.index.queued)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

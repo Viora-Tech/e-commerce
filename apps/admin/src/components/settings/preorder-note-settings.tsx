@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import { paymentsSettingsContent } from '@/data/payments'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { LinkedSave } from './provider-settings-form'
 import SettingsCard from './settings-card'
 
@@ -67,7 +68,7 @@ export default function PreorderNoteSettings({ onSaveState }: PreorderNoteSettin
       await persist()
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.saveFailed)
+      toast.error(errorText(err, copy.saveFailed))
     } finally {
       setSaving(false)
     }

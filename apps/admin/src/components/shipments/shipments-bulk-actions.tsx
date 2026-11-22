@@ -10,6 +10,7 @@ import { manifestSheetContent } from '@/data/manifest-sheet'
 import { shipmentActionsContent, shipmentsContent } from '@/data/shipments'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { pickupRefusal, startingPickupPlan } from './create-shipment/pickup-plan'
 import LabelPaperSelect from './label-paper-select'
 import PickupFields, { type PickupValue } from './pickup-fields'
@@ -50,7 +51,7 @@ export default function ShipmentsBulkActions({ ids, tab, onDone }: ShipmentsBulk
 
   // Helpers
   const fail = (err: unknown) => {
-    toast.error(err instanceof Error && err.message ? err.message : actions.failed)
+    toast.error(errorText(err, actions.failed))
     throw err
   }
 

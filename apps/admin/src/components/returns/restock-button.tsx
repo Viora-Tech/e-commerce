@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { returnDetailContent } from '@/data/returns'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { ReturnDetail } from './return-types'
 
 type RestockButtonProps = { detail: ReturnDetail; onChanged: () => void }
@@ -25,7 +26,7 @@ export default function RestockButton({ detail: r, onChanged }: RestockButtonPro
       toast.success(copy.done(out.moved))
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : returnDetailContent.failed)
+      toast.error(errorText(err, returnDetailContent.failed))
     } finally {
       setBusy(false)
     }

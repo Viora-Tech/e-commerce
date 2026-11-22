@@ -26,6 +26,7 @@ import { shipmentDetailsContent } from '@/data/shipping'
 import { statesContent } from '@/data/states'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type NdrRow = Awaited<ReturnType<typeof api.shipments.listNdr>>[number]
@@ -98,7 +99,7 @@ export default function NdrTab() {
       setDialog(null)
       setReloadKey((k) => k + 1)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     } finally {
       setBusy(false)
     }

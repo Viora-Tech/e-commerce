@@ -17,6 +17,7 @@ import { appsContent } from '@/data/apps'
 import { searchAppContent } from '@/data/search-app'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 /**
  * The groups as text, with a new line started for `add` (the Overview's "Add synonym" on a
@@ -63,7 +64,7 @@ export default function SynonymsPage() {
       setText(synonymLines(groups))
       toast.success(copy.synonyms.saved)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setSaving(false)
     }

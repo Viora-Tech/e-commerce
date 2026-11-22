@@ -16,6 +16,7 @@ import { deliveryOptionsContent } from '@/data/delivery-options'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { RuleSuggestion } from './format'
 import RuleDialog from './rule-dialog'
 import type { RuleDraft } from './rule-draft'
@@ -77,7 +78,7 @@ export default function DeliveryRulesPage() {
       await api.deliveryOptions.reorderRules({ ids: next.map((r) => r.id) })
     } catch (err) {
       setRules(before)
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     }
   }
 

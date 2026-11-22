@@ -12,6 +12,7 @@ import StatusLabel from '@/components/status/status-label'
 import { inboundShipmentFormContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type ShipmentOrdersCardProps = {
@@ -60,7 +61,7 @@ export default function ShipmentOrdersCard({
       toast.success(done)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     } finally {
       setBusy(false)
     }

@@ -8,6 +8,7 @@ import DataCard from '@/components/layout/data-card'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type CodesCardProps = {
   affiliateId: string
@@ -45,7 +46,7 @@ export default function CodesCard({
       toast.success(done(r))
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : failed)
+      toast.error(errorText(err, failed))
     } finally {
       setBusy(null)
       setConfirming(false)

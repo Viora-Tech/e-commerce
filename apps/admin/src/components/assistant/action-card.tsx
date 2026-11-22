@@ -26,6 +26,7 @@ import type { ActionView } from '@/hooks/use-assistant'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import ActionDiff from './action-diff'
 import ActionEditForm from './action-edit-form'
 
@@ -88,7 +89,7 @@ export default function ActionCard({ action, onChange }: ActionCardProps) {
       // The page behind the bar shows the change (a new discount in the list, new prices).
       if (view.status === 'executed' || view.status === 'undone') router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.card.failed)
+      toast.error(errorText(err, copy.card.failed))
     } finally {
       setBusy(null)
     }

@@ -22,6 +22,7 @@ import { shipmentActionsContent, shipmentCancelContent, shipmentsContent } from 
 import { shipmentDetailsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import ShipmentCancelDialog from './shipment-cancel-dialog'
 import type { ShipmentRow } from './shipment-columns'
@@ -63,7 +64,7 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
       toast.success(actions.trackingUpdated)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : actions.failed)
+      toast.error(errorText(err, actions.failed))
     }
   }
 

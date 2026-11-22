@@ -12,6 +12,7 @@ import { gstInvoicesContent } from '@/data/gst-invoices'
 import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import DocumentsGroup from './documents-group'
 import IssuingGroup from './issuing-group'
 import LookGroup from './look-group'
@@ -89,7 +90,7 @@ export default function SettingsEditor() {
       setSaved(JSON.stringify(next))
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

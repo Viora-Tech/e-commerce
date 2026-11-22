@@ -12,6 +12,7 @@ import DeclineRequestDialog from '@/components/privacy/decline-request-dialog'
 import EraseCustomerDialog from '@/components/privacy/erase-customer-dialog'
 import { dataRequestDetailContent as copy } from '@/data/customer-privacy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type DataRequestActionsProps = {
   request: DataRequestRow
@@ -41,7 +42,7 @@ export default function DataRequestActions({
       onChanged()
       return true
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       return false
     } finally {
       setBusy(false)

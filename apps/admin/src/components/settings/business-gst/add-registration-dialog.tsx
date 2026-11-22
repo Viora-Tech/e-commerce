@@ -21,6 +21,7 @@ import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type AddRegistrationDialogProps = {
   open: boolean
@@ -122,7 +123,7 @@ export default function AddRegistrationDialog({
     } catch (err) {
       setRefused({
         code: refusalCode(err),
-        message: err instanceof Error ? err.message : copy.failed,
+        message: errorText(err, copy.failed),
       })
     } finally {
       setSaving(false)

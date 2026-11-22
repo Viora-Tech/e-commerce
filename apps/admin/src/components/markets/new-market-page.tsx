@@ -31,6 +31,7 @@ import PageHeader from '@/components/layout/page-header'
 import { marketsContent } from '@/data/markets'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import CountryPicker from './country-picker'
 import { formOf, formProblems, type MarketForm, marketInput, withCountries } from './market-form'
@@ -138,7 +139,7 @@ export default function NewMarketPage({
       toast.success(copy.toasts.added(form.name.trim()))
       router.push(routes.markets.detail(created.id))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.toasts.failed)
+      toast.error(errorText(err, copy.toasts.failed))
       setBusy(false)
     }
   }

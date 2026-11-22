@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { themeCodeContent } from '@/data/theme-code'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import {
   type CodeFile,
   type CodeFileList,
@@ -133,7 +134,7 @@ export function useCodeBuffers(themeId: string) {
       if (list?.kind === 'imported') void loadList()
       return true
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.saveFailed)
+      toast.error(errorText(err, copy.saveFailed))
       return false
     } finally {
       setSaving(false)
@@ -156,7 +157,7 @@ export function useCodeBuffers(themeId: string) {
       setJustPublished(new Set(changed.map((f) => f.path)))
       await loadList()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.drafts.publishFailed)
+      toast.error(errorText(err, copy.drafts.publishFailed))
     } finally {
       setPublishing(false)
     }
@@ -169,7 +170,7 @@ export function useCodeBuffers(themeId: string) {
       toast.success(copy.drafts.discarded)
       await reloadOpen()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.drafts.discardFailed)
+      toast.error(errorText(err, copy.drafts.discardFailed))
     }
   }
 

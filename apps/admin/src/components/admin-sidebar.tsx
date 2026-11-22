@@ -39,6 +39,7 @@ import {
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useRecentApps } from '@/hooks/use-recent-apps'
+import { errorText } from '@/lib/api-errors'
 import { authClient } from '@/lib/auth-client'
 import { withSalesChannels } from '@/lib/nav-channels'
 import { localizeNavItems, navGroupName } from '@/lib/page-names'
@@ -170,7 +171,7 @@ export default function AdminSidebar({
       // A full load, so client caches (permissions, lists) start fresh for the new store.
       window.location.assign(routes.home())
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : auth.selectStore.switchFailed)
+      toast.error(errorText(err, auth.selectStore.switchFailed))
       setSwitchingId(null)
     }
   }

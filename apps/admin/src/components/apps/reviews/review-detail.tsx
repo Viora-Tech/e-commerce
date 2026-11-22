@@ -16,6 +16,7 @@ import StatusLabel from '@/components/status/status-label'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import ActivityCard from './activity-card'
 import ReplyCard from './reply-card'
@@ -59,7 +60,7 @@ export default function ReviewDetail({ params }: AppPageProps) {
       toast.success(copy.saved)
       reload()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : reviewsContent.list.failed)
+      toast.error(errorText(err, reviewsContent.list.failed))
     } finally {
       setBusy(false)
     }

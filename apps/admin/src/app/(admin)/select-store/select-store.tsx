@@ -11,6 +11,7 @@ import EmptyState from '@/components/layout/empty-state'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import { authContent } from '@/data/auth'
+import { errorText } from '@/lib/api-errors'
 import { authClient } from '@/lib/auth-client'
 import { routes } from '@/lib/routes'
 
@@ -50,7 +51,7 @@ async function pickStore(id: string, setBusyId: (id: string | null) => void, to:
     // A full load, so client caches (permissions, lists) start fresh for the new store.
     window.location.assign(to)
   } catch (err) {
-    toast.error(err instanceof Error ? err.message : copy.switchFailed)
+    toast.error(errorText(err, copy.switchFailed))
     setBusyId(null)
   }
 }

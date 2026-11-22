@@ -10,6 +10,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import MediaFolderDialog from './media-folder-dialog'
 import type { MediaFolder } from './use-media-folders'
 
@@ -59,7 +60,7 @@ export default function MediaFolderBar({
     try {
       await api.media.deleteFolder({ id: deleting.id })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       throw err
     }
     toast.success(copy.deleted)

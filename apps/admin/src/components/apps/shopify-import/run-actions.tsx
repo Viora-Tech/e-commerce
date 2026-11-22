@@ -9,6 +9,7 @@ import { shopifyImportContent } from '@/data/shopify-import'
 import { shopifyImportRunContent } from '@/data/shopify-import-run'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { RunDetail } from './types'
 
 type RunActionsProps = {
@@ -55,7 +56,7 @@ export default function RunActions({ run, onQueued }: RunActionsProps) {
       toast.success(copy.started)
       onQueued()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.startFailed)
+      toast.error(errorText(err, copy.startFailed))
     } finally {
       setBusy(false)
     }
@@ -68,7 +69,7 @@ export default function RunActions({ run, onQueued }: RunActionsProps) {
       toast.success(copy.started)
       router.push(`${base}/runs/${next.id}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.retryFailed)
+      toast.error(errorText(err, copy.retryFailed))
       setBusy(false)
     }
   }
@@ -82,7 +83,7 @@ export default function RunActions({ run, onQueued }: RunActionsProps) {
       })
       router.push(`${base}/runs/${next.id}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : view.previewAgainFailed)
+      toast.error(errorText(err, view.previewAgainFailed))
       setBusy(false)
     }
   }

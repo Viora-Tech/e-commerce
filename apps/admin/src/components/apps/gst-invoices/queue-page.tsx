@@ -21,6 +21,7 @@ import { gstQueuePageContent } from '@/data/gst-queue-page'
 import { statesContent } from '@/data/states'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import AlreadyInvoicedDialog from './already-invoiced-dialog'
 import GstNumberPicker from './gst-number-picker'
@@ -122,7 +123,7 @@ export default function QueuePage() {
       await api.gstInvoices.queue.remove({ ids: [...picked] })
       reload()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : gstInvoicesContent.queue.failed)
+      toast.error(errorText(err, gstInvoicesContent.queue.failed))
     } finally {
       setBusy(false)
     }

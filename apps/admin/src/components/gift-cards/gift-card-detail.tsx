@@ -10,6 +10,7 @@ import ProoflyPageBody from '@/components/layout/proofly-page-body'
 import StatusLabel from '@/components/status/status-label'
 import { giftCardDetailContent as copy } from '@/data/gift-cards'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import BalanceCard from './balance-card'
 import CustomerCard from './customer-card'
@@ -59,7 +60,7 @@ export default function GiftCardDetail({ initial }: GiftCardDetailProps) {
       else toast.error(r[0]?.error ?? copy.resendFailed)
       await reload()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.resendFailed)
+      toast.error(errorText(err, copy.resendFailed))
     } finally {
       setBusy(null)
     }

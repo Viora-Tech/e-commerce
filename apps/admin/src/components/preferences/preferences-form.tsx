@@ -18,6 +18,7 @@ import SaveBar from '@/components/layout/save-bar'
 import SettingsCard from '@/components/settings/settings-card'
 import { preferencesContent as copy } from '@/data/preferences'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import HonoProductCard from './hono-product-card'
 import PreferencesPreviews from './preferences-previews'
@@ -84,7 +85,7 @@ export default function PreferencesForm({
       setAttempted(false)
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
