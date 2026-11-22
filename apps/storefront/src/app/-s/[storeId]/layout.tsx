@@ -66,7 +66,7 @@ import { requestExperiments } from '@/lib/experiments'
 import { themeFontVariables } from '@/lib/fonts'
 import { inboxLauncherOf } from '@/lib/inbox-launcher'
 import { chatLogoUrl } from '@/lib/inbox-logo'
-import { liquidShim } from '@/lib/liquid-shim'
+import { liquidShim, shimPreview } from '@/lib/liquid-shim'
 import { liquidLayoutFor, reactAttrs } from '@/lib/liquid-theme'
 import { requestMarketPricing } from '@/lib/market-pricing'
 import { MARKET_HEADERS } from '@/lib/markets'
@@ -414,7 +414,7 @@ export default async function StoreLayout({ children, params }: Props) {
         </head>
         <body {...reactAttrs(liquid.bodyAttrs)} suppressHydrationWarning>
           <LiquidHtml
-            html={`<script${nonce ? ` nonce="${nonce}"` : ''}>${liquidShim({ askConsent: currentConsent(consent.initial, consent.bannerVersion) === null, prefix: (await headers()).get(MARKET_HEADERS.prefix) ?? '', designMode })}</script>${liquid.head}`}
+            html={`<script${nonce ? ` nonce="${nonce}"` : ''}>${liquidShim({ askConsent: currentConsent(consent.initial, consent.bannerVersion) === null, prefix: (await headers()).get(MARKET_HEADERS.prefix) ?? '', designMode, preview: shimPreview(preview && (await headers())) })}</script>${liquid.head}`}
           />
           {previewName && !preview?.inFrame ? <PreviewBar themeName={previewName} /> : null}
           {preview ? null : <StaffSignInBar storeId={storeId} />}
