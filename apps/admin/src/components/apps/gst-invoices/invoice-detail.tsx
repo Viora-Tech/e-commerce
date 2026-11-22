@@ -159,9 +159,13 @@ export default function InvoiceDetail({ params }: AppPageProps) {
   const s = doc.snapshot
   /** Recorded, invoiced outside Koomerce: no PDF to print or download. */
   const outside = doc.source === 'external'
-  const cancellable = doc.kind === 'tax_invoice' && doc.status === 'issued' && !doc.reportedPeriod
+  /** Recorded without number or date: in the previous system's returns, not ours. */
+  const noDetails = outside && !doc.number
+  const live = doc.kind === 'tax_invoice' && doc.status === 'issued' && !doc.reportedPeriod
   /** "Already invoiced" can be undone until the month is filed (the server checks it too). */
-  const undoable = outside && cancellable
+  const undoable = outside && live
+  // One without details is only undone: cancelling would queue the order again.
+  const cancellable = live && !noDetails
   const facts = [
     { label: copy.fields.number, value: doc.number ?? '-' },
     { label: copy.fields.series, value: doc.seriesId ?? '-' },
@@ -186,7 +190,9 @@ export default function InvoiceDetail({ params }: AppPageProps) {
         }
         actions={
           outside ? (
-            <span className="text-body text-muted-foreground">{outsideCopy.outside}</span>
+            <span className="text-body text-muted-foreground">
+              {noDetails ? outsideCopy.noDetails : outsideCopy.outside}
+            </span>
           ) : (
             <>
               <Button
@@ -224,7 +230,9 @@ export default function InvoiceDetail({ params }: AppPageProps) {
           <p className="mt-3 text-caption font-medium">{s.exportSupply.endorsement}</p>
         ) : null}
         {outside ? (
-          <p className="mt-3 text-caption text-muted-foreground">{outsideCopy.outsideBody}</p>
+          <p className="mt-3 text-caption text-muted-foreground">
+            {noDetails ? outsideCopy.noDetailsBody : outsideCopy.outsideBody}
+          </p>
         ) : null}
         {doc.reportedPeriod ? (
           <p className="mt-3 text-caption text-muted-foreground">
@@ -290,7 +298,11 @@ export default function InvoiceDetail({ params }: AppPageProps) {
         </DataCard>
       ) : null}
       {undoable ? (
-        <UndoRecordedCard invoiceId={doc.id} number={doc.number ?? ''} disabled={busy !== null} />
+        <UndoRecordedCard
+          invoiceId={doc.id}
+          number={doc.number ?? s.order.name}
+          disabled={busy !== null}
+        />
       ) : null}
       {cancellable ? (
         <DataCard bodyClassName="flex flex-col" title={refreshCopy.title}>

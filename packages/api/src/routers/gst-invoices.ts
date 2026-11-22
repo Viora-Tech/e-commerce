@@ -44,7 +44,7 @@ import {
   generateInvoice,
   invoiceFixProcedures,
 } from './gst-invoices-order-actions'
-import { recordExternal, undoExternal } from './gst-invoices-record'
+import { recordExternal, recordExternalMany, undoExternal } from './gst-invoices-record'
 import { returnsProcedures } from './gst-invoices-returns'
 import { Filter, Selection, selectedIds } from './gst-invoices-selection'
 import { seriesNext, seriesProcedures } from './gst-invoices-series'
@@ -210,6 +210,8 @@ export const gstInvoicesRouter = {
     add: addToQueue,
     /** "Already invoiced", and its undo while the month is not filed (`./gst-invoices-record`). */
     recordExternal,
+    /** Bulk "Mark as already invoiced" without details, from the ticked Queue rows. */
+    recordExternalMany,
     undoExternal,
     remove: can(permissions.ORDERS_WRITE)
       .input(z.object({ ids: z.array(z.uuid()).min(1).max(BULK_MAX) }))

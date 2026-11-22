@@ -327,6 +327,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'gstInvoices.queue.preview': 'The numbers a batch would get, in the order it would get them.',
   'gstInvoices.queue.recordExternal':
     '"Already invoiced", and its undo while the month is not filed (./gst-invoices-record).',
+  'gstInvoices.queue.recordExternalMany':
+    'Bulk "Mark as already invoiced" without details, from the ticked Queue rows.',
   'gstInvoices.queue.stats':
     'The four figures above the queue: issued this month and its taxable value, credit notes this month, and the next invoice number with the day its series starts again.',
   'gstInvoices.returns.gstr1Csv': 'The GSTR-1 totals per table, as a CSV for Excel.',

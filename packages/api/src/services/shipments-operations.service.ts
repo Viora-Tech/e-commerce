@@ -25,6 +25,7 @@ import {
 import type { NdrAction } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
 import { and, asc, desc, eq, gte, inArray, isNull, sql } from 'drizzle-orm'
+import { pickupByCourier } from './courier-pickup'
 import { courierToRpc, requireProvider, requireProviderById } from './shipments-provider.service'
 import { loadShippingSettings } from './shipping.service'
 
@@ -78,9 +79,11 @@ export async function schedulePickupForStore(
     .where(inArray(shipment.id, input.shipmentIds))
   const fallbackName = settings.policy.warehouse.name || 'Warehouse'
   const groups = new Map<string, { providerId: string; place: string; ids: string[] }>()
+  // A courier that schedules its own pickup at booking (RapidShyp) is never asked again.
+  const byCourier = rows.map((r) => pickupByCourier(registry, r.provider)).find(Boolean)
   for (const row of rows) {
     const provider = providers.find((p) => p.id === row.provider)
-    if (!provider) continue
+    if (!provider || pickupByCourier(registry, row.provider)) continue
     const place = pickupPlaceName(row, provider, fallbackName)
     const key = `${row.provider}|${place}`
     const group = groups.get(key) ?? { providerId: row.provider, place, ids: [] }
@@ -89,7 +92,9 @@ export async function schedulePickupForStore(
   }
   if (groups.size === 0) {
     throw new ORPCError('PRECONDITION_FAILED', {
-      message: 'None of these parcels is with a connected courier.',
+      message: byCourier
+        ? `${byCourier} schedules its own pickup when you book, so these parcels need no pickup here.`
+        : 'None of these parcels is with a connected courier.',
     })
   }
   const pickups = []
@@ -118,8 +123,14 @@ export async function createManifestForStore(
   return createManifest({ storeId, tx }, provider, input)
 }
 
-export async function listUnpickedForStore(tx: StoreTx, storeId: string) {
-  return listUnpickedShipments({ storeId, tx })
+/** Parcels for the Pickups page picker; a courier's that schedules its own pickup is left out. */
+export async function listUnpickedForStore(
+  tx: StoreTx,
+  storeId: string,
+  registry?: Pick<ShippingRegistry, 'get'>,
+) {
+  const rows = await listUnpickedShipments({ storeId, tx })
+  return rows.filter((r) => !pickupByCourier(registry, r.provider))
 }
 
 export async function listPickupsForStore(tx: StoreTx, storeId: string) {
@@ -283,8 +294,8 @@ export async function listPickupOptionsForStore(
     .select({ id: shipment.id, provider: shipment.provider })
     .from(shipment)
     .where(and(eq(shipment.storeId, storeId), inArray(shipment.id, shipmentIds)))
-  const providerIds = [...new Set(anchors.map((a) => a.provider))].filter((id) =>
-    providers.some((p) => p.id === id),
+  const providerIds = [...new Set(anchors.map((a) => a.provider))].filter(
+    (id) => providers.some((p) => p.id === id) && !pickupByCourier(registry, id),
   )
   if (providerIds.length === 0) return { today, groups: [] }
   const anchorIds = new Set(anchors.map((a) => a.id))

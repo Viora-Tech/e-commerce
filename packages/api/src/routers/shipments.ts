@@ -291,9 +291,10 @@ export const shipmentsRouter = {
     listPickupsForStore(context.tx, context.scope.storeId),
   ),
 
-  listUnpicked: can(permissions.ORDERS_READ).handler(({ context }) =>
-    listUnpickedForStore(context.tx, context.scope.storeId),
-  ),
+  listUnpicked: can(permissions.ORDERS_READ).handler(async ({ context }) => {
+    const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+    return listUnpickedForStore(context.tx, context.scope.storeId, shipping)
+  }),
 
   /** The Create pickup drawer: per courier and place, the parcels still without a pickup and
    *  the pickups already booked there (Figma 905:8280, 906:8464). */

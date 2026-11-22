@@ -1199,6 +1199,7 @@ describe('rapidshypFactory', () => {
       'cancel',
       'ndr',
       'reverse_pickup',
+      'pickup_at_booking',
     ])
   })
 })

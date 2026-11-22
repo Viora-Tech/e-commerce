@@ -114,3 +114,54 @@ describe('ShipmentsBulkActions › Cancel pickup (To be picked up, owner 22 Nov 
     )
   })
 })
+
+describe('ShipmentsBulkActions › a courier that schedules its own pickup (owner, 23 Nov 2026)', () => {
+  beforeEach(() => vi.clearAllMocks())
+  const courierPickups = { s2: 'RapidShyp' }
+
+  it('offers no Cancel pickup or Create pickup when every ticked parcel is such a courier’s', () => {
+    const { unmount } = render(
+      <ShipmentsBulkActions
+        ids={['s2']}
+        tab="toPickUp"
+        onDone={vi.fn()}
+        courierPickups={courierPickups}
+      />,
+    )
+    expect(screen.queryByRole('button', { name: /cancel pickup/i })).toBeNull()
+    unmount()
+    render(
+      <ShipmentsBulkActions
+        ids={['s2']}
+        tab="booked"
+        onDone={vi.fn()}
+        courierPickups={courierPickups}
+      />,
+    )
+    expect(screen.queryByRole('button', { name: /create pickup/i })).toBeNull()
+  })
+
+  it('takes only the other parcels off the pickup and says why the rest stay', async () => {
+    returnShipmentToBooked.mockResolvedValue({})
+    const onDone = vi.fn()
+    render(
+      <ShipmentsBulkActions
+        ids={['s1', 's2']}
+        tab="toPickUp"
+        onDone={onDone}
+        courierPickups={courierPickups}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: /cancel pickup/i }))
+    expect(
+      await screen.findByText(
+        '1 parcel is left out: RapidShyp schedules its own pickup when you book. To stop the pickup, cancel the shipment.',
+      ),
+    ).toBeTruthy()
+    const buttons = screen.getAllByRole('button', { name: /cancel pickup/i })
+    fireEvent.click(buttons[buttons.length - 1] as HTMLElement)
+    await waitFor(() => expect(onDone).toHaveBeenCalled())
+    expect(returnShipmentToBooked).toHaveBeenCalledTimes(1)
+    expect(returnShipmentToBooked).toHaveBeenCalledWith({ shipmentId: 's1' })
+  })
+})

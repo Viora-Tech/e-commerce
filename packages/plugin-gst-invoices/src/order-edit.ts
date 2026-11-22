@@ -4,6 +4,7 @@ import { shippingChargeDescription } from '@commerce/invoices'
 import { and, eq } from 'drizzle-orm'
 import { InvoiceError, liveDocuments, regenerateDocument } from './issue'
 import { cancelInvoice } from './queue'
+import { detailsMissing } from './record-without-details'
 import { invoice } from './schema'
 
 const EDIT_CANCEL_REASON = 'Order edited: re-issued with the new items'
@@ -103,7 +104,8 @@ export async function reviseForOrderEdit(
     .where(and(eq(invoice.orderId, orderId), eq(invoice.kind, 'credit_note')))
     .limit(1)
   for (const d of issued) {
-    if (!d.fulfillmentOrderId) continue
+    // Invoiced in a previous system: nothing to re-issue here, and it must never be re-queued.
+    if (!d.fulfillmentOrderId || detailsMissing(d)) continue
     const [parcel] = await tx
       .select({ status: fulfillmentOrder.status, totalPaise: fulfillmentOrder.totalPaise })
       .from(fulfillmentOrder)

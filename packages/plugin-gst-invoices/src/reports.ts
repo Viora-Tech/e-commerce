@@ -8,7 +8,7 @@ import {
   gstr1CreditNote,
   gstr1Invoice,
 } from '@commerce/invoices'
-import { and, desc, eq, gte, ilike, inArray, lt, ne, or, type SQL } from 'drizzle-orm'
+import { and, desc, eq, gte, ilike, inArray, lt, ne, or, type SQL, sql } from 'drizzle-orm'
 import { documentSeriesKey } from './record-external'
 import { sameRegistration } from './registration'
 import { invoice } from './schema'
@@ -91,7 +91,8 @@ export async function listDocuments(
     })
     .from(invoice)
     .where(where(filter))
-    .orderBy(desc(invoice.invoiceDate), desc(invoice.seq), desc(invoice.id))
+    // Recorded without details (no date) go last, not above this month's invoices.
+    .orderBy(sql`${invoice.invoiceDate} desc nulls last`, desc(invoice.seq), desc(invoice.id))
     .limit(filter.limit + 1)
     .offset(filter.offset)
   return {

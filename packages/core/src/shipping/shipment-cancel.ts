@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: cancelShipment, returnShipmentToBooked, returnShipmentToSender, markShipmentCancelled, rebookableParcels, ShipmentNotCancellable — WHAT: every way out of a booked shipment: cancel the label before pickup (items stay packed or are unpacked), take it off its pickup back to Booked, cancel after pickup so the courier brings it back (RTO), or record a cancel already made on the courier's own app; each names who did it / WHY: one place decides when each is allowed and what booking again carries; the owner's cancel cases (18 Nov 2026) */
+/** SOURCE OF TRUTH: cancelShipment, returnShipmentToBooked (refused for a courier that schedules its own pickup at booking: PickupScheduledByCourier), returnShipmentToSender, markShipmentCancelled, rebookableParcels, ShipmentNotCancellable — WHAT: every way out of a booked shipment: cancel the label before pickup (items stay packed or are unpacked), take it off its pickup back to Booked, cancel after pickup so the courier brings it back (RTO), or record a cancel already made on the courier's own app; each names who did it / WHY: one place decides when each is allowed and what booking again carries; the owner's cancel cases (18 Nov 2026) */
 import { orderNote, shipment, shipmentManifest, shipmentPickup } from '@commerce/db'
 import type { ShippingProvider } from '@commerce/shipping'
 import { and, eq, sql } from 'drizzle-orm'
@@ -99,17 +99,47 @@ export class ShipmentNotOnPickup extends CommerceError {
   }
 }
 
+/** A shipment in a state the asked-for way out does not fit; the message says why. */
+export class ShipmentActionRefused extends CommerceError {
+  constructor(message: string, storeId?: string) {
+    super('SHIPMENT_ACTION_REFUSED', message, { storeId })
+  }
+}
+
+/**
+ * "Move back to Booked" refused: the courier schedules its own pickup at booking (RapidShyp,
+ * capability `pickup_at_booking`) and that pickup can't be undone over its API, so taking the
+ * parcel off it here only changed our record while the courier still came (owner, 23 Nov 2026).
+ */
+export class PickupScheduledByCourier extends ShipmentActionRefused {
+  constructor(courierLabel: string, storeId?: string) {
+    super(
+      `${courierLabel} schedules its own pickup when you book. To stop the pickup, cancel the shipment.`,
+      storeId,
+    )
+  }
+}
+
+export type ReturnToBookedOptions = {
+  author?: string | null | undefined
+  /** The courier's name when it schedules its own pickup at booking: the move is refused. */
+  pickupByCourier?: string | null | undefined
+}
+
 /**
  * "Move back to Booked": the label stays live with the courier, the parcel leaves its pickup and
- * manifest, so it can go on another day's pickup. Only while it is still at the store.
+ * manifest, so it can go on another day's pickup. Only while it is still at the store, and never
+ * for a courier that schedules its own pickup at booking (`PickupScheduledByCourier`).
  */
 export async function returnShipmentToBooked(
   ctx: StoreContext,
   shipmentId: string,
-  options: { author?: string | null | undefined } = {},
+  options: ReturnToBookedOptions = {},
 ): Promise<ShipmentRow> {
   const [row] = await ctx.tx.select().from(shipment).where(eq(shipment.id, shipmentId))
   if (!row) throw new Error('shipment not found')
+  if (options.pickupByCourier)
+    throw new PickupScheduledByCourier(options.pickupByCourier, ctx.storeId)
   const block = cancelBlock(row, { courierCancels: true })
   if (block) throw new ShipmentNotCancellable(block, ctx.storeId)
   // On a pickup, or only on a printed manifest (made from a list of parcels, no pickup).
@@ -205,13 +235,6 @@ export async function cancelShipment(
 
 /** Picked up and on its way: a cancel now is a return to the store (RTO), not a cancel. */
 const MOVING: ReadonlySet<string> = new Set(['picked_up', 'in_transit', 'out_for_delivery'])
-
-/** A shipment in a state the asked-for way out does not fit; the message says why. */
-export class ShipmentActionRefused extends CommerceError {
-  constructor(message: string, storeId?: string) {
-    super('SHIPMENT_ACTION_REFUSED', message, { storeId })
-  }
-}
 
 /**
  * "Cancel and bring it back": the courier already has the parcel, so the cancel goes to the

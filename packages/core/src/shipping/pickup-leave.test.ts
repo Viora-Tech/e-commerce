@@ -22,7 +22,12 @@ import { FakeShippingProvider } from '@commerce/shipping'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { createManifest, listUnpickedShipments, schedulePickup } from './pickup'
-import { cancelShipment, rebookableParcels, returnShipmentToBooked } from './shipment-cancel'
+import {
+  cancelShipment,
+  PickupScheduledByCourier,
+  rebookableParcels,
+  returnShipmentToBooked,
+} from './shipment-cancel'
 import { createShipmentForOrder } from './shipments'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
@@ -228,5 +233,31 @@ describe('taking a parcel off its pickup (#1775)', () => {
     expect((await shipmentOf(t.row.id))?.pickupId).toBe(t.pickup.id)
     expect((await manifestOf(t.manifest.id))?.shipmentIds).toEqual([t.row.id])
     expect((await pickupOf(t.pickup.id))?.expectedPackageCount).toBe(1)
+  })
+})
+
+describe('a courier that schedules its own pickup at booking (owner, 23 Nov 2026)', () => {
+  it('refuses Move back to Booked and leaves the parcel on its pickup; Cancel shipment still works', async () => {
+    const t = await bookOnPickup()
+    const err = await withStore(app, t.storeId, (tx) =>
+      returnShipmentToBooked({ storeId: t.storeId, tx }, t.row.id, {
+        pickupByCourier: 'RapidShyp',
+      }),
+    ).catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(PickupScheduledByCourier)
+    expect(err).toMatchObject({
+      code: 'SHIPMENT_ACTION_REFUSED',
+      message:
+        'RapidShyp schedules its own pickup when you book. To stop the pickup, cancel the shipment.',
+    })
+    expect((await shipmentOf(t.row.id))?.pickupId).toBe(t.pickup.id)
+    expect((await manifestOf(t.manifest.id))?.shipmentIds).toEqual([t.row.id])
+    expect((await pickupOf(t.pickup.id))?.expectedPackageCount).toBe(1)
+
+    await withStore(app, t.storeId, (tx) =>
+      cancelShipment({ storeId: t.storeId, tx }, t.provider, t.row.id, { keepPacked: true }),
+    )
+    expect(t.cancelled).toEqual([t.row.providerRef || t.row.waybill])
+    expect(await shipmentOf(t.row.id)).toMatchObject({ status: 'cancelled', pickupId: null })
   })
 })

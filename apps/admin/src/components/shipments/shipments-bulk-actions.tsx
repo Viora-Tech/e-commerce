@@ -11,6 +11,7 @@ import { shipmentActionsContent, shipmentsContent } from '@/data/shipments'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
+import { splitCourierPickups } from './courier-pickup'
 import { pickupRefusal, startingPickupPlan } from './create-shipment/pickup-plan'
 import LabelPaperSelect from './label-paper-select'
 import PickupFields, { type PickupValue } from './pickup-fields'
@@ -23,6 +24,11 @@ type ShipmentsBulkActionsProps = {
   tab: Exclude<ShipmentTab, 'toBook'>
   /** After a pickup or a cancelled pickup: clear the selection and read the rows again. */
   onDone: () => void
+  /**
+   * Shipment id → courier name, for parcels whose courier schedules its own pickup at booking
+   * (RapidShyp): left out of Create pickup and Cancel pickup (owner, 23 Nov 2026).
+   */
+  courierPickups?: Readonly<Record<string, string>>
 }
 
 type Dialog = 'pickup' | 'cancelPickup' | null
@@ -32,8 +38,14 @@ type Dialog = 'pickup' | 'cancelPickup' | null
  * picked, and while parcels wait for the courier (Booked), schedule their pickup (which also
  * makes its manifest). In To be picked up, Print manifest prints the ticked parcels' manifest for
  * the pickup executive to sign, and Cancel pickup sends them back to Booked. Both ask first.
+ * Parcels whose courier set its own pickup at booking are left out of both, with a line why.
  */
-export default function ShipmentsBulkActions({ ids, tab, onDone }: ShipmentsBulkActionsProps) {
+export default function ShipmentsBulkActions({
+  ids: ticked,
+  tab,
+  onDone,
+  courierPickups = {},
+}: ShipmentsBulkActionsProps) {
   // Hooks
   const copy = useCopy(shipmentsContent)
   const actions = useCopy(shipmentActionsContent)
@@ -50,6 +62,8 @@ export default function ShipmentsBulkActions({ ids, tab, onDone }: ShipmentsBulk
   }))
 
   // Helpers
+  // Parcels whose courier set its own pickup at booking never join or leave a pickup here.
+  const movable = () => splitCourierPickups(ticked, courierPickups).movable
   const fail = (err: unknown) => {
     toast.error(errorText(err, actions.failed))
     throw err
@@ -57,6 +71,7 @@ export default function ShipmentsBulkActions({ ids, tab, onDone }: ShipmentsBulk
 
   // Event handlers
   const handlePickup = async () => {
+    const ids = movable()
     let pickups: Awaited<ReturnType<typeof api.shipments.schedulePickup>>
     try {
       // One step (owner, 10 Nov 2026): the courier's pickup request, then its manifest; the
@@ -93,6 +108,7 @@ export default function ShipmentsBulkActions({ ids, tab, onDone }: ShipmentsBulk
 
   // One at a time: a parcel the courier already collected is refused, the rest still go back.
   const handleCancelPickup = async () => {
+    const ids = movable()
     let done = 0
     for (const shipmentId of ids) {
       const ok = await api.orders
@@ -108,7 +124,11 @@ export default function ShipmentsBulkActions({ ids, tab, onDone }: ShipmentsBulk
   }
 
   // Render logic
-  const waiting = tab === 'booked'
+  const { movable: ids, courier } = splitCourierPickups(ticked, courierPickups)
+  const waiting = tab === 'booked' && ids.length > 0
+  const skipped = courier
+    ? actions.pickupByCourierSkipped(ticked.length - ids.length, courier)
+    : null
 
   return (
     <>
@@ -117,7 +137,7 @@ export default function ShipmentsBulkActions({ ids, tab, onDone }: ShipmentsBulk
         size="sm"
         variant="outline"
         disabled={sheet.printing}
-        onClick={() => void sheet.print(ids)}
+        onClick={() => void sheet.print(ticked)}
       >
         <Printer aria-hidden />
         {copy.printLabels}
@@ -134,15 +154,17 @@ export default function ShipmentsBulkActions({ ids, tab, onDone }: ShipmentsBulk
             size="sm"
             variant="outline"
             disabled={manifest.printing}
-            onClick={() => void manifest.print({ shipmentIds: ids })}
+            onClick={() => void manifest.print({ shipmentIds: ticked })}
           >
             <Printer aria-hidden />
             {manifestCopy.printSelected}
           </Button>
-          <Button size="sm" variant="outline" onClick={() => setDialog('cancelPickup')}>
-            <RotateCcw aria-hidden />
-            {actions.cancelPickup}
-          </Button>
+          {ids.length > 0 ? (
+            <Button size="sm" variant="outline" onClick={() => setDialog('cancelPickup')}>
+              <RotateCcw aria-hidden />
+              {actions.cancelPickup}
+            </Button>
+          ) : null}
         </>
       ) : null}
       <ConfirmDialog
@@ -155,6 +177,7 @@ export default function ShipmentsBulkActions({ ids, tab, onDone }: ShipmentsBulk
         confirmDisabled={!pickup.date || !pickup.timeFrom}
         onConfirm={handlePickup}
       >
+        {skipped ? <p className="text-caption text-muted-foreground">{skipped}</p> : null}
         {dialog === 'pickup' ? (
           <PickupFields idPrefix="bulk-pickup" value={pickup} onChange={setPickup} />
         ) : null}
@@ -167,7 +190,9 @@ export default function ShipmentsBulkActions({ ids, tab, onDone }: ShipmentsBulk
         confirmLabel={actions.cancelPickup}
         tone="default"
         onConfirm={handleCancelPickup}
-      />
+      >
+        {skipped ? <p className="text-caption text-muted-foreground">{skipped}</p> : null}
+      </ConfirmDialog>
     </>
   )
 }

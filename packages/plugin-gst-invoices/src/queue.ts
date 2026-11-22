@@ -451,6 +451,13 @@ export async function cancelInvoice(
   if ((row.kind !== 'tax_invoice' && row.kind !== 'credit_note') || row.status !== 'issued') {
     throw new InvoiceError('invalid', 'Only an issued tax invoice or credit note can be cancelled')
   }
+  // Cancelling would free the parcel and the paid rule would queue the order again (23 Nov 2026).
+  if (row.source === 'external' && !row.number) {
+    throw new InvoiceError(
+      'invalid',
+      'This order was marked as already invoiced without details. Undo that instead to put it back in the queue.',
+    )
+  }
   if (row.reportedPeriod) {
     throw new InvoiceError(
       'locked',

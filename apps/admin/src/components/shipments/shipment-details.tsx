@@ -176,6 +176,7 @@ export default function ShipmentDetails({
           status={shipment.status}
           onPickup={shipment.pickupId !== null}
           courierCancels
+          pickupByCourier={shipment.pickupByCourier}
           onDone={() => onChanged?.()}
         />
       ) : null}

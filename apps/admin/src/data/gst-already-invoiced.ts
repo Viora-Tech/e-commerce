@@ -9,7 +9,34 @@ export const gstAlreadyInvoicedContent = {
   action: 'Already invoiced',
   actionLabel: (order: string) => `${order} was already invoiced`,
   title: (order: string) => `${order} is already invoiced`,
-  body: 'Record the invoice you issued earlier, by hand or in your previous billing system. It counts in GSTR-1 and GSTR-3B like any invoice, and no PDF is made or emailed.',
+  body: 'Record the invoice you issued earlier, by hand or in your previous billing system. With its number and date it counts in GSTR-1 and GSTR-3B like any invoice. No PDF is made or emailed.',
+  /** Under the fields: the order can leave the queue without the old invoice's details. */
+  blankHelp:
+    "No longer have the number and date? Leave both blank. The order leaves the queue as invoiced outside Koomerce, details not recorded. Reported in your previous system's returns, not in Koomerce's.",
+  /** Only one of number and date is filled in. */
+  bothOrNeither: 'Add both the number and the date, or leave both blank.',
+  /** Submit label when both are blank. */
+  submitBlank: 'Mark as invoiced',
+  recordedBlank: (order: string) => `${order} marked as already invoiced`,
+  /** On the invoice page, the order card and the Invoices list: recorded without details. */
+  noDetails: 'Invoiced outside Koomerce, details not recorded',
+  noDetailsBody: "Reported in your previous system's returns, not in Koomerce's.",
+  /** The Invoices list's date cell for one recorded without details. */
+  noDate: 'Not recorded',
+  /** The Queue's bulk action on ticked rows. */
+  bulkAction: 'Mark as already invoiced',
+  bulkTitle: (n: number) =>
+    n === 1 ? 'Mark 1 order as already invoiced?' : `Mark ${n} orders as already invoiced?`,
+  bulkBody:
+    "For old orders invoiced in your previous system. They leave the queue for good, without an invoice number or date. Reported in your previous system's returns, not in Koomerce's. You can undo one from its invoice page.",
+  bulkSubmit: 'Mark as invoiced',
+  bulkDone: (n: number) =>
+    n === 1 ? '1 order marked as already invoiced' : `${n} orders marked as already invoiced`,
+  bulkSkipped: (n: number, reason: string) =>
+    n === 1
+      ? `1 order was left in the queue: ${reason}`
+      : `${n} orders were left in the queue. First reason: ${reason}`,
+  bulkFailed: 'Could not mark those orders as invoiced',
   number: 'Invoice number',
   numberHelp:
     'Exactly as printed on that invoice. Up to 16 letters, digits, / and -. A number already used this financial year is refused.',

@@ -211,6 +211,10 @@ function ShipmentsContent() {
 
   // Render logic
   const { tab, query, page } = q
+  // Parcels whose courier set its own pickup at booking: left out of the pickup bulk actions.
+  const courierPickups = Object.fromEntries(
+    rows.flatMap((r) => (r.pickupByCourier ? [[r.id, r.pickupByCourier]] : [])),
+  )
   const groups = shipmentFilterGroups(
     q,
     filterCopy,
@@ -363,7 +367,12 @@ function ShipmentsContent() {
                   {copy.bookSelected}
                 </Button>
               ) : (
-                <ShipmentsBulkActions ids={ids} tab={tab} onDone={handleBooked} />
+                <ShipmentsBulkActions
+                  ids={ids}
+                  tab={tab}
+                  onDone={handleBooked}
+                  courierPickups={courierPickups}
+                />
               )
             }
             // A failed read: the error with Try again under the same header (never "nothing here").

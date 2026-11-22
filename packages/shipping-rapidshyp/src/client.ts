@@ -19,4 +19,5 @@ export const RAPIDSHYP_CAPABILITIES: ShippingCapability[] = [
   'cancel',
   'ndr',
   'reverse_pickup',
+  'pickup_at_booking',
 ]

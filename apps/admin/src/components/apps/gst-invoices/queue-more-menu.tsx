@@ -1,6 +1,6 @@
 'use client'
 
-import { CalendarIcon, Plus, Trash2 } from '@commerce/ui/icons'
+import { CalendarIcon, CircleCheck, Plus, Trash2 } from '@commerce/ui/icons'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
 import { useState } from 'react'
@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import DateField from '@/components/fields/date-field'
 import ActionMenu from '@/components/layout/action-menu'
 import FormDialog from '@/components/layout/form-dialog'
+import { gstAlreadyInvoicedContent } from '@/data/gst-already-invoiced'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { gstQueuePageContent } from '@/data/gst-queue-page'
 import { useCopy } from '@/hooks/use-copy'
@@ -22,6 +23,8 @@ type QueueMoreMenuProps = {
   /** How many rows are ticked; Remove works on them. */
   pickedCount: number
   onRemove: () => void
+  /** Mark the ticked rows as already invoiced, without details (asks first). */
+  onMarkInvoiced: () => void
   /** Orders were added by number: reload the queue. */
   onAdded: () => void
   busy: boolean
@@ -33,19 +36,22 @@ const parseNumbers = (text: string) =>
 
 /**
  * The Queue's "…" menu: what the old page showed inline and the frame leaves out. Add orders
- * by number, filter by the day they became due, and take ticked rows out of the queue.
+ * by number, filter by the day they became due, mark ticked rows as already invoiced (old
+ * orders invoiced in a previous system) and take ticked rows out of the queue.
  */
 export default function QueueMoreMenu({
   range,
   onRange,
   pickedCount,
   onRemove,
+  onMarkInvoiced,
   onAdded,
   busy,
 }: QueueMoreMenuProps) {
   // Hooks
   const gstInvoicesCopy = useCopy(gstInvoicesContent)
   const copy = useCopy(gstQueuePageContent)
+  const recordCopy = useCopy(gstAlreadyInvoicedContent)
   const [dialog, setDialog] = useState<'add' | 'dates' | null>(null)
   const [numbers, setNumbers] = useState('')
   const [draft, setDraft] = useState<DateRange>(range)
@@ -91,6 +97,12 @@ export default function QueueMoreMenu({
             label: copy.clearDates,
             onSelect: () => onRange({ from: '', to: '' }),
             hidden: !filtered,
+          },
+          {
+            label: recordCopy.bulkAction,
+            icon: CircleCheck,
+            onSelect: onMarkInvoiced,
+            hidden: pickedCount === 0,
           },
           {
             label: copy.removeSelected,

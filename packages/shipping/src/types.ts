@@ -308,6 +308,12 @@ export type ShippingCapability =
   | 'insurance'
   /** Book a courier to collect a customer return from the shopper (a reverse pickup). */
   | 'reverse_pickup'
+  /**
+   * The courier schedules its own pickup as part of every booking (RapidShyp). That pickup can't
+   * be taken back over its API, so the admin never offers "Move back to Booked" or Create pickup
+   * for its parcels; only cancelling the shipment stops the pickup (owner, 23 Nov 2026).
+   */
+  | 'pickup_at_booking'
   /** Carry parcels abroad, with the customs lines and commercial invoice that needs. */
   | 'international'
 

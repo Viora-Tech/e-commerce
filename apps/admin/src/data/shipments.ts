@@ -178,6 +178,9 @@ export const shipmentActionsContent = {
   cancelPickupDone: (n: number) => `${n} ${n === 1 ? 'parcel is' : 'parcels are'} back in Booked.`,
   cancelPickupSome: (done: number, failed: number) =>
     `${done} back in Booked; ${failed} could not leave the pickup (already collected?).`,
+  /** Ticked parcels left out of Create pickup or Cancel pickup: their courier set its own pickup. */
+  pickupByCourierSkipped: (n: number, courier: string) =>
+    `${n} ${n === 1 ? 'parcel is' : 'parcels are'} left out: ${courier} schedules its own pickup when you book. To stop the pickup, cancel the shipment.`,
   refreshTracking: 'Refresh tracking',
   trackingUpdated: 'Tracking updated',
   failed: 'The courier request did not go through. Try again in a moment.',
@@ -204,6 +207,9 @@ export const shipmentCancelContent = {
     'Nothing is sent to the courier. The shipment is marked cancelled here and the order goes back to To ship.',
   noCourierCancel:
     'This courier takes no cancellations from here. Cancel it on the courier’s own site, then pick the last option.',
+  /** A courier that schedules its own pickup at booking (RapidShyp): no Cancel pickup (owner, 23 Nov 2026). */
+  pickupByCourier: (courier: string) =>
+    `${courier} schedules its own pickup when you book. To stop the pickup, cancel the shipment.`,
   confirm: 'Confirm',
   keep: 'Keep as it is',
   backDone: 'Pickup cancelled. The parcel is back in Booked.',
