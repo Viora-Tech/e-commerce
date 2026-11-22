@@ -3,6 +3,7 @@
 import { msUntil } from '@commerce/dates'
 import { type ComponentType, type ReactNode, useEffect, useState } from 'react'
 import { mainProductContent as copy } from '../data/zero-drift/main-product'
+import { withImageVariants } from '../image-variants'
 import { useMarketPricing } from '../money-format'
 import { variantOnPreorder } from '../preorder-state'
 import { galleryForVariant, slideForVariant, variantImageUrls } from '../product-gallery-order'
@@ -73,7 +74,13 @@ function slideFor(product: ProductDetail, variant: ProductDetail['variants'][num
 // box, whose blocks run in the theme's templates/product.json order, each switched by a
 // setting (`../sections/main-product-settings.ts`). Picking a variant fires `variant:changed`
 // (`../product-variant-event.ts`) so the sticky add-to-cart bar follows it.
-export default function ProductView({
+export default function ProductView(props: ProductViewProps) {
+  // Render logic
+  // The storefront sends image variants as widths (`../image-variants.ts`); rebuilt once here.
+  return <ProductViewBody {...props} product={withImageVariants(props.product)} />
+}
+
+function ProductViewBody({
   product,
   onAddToCart,
   UnderPrice,

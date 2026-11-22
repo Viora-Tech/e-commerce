@@ -12,8 +12,9 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import ArticleNeighbours from '@/components/blog/article-neighbours'
 import ShareLinks from '@/components/blog/share-links'
+import JsonLd from '@/components/seo/json-ld'
 import { blogContent as copy } from '@/data/blog'
-import { breadcrumbList, jsonLd, marketCanonical, requestOrigin } from '@/lib/seo'
+import { breadcrumbList, marketCanonical, requestOrigin } from '@/lib/seo'
 import { storeShareImages } from '@/lib/share-image'
 import { inStore } from '@/lib/store-context'
 import { renderTemplate } from '@/lib/template-render'
@@ -98,8 +99,7 @@ export default async function ArticlePage({ params, searchParams }: Params) {
   const main = (
     <div className="page-width">
       <article className="article-page">
-        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from our own data, `<` escaped. */}
-        <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(schema)} />
+        <JsonLd data={schema} />
         <Link href={blogPath} className="article-page__back">
           <Icon name="arrow-right" size={14} />
           {copy.backTo(blog.title)}

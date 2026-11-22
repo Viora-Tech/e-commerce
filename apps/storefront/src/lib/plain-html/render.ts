@@ -48,6 +48,7 @@ import { liveThemeId, templateSections } from '../template-render'
 import { resolveThemeMode, THEME_COOKIE, themeViewport } from '../theme-mode'
 import { umamiTrackerOf } from '../umami'
 import { chatLauncherHtml, chatModuleSpec } from './chat-launcher'
+import { fallbackHomeHeading } from './home-heading'
 import { islandScript } from './islands'
 import { plainKind, plainPageHandle } from './route'
 import { THEME_COMPAT_CSS } from './theme-compat'
@@ -305,15 +306,30 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
     marketBanner,
   })}</script>`
 
+  const mainHtml = draw(content, main)
+  const footerHtml = draw(footerContent, footer)
+  // The home page's one h1: the theme's, else the store name, hidden (`home-heading.ts`).
+  const heading =
+    kind === 'home'
+      ? fallbackHomeHeading(current.name, [
+          layout.beforeHeader,
+          wrappedHeader,
+          mainHtml,
+          footerHtml,
+          layout.afterFooter,
+        ])
+      : ''
   const body = [
     `<body${attrs(layout.bodyAttrs)}>`,
     layout.beforeHeader,
     wrappedHeader,
     `<main id="MainContent" tabindex="-1"${attrs(withoutId(layout.mainAttrs))}>`,
-    draw(content, main),
+    mainHtml,
+    // After the sections, so a theme's `main > .shopify-section:first-child` rules still match.
+    heading,
     graph,
     '</main>',
-    draw(footerContent, footer),
+    footerHtml,
     layout.afterFooter,
     inboxChat ? chatLauncherHtml(inboxChat) : '',
     island,

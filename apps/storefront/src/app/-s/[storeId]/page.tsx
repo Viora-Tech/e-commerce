@@ -2,7 +2,8 @@ import { liveThemeSettings, parsePreferences } from '@commerce/core'
 import { store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import type { Metadata } from 'next'
-import { jsonLd, marketCanonical, requestOrigin, socialProfiles, storeGraph } from '@/lib/seo'
+import JsonLd from '@/components/seo/json-ld'
+import { marketCanonical, requestOrigin, socialProfiles, storeGraph } from '@/lib/seo'
 import { storeRead } from '@/lib/store-cache'
 import { renderTemplate } from '@/lib/template-render'
 
@@ -31,14 +32,12 @@ export default async function Home({ params }: Params) {
     }),
     renderTemplate(storeId, 'home'),
   ])
-  const graph = jsonLd(storeGraph({ ...identity, origin }))
   // The sections come first so a theme's `main > section:first-child` rules (the hero
   // painting without a reveal) see the first section, as on Shopify.
   return (
     <>
       {page}
-      {/* biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from our own data; jsonLd() escapes it. */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={graph} />
+      <JsonLd data={storeGraph({ ...identity, origin })} />
     </>
   )
 }

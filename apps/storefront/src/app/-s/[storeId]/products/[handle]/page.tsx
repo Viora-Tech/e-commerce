@@ -33,6 +33,7 @@ import NotifyMeForm from '@/components/product/notify-me-form'
 import RecentlyViewed from '@/components/product/recently-viewed'
 import RecordView from '@/components/product/record-view'
 import RelatedProducts from '@/components/product/related-products'
+import JsonLd from '@/components/seo/json-ld'
 import LiquidAppBlock from '@/components/theme/liquid-app-block'
 import LiquidPreorderNote from '@/components/theme/liquid-preorder-note'
 import { notifyMeAction } from '@/lib/back-in-stock-actions'
@@ -46,7 +47,6 @@ import { productForView } from '@/lib/product-view-props'
 import { policyPanels } from '@/lib/related'
 import { productReviews } from '@/lib/reviews'
 import {
-  jsonLd,
   marketCanonical,
   metaDescription,
   paiseToAmount,
@@ -329,8 +329,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
   })
   return (
     <>
-      {/* biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from our own data; jsonLd() escapes it. */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(schema)} />
+      <JsonLd data={schema} />
       {/* Pixels app: ViewContent, sent only after a yes to marketing. */}
       <PixelTrack
         event={{

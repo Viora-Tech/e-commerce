@@ -5,6 +5,7 @@ import type { BrowseFilters, BrowseSort } from '@commerce/core/browse'
 import { hasActiveFilters } from '@commerce/core/browse'
 import Link from 'next/link'
 import BrowseResults from '@/components/browse/browse-results'
+import JsonLd from '@/components/seo/json-ld'
 import { SEARCH_SORTS } from '@/data/browse'
 import { searchContent as copy, SEARCH_PER_PAGE } from '@/data/search'
 import { blockCardsFor } from '@/lib/liquid-cards'
@@ -60,13 +61,7 @@ export default async function MainSearch({
 
   return (
     <section className="page-width py-10 md:py-12">
-      {jsonLd ? (
-        <script
-          type="application/ld+json"
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from our own data; the replace keeps "</script>" out.
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
-        />
-      ) : null}
+      {jsonLd ? <JsonLd data={jsonLd} /> : null}
       <h1 className="section-title search-page__title">{copy.title}</h1>
       <search className="search-page__search">
         <form action="/search" method="get" className="search-page__form">

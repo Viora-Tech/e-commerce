@@ -13,4 +13,10 @@ export {
   normaliseFocal,
   nudgeFocal,
 } from './focal-point'
+export {
+  compactImageVariants,
+  expandImageVariants,
+  variantUrl,
+  withImageVariants,
+} from './image-variants'
 export { linkTarget, type SectionLink } from './link'

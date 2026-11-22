@@ -3,11 +3,12 @@ import type { BrowseResult, ThemeCardSection } from '@commerce/core'
 import type { BrowseFilters, BrowseSort } from '@commerce/core/browse'
 import { parseRichText, RichTextRenderer, richTextToPlainText } from '@commerce/richtext'
 import BrowseResults from '@/components/browse/browse-results'
+import JsonLd from '@/components/seo/json-ld'
 import { browseContent, COLLECTION_SORTS } from '@/data/browse'
 import { COLLECTION_PER_PAGE } from '@/data/collections'
 import type { CollectionDetail } from '@/lib/collections'
 import { themeCardsFor } from '@/lib/liquid-cards'
-import { collectionGraph, jsonLd } from '@/lib/seo'
+import { collectionGraph } from '@/lib/seo'
 
 type MainCollectionProps = {
   storeId: string
@@ -93,11 +94,7 @@ export default async function MainCollection({
 
   return (
     <section className="section-collection page-width">
-      <script
-        type="application/ld+json"
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from our own data; jsonLd() escapes it.
-        dangerouslySetInnerHTML={jsonLd(schema)}
-      />
+      <JsonLd data={schema} />
       {settings.showBreadcrumbs === false ? null : (
         <Breadcrumbs
           items={[

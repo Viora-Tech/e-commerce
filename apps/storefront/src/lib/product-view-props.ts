@@ -1,4 +1,5 @@
 import type { MainProductSettings, ProductDetail } from '@commerce/blocks'
+import { compactImageVariants } from '@commerce/blocks/media'
 
 type ViewSettings = Pick<
   MainProductSettings,
@@ -12,13 +13,16 @@ type ViewSettings = Pick<
  * WHAT:  The product as the buy box (`ProductView`, a client component) draws it with these
  *        settings: the description only when the description block shows, the extra fields
  *        only when the spec grid or the panels show, and a field's panel HTML only for a field a
- *        panel shows (`metafieldKey`). Everything else is kept as it is.
+ *        panel shows (`metafieldKey`), and each image's variants as widths alone
+ *        (`@commerce/blocks/media` `compactImageVariants`, rebuilt by `ProductView`). Everything
+ *        else is kept as it is.
  * WHY:   A client component's props are serialised into the page's RSC payload. The Lexical
  *        description alone was 11 KB of a Wooting product page that hides it (waimers.in,
- *        22 Nov 2026); the panel HTML of every spec field another 2 KB.
+ *        22 Nov 2026); the panel HTML of every spec field another 2 KB; the image variant URLs
+ *        about 30 KB on a product with 18 images.
  * WHERE: the storefront product page (`app/-s/[storeId]/products/[handle]/page.tsx`).
  */
-export function productForView<P extends Pick<ProductDetail, 'description' | 'fields'>>(
+export function productForView<P extends Pick<ProductDetail, 'description' | 'fields' | 'images'>>(
   product: P,
   settings: ViewSettings,
 ): P {
@@ -39,5 +43,6 @@ export function productForView<P extends Pick<ProductDetail, 'description' | 'fi
     ...product,
     description: settings.showDescription ? product.description : null,
     fields,
+    images: product.images.map(compactImageVariants),
   } as P
 }

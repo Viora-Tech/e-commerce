@@ -4,8 +4,9 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import BlogPagination from '@/components/blog/blog-pagination'
 import TagFilter from '@/components/blog/tag-filter'
+import JsonLd from '@/components/seo/json-ld'
 import { BLOG_PER_PAGE, blogContent as copy } from '@/data/blog'
-import { breadcrumbList, jsonLd, marketCanonical, requestOrigin } from '@/lib/seo'
+import { breadcrumbList, marketCanonical, requestOrigin } from '@/lib/seo'
 import { storeShareImages } from '@/lib/share-image'
 import { inStore } from '@/lib/store-context'
 import { renderTemplate } from '@/lib/template-render'
@@ -76,8 +77,7 @@ export default async function BlogPage({ params, searchParams }: Params) {
 
   const main = (
     <section className="blog-page page-width">
-      {/* biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from our own data, `<` escaped. */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(schema)} />
+      <JsonLd data={schema} />
       <Breadcrumbs items={[{ label: blog.title }]} />
       <header className="blog-page__header">
         <h1 className="section-title">{blog.title}</h1>
