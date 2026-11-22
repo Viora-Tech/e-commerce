@@ -18,6 +18,7 @@ import { appsContent } from '@/data/apps'
 import { umamiContent } from '@/data/umami'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type View = Awaited<ReturnType<typeof api.umami.settings.get>>
@@ -34,9 +35,6 @@ const formOf = (view: View): Form => ({
 })
 
 type Copy = typeof umamiContent
-
-const errorText = (copy: Copy, err: unknown) =>
-  err instanceof Error && err.message ? err.message : copy.failed
 
 function statusOf(copy: Copy, view: View): string {
   if (view.reporting) return copy.status.reporting
@@ -93,7 +91,7 @@ export default function SettingsPage() {
     try {
       await work()
     } catch (err) {
-      toast.error(errorText(copy, err))
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
     }

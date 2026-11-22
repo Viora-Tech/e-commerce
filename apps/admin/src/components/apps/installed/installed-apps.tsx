@@ -17,6 +17,7 @@ import ViewSelect from '@/components/table/view-select'
 import { installedAppsContent } from '@/data/installed-apps'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import {
   APP_STATUSES,
   type AppStatus,
@@ -40,9 +41,6 @@ type InstalledAppsProps = {
 }
 
 const DEFAULT_PER_PAGE = siteConfig.ui.rowsPerPage.default
-
-const errorText = (err: unknown, fallback: string) =>
-  err instanceof Error && err.message ? err.message : fallback
 
 /** Apps → Installed apps (Figma "Installed apps · List"): only what this store installed. */
 export default function InstalledApps({ installId }: InstalledAppsProps) {

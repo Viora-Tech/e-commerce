@@ -9,6 +9,7 @@ import DialogContent from '@/components/layout/dialog-content'
 import { appInstallContent } from '@/data/app-install'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { openHref } from '@/lib/app-access'
 import type { AppSummary } from '@/lib/app-summary'
 import InstallBuyStep from './install-buy-step'
@@ -28,9 +29,6 @@ type InstallFlowProps = {
 }
 
 type Step = 'loading' | 'buy' | 'connect' | 'permissions' | 'done'
-
-const errorText = (err: unknown, fallback: string) =>
-  err instanceof Error && err.message ? err.message : fallback
 
 /**
  * The install flow (Figma "Connect step 1–3"): a connection whose account can be typed here

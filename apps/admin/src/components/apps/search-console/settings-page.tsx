@@ -14,6 +14,7 @@ import { appsContent } from '@/data/apps'
 import { searchConsoleContent } from '@/data/search-console'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import PropertyPicker from './property-picker'
 
 type View = Awaited<ReturnType<typeof api.searchConsole.view>>
@@ -25,9 +26,6 @@ type BackResult = (typeof BACK_RESULTS)[number]
 
 const isBackResult = (value: string | null): value is BackResult =>
   BACK_RESULTS.some((r) => r === value)
-
-const errorText = (fallback: string, err: unknown) =>
-  err instanceof Error && err.message ? err.message : fallback
 
 /**
  * The app's Settings: connect or disconnect the Google account (OAuth through Google's consent
@@ -71,7 +69,7 @@ export default function SettingsPage() {
       const { url } = await api.searchConsole.connectStart()
       window.location.assign(url)
     } catch (err) {
-      toast.error(errorText(copy.failed, err))
+      toast.error(errorText(err, copy.failed))
       setBusy(null)
     }
   }
@@ -83,7 +81,7 @@ export default function SettingsPage() {
       setView(await api.searchConsole.disconnect())
       toast.success(copy.settings.connection.disconnected)
     } catch (err) {
-      toast.error(errorText(copy.failed, err))
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
     }

@@ -9,6 +9,7 @@ import FormDialog from '@/components/layout/form-dialog'
 import { customerDetailContent } from '@/data/customers'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type CustomerEmailDialogProps = {
   open: boolean
@@ -18,9 +19,6 @@ type CustomerEmailDialogProps = {
   /** After a send, so the page re-reads its messages and timeline. */
   onSent: () => void
 }
-
-const errorText = (err: unknown, fallback: string) =>
-  err instanceof Error && err.message ? err.message : fallback
 
 /**
  * "Email customer" (audit #80): a subject and a plain-text message sent through the store's own

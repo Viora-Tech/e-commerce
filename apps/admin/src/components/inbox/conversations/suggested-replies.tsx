@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { inboxConversationsContent } from '@/data/inbox-conversations'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type SuggestedRepliesProps = {
   conversationId: string
@@ -18,8 +19,6 @@ type SuggestedRepliesProps = {
 
 /** Drafts already written this session, by shopper message: reopening a chat costs nothing. */
 const drafted = new Map<string, string[]>()
-
-const messageOf = (err: unknown) => (err instanceof Error && err.message ? err.message : null)
 
 /**
  * Up to three AI reply drafts above the reply box, for the shopper's latest message, grounded
@@ -54,7 +53,7 @@ export default function SuggestedReplies({
       .catch((err: unknown) => {
         if (!alive) return
         setReplies([])
-        setError(messageOf(err) ?? copy.failed)
+        setError(errorText(err, copy.failed))
       })
     return () => {
       alive = false

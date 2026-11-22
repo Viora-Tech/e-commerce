@@ -12,6 +12,7 @@ import { appsContent } from '@/data/apps'
 import { searchDiscoveryContent } from '@/data/search-discovery'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import BoostRulesCard, { type BoostValueChoices } from './boost-rules-card'
 import type { PickedItem } from './picked-list'
 import PinDialog from './pin-dialog'
@@ -22,9 +23,6 @@ type Loaded = { rules: SearchBoostRule[]; pins: SearchPinGroup[] }
 type Editing = { term: string; products: PickedItem[] }
 
 const NO_CHOICES: BoostValueChoices = { tag: [], type: [], vendor: [] }
-
-const errorText = (err: unknown, fallback: string) =>
-  err instanceof Error && err.message ? err.message : fallback
 
 /**
  * The Search & discovery app's Boosts page: products pinned to the top for a search, and boost

@@ -16,6 +16,7 @@ import { appsContent } from '@/data/apps'
 import { meilisearchContent } from '@/data/meilisearch'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import IndexCard from './index-card'
 import SynonymsCard from './synonyms-card'
 
@@ -28,9 +29,6 @@ type Busy = 'save' | 'test' | 'remove' | null
 type Copy = typeof meilisearchContent
 
 const formOf = (view: View): Form => ({ host: view.host, adminKey: '' })
-
-const errorText = (copy: Copy, err: unknown) =>
-  err instanceof Error && err.message ? err.message : copy.failed
 
 function statusOf(copy: Copy, view: View): string {
   if (view.live) return copy.status.live
@@ -89,7 +87,7 @@ export default function SettingsPage() {
     try {
       await work()
     } catch (err) {
-      toast.error(errorText(copy, err))
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
     }

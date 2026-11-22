@@ -10,6 +10,7 @@ import StatusChip from '@/components/layout/status-chip'
 import { searchConsoleContent } from '@/data/search-console'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type Properties = Awaited<ReturnType<typeof api.searchConsole.properties>>
 type View = Awaited<ReturnType<typeof api.searchConsole.view>>
@@ -19,9 +20,6 @@ type PropertyPickerProps = {
   current: string
   onSaved: (view: View) => void
 }
-
-const errorText = (fallback: string, err: unknown) =>
-  err instanceof Error && err.message ? err.message : fallback
 
 /**
  * The connected account's Search Console properties, read from Google, with the one matching
@@ -44,7 +42,7 @@ export default function PropertyPicker({ current, onSaved }: PropertyPickerProps
         setList(p)
         setChoice((c) => c || p.suggested || '')
       })
-      .catch((err) => !cancelled && setError(errorText(copy.failed, err)))
+      .catch((err) => !cancelled && setError(errorText(err, copy.failed)))
     return () => {
       cancelled = true
     }
@@ -59,7 +57,7 @@ export default function PropertyPicker({ current, onSaved }: PropertyPickerProps
       else toast.success(copy.settings.property.saved)
       onSaved(view)
     } catch (err) {
-      toast.error(errorText(copy.failed, err))
+      toast.error(errorText(err, copy.failed))
     } finally {
       setSaving(false)
     }

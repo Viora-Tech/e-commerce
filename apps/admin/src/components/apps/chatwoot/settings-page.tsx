@@ -18,6 +18,7 @@ import { appsContent } from '@/data/apps'
 import { chatwootContent } from '@/data/chatwoot'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import SecretRow from './secret-row'
 
 type View = Awaited<ReturnType<typeof api.chatwoot.settings.get>>
@@ -50,8 +51,6 @@ const formOf = (view: View): Form => ({
 })
 
 type Copy = typeof chatwootContent
-const errorText = (copy: Copy, err: unknown) =>
-  err instanceof Error && err.message ? err.message : copy.failed
 
 /** What is working, one sentence per part that is. */
 function statusOf(copy: Copy, view: View): string {
@@ -112,7 +111,7 @@ export default function SettingsPage() {
     try {
       await work()
     } catch (err) {
-      toast.error(errorText(copy, err))
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
     }

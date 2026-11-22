@@ -9,6 +9,7 @@ import { saveFile } from '@/components/apps/gst-invoices/save-file'
 import { storeDataContent } from '@/data/store-data'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import DeleteStoreDialog from './delete-store-dialog'
 import SettingsCard from './settings-card'
 import StoreExportList from './store-export-list'
@@ -19,9 +20,6 @@ const POLL_MS = 3_000
 
 const isWorking = (o: Overview | null) =>
   !!o?.exports.some((e) => e.status === 'queued' || e.status === 'running')
-
-const messageOf = (err: unknown, fallback: string) =>
-  err instanceof Error && err.message ? err.message : fallback
 
 /**
  * Bottom of Settings › Store details: "Download your data" (a full export, built in the
@@ -62,7 +60,7 @@ export default function StoreDataSection() {
       setOverview(await api.storeData.overview())
       toast.success(copy.export.started)
     } catch (err) {
-      toast.error(messageOf(err, copy.export.failedToStart))
+      toast.error(errorText(err, copy.export.failedToStart))
     } finally {
       setRequesting(false)
     }
@@ -73,7 +71,7 @@ export default function StoreDataSection() {
     try {
       saveFile(await api.storeData.downloadExport({ id }))
     } catch (err) {
-      toast.error(messageOf(err, copy.export.downloadFailed))
+      toast.error(errorText(err, copy.export.downloadFailed))
     } finally {
       setDownloadingId(null)
     }
@@ -87,7 +85,7 @@ export default function StoreDataSection() {
       // The store is gone: the admin root picks another store or starts onboarding.
       window.location.assign('/')
     } catch (err) {
-      toast.error(messageOf(err, copy.dialog.failed))
+      toast.error(errorText(err, copy.dialog.failed))
       setDeleting(false)
     }
   }

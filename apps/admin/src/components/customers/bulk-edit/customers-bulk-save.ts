@@ -1,4 +1,5 @@
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import {
   ADDRESS_KEYS,
   addressPayload,
@@ -16,9 +17,6 @@ const BATCH = 10
 
 /** What happened to one row: the cells that saved, and the first server message if one failed. */
 export type RowResult = { id: string; done: string[]; error: string | null }
-
-const messageOf = (err: unknown, fallback: string) =>
-  err instanceof Error && err.message ? err.message : fallback
 
 async function saveRow(row: GridRow, base: GridRow, fallback: string): Promise<RowResult> {
   const done: string[] = []
@@ -46,7 +44,7 @@ async function saveRow(row: GridRow, base: GridRow, fallback: string): Promise<R
     }
     return { id: row.id, done, error: null }
   } catch (err) {
-    return { id: row.id, done, error: messageOf(err, fallback) }
+    return { id: row.id, done, error: errorText(err, fallback) }
   }
 }
 

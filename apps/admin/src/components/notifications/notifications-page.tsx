@@ -21,6 +21,7 @@ import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import AdvancedSection from './advanced-section'
 import DesignEditorDialog from './design/design-editor-dialog'
@@ -44,10 +45,6 @@ const GROUPS: MessageGroupId[] = [
 
 /** Advanced (the developer log) only exists while developing. */
 const DEV = process.env.NODE_ENV !== 'production'
-
-function errorText(err: unknown, fallback: string): string {
-  return err instanceof Error && err.message ? err.message : fallback
-}
 
 /** "3 of 5 on" for a list of messages. */
 function countOn(list: MessageRowData[], label: (on: number, total: number) => string): string {

@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { inboxConversationsContent } from '@/data/inbox-conversations'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { Locale } from '@/lib/i18n'
 
 type Summary = { about: string; pending: string }
@@ -21,8 +22,6 @@ type ThreadSummaryProps = {
 const written = new Map<string, { at: string; summary: Summary }>()
 /** Conversations whose first summary is on its way, so a re-render never asks twice. */
 const asking = new Set<string>()
-
-const messageOf = (err: unknown) => (err instanceof Error && err.message ? err.message : null)
 
 async function summarise(conversationId: string, latestId: string, language: Locale) {
   const summary = await api.inbox.summarise({ id: conversationId, language })
@@ -54,7 +53,7 @@ export default function ThreadSummary({ conversationId, latestId }: ThreadSummar
         setSummary(next)
       })
       .catch((err: unknown) => {
-        setError(messageOf(err) ?? copy.failed)
+        setError(errorText(err, copy.failed))
       })
       .finally(() => {
         asking.delete(conversationId)
@@ -69,7 +68,7 @@ export default function ThreadSummary({ conversationId, latestId }: ThreadSummar
     try {
       setSummary(await summarise(conversationId, latestId, locale))
     } catch (err) {
-      setError(messageOf(err) ?? copy.failed)
+      setError(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

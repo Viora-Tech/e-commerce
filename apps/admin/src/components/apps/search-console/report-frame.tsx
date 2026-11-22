@@ -16,6 +16,7 @@ import { searchConsoleContent } from '@/data/search-console'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { type SearchConsoleReady, useSearchConsoleReport } from '@/hooks/use-search-console-report'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type ReportFrameProps = {
@@ -24,9 +25,6 @@ type ReportFrameProps = {
   /** The page's body once Google's numbers are stored. */
   children: (report: SearchConsoleReady) => ReactNode
 }
-
-const errorText = (fallback: string, err: unknown) =>
-  err instanceof Error && err.message ? err.message : fallback
 
 /**
  * Shared frame of the app's report pages: the header with "Refresh now" and when the numbers
@@ -49,7 +47,7 @@ export default function ReportFrame({ title, summary, children }: ReportFramePro
       else toast.success(copy.refreshed)
       reload()
     } catch (err) {
-      toast.error(errorText(copy.failed, err))
+      toast.error(errorText(err, copy.failed))
     } finally {
       setRefreshing(false)
     }
