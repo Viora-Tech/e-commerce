@@ -35,6 +35,10 @@ export type BookedShipment = {
   canPickup: boolean
   /** The pickup was already asked for at booking, so there is nothing left to schedule. */
   pickupRequested?: boolean
+  /** The courier picked, when the courier booked another one (`courier` is the booked one). */
+  swappedFrom?: string | undefined
+  /** The courier charge saved on the shipment (null: unknown, typed in Profit). */
+  chargePaise?: number | null | undefined
   facts?: BookedFacts | undefined
 }
 
@@ -69,6 +73,9 @@ export default function DoneStep({
   const pickupCopy = useCopy(createShipmentContent.pickup)
   const fmt = useFormat()
 
+  // Helpers
+  const swapped = booked.swappedFrom ? copy.swapped(booked.courier, booked.swappedFrom) : null
+
   // Early returns
   if (summaryOnly) {
     return (
@@ -81,6 +88,7 @@ export default function DoneStep({
           <p className="text-body text-muted-foreground">
             {booked.manual ? copy.manualBody : copy.body(booked.courier)}
           </p>
+          {swapped ? <p className="text-body text-warning-foreground">{swapped}</p> : null}
         </div>
       </div>
     )
@@ -98,6 +106,11 @@ export default function DoneStep({
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
+      {swapped ? (
+        <p className="rounded-lg border border-warning/40 bg-warning-soft p-3 text-body text-ink-strong md:col-span-2">
+          {swapped}
+        </p>
+      ) : null}
       <section className="flex flex-col gap-3 rounded-lg border border-hairline p-5">
         <p className="text-caption font-medium tracking-wide text-muted-foreground uppercase">
           {bookedCopy.shipment}

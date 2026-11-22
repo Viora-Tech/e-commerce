@@ -169,6 +169,19 @@ export type CreateShipmentResult = {
    * the browser. Ignored when `labelUrl`, `labelDocument` or `documents` is set.
    */
   labelViaProvider?: boolean | undefined
+  /**
+   * The courier service the booking actually went to, when the courier's answer names it. An
+   * aggregator can put the parcel on another courier than the `serviceId` asked for (RapidShyp
+   * booked Blue Dart Surface for an Amazon Shipping pick, order #2082, 22 Nov 2026); the
+   * platform then records this one and warns the merchant.
+   */
+  bookedService?: { id?: string | undefined; label?: string | undefined } | undefined
+  /**
+   * The courier already scheduled the pickup as part of this booking (RapidShyp's wrapper and
+   * its schedule_pickup step). The platform records it, so the parcel shows as on a pickup and
+   * Create pickup does not ask the courier a second time.
+   */
+  pickupScheduled?: boolean | undefined
 }
 
 export type ShippingLabelDocument = {

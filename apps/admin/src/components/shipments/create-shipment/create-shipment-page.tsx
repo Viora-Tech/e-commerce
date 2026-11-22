@@ -254,7 +254,9 @@ export default function CreateShipmentPage({
           orderNumber: order.orderNumber,
           customerName: order.customerName ?? null,
           deliveryBy: priced?.deliveryBy ?? null,
-          chargedPaise: priced?.pricePaise ?? null,
+          chargedPaise: done.swappedFrom
+            ? (done.chargePaise ?? null)
+            : (priced?.pricePaise ?? null),
           // "+ insurance" only when a fee was known and added to this courier's price.
           insured: key !== MANUAL && insured && priced?.insurance != null,
           walletLabel: paid?.providerLabel ?? null,

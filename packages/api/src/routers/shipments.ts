@@ -1,9 +1,5 @@
 import { settingsSecret } from '@commerce/config'
-import {
-  PARCEL_SPLIT_REASONS,
-  permissions,
-  splitFulfillmentOrder,
-} from '@commerce/core'
+import { PARCEL_SPLIT_REASONS, permissions, splitFulfillmentOrder } from '@commerce/core'
 import { dayKey } from '@commerce/dates'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -175,6 +171,8 @@ export const shipmentsRouter = {
               dimensionsCm: dimensionsCm.optional(),
               paymentMode: z.enum(['cod', 'prepaid']).optional(),
               insured: z.boolean().optional(),
+              /** The picked row's price before insurance, kept as the courier charge. */
+              quotedChargePaise: z.number().int().min(0).optional(),
             }),
           )
           .optional(),

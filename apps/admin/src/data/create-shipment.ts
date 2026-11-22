@@ -292,6 +292,9 @@ export const createShipmentContent = {
     body: (courier: string) =>
       `${courier} has the parcel's details. Print the label and stick it on the box.`,
     manualBody: 'The order is marked as shipped with your tracking number.',
+    /** The courier app booked another courier than the one picked (#2082). */
+    swapped: (booked: string, asked: string) =>
+      `Booked with ${booked}, not ${asked}: the courier app chose another courier. The price shown was for ${asked}, so type what this booking really cost in the order's Profit card.`,
     awb: 'AWB',
     printLabel: 'Print label',
     downloadLabel: 'Download label',

@@ -91,6 +91,7 @@ import {
 import { type BookingCalls, bookRapidshypShipment, pushRapidshypOrder } from './booking'
 import { RAPIDSHYP_CAPABILITIES } from './client'
 import { eddDaysFromToday } from './edd'
+import { packageDetails } from './package'
 import { explainRapidshypRemark, rapidshypRefusal } from './remarks'
 import { mapRapidshypStatus } from './status'
 
@@ -420,7 +421,10 @@ export class RapidshypProvider implements ShippingProvider {
   }
 
   /** Assign AWB API: puts a courier (by its code; empty lets RapidShyp choose) on a shipment. */
-  async assignAwb(shipmentId: string, courierCode?: string): Promise<{ awb: string }> {
+  async assignAwb(
+    shipmentId: string,
+    courierCode?: string,
+  ): Promise<{ awb: string; courierCode?: string | undefined; courierName?: string | undefined }> {
     const result = await this.postJson<AssignAwbResponse>('/rapidshyp/apis/v1/assign_awb', {
       shipment_id: shipmentId,
       courier_code: courierCode ?? '',
@@ -433,7 +437,12 @@ export class RapidshypProvider implements ShippingProvider {
         { reason: result.remarks?.trim() || undefined },
       )
     }
-    return { awb: result.awb }
+    // The courier RapidShyp actually put on the shipment: it can differ from the one asked for.
+    return {
+      awb: result.awb,
+      courierCode: result.courier_code?.trim() || undefined,
+      courierName: result.courier_name?.trim() || undefined,
+    }
   }
 
   /** Schedule Pickup API - best-effort, per shipment; swallowed by callers that already have a
@@ -649,12 +658,7 @@ export class RapidshypProvider implements ShippingProvider {
         unitPrice: Math.round(l.unitPricePaise) / 100,
         tax: 0,
       })),
-      packageDetails: {
-        packageLength: 10,
-        packageBreadth: 10,
-        packageHeight: 10,
-        packageWeight: Math.max(input.weightGrams, 1),
-      },
+      packageDetails: packageDetails({ weightGrams: input.weightGrams }),
     })
     const shipmentId = order.shipment?.[0]?.shipment_id
     if (!shipmentId) {
