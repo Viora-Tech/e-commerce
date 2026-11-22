@@ -9,13 +9,16 @@ import {
   OrderNotFound,
   recomputeOrderStatuses,
   recordBalancePaid,
+  shippingProviderById,
   TrackingNumberOnAnotherOrder,
   withManualCollection,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { customer, order, payment, refund } from '@commerce/db'
+import type { ShippingRegistry } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
 import { and, asc, count, desc, eq, gt, inArray, lt, lte, ne, sum } from 'drizzle-orm'
+import { loadShippingSettings } from './shipping.service'
 
 /** The orders either side of this one by number, for the header's arrows. */
 export async function orderNeighbours(tx: StoreTx, id: string) {
@@ -64,6 +67,29 @@ export async function customerOrderIndex(
       ),
     )
   return row?.total ?? 0
+}
+
+/**
+ * A courier named by hand ("Delhivery" from the pack form's list) that is one of the store's
+ * connected courier apps, matched by its id or name in any case: that app's id, so the AWB is
+ * saved under it and the tracking poll and Cancel follow it. Saved under the bare name, #2462
+ * (22 Nov 2026) sat at "Label created" a week after Delhivery delivered it. Undefined otherwise.
+ */
+export async function connectedCourierApp(
+  tx: StoreTx,
+  storeId: string,
+  registry: ShippingRegistry,
+  secret: string,
+  courier: string | undefined,
+): Promise<string | undefined> {
+  const name = courier?.trim().toLowerCase()
+  if (!name) return undefined
+  const id = registry
+    .ids()
+    .find((i) => i.toLowerCase() === name || registry.get(i)?.label.toLowerCase() === name)
+  if (!id) return undefined
+  const settings = await loadShippingSettings(tx, storeId)
+  return shippingProviderById(registry, settings, secret, id) ? id : undefined
 }
 
 export async function fulfilOrder(tx: StoreTx, storeId: string, input: FulfilOrderInput) {

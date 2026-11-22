@@ -42,6 +42,7 @@ import {
 import { storeOrderActions } from '../services/order-actions.service'
 import {
   collectOrderPayment,
+  connectedCourierApp,
   customerOrderCount,
   customerOrderIndex,
   fulfilOrder,
@@ -206,19 +207,18 @@ export const ordersRouter = {
     )
     .handler(async ({ context, input }) => {
       await assertNotImported(context.tx, { orderId: input.orderId })
+      const { tx, scope } = context
+      const { shipping } = await storeRegistries(tx, scope.storeId)
       if (input.providerId && !input.sameBoxAs) {
-        const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-        const { storeId } = context.scope
-        await assertCourierConnected(
-          context.tx,
-          storeId,
-          shipping,
-          settingsSecret(),
-          input.providerId,
-        )
+        await assertCourierConnected(tx, scope.storeId, shipping, settingsSecret(), input.providerId)
       }
+      const providerId = // a courier named by hand that is a connected app: that app (#2462)
+        input.providerId ??
+        (input.trackingNumber && !input.sameBoxAs
+          ? await connectedCourierApp(tx, scope.storeId, shipping, settingsSecret(), input.courier)
+          : undefined)
       // order.fulfilled is written by the recompute inside, on the last unit packed.
-      return fulfilOrder(context.tx, context.scope.storeId, input)
+      return fulfilOrder(tx, scope.storeId, { ...input, providerId })
     }),
 
   /** Record money collected outside a gateway; the order becomes paid. */
