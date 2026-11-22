@@ -13,7 +13,7 @@ import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import PillTabs from '@/components/layout/pill-tabs'
@@ -22,12 +22,11 @@ import { appsContent } from '@/data/apps'
 import { automationPiecesContent, automationsContent } from '@/data/automations'
 import { useAutomationCatalogue } from '@/hooks/use-automation-catalogue'
 import { useCopy, useLocale } from '@/hooks/use-copy'
-import type { LoadFailure } from '@/hooks/use-load'
+import { useLoad } from '@/hooks/use-load'
 import { errorText } from '@/lib/api-errors'
 import { automationApi } from '@/lib/automation-api'
 import { triggerLabel } from '@/lib/automation-labels'
 import { automationRoutes } from '@/lib/automation-routes'
-import { isForbidden } from '@/lib/forbidden'
 import { routes } from '@/lib/routes'
 import TemplatePreviewDialog from './template-preview-dialog'
 import TriggerPickerDialog from './trigger-picker-dialog'
@@ -43,26 +42,15 @@ export default function TemplatesPage() {
   const locale = useLocale()
   const router = useRouter()
   const catalogue = useAutomationCatalogue()
-  const [templates, setTemplates] = useState<TemplateView[] | null>(null)
-  const [failed, setFailed] = useState<LoadFailure | false>(false)
-  const [attempt, setAttempt] = useState(0)
+  const {
+    data: templates,
+    failed,
+    retry,
+  } = useLoad<TemplateView[]>(() => automationApi.templates())
   const [category, setCategory] = useState<Category>('all')
   const [previewing, setPreviewing] = useState<TemplateView | null>(null)
   const [blank, setBlank] = useState(false)
   const [busy, setBusy] = useState(false)
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is Try again
-  useEffect(() => {
-    let live = true
-    setFailed(false)
-    automationApi
-      .templates()
-      .then((t) => live && setTemplates(t))
-      .catch((err: unknown) => live && setFailed(isForbidden(err) ? 'no-access' : 'error'))
-    return () => {
-      live = false
-    }
-  }, [attempt])
 
   // Helpers
   const nameOf = (t: TemplateView) => t.name ?? (t.nameKey ? pieces[t.nameKey] : undefined) ?? t.id
@@ -93,7 +81,7 @@ export default function TemplatesPage() {
         size="page"
         heading={apps.couldNotLoad.templates}
         failed={failed}
-        onRetry={() => setAttempt((n) => n + 1)}
+        onRetry={retry}
       />
     )
   }

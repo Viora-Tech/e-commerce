@@ -4,7 +4,7 @@ import type { ExpenseVersion } from '@commerce/core/expenses'
 import { permissions } from '@commerce/core/permissions'
 import { Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
@@ -16,6 +16,7 @@ import SettingsList from '@/components/settings/settings-list'
 import InlineState from '@/components/states/inline-state'
 import { monthlyExpensesContent } from '@/data/monthly-expenses'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
@@ -35,29 +36,10 @@ export default function MonthlyExpensesSettings() {
   const copy = useCopy(monthlyExpensesContent)
   const fmt = useFormat()
   const { hasPermission } = usePermissions()
-  const [view, setView] = useState<View | null>(null)
+  // `retry` reads the list again after a save or delete.
+  const { data: view, failed, retry } = useLoad<View>(() => api.monthlyExpenses.list())
   const [editing, setEditing] = useState<Editing>(null)
   const [deleting, setDeleting] = useState<ExpenseVersion | null>(null)
-  const [reloadKey, setReloadKey] = useState(0)
-  const [failed, setFailed] = useState(false)
-
-  useEffect(() => {
-    // reloadKey re-runs the fetch after a save or delete.
-    if (reloadKey < 0) return
-    let live = true
-    setFailed(false)
-    api.monthlyExpenses
-      .list()
-      .then((v) => {
-        if (live) setView(v)
-      })
-      .catch(() => {
-        if (live) setFailed(true)
-      })
-    return () => {
-      live = false
-    }
-  }, [reloadKey])
 
   // Helpers
   const monthName = (month: string) =>
@@ -66,7 +48,7 @@ export default function MonthlyExpensesSettings() {
     e.endsOn === null
       ? copy.from(monthName(e.startsOn))
       : copy.range(monthName(e.startsOn), monthName(e.endsOn))
-  const reload = () => setReloadKey((k) => k + 1)
+  const reload = retry
 
   // Event handlers
   const handleSaved = () => {
@@ -100,7 +82,7 @@ export default function MonthlyExpensesSettings() {
     <div className="flex flex-col gap-4">
       <PageHeader title={copy.title} subtitle={copy.intro} actions={addButton} />
       {failed && !view ? (
-        <InlineState kind="error" onRetry={() => setReloadKey((k) => k + 1)} />
+        <InlineState kind="error" onRetry={retry} />
       ) : !view ? (
         <SectionPageSkeleton header={false} cards={1} />
       ) : (
