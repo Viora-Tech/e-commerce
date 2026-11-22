@@ -35,8 +35,6 @@ type PickupsTabProps = {
   provider?: string | undefined
 }
 
-const copy = shipmentsContent.pickups
-
 /** Keeps the rows of `provider`, or every row when none is given. */
 const ofProvider = <T extends { provider: string }>(rows: T[], provider: string | undefined) =>
   provider ? rows.filter((r) => r.provider === provider) : rows
@@ -44,6 +42,7 @@ const ofProvider = <T extends { provider: string }>(rows: T[], provider: string 
 /** Book a pickup for shipments waiting on one, then turn a pickup into a printable manifest. */
 export default function PickupsTab({ provider }: PickupsTabProps = {}) {
   // Hooks
+  const copy = useCopy(shipmentsContent.pickups)
   const details = useCopy(shipmentDetailsContent)
   const actions = useCopy(shipmentActionsContent)
   const states = useCopy(statesContent)

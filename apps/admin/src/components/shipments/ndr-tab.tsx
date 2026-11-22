@@ -33,11 +33,10 @@ import { routes } from '@/lib/routes'
 type NdrRow = Awaited<ReturnType<typeof api.shipments.listNdr>>[number]
 type Action = 'reattempt' | 'change_address' | 'rto'
 
-const copy = shipmentsContent.ndr
-
 /** Undelivered attempts waiting on a merchant decision: reattempt, re-address, or send it back. */
 export default function NdrTab() {
   // Hooks
+  const copy = useCopy(shipmentsContent.ndr)
   const details = useCopy(shipmentDetailsContent)
   const states = useCopy(statesContent)
   const shared = useCopy(dialogContent)
