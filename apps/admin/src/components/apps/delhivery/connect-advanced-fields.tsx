@@ -10,7 +10,8 @@ import {
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Switch } from '@commerce/ui/shadcn/switch'
-import { delhiveryAppContent as appCopy } from '@/data/delhivery'
+import { delhiveryAppContent } from '@/data/delhivery'
+import { useCopy } from '@/hooks/use-copy'
 
 type ConnectAdvancedFieldsProps = {
   baseUrl: string
@@ -21,24 +22,7 @@ type ConnectAdvancedFieldsProps = {
   onOpenChange: (open: boolean) => void
 }
 
-const copy = appCopy.connect.advanced
-
 const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL ?? 'http://localhost:4100'
-
-/** Figma "Advanced open": where the tracking webhook goes, and why it needs a live domain. */
-function webhookHint() {
-  return (
-    <div className="flex flex-col gap-2">
-      <code className="w-fit rounded bg-muted px-1 py-0.5 font-mono text-caption text-foreground">
-        {`${WORKER_URL}/webhooks/shipments/delhivery/<store id>`}
-      </code>
-      <Alert tone="info">
-        <InfoIcon aria-hidden="true" />
-        <AlertDescription>{copy.webhookNeedsDomain}</AlertDescription>
-      </Alert>
-    </div>
-  )
-}
 
 /** The rarely-touched fields: the manual base URL override, Express quotes, and the webhook
  *  shared secret + URL. Collapsed by default so the guided fields above stay the whole story
@@ -51,6 +35,25 @@ export default function ConnectAdvancedFields({
   open,
   onOpenChange,
 }: ConnectAdvancedFieldsProps) {
+  // Hooks
+  const copy = useCopy(delhiveryAppContent).connect.advanced
+
+  // Derived
+  /** Figma "Advanced open": where the tracking webhook goes, and why it needs a live domain. */
+  function webhookHint() {
+    return (
+      <div className="flex flex-col gap-2">
+        <code className="w-fit rounded bg-muted px-1 py-0.5 font-mono text-caption text-foreground">
+          {`${WORKER_URL}/webhooks/shipments/delhivery/<store id>`}
+        </code>
+        <Alert tone="info">
+          <InfoIcon aria-hidden="true" />
+          <AlertDescription>{copy.webhookNeedsDomain}</AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
+
   return (
     <Collapsible open={open} onOpenChange={onOpenChange}>
       <CollapsibleTrigger className="group flex w-fit items-center gap-1.5 text-body font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">

@@ -50,6 +50,7 @@ const isReady = (r: QueueRow) => r.status.startsWith('ready')
  */
 export default function QueuePage() {
   // Hooks
+  const gstInvoicesCopy = useCopy(gstInvoicesContent)
   const copy = useCopy(gstQueuePageContent)
   const fmt = useFormat()
   const states = useCopy(statesContent)
@@ -123,7 +124,7 @@ export default function QueuePage() {
       await api.gstInvoices.queue.remove({ ids: [...picked] })
       reload()
     } catch (err) {
-      toast.error(errorText(err, gstInvoicesContent.queue.failed))
+      toast.error(errorText(err, gstInvoicesCopy.queue.failed))
     } finally {
       setBusy(false)
     }
@@ -137,7 +138,7 @@ export default function QueuePage() {
     reload()
   }
   const handleIssued = (n: number) => {
-    toast.success(gstInvoicesContent.queue.issued(n))
+    toast.success(gstInvoicesCopy.queue.issued(n))
     setReviewing(null)
     reload()
   }
@@ -188,14 +189,14 @@ export default function QueuePage() {
       />
       {gstin === null ? (
         <SetupChecklist
-          heading={gstInvoicesContent.queue.setup.heading}
-          body={gstInvoicesContent.queue.setup.body}
+          heading={gstInvoicesCopy.queue.setup.heading}
+          body={gstInvoicesCopy.queue.setup.body}
           steps={[
             {
-              label: gstInvoicesContent.queue.setup.gstin,
+              label: gstInvoicesCopy.queue.setup.gstin,
               done: false,
               href: routes.apps.page('gst-invoices', 'settings'),
-              action: gstInvoicesContent.queue.setup.gstinAction,
+              action: gstInvoicesCopy.queue.setup.gstinAction,
             },
           ]}
         />

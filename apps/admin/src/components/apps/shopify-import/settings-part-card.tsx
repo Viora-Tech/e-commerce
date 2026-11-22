@@ -32,8 +32,6 @@ type SettingsPartCardProps = {
 /** Lines shown before "Show all". */
 const FIRST = 6
 
-const base = shopifyImportContent.base
-
 /** Lines have no id: key each by what it says, numbering repeats of the same line. */
 function keyed(items: SettingsItem[]): { key: string; item: SettingsItem }[] {
   const seen = new Map<string, number>()
@@ -58,6 +56,7 @@ export default function SettingsPartCard({
   summary,
 }: SettingsPartCardProps) {
   // Hooks
+  const base = useCopy(shopifyImportContent).base
   const copy = useCopy(shopifyImportSettingsContent)
   const connect = useCopy(shopifyImportContent.connect)
   const [open, setOpen] = useState(false)

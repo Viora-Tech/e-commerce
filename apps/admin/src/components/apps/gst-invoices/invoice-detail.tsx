@@ -18,7 +18,7 @@ import PageHeaderSkeleton from '@/components/layout/page-header-skeleton'
 import StatusLabel from '@/components/status/status-label'
 import { appsContent } from '@/data/apps'
 import { gstAlreadyInvoicedContent } from '@/data/gst-already-invoiced'
-import { gstInvoiceRefreshContent as refreshCopy } from '@/data/gst-invoice-refresh'
+import { gstInvoiceRefreshContent } from '@/data/gst-invoice-refresh'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
@@ -42,9 +42,6 @@ type Shipping = {
   exchangeRate: string
 }
 
-const copy = gstInvoicesContent.detail
-const kinds = gstInvoicesContent.kinds
-
 const shippingOf = (doc: Doc): Shipping => ({
   portCode: doc.snapshot.exportSupply?.portCode ?? '',
   shippingBillNumber: doc.snapshot.exportSupply?.shippingBillNumber ?? '',
@@ -56,6 +53,9 @@ const shippingOf = (doc: Doc): Shipping => ({
 /** One issued document: its facts, the PDF, export details and cancellation. */
 export default function InvoiceDetail({ params }: AppPageProps) {
   // Hooks
+  const copy = useCopy(gstInvoicesContent.detail)
+  const refreshCopy = useCopy(gstInvoiceRefreshContent)
+  const kinds = useCopy(gstInvoicesContent.kinds)
   const apps = useCopy(appsContent)
   const outsideCopy = useCopy(gstAlreadyInvoicedContent)
   const [ship, setShip] = useState<Shipping | null>(null)

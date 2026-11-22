@@ -24,8 +24,6 @@ type MoveFilesCardProps = {
   /** Shown in the button and confirmation dialog, e.g. "Amazon S3". */
   targetLabel: string
 }
-
-const copy = appsContent.storage.migrate
 const POLL_MS = 2000
 
 /**
@@ -35,6 +33,7 @@ const POLL_MS = 2000
  */
 export default function MoveFilesCard({ targetProviderId, targetLabel }: MoveFilesCardProps) {
   // Hooks
+  const copy = useCopy(appsContent).storage.migrate
   const apps = useCopy(appsContent)
   const [migration, setMigration] = useState<Migration | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)

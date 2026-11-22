@@ -25,6 +25,7 @@ const MAX_BYTES = 4 * 1024 * 1024
 /** Import from Judge.me (Apps, Reviews 20:670): export steps, upload, check, import. */
 export default function ImportPage() {
   // Hooks
+  const reviewsCopy = useCopy(reviewsContent)
   const { import: copy } = useCopy(reviewsContent)
   const router = useRouter()
   const input = useRef<HTMLInputElement>(null)
@@ -84,7 +85,7 @@ export default function ImportPage() {
       toast.success(copy.done(r.imported, r.photosToCopy))
       router.push(routes.apps.page('reviews'))
     } catch (err) {
-      toast.error(errorText(err, reviewsContent.list.failed))
+      toast.error(errorText(err, reviewsCopy.list.failed))
     } finally {
       setImporting(false)
     }
@@ -117,7 +118,7 @@ export default function ImportPage() {
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
-        back={{ label: reviewsContent.detail.back, href: routes.apps.page('reviews') }}
+        back={{ label: reviewsCopy.detail.back, href: routes.apps.page('reviews') }}
       />
       <PageColumns
         main={

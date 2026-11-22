@@ -10,7 +10,8 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import DataCard from '@/components/layout/data-card'
-import { gstInvoiceLinesContent as copy } from '@/data/gst-invoice-lines'
+import { gstInvoiceLinesContent } from '@/data/gst-invoice-lines'
+import { useCopy } from '@/hooks/use-copy'
 import { formatPaise } from '@/lib/money'
 import { CELL, HEAD } from './table-classes'
 
@@ -21,6 +22,7 @@ type InvoiceLinesCardProps = {
 const NUM = 'text-right tabular-nums'
 
 function PartyBlock({ label, party }: { label: string; party: Party }) {
+  const copy = useCopy(gstInvoiceLinesContent)
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
       <p className="text-caption text-muted-foreground">{label}</p>
@@ -42,6 +44,9 @@ function PartyBlock({ label, party }: { label: string; party: Party }) {
  * document's snapshot, so it always matches the PDF.
  */
 export default function InvoiceLinesCard({ snapshot: s }: InvoiceLinesCardProps) {
+  // Hooks
+  const copy = useCopy(gstInvoiceLinesContent)
+
   // Render logic
   const taxOf = (l: DocumentSnapshot['lines'][number]) => l.cgstPaise + l.sgstPaise + l.igstPaise
   const t = s.totals

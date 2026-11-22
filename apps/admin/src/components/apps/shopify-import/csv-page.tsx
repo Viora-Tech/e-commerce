@@ -20,13 +20,12 @@ import CsvDropzone from './csv-dropzone'
 import CsvHelp from './csv-help'
 import StorageNotice from './storage-notice'
 
-const base = shopifyImportContent.base
-
 const KIND_ICON = { products: Package, customers: Users, orders: ShoppingBag } as const
 
 /** Upload one of Shopify's CSV exports; the preview starts at once. */
 export default function CsvPage() {
   // Hooks
+  const base = useCopy(shopifyImportContent).base
   const copy = useCopy(shopifyImportContent.csv)
   const router = useRouter()
   const [resource, setResource] = useState<CsvResource>('products')

@@ -5,24 +5,28 @@ import { Label } from '@commerce/ui/shadcn/label'
 import DateField from '@/components/fields/date-field'
 import SwitchRow from '@/components/fields/switch-row'
 import { gstInvoicesContent } from '@/data/gst-invoices'
+import { useCopy } from '@/hooks/use-copy'
 import ChoiceField from './choice-field'
 import EditorGroup from './editor-group'
 import TextField from './text-field'
 import type { GroupProps } from './types'
 
-const copy = gstInvoicesContent.settings.groups
-const ISSUE_OPTIONS = ISSUE_ON.map((v) => ({ value: v, label: copy.issuing.issueOptions[v] }))
-const BARCODE_OPTIONS = (['order', 'document'] as const).map((v) => ({
-  value: v,
-  label: copy.issuing.barcodeOptions[v],
-}))
-const EXPORT_OPTIONS = (['lut', 'igst'] as const).map((v) => ({
-  value: v,
-  label: copy.exports.modes[v],
-}))
-
 /** Queue rules, pre-orders, exports, links and the printed terms. */
 export default function IssuingGroup({ settings, onChange, errors }: GroupProps) {
+  // Hooks
+  const copy = useCopy(gstInvoicesContent.settings.groups)
+
+  // Derived
+  const issueOptions = ISSUE_ON.map((v) => ({ value: v, label: copy.issuing.issueOptions[v] }))
+  const barcodeOptions = (['order', 'document'] as const).map((v) => ({
+    value: v,
+    label: copy.issuing.barcodeOptions[v],
+  }))
+  const exportOptions = (['lut', 'igst'] as const).map((v) => ({
+    value: v,
+    label: copy.exports.modes[v],
+  }))
+
   return (
     <>
       <EditorGroup title={copy.issuing.title} body={copy.issuing.body}>
@@ -30,7 +34,7 @@ export default function IssuingGroup({ settings, onChange, errors }: GroupProps)
           id="gst-issue-on"
           label={copy.issuing.issueOn}
           value={settings.issueOn}
-          options={ISSUE_OPTIONS}
+          options={issueOptions}
           onChange={(v) => onChange({ ...settings, issueOn: v as typeof settings.issueOn })}
         />
         <SwitchRow
@@ -89,7 +93,7 @@ export default function IssuingGroup({ settings, onChange, errors }: GroupProps)
           id="gst-barcode"
           label={copy.issuing.barcode}
           value={settings.barcodeValue}
-          options={BARCODE_OPTIONS}
+          options={barcodeOptions}
           onChange={(v) => onChange({ ...settings, barcodeValue: v as 'order' | 'document' })}
         />
       </EditorGroup>
@@ -98,7 +102,7 @@ export default function IssuingGroup({ settings, onChange, errors }: GroupProps)
           id="gst-export-mode"
           label={copy.exports.mode}
           value={settings.exportMode}
-          options={EXPORT_OPTIONS}
+          options={exportOptions}
           onChange={(v) => onChange({ ...settings, exportMode: v as 'lut' | 'igst' })}
         />
         {settings.exportMode === 'lut' ? (

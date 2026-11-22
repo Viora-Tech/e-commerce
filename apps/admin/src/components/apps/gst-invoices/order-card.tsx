@@ -26,8 +26,6 @@ import { saveFile } from './save-file'
 type OrderCardProps = { orderId: string }
 
 type Data = Awaited<ReturnType<typeof api.gstInvoices.forOrder>>
-
-const copy = gstInvoicesContent.orderCard
 const APP = '/apps/gst-invoices'
 
 const cleanGstin = (v: string) => (v.trim() ? v.trim().toUpperCase() : null)
@@ -50,6 +48,7 @@ const isWaiting = (d: Data) =>
  */
 export default function OrderCard({ orderId }: OrderCardProps) {
   // Hooks
+  const copy = useCopy(gstInvoicesContent.orderCard)
   const apps = useCopy(appsContent)
   const outsideCopy = useCopy(gstAlreadyInvoicedContent)
   const [data, setData] = useState<Data | null>(null)

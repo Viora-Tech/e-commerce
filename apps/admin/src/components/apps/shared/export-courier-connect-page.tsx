@@ -26,6 +26,7 @@ import ProviderConnectPage, {
 } from '@/components/apps/shared/provider-connect-page'
 import type { FieldValues } from '@/components/apps/shared/provider-settings'
 import { courierConnectContent } from '@/data/courier-apps'
+import { useCopy } from '@/hooks/use-copy'
 
 type FieldCopy = { label: string; help: string }
 
@@ -118,6 +119,9 @@ export default function ExportCourierConnectPage({
   extraValues,
   test,
 }: ExportCourierConnectPageProps) {
+  // Hooks
+  const courierConnectCopy = useCopy(courierConnectContent)
+
   // Helpers
   const renderGuide = ({ values, opened, onOpen }: Ctx) => {
     const step2Done = filled(values[keyField]) && filled(values[secretField])
@@ -180,7 +184,7 @@ export default function ExportCourierConnectPage({
       providerId={providerId}
       kind="shipping"
       icon={<Truck aria-hidden="true" />}
-      copy={{ ...copy, ...courierConnectContent }}
+      copy={{ ...copy, ...courierConnectCopy }}
       emptyValues={{
         ...emptyValuesFor(keyField, secretField, accountField, copy),
         ...extraValues,

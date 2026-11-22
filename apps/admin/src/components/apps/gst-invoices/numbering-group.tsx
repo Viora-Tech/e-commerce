@@ -12,6 +12,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
 import { gstInvoicesContent } from '@/data/gst-invoices'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import ChoiceField from './choice-field'
 import EditorGroup from './editor-group'
@@ -19,10 +20,6 @@ import SeriesNextField from './series-next-field'
 import TextField from './text-field'
 import type { GroupProps } from './types'
 
-const copy = gstInvoicesContent.settings.groups.numbering
-const kinds = gstInvoicesContent.kinds
-const KIND_OPTIONS = SERIES_KINDS.map((k) => ({ value: k, label: kinds[k] }))
-const RULE_OPTIONS = SERIES_RULES.map((r) => ({ value: r, label: copy.rules[r] }))
 const PADS = [3, 4, 5, 6].map((n) => ({ value: String(n), label: String(n) }))
 const HSN_DIGITS = [4, 6, 8].map((n) => ({ value: String(n), label: String(n) }))
 
@@ -60,11 +57,17 @@ function newSeries(taken: readonly Series[]): Series {
  */
 export default function NumberingGroup({ settings, onChange, errors }: GroupProps) {
   // Hooks
+  const kinds = useCopy(gstInvoicesContent.kinds)
+  const copy = useCopy(gstInvoicesContent.settings.groups.numbering)
   const [next, setNext] = useState<Record<string, string>>({})
 
   useEffect(() => {
     loadNext(setNext)
   }, [])
+
+  // Derived
+  const kindOptions = SERIES_KINDS.map((k) => ({ value: k, label: kinds[k] }))
+  const ruleOptions = SERIES_RULES.map((r) => ({ value: r, label: copy.rules[r] }))
 
   // Helpers
   const setSeries = (series: Series[]) => onChange({ ...settings, series })
@@ -95,14 +98,14 @@ export default function NumberingGroup({ settings, onChange, errors }: GroupProp
                 id={`series-kind-${s.id}`}
                 label={copy.kind}
                 value={s.kind}
-                options={KIND_OPTIONS}
+                options={kindOptions}
                 onChange={(v) => patch(i, { kind: v as Series['kind'] })}
               />
               <ChoiceField
                 id={`series-rule-${s.id}`}
                 label={copy.rule}
                 value={s.rule}
-                options={RULE_OPTIONS}
+                options={ruleOptions}
                 onChange={(v) => patch(i, { rule: v as Series['rule'] })}
               />
             </div>

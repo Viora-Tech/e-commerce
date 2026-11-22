@@ -35,9 +35,9 @@ import TableEmptyRow from '@/components/table/table-empty-row'
 import TableSkeletonRows from '@/components/table/table-skeleton-rows'
 import { appsContent } from '@/data/apps'
 import { gstAlreadyInvoicedContent } from '@/data/gst-already-invoiced'
-import { gstInvoiceBulkRefreshContent as refreshCopy } from '@/data/gst-invoice-refresh'
+import { gstInvoiceBulkRefreshContent } from '@/data/gst-invoice-refresh'
 import { gstInvoicesContent } from '@/data/gst-invoices'
-import { tableContent as tableCopy } from '@/data/table'
+import { tableContent } from '@/data/table'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
@@ -50,11 +50,6 @@ import { CELL, HEAD } from './table-classes'
 
 type Page = Awaited<ReturnType<typeof api.gstInvoices.list>>
 type Progress = { batchId: string; total: number; sent: number; failed: number }
-
-const copy = gstInvoicesContent.list
-const kindCopy = gstInvoicesContent.kinds
-/** "invoices", for the shared table copy ("Loading invoices"). */
-const listName = copy.title.toLowerCase()
 /** The list's tabs: GST returns treat invoices, notes and vouchers apart, and exports on their own. */
 const TABS = ['tax_invoice', 'credit_note', 'vouchers', 'exports', 'all'] as const
 type Tab = (typeof TABS)[number]
@@ -113,6 +108,10 @@ function filterOf(q: string, tab: Tab, month: Month, gst: string | undefined) {
 /** Issued documents by type and month, with search, bulk zip, print, email and GSTR-1 export. */
 export default function InvoicesList() {
   // Hooks
+  const copy = useCopy(gstInvoicesContent.list)
+  const refreshCopy = useCopy(gstInvoiceBulkRefreshContent)
+  const tableCopy = useCopy(tableContent)
+  const kindCopy = useCopy(gstInvoicesContent.kinds)
   const apps = useCopy(appsContent)
   const recordCopy = useCopy(gstAlreadyInvoicedContent)
   const [q, setQ] = useState('')
@@ -166,6 +165,10 @@ export default function InvoicesList() {
     }, 2000)
     return () => clearTimeout(timer)
   }, [progress])
+
+  // Derived
+  /** "invoices", for the shared table copy ("Loading invoices"). */
+  const listName = copy.title.toLowerCase()
 
   // Helpers
   const selection = () =>

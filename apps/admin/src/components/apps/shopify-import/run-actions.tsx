@@ -18,8 +18,6 @@ type RunActionsProps = {
   onQueued: () => void
 }
 
-const base = shopifyImportContent.base
-
 /**
  * What can happen next to a finished run, secondary first and primary last: Import now
  * after a preview, Try again after a failure, Run again after a stop, View store after
@@ -28,6 +26,7 @@ const base = shopifyImportContent.base
  */
 export default function RunActions({ run, onQueued }: RunActionsProps) {
   // Hooks
+  const base = useCopy(shopifyImportContent).base
   const copy = useCopy(shopifyImportContent.run)
   const view = useCopy(shopifyImportRunContent)
   const router = useRouter()

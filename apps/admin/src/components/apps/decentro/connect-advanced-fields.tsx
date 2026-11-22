@@ -8,7 +8,8 @@ import {
 } from '@commerce/ui/shadcn/collapsible'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { decentroAppContent as appCopy } from '@/data/decentro'
+import { decentroAppContent } from '@/data/decentro'
+import { useCopy } from '@/hooks/use-copy'
 
 type ConnectAdvancedFieldsProps = {
   payoutConsumerUrn: string
@@ -17,8 +18,6 @@ type ConnectAdvancedFieldsProps = {
   onOpenChange: (open: boolean) => void
 }
 
-const copy = appCopy.connect.advanced
-
 /** Rarely-touched settings: the separate payouts code. */
 export default function ConnectAdvancedFields({
   payoutConsumerUrn,
@@ -26,6 +25,7 @@ export default function ConnectAdvancedFields({
   open,
   onOpenChange,
 }: ConnectAdvancedFieldsProps) {
+  const copy = useCopy(decentroAppContent.connect.advanced)
   return (
     <Collapsible open={open} onOpenChange={onOpenChange}>
       <CollapsibleTrigger className="group flex w-fit items-center gap-1.5 text-body font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">

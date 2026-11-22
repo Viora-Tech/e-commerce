@@ -7,27 +7,29 @@ import CourierWebhookCard from '@/components/apps/shared/courier-webhook-card'
 import ProviderOverviewPage, {
   type OverviewList,
 } from '@/components/apps/shared/provider-overview-page'
-import { shiprocketAppContent as appCopy } from '@/data/shiprocket'
-
-const copy = appCopy.overview
-
-const lists: OverviewList[] = [
-  {
-    heading: copy.capabilitiesHeading,
-    items: SHIPROCKET_CAPABILITIES.map((cap) => copy.capabilities[cap] ?? cap),
-  },
-]
-
-const connectedBody = () => (
-  <CourierShipmentsLink
-    courier="shiprocket"
-    help={copy.goToShipmentsHelp}
-    cta={copy.goToShipments}
-  />
-)
+import { shiprocketAppContent } from '@/data/shiprocket'
+import { useCopy } from '@/hooks/use-copy'
 
 /** `/apps/shiprocket`: status, what the connector can do today, and a way into the shared Shipments workspace. */
 export default function OverviewPage() {
+  // Hooks
+  const copy = useCopy(shiprocketAppContent.overview)
+
+  // Derived
+  const lists: OverviewList[] = [
+    {
+      heading: copy.capabilitiesHeading,
+      items: SHIPROCKET_CAPABILITIES.map((cap) => copy.capabilities[cap] ?? cap),
+    },
+  ]
+  const connectedBody = () => (
+    <CourierShipmentsLink
+      courier="shiprocket"
+      help={copy.goToShipmentsHelp}
+      cta={copy.goToShipments}
+    />
+  )
+
   return (
     <ProviderOverviewPage
       providerId="shiprocket"

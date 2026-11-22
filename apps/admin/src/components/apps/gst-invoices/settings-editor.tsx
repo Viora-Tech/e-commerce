@@ -29,8 +29,6 @@ type Loaded = {
   signature: MediaRef
 }
 
-const copy = gstInvoicesContent.settings
-
 function validate(settings: InvoiceSettings): Record<string, string> {
   const r = InvoiceSettingsSchema.safeParse(settings)
   return r.success ? {} : issuesByPath(r.error.issues)
@@ -43,6 +41,7 @@ function validate(settings: InvoiceSettings): Record<string, string> {
  */
 export default function SettingsEditor() {
   // Hooks
+  const copy = useCopy(gstInvoicesContent.settings)
   const apps = useCopy(appsContent)
   const [form, setForm] = useState<Loaded | null>(null)
   const [saved, setSaved] = useState<string | null>(null)

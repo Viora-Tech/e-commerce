@@ -25,6 +25,7 @@ const MAX = 2000
  */
 export default function ReplyCard({ reviewId, reply, onSaved }: ReplyCardProps) {
   // Hooks
+  const reviewsCopy = useCopy(reviewsContent)
   const { detail } = useCopy(reviewsContent)
   const [text, setText] = useState(reply ?? '')
   const [busy, setBusy] = useState(false)
@@ -51,7 +52,7 @@ export default function ReplyCard({ reviewId, reply, onSaved }: ReplyCardProps) 
       )
       onSaved()
     } catch (err) {
-      toast.error(errorText(err, reviewsContent.list.failed))
+      toast.error(errorText(err, reviewsCopy.list.failed))
     } finally {
       setBusy(false)
     }
@@ -64,7 +65,7 @@ export default function ReplyCard({ reviewId, reply, onSaved }: ReplyCardProps) 
       const r = await api.reviews.writeReply({ id: reviewId })
       setText(r.reply)
     } catch (err) {
-      toast.error(errorText(err, reviewsContent.list.failed))
+      toast.error(errorText(err, reviewsCopy.list.failed))
     } finally {
       setWriting(false)
     }

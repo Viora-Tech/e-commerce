@@ -24,8 +24,6 @@ type ReviewPanelProps = {
 
 type Item = { row: QueueRow; day: string }
 
-const copy = gstInvoicesContent.queue
-
 /** yyyy-mm-dd of an instant in IST. */
 function istDay(at: Date | string): string {
   return dayKey(new Date(at))
@@ -41,6 +39,7 @@ const atIstNoon = (day: string) => new Date(`${day}T12:00:00+05:30`)
  */
 export default function ReviewPanel({ rows, onBack, onIssued }: ReviewPanelProps) {
   // Hooks
+  const copy = useCopy(gstInvoicesContent.queue)
   const sortLabels = useCopy(reorderLabels)
   const [items, setItems] = useState<Item[]>(() =>
     rows.map((row) => ({ row, day: istDay(row.defaultDate) })),

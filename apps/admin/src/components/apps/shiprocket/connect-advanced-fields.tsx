@@ -9,7 +9,8 @@ import {
 } from '@commerce/ui/shadcn/collapsible'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { shiprocketAppContent as appCopy } from '@/data/shiprocket'
+import { shiprocketAppContent } from '@/data/shiprocket'
+import { useCopy } from '@/hooks/use-copy'
 
 type ConnectAdvancedFieldsProps = {
   baseUrl: string
@@ -19,21 +20,7 @@ type ConnectAdvancedFieldsProps = {
   onOpenChange: (open: boolean) => void
 }
 
-const copy = appCopy.connect.advanced
-
 const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL ?? 'http://localhost:4100'
-
-function webhookHint() {
-  return (
-    <p className="text-caption text-muted-foreground">
-      {copy.webhookNeedsDomain}
-      <br />
-      <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">
-        {`${WORKER_URL}${courierWebhookPath('shiprocket', '<store id>')}`}
-      </code>
-    </p>
-  )
-}
 
 /** The rarely-touched fields: the manual base URL override and the webhook shared secret + URL.
  *  Collapsed by default so the guided fields above stay the whole story for a merchant who only
@@ -45,6 +32,22 @@ export default function ConnectAdvancedFields({
   open,
   onOpenChange,
 }: ConnectAdvancedFieldsProps) {
+  // Hooks
+  const copy = useCopy(shiprocketAppContent.connect.advanced)
+
+  // Derived
+  function webhookHint() {
+    return (
+      <p className="text-caption text-muted-foreground">
+        {copy.webhookNeedsDomain}
+        <br />
+        <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">
+          {`${WORKER_URL}${courierWebhookPath('shiprocket', '<store id>')}`}
+        </code>
+      </p>
+    )
+  }
+
   return (
     <Collapsible open={open} onOpenChange={onOpenChange}>
       <CollapsibleTrigger className="group flex w-fit items-center gap-1.5 text-body font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">

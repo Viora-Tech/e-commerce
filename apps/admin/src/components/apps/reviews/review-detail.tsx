@@ -28,6 +28,7 @@ type Detail = Awaited<ReturnType<typeof api.reviews.get>>
 /** One review (Apps, Reviews 20:2): the review, the reply, its activity, product and customer. */
 export default function ReviewDetail({ params }: AppPageProps) {
   // Hooks
+  const reviewsCopy = useCopy(reviewsContent)
   const { detail: copy } = useCopy(reviewsContent)
   const router = useRouter()
   const [detail, setDetail] = useState<Detail | null>(null)
@@ -60,7 +61,7 @@ export default function ReviewDetail({ params }: AppPageProps) {
       toast.success(copy.saved)
       reload()
     } catch (err) {
-      toast.error(errorText(err, reviewsContent.list.failed))
+      toast.error(errorText(err, reviewsCopy.list.failed))
     } finally {
       setBusy(false)
     }

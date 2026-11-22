@@ -16,7 +16,7 @@ import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsRow from '@/components/settings/settings-row'
 import { appsContent } from '@/data/apps'
-import { emiContent as copy } from '@/data/emi'
+import { emiContent } from '@/data/emi'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
@@ -34,33 +34,10 @@ const GATEWAY_LINKS: Record<EmiGateway, string> = {
   cashfree: '/apps/cashfree',
 }
 
-/** The one thing to tell (and, when something is missing, the one link to fix it). */
-function statusOf(view: View) {
-  const gateway = copy.gateway.options[view.settings.gateway].label
-  switch (view.readiness) {
-    case 'ready':
-      return { text: copy.status.ready, link: null }
-    case 'off':
-      return { text: copy.status.off, link: null }
-    case 'gateway-not-set-up':
-      return {
-        text: copy.status.gatewayNotSetUp(gateway),
-        link: {
-          href: GATEWAY_LINKS[view.settings.gateway],
-          label: copy.status.gatewaySetUpLink(gateway),
-        },
-      }
-    default:
-      return {
-        text: copy.status.emiOff,
-        link: { href: routes.settings.payments(), label: copy.status.emiOffLink },
-      }
-  }
-}
-
 /** On/off, which gateway, lowest price, and a preview of the shopper's line. */
 export default function SettingsPage() {
   // Hooks
+  const copy = useCopy(emiContent)
   const apps = useCopy(appsContent)
   const [view, setView] = useState<View | null>(null)
   const [form, setForm] = useState<Settings | null>(null)
@@ -80,6 +57,31 @@ export default function SettingsPage() {
       () => setLoadFailed(true),
     )
   }, [loadAttempt])
+
+  // Derived
+  /** The one thing to tell (and, when something is missing, the one link to fix it). */
+  function statusOf(view: View) {
+    const gateway = copy.gateway.options[view.settings.gateway].label
+    switch (view.readiness) {
+      case 'ready':
+        return { text: copy.status.ready, link: null }
+      case 'off':
+        return { text: copy.status.off, link: null }
+      case 'gateway-not-set-up':
+        return {
+          text: copy.status.gatewayNotSetUp(gateway),
+          link: {
+            href: GATEWAY_LINKS[view.settings.gateway],
+            label: copy.status.gatewaySetUpLink(gateway),
+          },
+        }
+      default:
+        return {
+          text: copy.status.emiOff,
+          link: { href: routes.settings.payments(), label: copy.status.emiOffLink },
+        }
+    }
+  }
 
   // Helpers
   const patch = (next: Partial<Settings>) => setForm((f) => (f ? { ...f, ...next } : f))

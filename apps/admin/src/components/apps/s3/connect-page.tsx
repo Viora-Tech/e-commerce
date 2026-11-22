@@ -15,7 +15,7 @@ import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import type { ProviderDef, ProviderState } from '@/components/settings/provider-settings-form'
 import { appsContent } from '@/data/apps'
-import { s3AppContent as appCopy, s3CorsRule, s3IamPolicy } from '@/data/s3'
+import { s3AppContent, s3CorsRule, s3IamPolicy } from '@/data/s3'
 import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
@@ -26,8 +26,6 @@ import MoveFilesCard from './move-files-card'
 type Blob = ProviderState & Record<string, unknown>
 type FieldValues = Record<string, string>
 type TestResult = { status: 'idle' | 'testing' | 'ok' | 'error'; message?: string }
-
-const copy = appCopy.connect
 const PROVIDER_ID = 's3'
 
 const emptyValues: FieldValues = {
@@ -46,6 +44,7 @@ const adminOrigin = () => (typeof window === 'undefined' ? '' : window.location.
  *  JSON to paste into AWS, a read-only "Test connection" check, and "Move existing files". */
 export default function ConnectPage() {
   // Hooks
+  const copy = useCopy(s3AppContent.connect)
   const apps = useCopy(appsContent)
   const [provider, setProvider] = useState<ProviderDef | null>(null)
   const [blob, setBlob] = useState<Blob | null>(null)

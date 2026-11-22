@@ -12,16 +12,13 @@ import ProviderConnectPage, {
 } from '@/components/apps/shared/provider-connect-page'
 import type { FieldValues } from '@/components/apps/shared/provider-settings'
 import { courierConnectContent } from '@/data/courier-apps'
-import { delhiveryAppContent as appCopy } from '@/data/delhivery'
+import { delhiveryAppContent } from '@/data/delhivery'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import ConnectAdvancedFields from './connect-advanced-fields'
 
 type Ctx = ConnectContext<TestOutcome>
-
-const copy = appCopy.connect
 const PROVIDER_ID = 'delhivery'
-
-const pageCopy = { ...copy, ...courierConnectContent }
 
 const emptyValues: FieldValues = {
   apiToken: '',
@@ -33,46 +30,10 @@ const emptyValues: FieldValues = {
   webhookSecret: '',
 }
 
-const fieldSpecs: ConnectFieldSpec[] = [
-  { key: 'apiToken', type: 'password', ...copy.fields.apiToken },
-  { key: 'clientName', ...copy.fields.clientName },
-  { key: 'pickupLocationName', ...copy.fields.pickupLocationName },
-  { key: 'originPincode', inputMode: 'numeric', pincode: true, ...copy.fields.originPincode },
-]
-
-/** Test points the base URL at Delhivery's staging server; Live clears it. */
-const mode: ModeSwitch = {
-  read: (values) => ((values.baseUrl ?? '').trim() ? 'test' : 'live'),
-  write: (next, setField) => setField('baseUrl', next === 'test' ? DELHIVERY_STAGING_URL : ''),
-  copy: copy.mode,
-}
-
 const testConnection = (values: FieldValues) =>
   api.store.testDelhiveryConnection({ fields: values })
 
 const filled = (v: string | undefined) => (v ?? '').trim().length > 0
-
-const renderGuide = ({ values, opened, onOpen }: Ctx) => {
-  const step2Done = filled(values.apiToken)
-  return (
-    <CourierConnectGuide
-      copy={copy}
-      openedDashboard={opened}
-      onOpenDashboard={onOpen}
-      step2Done={step2Done}
-      step3Done={
-        step2Done &&
-        filled(values.clientName) &&
-        filled(values.pickupLocationName) &&
-        /^\d{6}$/.test((values.originPincode ?? '').trim())
-      }
-    />
-  )
-}
-
-const renderFields = ({ values, setField }: Ctx) => (
-  <ConnectFields providerId={PROVIDER_ID} specs={fieldSpecs} values={values} onField={setField} />
-)
 
 const renderExtras = ({ values, setField, advancedOpen, onAdvancedOpenChange }: Ctx) => (
   <ConnectAdvancedFields
@@ -85,18 +46,56 @@ const renderExtras = ({ values, setField, advancedOpen, onAdvancedOpenChange }: 
   />
 )
 
-const renderAside = (ctx: Ctx) => (
-  <CourierConnectAside
-    providerId={PROVIDER_ID}
-    ctx={ctx}
-    pickupKey="pickupLocationName"
-    mode={mode}
-  />
-)
-
 /** `/apps/delhivery/connect`: a 3-step guide, a Test/Live switch, a read-only "Test connection"
  *  check, and the rarely-touched fields under Advanced. */
 export default function ConnectPage() {
+  // Hooks
+  const copy = useCopy(delhiveryAppContent).connect
+  const courierConnectCopy = useCopy(courierConnectContent)
+
+  // Derived
+  const pageCopy = { ...copy, ...courierConnectCopy }
+  const fieldSpecs: ConnectFieldSpec[] = [
+    { key: 'apiToken', type: 'password', ...copy.fields.apiToken },
+    { key: 'clientName', ...copy.fields.clientName },
+    { key: 'pickupLocationName', ...copy.fields.pickupLocationName },
+    { key: 'originPincode', inputMode: 'numeric', pincode: true, ...copy.fields.originPincode },
+  ]
+  /** Test points the base URL at Delhivery's staging server; Live clears it. */
+  const mode: ModeSwitch = {
+    read: (values) => ((values.baseUrl ?? '').trim() ? 'test' : 'live'),
+    write: (next, setField) => setField('baseUrl', next === 'test' ? DELHIVERY_STAGING_URL : ''),
+    copy: copy.mode,
+  }
+  const renderGuide = ({ values, opened, onOpen }: Ctx) => {
+    const step2Done = filled(values.apiToken)
+    return (
+      <CourierConnectGuide
+        copy={copy}
+        openedDashboard={opened}
+        onOpenDashboard={onOpen}
+        step2Done={step2Done}
+        step3Done={
+          step2Done &&
+          filled(values.clientName) &&
+          filled(values.pickupLocationName) &&
+          /^\d{6}$/.test((values.originPincode ?? '').trim())
+        }
+      />
+    )
+  }
+  const renderFields = ({ values, setField }: Ctx) => (
+    <ConnectFields providerId={PROVIDER_ID} specs={fieldSpecs} values={values} onField={setField} />
+  )
+  const renderAside = (ctx: Ctx) => (
+    <CourierConnectAside
+      providerId={PROVIDER_ID}
+      ctx={ctx}
+      pickupKey="pickupLocationName"
+      mode={mode}
+    />
+  )
+
   return (
     <ProviderConnectPage
       providerId={PROVIDER_ID}

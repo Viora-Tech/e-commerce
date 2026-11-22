@@ -7,6 +7,7 @@ import PhoneField from '@/components/fields/phone-field'
 import MediaPickDialog from '@/components/media/media-pick-dialog'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { INDIAN_STATES } from '@/data/india'
+import { useCopy } from '@/hooks/use-copy'
 import ChoiceField from './choice-field'
 import EditorGroup from './editor-group'
 import TextField from './text-field'
@@ -19,8 +20,6 @@ type SellerGroupProps = GroupProps & {
 }
 
 type Slot = 'logo' | 'signature'
-
-const copy = gstInvoicesContent.settings.groups.seller
 const STATE_OPTIONS = INDIAN_STATES.map((s) => ({ value: s.code, label: s.name }))
 
 /** Supplier identity: legal name, GSTIN, address, logo and signature. */
@@ -33,6 +32,7 @@ export default function SellerGroup({
   onMedia,
 }: SellerGroupProps) {
   // Hooks
+  const copy = useCopy(gstInvoicesContent.settings.groups.seller)
   const [picking, setPicking] = useState<Slot | null>(null)
 
   // Helpers

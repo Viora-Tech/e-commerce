@@ -10,20 +10,17 @@ import ProviderConnectPage, {
   type TestOutcome,
 } from '@/components/apps/shared/provider-connect-page'
 import type { FieldValues } from '@/components/apps/shared/provider-settings'
-import { decentroAppContent as appCopy } from '@/data/decentro'
+import { decentroAppContent } from '@/data/decentro'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import ConnectAdvancedFields from './connect-advanced-fields'
 import ConnectCallbackFields from './connect-callback-fields'
 import ConnectGuide from './connect-guide'
 
 type Ctx = ConnectContext<TestOutcome>
-
-const copy = appCopy.connect
 const PROVIDER_ID = 'decentro'
 
 const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL ?? 'http://localhost:4100'
-
-const pageCopy: ConnectPageCopy = { ...copy, saveFailedTitle: copy.saveFailed }
 
 const emptyValues: FieldValues = {
   clientId: '',
@@ -34,21 +31,8 @@ const emptyValues: FieldValues = {
   payoutConsumerUrn: '',
 }
 
-const fieldSpecs: ConnectFieldSpec[] = [
-  { key: 'clientId', ...copy.fields.clientId },
-  { key: 'clientSecret', type: 'password', ...copy.fields.clientSecret },
-  { key: 'consumerUrn', ...copy.fields.consumerUrn },
-]
-
 /** The callback secret and the payouts code don't affect "Test connection". */
 const KEEP_TEST_ON = ['payoutConsumerUrn', 'webhookSecret']
-
-const mode: ModeSwitch = {
-  read: (values) => (values.mode === 'live' ? 'live' : 'test'),
-  write: (next, setField) => setField('mode', next),
-  copy: copy.mode,
-  keySets: true,
-}
 
 /** Letters and digits only: Decentro refuses special characters in callback header values. */
 function newSecret(): string {
@@ -78,19 +62,33 @@ const renderGuide = ({ values, savedValues, enabled, testStatus, opened, onOpen 
   />
 )
 
-const renderFields = ({ values, setField }: Ctx) => (
-  <ConnectFields providerId={PROVIDER_ID} specs={fieldSpecs} values={values} onField={setField} />
-)
-
 /** The Decentro app's credentials screen: a 3-step guide, Test/Live, a read-only
  *  "Test connection", the payment updates (callback) settings, and payouts under Advanced. */
 export default function ConnectPage() {
   // Hooks
+  const copy = useCopy(decentroAppContent.connect)
   const [storeId, setStoreId] = useState<string | null>(null)
 
   useEffect(() => {
     api.store.current().then((s) => setStoreId(s?.id ?? null))
   }, [])
+
+  // Derived
+  const pageCopy: ConnectPageCopy = { ...copy, saveFailedTitle: copy.saveFailed }
+  const fieldSpecs: ConnectFieldSpec[] = [
+    { key: 'clientId', ...copy.fields.clientId },
+    { key: 'clientSecret', type: 'password', ...copy.fields.clientSecret },
+    { key: 'consumerUrn', ...copy.fields.consumerUrn },
+  ]
+  const mode: ModeSwitch = {
+    read: (values) => (values.mode === 'live' ? 'live' : 'test'),
+    write: (next, setField) => setField('mode', next),
+    copy: copy.mode,
+    keySets: true,
+  }
+  const renderFields = ({ values, setField }: Ctx) => (
+    <ConnectFields providerId={PROVIDER_ID} specs={fieldSpecs} values={values} onField={setField} />
+  )
 
   // Helpers
   const renderExtras = ({ values, setField, advancedOpen, onAdvancedOpenChange }: Ctx) => (

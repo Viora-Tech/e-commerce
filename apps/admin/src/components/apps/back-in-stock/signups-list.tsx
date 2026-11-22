@@ -17,41 +17,10 @@ import { errorText } from '@/lib/api-errors'
 
 type Row = Awaited<ReturnType<typeof api.backInStock.signups.list>>[number]
 
-const copy = backInStockContent.signups
-
-const columns: ResourceColumnSpec<Row>[] = [
-  {
-    id: 'variant',
-    title: copy.columns.variant,
-    hideable: false,
-    align: 'start',
-    sortValue: (r) => r.variantLabel,
-    render: (r) => <span className="font-medium">{r.variantLabel}</span>,
-  },
-  {
-    id: 'contact',
-    title: copy.columns.contact,
-    align: 'start',
-    sortValue: (r) => r.contact,
-    render: (r) => r.contact,
-  },
-  {
-    id: 'status',
-    title: copy.columns.status,
-    sortValue: (r) => r.status,
-    render: (r) => <StatusLabel kind="bisSignup" value={r.status} variant="soft" />,
-  },
-  {
-    id: 'created',
-    title: copy.columns.created,
-    sortValue: (r) => new Date(r.createdAt),
-    render: (r) => <RelativeTime value={r.createdAt} />,
-  },
-]
-
 /** Every "notify me" signup: who is waiting, for what, and where they are in the double opt-in flow. */
 export default function SignupsList() {
   // Hooks
+  const copy = useCopy(backInStockContent).signups
   const apps = useCopy(appsContent)
   const {
     data: rows,
@@ -63,6 +32,37 @@ export default function SignupsList() {
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
   const [importing, setImporting] = useState(false)
+
+  // Derived
+  const columns: ResourceColumnSpec<Row>[] = [
+    {
+      id: 'variant',
+      title: copy.columns.variant,
+      hideable: false,
+      align: 'start',
+      sortValue: (r) => r.variantLabel,
+      render: (r) => <span className="font-medium">{r.variantLabel}</span>,
+    },
+    {
+      id: 'contact',
+      title: copy.columns.contact,
+      align: 'start',
+      sortValue: (r) => r.contact,
+      render: (r) => r.contact,
+    },
+    {
+      id: 'status',
+      title: copy.columns.status,
+      sortValue: (r) => r.status,
+      render: (r) => <StatusLabel kind="bisSignup" value={r.status} variant="soft" />,
+    },
+    {
+      id: 'created',
+      title: copy.columns.created,
+      sortValue: (r) => new Date(r.createdAt),
+      render: (r) => <RelativeTime value={r.createdAt} />,
+    },
+  ]
 
   // Event handlers
   const handleQuery = (next: string) => {

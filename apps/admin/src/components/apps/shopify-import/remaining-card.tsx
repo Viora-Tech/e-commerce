@@ -51,8 +51,6 @@ type Row = {
   resources: ImportResource[] | null
   action: 'import' | 'images' | 'files' | 'preview' | null
 }
-
-const base = shopifyImportContent.base
 const ROWS_LOADING = 6
 const RUNNING_REFRESH_MS = 8000
 
@@ -109,6 +107,7 @@ const TABLE_EDGES =
  */
 export default function RemainingCard({ connected }: RemainingCardProps) {
   // Hooks
+  const base = useCopy(shopifyImportContent).base
   const copy = useCopy(shopifyImportContent.remaining)
   const labels = useCopy(shopifyImportContent.resources)
   const fmt = useFormat()

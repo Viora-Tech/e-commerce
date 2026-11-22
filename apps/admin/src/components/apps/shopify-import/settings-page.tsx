@@ -30,8 +30,6 @@ import SettingsPartCard from './settings-part-card'
 type Plan = Awaited<ReturnType<typeof api.shopifyImport.settingsPreview>>
 type Variant = 'success' | 'info' | 'neutral' | 'attention' | 'danger'
 
-const base = shopifyImportContent.base
-
 const PLAN_VARIANT: Record<SettingsPartState, Variant> = {
   ready: 'info',
   same: 'neutral',
@@ -53,6 +51,7 @@ const chosenFrom = (parts: SettingsPartPlan[]): SettingsPart[] =>
 /** Shopify importer › Store settings: check what Shopify has, choose parts, import, read the report. */
 export default function SettingsPage() {
   // Hooks
+  const base = useCopy(shopifyImportContent).base
   const apps = useCopy(appsContent)
   const copy = useCopy(shopifyImportSettingsContent)
   const [connected, setConnected] = useState<boolean | undefined>(undefined)

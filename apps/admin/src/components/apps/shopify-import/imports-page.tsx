@@ -20,7 +20,6 @@ import StorageNotice from './storage-notice'
 import TrafficCard from './traffic-card'
 import { type RunListItem, totals } from './types'
 
-const base = shopifyImportContent.base
 const REFRESH_MS = 4000
 
 const columnsFor = (
@@ -91,6 +90,7 @@ const columnsFor = (
 /** App root: the two ways in, and every import so far. */
 export default function ImportsPage() {
   // Hooks
+  const base = useCopy(shopifyImportContent).base
   const all = useCopy(shopifyImportContent)
   const fmt = useFormat()
   const { card: settings } = useCopy(shopifyImportSettingsContent)
