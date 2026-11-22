@@ -129,10 +129,9 @@ export function formatNumericDate(value: Date | string): string {
   )
 }
 
-/** Sort key that groups everything placed on the same IST calendar day. */
+/** The IST calendar day `YYYY-MM-DD`: groups everything placed that day, and sorts as text. */
 export function dayKey(value: Date | string): string {
-  const ist = toIst(new Date(value))
-  return `${ist.getUTCFullYear()}-${ist.getUTCMonth() + 1}-${ist.getUTCDate()}`
+  return zoneDayKey(new Date(value))
 }
 
 /** Today in the store's zone as `YYYY-MM-DD`, what a date field starts on. */
