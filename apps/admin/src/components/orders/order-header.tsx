@@ -38,6 +38,7 @@ type OrderHeaderProps = {
  */
 export default function OrderHeader({ order, actions, back }: OrderHeaderProps) {
   // Hooks
+  const salesChannelsCopy = useCopy(salesChannelsContent)
   const copy = useCopy(orderDetailContent)
   const listCopy = useCopy(ordersContent)
   const holdCopy = useCopy(orderHoldContent)
@@ -86,7 +87,7 @@ export default function OrderHeader({ order, actions, back }: OrderHeaderProps) 
             ) : null}
             {soldThrough ? (
               <StatusChip tone="neutral" variant="outline">
-                {salesChannelsContent.orderCard.via(soldThrough.name)}
+                {salesChannelsCopy.orderCard.via(soldThrough.name)}
               </StatusChip>
             ) : null}
           </>
