@@ -74,7 +74,7 @@ export default function ReviewsWidget({ context }: ReviewsWidgetProps) {
             {copy.write}
           </button>
         ) : context.write === 'signin' ? (
-          <a className="btn btn--secondary w-full" href={context.signInUrl}>
+          <a className="btn btn--secondary w-full" href={context.signInUrl} rel="nofollow">
             {copy.signIn}
           </a>
         ) : null}

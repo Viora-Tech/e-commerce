@@ -6,13 +6,22 @@ import {
   gtinLd,
   jsonLd,
   metaDescription,
+  pastLastPage,
   productDescription,
   productGraph,
   socialProfiles,
   storeGraph,
   verificationMeta,
 } from './seo'
-import { emptySitemapXml, llmsTxt, robotsTxt, type StoreIndex, sitemapXml } from './seo-files'
+import {
+  emptySitemapXml,
+  llmsTxt,
+  pageIndexPath,
+  robotsTxt,
+  type StoreIndex,
+  sitemapXml,
+  withoutRedirected,
+} from './seo-files'
 
 const origin = 'https://waimers.in'
 
@@ -307,6 +316,13 @@ describe('metadata helpers', () => {
     expect(canonicalPath('/collections/glass')).toBe('/collections/glass')
     expect(canonicalPath('/collections/glass', 2)).toBe('/collections/glass?page=2')
   })
+
+  it('treats an empty page after the first as past the last page', () => {
+    expect(pastLastPage(6, 0)).toBe(true)
+    expect(pastLastPage(2, 24)).toBe(false)
+    // Page 1 of an empty collection still renders (noindex), it is not a 404.
+    expect(pastLastPage(1, 0)).toBe(false)
+  })
 })
 
 describe('crawler files', () => {
@@ -348,6 +364,27 @@ describe('crawler files', () => {
     expect(sitemapXml(origin, index, 'collections')).toContain('/collections/glass')
     expect(sitemapXml(origin, index, 'pages')).not.toContain('/products/')
     expect(emptySitemapXml()).not.toContain('<url>')
+  })
+
+  it('lists each page at the URL that answers it', () => {
+    expect(pageIndexPath('about-us')).toBe('/pages/about-us')
+    // Policies redirect to their own route; a fixed route owns the wishlist handle.
+    expect(pageIndexPath('refund-policy')).toBe('/policies/refund-policy')
+    expect(pageIndexPath('wishlist')).toBeNull()
+  })
+
+  it('leaves out every URL a redirect sends elsewhere', () => {
+    const pruned = withoutRedirected(
+      {
+        ...index,
+        products: [...index.products, { path: '/products/Old-Mouse', title: 'Old', fromPaise: 1 }],
+      },
+      new Set(['/products/old-mouse', '/blogs/news/launch']),
+    )
+    expect(pruned.products.map((p) => p.path)).toEqual(['/products/veil'])
+    expect(pruned.blog).toEqual([])
+    expect(pruned.collections).toEqual(index.collections)
+    expect(withoutRedirected(index, new Set())).toBe(index)
   })
 
   it('llms.txt is a Markdown map with safe link text', () => {

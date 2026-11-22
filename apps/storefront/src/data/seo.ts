@@ -73,7 +73,19 @@ export const ROBOTS_DISALLOW = [
   '/newsletter/confirm/',
   '/unsubscribe/',
   '/cod/',
+  // Beacons, email-tracking and token links answer only POST or a one-time token (Search
+  // Console filed GET /api/vitals and friends under "Blocked due to other 4xx issue").
+  '/api/',
 ] as const
+
+/**
+ * The few `/api/` files a page needs to render (theme section CSS, island scripts), kept open
+ * so Google renders the page as a shopper sees it. The longer rule wins over `Disallow: /api/`.
+ */
+export const ROBOTS_ALLOW = ['/api/section-styles', '/api/islands/', '/api/hono-island/'] as const
+
+/** Page handles a fixed storefront route owns (`/pages/wishlist`): no sitemap entry of their own. */
+export const SHADOWED_PAGE_HANDLES: readonly string[] = ['wishlist']
 
 /** How many product names a collection's written-for-you description lists. */
 export const AUTO_DESCRIPTION_PRODUCTS = 3
