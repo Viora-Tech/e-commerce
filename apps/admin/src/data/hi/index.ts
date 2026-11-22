@@ -65,6 +65,7 @@ import drafts from './drafts'
 import dtdc from './dtdc'
 import dynamicSources from './dynamic-sources'
 import ekart from './ekart'
+import emailBranding from './email-branding'
 import emailBuilder from './email-builder'
 import emailDesign from './email-design'
 import emailSuppression from './email-suppression'
@@ -255,6 +256,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...checkoutDraftEdit,
   ...domains,
   ...emailBuilder,
+  ...emailBranding,
   ...emailDesign,
   ...dtdc,
   ...analytics,

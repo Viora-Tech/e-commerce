@@ -1,11 +1,12 @@
 'use client'
 
-import { PlugConnect } from '@commerce/ui/icons'
+import { Palette, PlugConnect } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useQueryState } from 'nuqs'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import HelpFooter from '@/components/payments/help-footer'
 import HealthLine from '@/components/settings/health-line'
@@ -15,6 +16,7 @@ import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-
 import SettingsTable from '@/components/settings/settings-table'
 import WhatsThisHelp from '@/components/settings/whats-this-help'
 import LoadFailed from '@/components/states/load-failed'
+import { emailBrandingContent } from '@/data/email-branding'
 import { type MessageGroupId, notificationsSettingsContent } from '@/data/notifications'
 import { senderEmailContent } from '@/data/sender-email'
 import { settingsRowsContent } from '@/data/settings-rows'
@@ -58,6 +60,7 @@ export default function NotificationsPage() {
   // Hooks
   const copy = useCopy(notificationsSettingsContent)
   const rowsCopy = useCopy(settingsRowsContent)
+  const brandingCopy = useCopy(emailBrandingContent)
   const [data, setData] = useState<NotificationsOverview | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
   const [senderEmail, setSenderEmail] = useState<SenderEmailOverview | null>(null)
@@ -216,6 +219,22 @@ export default function NotificationsPage() {
         }
       >
         <SettingsDrillPanel id="messages">
+          <DataCard
+            title={brandingCopy.title}
+            action={
+              <Button
+                variant="outline"
+                size="sm"
+                nativeButton={false}
+                render={<Link href={routes.settings.emailBranding()} />}
+              >
+                <Palette aria-hidden="true" />
+                {brandingCopy.open}
+              </Button>
+            }
+          >
+            <p className="text-body text-muted-foreground">{brandingCopy.openHelp}</p>
+          </DataCard>
           {GROUPS.map((g) => {
             const list = rows(g)
             if (list.length === 0) return null
