@@ -16,7 +16,8 @@ import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import SettingsCard from '@/components/settings/settings-card'
-import { preferencesContent as copy } from '@/data/preferences'
+import { preferencesContent } from '@/data/preferences'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
@@ -64,6 +65,7 @@ export default function PreferencesForm({
   honoPreviewToken,
 }: PreferencesFormProps) {
   // Hooks
+  const copy = useCopy(preferencesContent)
   const [form, setForm] = useState(initial)
   const [saved, setSaved] = useState(initial)
   const [busy, setBusy] = useState(false)

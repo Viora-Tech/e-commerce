@@ -7,13 +7,12 @@ import Image from 'next/image'
 import { useState } from 'react'
 import MediaPickDialog from '@/components/media/media-pick-dialog'
 import { preferencesContent } from '@/data/preferences'
+import { useCopy } from '@/hooks/use-copy'
 
 type SocialImageFieldProps = {
   value: ThemeMediaRef | null
   onChange: (value: ThemeMediaRef | null) => void
 }
-
-const copy = preferencesContent.social
 
 /**
  * The Open Graph image, picked from the media library and shown at share-card shape. Empty,
@@ -21,6 +20,7 @@ const copy = preferencesContent.social
  */
 export default function SocialImageField({ value, onChange }: SocialImageFieldProps) {
   // Hooks
+  const copy = useCopy(preferencesContent.social)
   const [picking, setPicking] = useState(false)
 
   // Event handlers

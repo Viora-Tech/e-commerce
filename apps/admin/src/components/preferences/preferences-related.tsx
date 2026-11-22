@@ -2,23 +2,26 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import SettingsCard from '@/components/settings/settings-card'
 import { preferencesContent } from '@/data/preferences'
+import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
-
-const copy = preferencesContent.related
-
-/** Storefront settings Shopify keeps near Preferences that live on their own pages here. */
-const ROWS = [
-  { key: 'favicon', href: routes.onlineStore.themes(), ...copy.favicon },
-  { key: 'redirects', href: routes.content.redirects(), ...copy.redirects },
-  { key: 'domains', href: routes.settings.domains(), ...copy.domains },
-] as const
 
 /** Links out to the favicon, URL redirects and domains instead of repeating them here. */
 export default function PreferencesRelated() {
+  // Hooks
+  const copy = useCopy(preferencesContent.related)
+
+  // Derived
+  /** Storefront settings Shopify keeps near Preferences that live on their own pages here. */
+  const rows = [
+    { key: 'favicon', href: routes.onlineStore.themes(), ...copy.favicon },
+    { key: 'redirects', href: routes.content.redirects(), ...copy.redirects },
+    { key: 'domains', href: routes.settings.domains(), ...copy.domains },
+  ] as const
+
   // Render logic
   return (
     <SettingsCard title={copy.heading} description={copy.body}>
-      {ROWS.map((row) => (
+      {rows.map((row) => (
         <div
           key={row.key}
           className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-hairline py-4 first:pt-0 last:border-b-0 last:pb-0"
