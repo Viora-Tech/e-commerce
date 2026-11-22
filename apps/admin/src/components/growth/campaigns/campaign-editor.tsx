@@ -14,7 +14,8 @@ import DataCard from '@/components/layout/data-card'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
-import { campaignEditorContent as copy } from '@/data/marketing-campaigns'
+import { campaignEditorContent } from '@/data/marketing-campaigns'
+import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
@@ -51,9 +52,10 @@ function initial(
   campaign: LoadedCampaign | null,
   kind: CampaignKind,
   segmentId: string | null,
+  names: { newEmail: string; newWhatsapp: string },
 ): CampaignForm {
   if (campaign) return fromCampaign(campaign)
-  const blank = emptyForm(kind, kind === 'email' ? copy.newEmail : copy.newWhatsapp)
+  const blank = emptyForm(kind, kind === 'email' ? names.newEmail : names.newWhatsapp)
   return segmentId ? { ...blank, segmentId } : blank
 }
 
@@ -69,8 +71,9 @@ export default function CampaignEditor({
   segmentId = null,
 }: CampaignEditorProps) {
   // Hooks
+  const copy = useCopy(campaignEditorContent)
   const router = useRouter()
-  const [start] = useState(() => initial(campaign, kind, segmentId))
+  const [start] = useState(() => initial(campaign, kind, segmentId, copy))
   const [form, setForm] = useState(start)
   const [saved, setSaved] = useState(() => JSON.stringify(start))
   const [busy, setBusy] = useState(false)
