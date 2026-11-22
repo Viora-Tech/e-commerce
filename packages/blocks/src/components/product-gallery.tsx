@@ -100,7 +100,7 @@ export default function ProductGallery({
             ) : (
               <Picture
                 image={img}
-                alt={img.alt ?? title}
+                alt={img.alt || title}
                 width={1400}
                 height={1400}
                 loading={i === 0 ? 'eager' : 'lazy'}
@@ -128,7 +128,7 @@ export default function ProductGallery({
             const picture = (
               <Picture
                 image={img}
-                alt={img.alt ?? title}
+                alt={img.alt || title}
                 width={1200}
                 height={1200}
                 fill
@@ -170,7 +170,7 @@ export default function ProductGallery({
                     muted
                     playsInline
                     preload={i === 0 ? 'metadata' : 'none'}
-                    aria-label={img.alt ?? title}
+                    aria-label={img.alt || title}
                   />
                 ) : (
                   <button

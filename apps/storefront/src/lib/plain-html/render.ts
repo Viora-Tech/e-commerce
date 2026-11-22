@@ -34,7 +34,14 @@ import { MARKET_HEADERS } from '../markets'
 import { attachImageMedia } from '../media-lookup'
 import { storePixels } from '../pixels/pixels'
 import { abThemeId } from '../rollout-ab'
-import { jsonLd, marketCanonical, metaDescription, requestOrigin, storeGraph } from '../seo'
+import {
+  jsonLd,
+  marketCanonical,
+  metaDescription,
+  requestOrigin,
+  socialProfiles,
+  storeGraph,
+} from '../seo'
 import { storeShareImages } from '../share-image'
 import { storeRead } from '../store-cache'
 import { liveThemeId, templateSections } from '../template-render'
@@ -352,6 +359,7 @@ async function seoFor(
     return {
       name: s?.name ?? '',
       logoUrl: theme.brand.logo?.url,
+      sameAs: socialProfiles(theme.social.links),
       description: parsePreferences(s?.preferences).seo.description || undefined,
       email: s?.contactEmail,
       phone: s?.contactPhone,

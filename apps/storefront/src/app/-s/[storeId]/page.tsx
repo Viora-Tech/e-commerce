@@ -2,7 +2,7 @@ import { liveThemeSettings, parsePreferences } from '@commerce/core'
 import { store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import type { Metadata } from 'next'
-import { jsonLd, marketCanonical, requestOrigin, storeGraph } from '@/lib/seo'
+import { jsonLd, marketCanonical, requestOrigin, socialProfiles, storeGraph } from '@/lib/seo'
 import { storeRead } from '@/lib/store-cache'
 import { renderTemplate } from '@/lib/template-render'
 
@@ -23,6 +23,7 @@ export default async function Home({ params }: Params) {
       return {
         name: s?.name ?? '',
         logoUrl: theme.brand.logo?.url,
+        sameAs: socialProfiles(theme.social.links),
         description: parsePreferences(s?.preferences).seo.description || undefined,
         email: s?.contactEmail,
         phone: s?.contactPhone,

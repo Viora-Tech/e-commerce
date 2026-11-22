@@ -19,15 +19,25 @@ function isProse(line: string): boolean {
   return !SPEC_ROW.test(line) || words.length > 14
 }
 
+function lines(plain: string): string[] {
+  return plain
+    .split('\n')
+    .map((l) => l.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+}
+
+/**
+ * Only the prose lines of `plain`, joined; empty when the text is all spec rows and headings,
+ * so the storefront can write its own sentence instead of a spec dump.
+ */
+export function seoProse(plain: string): string {
+  return lines(plain).filter(isProse).join(' ')
+}
+
 /**
  * Prose lines from `plain` (one block per line, as `richTextToPlainText` gives it), joined;
  * the whole text flattened when it has none.
  */
 export function seoSnippet(plain: string): string {
-  const lines = plain
-    .split('\n')
-    .map((l) => l.replace(/\s+/g, ' ').trim())
-    .filter(Boolean)
-  const prose = lines.filter(isProse)
-  return (prose.length > 0 ? prose : lines).join(' ')
+  return seoProse(plain) || lines(plain).join(' ')
 }

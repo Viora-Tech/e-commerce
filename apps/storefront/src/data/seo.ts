@@ -3,6 +3,18 @@ export const seoContent = {
   home: 'Home',
   collections: 'Collections',
   customerService: 'customer service',
+  /**
+   * Meta descriptions written for the merchant when a collection or product has none of its
+   * own (`lib/seo.ts`). Generic on purpose: no country or delivery promise the store may not make.
+   */
+  autoDescription: {
+    collection: (title: string, store: string, products: readonly string[]) =>
+      products.length
+        ? `Shop ${title} at ${store}: ${products.join(', ')} and more.`
+        : `Shop ${title} at ${store}.`,
+    product: (title: string, store: string, vendor: string | null, price: string | null) =>
+      `Buy ${title}${vendor ? ` by ${vendor}` : ''} at ${store}${price ? `, from ${price}` : ''}.`,
+  },
   llms: {
     collections: 'Collections',
     products: 'Products',
@@ -44,15 +56,15 @@ export const seoContent = {
 /** Search engines show about this much of a description. */
 export const SEO_DESCRIPTION_MAX = 160
 
-/** Paths that are private to a shopper and never belong in an index. */
-export const ROBOTS_DISALLOW = [
-  '/cart',
-  '/checkout',
-  '/account',
-  '/search',
-  '/documents',
-  '/*?*sort=',
-] as const
+/**
+ * Paths that are private to a shopper and never belong in an index. Sorted and filtered
+ * collection views are not here: they carry `noindex, follow`, which Google can only read
+ * on a page it may crawl.
+ */
+export const ROBOTS_DISALLOW = ['/cart', '/checkout', '/account', '/search', '/documents'] as const
+
+/** How many product names a collection's written-for-you description lists. */
+export const AUTO_DESCRIPTION_PRODUCTS = 3
 
 /**
  * AI crawlers turned away when Preferences › AI crawlers is off: model training and

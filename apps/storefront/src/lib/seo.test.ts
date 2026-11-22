@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   canonicalPath,
+  collectionDescription,
   collectionGraph,
   gtinLd,
   jsonLd,
   metaDescription,
+  productDescription,
   productGraph,
+  socialProfiles,
   storeGraph,
   verificationMeta,
 } from './seo'
@@ -226,6 +229,69 @@ describe('JSON-LD', () => {
     })
     expect(graph[1].itemListElement).toHaveLength(3)
   })
+
+  it("puts the product's collection between Home and the product in its breadcrumb", () => {
+    const withCrumb = {
+      ...product,
+      collection: { title: 'AbyssGaming', url: '/collections/abyss' },
+    }
+    const crumbs = parsed(productGraph(withCrumb, origin, 'INR', 'Waimers'))['@graph'][1]
+    expect(crumbs.itemListElement.map((i: { name: string }) => i.name)).toEqual([
+      'Home',
+      'AbyssGaming',
+      'Veil Glasspad',
+    ])
+    expect(crumbs.itemListElement[1].item).toBe('https://waimers.in/collections/abyss')
+    const bare = parsed(productGraph(product, origin, 'INR', 'Waimers'))['@graph'][1]
+    expect(bare.itemListElement).toHaveLength(2)
+  })
+
+  it('gives the Organization its logo and social profiles, without the WhatsApp chat link', () => {
+    const sameAs = socialProfiles([
+      { platform: 'instagram', url: 'https://instagram.com/waimers' },
+      { platform: 'whatsapp', url: 'https://wa.me/919999999999' },
+    ])
+    const [org] = parsed(
+      storeGraph({ name: 'Waimers', origin, logoUrl: 'https://cdn/logo.png', sameAs }),
+    )['@graph']
+    expect(org.logo).toBe('https://cdn/logo.png')
+    expect(org.sameAs).toEqual(['https://instagram.com/waimers'])
+    expect(parsed(storeGraph({ name: 'Waimers', origin }))['@graph'][0].sameAs).toBeUndefined()
+  })
+})
+
+describe('written-for-you descriptions', () => {
+  const collection = { seoDescription: null, plain: '', title: 'ATK', storeName: 'Waimers' }
+
+  it("writes a collection's from its title, first products and the store", () => {
+    expect(collectionDescription({ ...collection, products: ['ATK X1', 'ATK Blazing Sky'] })).toBe(
+      'Shop ATK at Waimers: ATK X1, ATK Blazing Sky and more.',
+    )
+    expect(collectionDescription({ ...collection, products: [] })).toBe('Shop ATK at Waimers.')
+  })
+
+  it("keeps a collection's own words first: SEO description, then body", () => {
+    const own = { ...collection, products: ['ATK X1'] }
+    expect(collectionDescription({ ...own, seoDescription: 'Light mice.' })).toBe('Light mice.')
+    expect(collectionDescription({ ...own, plain: 'ATK mice and pads.' })).toBe(
+      'ATK mice and pads.',
+    )
+  })
+
+  it("writes a product's from title, brand and price when its body is a bare spec dump", () => {
+    const p = { seoDescription: null, prose: '', title: 'X1', vendor: 'ATK', storeName: 'Waimers' }
+    expect(productDescription({ ...p, price: '₹4,999' })).toBe(
+      'Buy X1 by ATK at Waimers, from ₹4,999.',
+    )
+    // The store's own brand is not repeated.
+    expect(productDescription({ ...p, vendor: 'waimers', price: null })).toBe('Buy X1 at Waimers.')
+    expect(productDescription({ ...p, prose: 'A light mouse.', price: null })).toBe(
+      'A light mouse.',
+    )
+    expect(productDescription({ ...p, seoDescription: 'Own.', prose: 'x', price: null })).toBe(
+      'Own.',
+    )
+  })
 })
 
 describe('metadata helpers', () => {
@@ -248,6 +314,8 @@ describe('crawler files', () => {
     const txt = robotsTxt(origin, { search: true, ai: true })
     expect(txt).toContain('Disallow: /checkout')
     expect(txt).toContain('Disallow: /account')
+    // Sorted views carry noindex, which a crawler blocked by robots.txt never reads.
+    expect(txt).not.toContain('sort=')
     expect(txt).toContain('Sitemap: https://waimers.in/sitemap.xml')
     expect(txt).not.toContain('GPTBot')
     expect(robotsTxt(origin, { search: false, ai: false })).toBe('User-agent: *\nDisallow: /\n')

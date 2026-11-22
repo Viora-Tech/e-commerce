@@ -79,7 +79,7 @@ export function predictiveJson(r: PredictiveResults, p: PredictiveParams) {
             compare_at_price_min: compareAt,
             compare_at_price_max: compareAt,
             image: url,
-            featured_image: url ? { url, alt: image?.alt ?? c.title } : null,
+            featured_image: url ? { url, alt: image?.alt || c.title } : null,
           }
         }),
         collections: r.collections.map((c) => ({

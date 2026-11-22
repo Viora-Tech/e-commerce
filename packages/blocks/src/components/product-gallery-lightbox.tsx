@@ -94,7 +94,7 @@ export default function ProductGalleryLightbox({
             <Picture
               key={img.url}
               image={img}
-              alt={img.alt ?? title}
+              alt={img.alt || title}
               className={`product-gallery__lightbox-image${i === index ? ' is-active' : ''}`}
               width={1600}
               height={1600}

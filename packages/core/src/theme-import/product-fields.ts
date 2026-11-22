@@ -114,14 +114,34 @@ export type ProductPageExtras = ProductDisplayFields & {
   collection: { title: string; url: string } | null
 }
 
+type CrumbCandidate = { handle: string; title: string }
+
+/**
+ * The breadcrumb's collection among a product's active ones (sorted by title): the brand's own
+ * collection when one is titled like the product's vendor ("ATK" for an ATK mouse), else the
+ * first that says what the product is, a catch-all list only when it is in nothing else.
+ */
+export function breadcrumbCollection<T extends CrumbCandidate>(
+  collections: readonly T[],
+  vendor?: string | null,
+): T | undefined {
+  const brand = vendor?.trim().toLowerCase()
+  return (
+    (brand ? collections.find((c) => c.title.trim().toLowerCase() === brand) : undefined) ??
+    collections.find((c) => !CATCH_ALL.has(c.handle)) ??
+    collections[0]
+  )
+}
+
 /**
  * What the product block shows beyond the catalogue row: the product's storefront-visible
- * extra fields, its imported rating, and the collection for the breadcrumb (by title, a
- * catch-all list only when the product is in nothing else).
+ * extra fields, its imported rating, and the collection for the breadcrumb
+ * (`breadcrumbCollection`: the vendor's brand collection, else the first by title).
  */
 export async function loadProductPageExtras(
   tx: StoreTx,
   productId: string,
+  vendor?: string | null,
 ): Promise<ProductPageExtras> {
   const [data, collections] = await Promise.all([
     loadMetafields(tx, 'product', [productId]),
@@ -132,7 +152,7 @@ export async function loadProductPageExtras(
       .where(and(eq(collectionProduct.productId, productId), eq(collection.status, 'active')))
       .orderBy(asc(collection.title)),
   ])
-  const crumb = collections.find((c) => !CATCH_ALL.has(c.handle)) ?? collections[0]
+  const crumb = breadcrumbCollection(collections, vendor)
   return {
     ...productDisplayFields(data.metafields[productId] ?? []),
     collection: crumb ? { title: crumb.title, url: `/collections/${crumb.handle}` } : null,

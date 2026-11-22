@@ -54,7 +54,7 @@ export default function ProductCard({
             <Picture
               image={primary}
               className="product-card__image product-card__image--primary"
-              alt={primary.alt ?? product.title}
+              alt={primary.alt || product.title}
               width={533}
               height={533}
               loading={lazy ? 'lazy' : 'eager'}

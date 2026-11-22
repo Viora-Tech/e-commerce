@@ -6,7 +6,7 @@ import {
 } from '@commerce/blocks'
 import { mainProductRichtext, productFieldsRichtext } from '@commerce/blocks/richtext-node'
 import { loadProductPageExtras } from '@commerce/core'
-import { seoSnippet } from '@commerce/core/catalog'
+import { seoProse, seoSnippet } from '@commerce/core/catalog'
 import { isAbroad } from '@commerce/core/checkout-address'
 import { productOfferPolicies } from '@commerce/core/offer-policies'
 import {
@@ -16,6 +16,7 @@ import {
 } from '@commerce/core/preorder'
 import { numericId } from '@commerce/core/theme-import'
 import { store } from '@commerce/db'
+import { formatMoney, isCurrency } from '@commerce/money'
 import { emiOfferFor } from '@commerce/plugin-emi/offer'
 import { parseRichText, richTextToPlainText } from '@commerce/richtext'
 import { eq } from 'drizzle-orm'
@@ -48,6 +49,7 @@ import {
   marketCanonical,
   metaDescription,
   paiseToAmount,
+  productDescription,
   productGraph,
   requestOrigin,
 } from '@/lib/seo'
@@ -108,12 +110,25 @@ const loadProduct = cache((storeId: string, handle: string) =>
     const seo = await getProductSeo(tx, found.id)
     const product = withDepositPolicy(found, policy)
     const text = richTextToPlainText(parseRichText(product.description))
+    const storeName = s?.name ?? ''
+    const currency = s?.currency ?? 'INR'
+    const pricePaise = defaultVariant(product)?.pricePaise
     return {
       product,
       title: seo?.seoTitle || product.title,
-      description: metaDescription(seo?.seoDescription || seoSnippet(text)),
-      storeName: s?.name ?? '',
-      currency: s?.currency ?? 'INR',
+      description: productDescription({
+        seoDescription: seo?.seoDescription,
+        prose: seoProse(text),
+        title: product.title,
+        vendor: product.vendor,
+        storeName,
+        price:
+          pricePaise != null && isCurrency(currency) ? formatMoney(pricePaise, currency) : null,
+      }),
+      // The structured data keeps the body's own words, spec rows and all.
+      ldDescription: metaDescription(seo?.seoDescription || seoSnippet(text)),
+      storeName,
+      currency,
     }
   }),
 )
@@ -129,7 +144,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const images = product.images
     .filter((i) => !i.contentType?.startsWith('video/'))
     .slice(0, 4)
-    .map((i) => ({ url: shareImageUrl(i), alt: i.alt ?? product.title }))
+    .map((i) => ({ url: shareImageUrl(i), alt: i.alt || product.title }))
   return {
     title,
     description,
@@ -170,7 +185,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
       storeName: found.storeName,
     }),
     storeRead(storeId, `product-extras|${product.id}`, (tx) =>
-      loadProductPageExtras(tx, product.id),
+      loadProductPageExtras(tx, product.id, product.vendor),
     ),
     storeRead(storeId, 'upi-discount', (tx) => storeUpiDiscount(tx, storeId)),
     storeRead(storeId, 'emi-offers', (tx) => storeEmiOffers(tx, storeId)),
@@ -211,7 +226,8 @@ export default async function ProductPage({ params, searchParams }: Params) {
   const schema = productGraph(
     {
       ...product,
-      description: found.description,
+      description: found.ldDescription ?? found.description,
+      collection: extras.collection,
       images: product.images.filter((i) => !i.contentType?.startsWith('video/')),
       rating: rated ? { value: rated.rating, count: rated.count } : null,
       reviews:

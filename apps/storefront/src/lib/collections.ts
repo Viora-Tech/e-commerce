@@ -1,6 +1,6 @@
 import 'server-only'
 import type { CardProduct } from '@commerce/blocks'
-import { soldInRequestCatalog } from '@commerce/core'
+import { notSystemTest, soldInRequestCatalog } from '@commerce/core'
 import type { CollectionSort } from '@commerce/core/collections'
 import type { StoreTx } from '@commerce/db'
 import {
@@ -281,4 +281,32 @@ export async function collectionCards(
     perPage: limit,
   })
   return items
+}
+
+/**
+ * The first few product titles of a collection in its saved order (every active product for
+ * the built-in `all`), for the description written when the merchant left it empty.
+ */
+export async function collectionLeadTitles(
+  tx: StoreTx,
+  found: Pick<CollectionDetail, 'id' | 'sortOrder'>,
+  limit: number,
+): Promise<string[]> {
+  const live = and(eq(product.status, 'active'), soldInRequestCatalog(product.id))
+  const rows = found.id
+    ? await tx
+        .select({ title: product.title })
+        .from(collectionProduct)
+        .innerJoin(product, eq(product.id, collectionProduct.productId))
+        .where(and(eq(collectionProduct.collectionId, found.id), live))
+        .orderBy(orderFor(found.sortOrder))
+        .limit(limit)
+    : await tx
+        .select({ title: product.title })
+        .from(product)
+        // The payments wizard's ₹1 test product is never named.
+        .where(and(live, notSystemTest))
+        .orderBy(asc(product.title))
+        .limit(limit)
+  return rows.map((r) => r.title)
 }

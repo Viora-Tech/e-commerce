@@ -1,7 +1,7 @@
 import { Breadcrumbs, type CardProduct } from '@commerce/blocks'
 import type { BrowseResult, ThemeCardSection } from '@commerce/core'
 import type { BrowseFilters, BrowseSort } from '@commerce/core/browse'
-import { parseRichText, RichTextRenderer } from '@commerce/richtext'
+import { parseRichText, RichTextRenderer, richTextToPlainText } from '@commerce/richtext'
 import BrowseResults from '@/components/browse/browse-results'
 import { browseContent, COLLECTION_SORTS } from '@/data/browse'
 import { COLLECTION_PER_PAGE } from '@/data/collections'
@@ -79,7 +79,11 @@ export default async function MainCollection({
     {
       handle: collection.handle,
       title: collection.title,
-      description: collection.seoDescription ?? undefined,
+      // The search description, else the body as plain text (most collections only have a body).
+      description:
+        collection.seoDescription ||
+        richTextToPlainText(parseRichText(collection.description)).replace(/\s+/g, ' ').trim() ||
+        undefined,
     },
     products,
     (page - 1) * COLLECTION_PER_PAGE + 1,
@@ -111,7 +115,7 @@ export default async function MainCollection({
           <img
             className="mb-6 aspect-[3/1] w-full rounded-2xl object-cover"
             src={collection.imageUrl}
-            alt=""
+            alt={collection.title}
           />
         ) : null}
         {collection.description && settings.showDescription !== false ? (
