@@ -252,7 +252,11 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
         toast.error(copy.exporting.empty)
         return
       }
-      downloadInventoryCsv(all, locations.find((l) => l.id === locationId)?.name ?? '')
+      downloadInventoryCsv(
+        all,
+        locations.find((l) => l.id === locationId)?.name ?? '',
+        copy.exporting,
+      )
     } catch (err) {
       toast.error(errorText(err, copy.exporting.failed))
     } finally {
