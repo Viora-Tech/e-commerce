@@ -157,7 +157,8 @@ export async function designedTemplates(tx: StoreTx, storeId: string): Promise<s
     .select({ template: emailTemplateDesign.template })
     .from(emailTemplateDesign)
     .where(eq(emailTemplateDesign.storeId, storeId))
-  return rows.map((r) => r.template)
+  // The Email branding row (`EMAIL_BRANDING_KEY`) shares the table; it is not an email.
+  return rows.map((r) => r.template).filter((t) => !t.startsWith('_'))
 }
 
 /**
