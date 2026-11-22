@@ -8,7 +8,6 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
-import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import LoadFailed from '@/components/states/load-failed'
@@ -86,7 +85,7 @@ export default function MessagePage({ messageId }: MessagePageProps) {
   }
 
   return (
-    <PageBody width="settings" className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <PageHeader
         title={name}
         subtitle={copy.messages[messageId]?.when}
@@ -155,6 +154,6 @@ export default function MessagePage({ messageId }: MessagePageProps) {
         tone="destructive"
         onConfirm={handleReset}
       />
-    </PageBody>
+    </div>
   )
 }

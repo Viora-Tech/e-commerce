@@ -8,7 +8,7 @@ export const emailBrandingContent = {
     'Your logo and colours for every email customers get. Start from your theme and change what you like.',
   back: 'Notifications',
   open: 'Customize',
-  openHelp: 'Logo, logo size and colours for every email.',
+  openHelp: 'Logo, logo size and accent colour for every email.',
   logo: {
     title: 'Logo',
     choose: 'Choose logo',
@@ -21,9 +21,9 @@ export const emailBrandingContent = {
     px: (n: number) => `${n}px`,
   },
   colours: {
-    title: 'Colours',
-    accent: 'Buttons and links',
-    onAccent: 'Text on buttons',
+    title: 'Accent colour',
+    accent: 'Accent colour',
+    help: 'The order labels, the delivery route and highlights. Buttons stay black so they read in every inbox.',
   },
   preview: {
     title: 'Preview',

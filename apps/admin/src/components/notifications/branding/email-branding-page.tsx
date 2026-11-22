@@ -1,13 +1,11 @@
 'use client'
 
-import type { EmailBranding } from '@commerce/core'
 import { ImagePlus, RotateCcw, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
-import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import MediaPickDialog, { type PickedMedia } from '@/components/media/media-pick-dialog'
@@ -25,16 +23,16 @@ import BrandingPreview from './branding-preview'
 
 type Loaded = Awaited<ReturnType<typeof api.notifications.branding>>
 
-/** The theme's look as a starting point; the neutral look where the theme has none. */
-function startFrom(
-  o: Loaded,
-): Required<Omit<EmailBranding, 'logoUrl'>> & { logoUrl: string | null } {
+/** What the page edits: the logo, its width and the accent colour. */
+type Draft = { logoUrl: string | null; logoWidth: number; colour: string }
+
+/** The saved branding, else the theme's look, else the neutral look: what the page starts from. */
+function startFrom(o: Loaded): Draft {
   const s = o.saved
   return {
     logoUrl: s?.logoUrl !== undefined ? s.logoUrl : o.theme.logoUrl,
     logoWidth: s?.logoWidth ?? o.theme.logoWidth ?? 160,
     colour: s?.colour ?? o.theme.colour ?? '#111111',
-    onColour: s?.onColour ?? o.theme.onColour ?? '#FFFFFF',
   }
 }
 
@@ -47,7 +45,7 @@ export default function EmailBrandingPage() {
   // Hooks
   const copy = useCopy(emailBrandingContent)
   const messagesCopy = useCopy(notificationsSettingsContent)
-  const [draft, setDraft] = useState<ReturnType<typeof startFrom> | null>(null)
+  const [draft, setDraft] = useState<Draft | null>(null)
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [picking, setPicking] = useState(false)
@@ -62,7 +60,7 @@ export default function EmailBrandingPage() {
   })
 
   // Helpers
-  const change = (patch: Partial<NonNullable<typeof draft>>) => {
+  const change = (patch: Partial<Draft>) => {
     setDraft((d) => (d ? { ...d, ...patch } : d))
     setDirty(true)
   }
@@ -110,7 +108,7 @@ export default function EmailBrandingPage() {
     .map((m) => ({ id: m.id, name: messagesCopy.messages[m.id]?.name ?? m.id }))
 
   return (
-    <PageBody width="detail" className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <SaveBar
         open={dirty}
         message={copy.save.message}
@@ -134,7 +132,7 @@ export default function EmailBrandingPage() {
         }
       />
       {draft ? (
-        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[24rem_minmax(0,1fr)]">
           <div className="flex flex-col gap-4">
             <DataCard title={copy.logo.title} bodyClassName="flex flex-col gap-4">
               {draft.logoUrl ? (
@@ -175,11 +173,7 @@ export default function EmailBrandingPage() {
                 value={draft.colour}
                 onChange={(colour) => change({ colour })}
               />
-              <ColourField
-                label={copy.colours.onAccent}
-                value={draft.onColour}
-                onChange={(onColour) => change({ onColour })}
-              />
+              <p className="text-caption text-muted-foreground">{copy.colours.help}</p>
             </DataCard>
           </div>
           <BrandingPreview emails={emails} branding={draft} />
@@ -202,6 +196,6 @@ export default function EmailBrandingPage() {
         tone="destructive"
         onConfirm={handleReset}
       />
-    </PageBody>
+    </div>
   )
 }
