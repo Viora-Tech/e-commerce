@@ -12,7 +12,7 @@ import { saveFile } from '@/components/apps/gst-invoices/save-file'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import LogRequestDialog from '@/components/privacy/log-request-dialog'
-import { CHANNEL_LABEL, consentCardContent as copy } from '@/data/customer-privacy'
+import { CHANNEL_LABEL, consentCardContent } from '@/data/customer-privacy'
 import { customerDetailContent } from '@/data/customers'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -55,6 +55,7 @@ export default function MarketingConsentCard({
   phonePrompt,
 }: MarketingConsentCardProps) {
   // Hooks
+  const copy = useCopy(consentCardContent)
   const detail = useCopy(customerDetailContent)
   const [logging, setLogging] = useState(false)
 
