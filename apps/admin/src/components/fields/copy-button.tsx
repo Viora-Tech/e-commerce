@@ -2,9 +2,9 @@
 
 import { CheckIcon, Copy } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { useState } from 'react'
 import { toast } from 'sonner'
 import { copyButtonContent } from '@/data/common'
+import { useClipboard } from '@/hooks/use-clipboard'
 import { useCopy } from '@/hooks/use-copy'
 
 type CopyButtonProps = {
@@ -19,18 +19,12 @@ type CopyButtonProps = {
 export default function CopyButton({ value, what, visible = false }: CopyButtonProps) {
   // Hooks
   const copy = useCopy(copyButtonContent)
-  const [done, setDone] = useState(false)
+  const { done, copyText } = useClipboard()
 
   // Event handlers
   const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(value)
-      setDone(true)
-      toast.success(copy.copied(what))
-      setTimeout(() => setDone(false), 1500)
-    } catch {
-      toast.error(copy.copy(what.toLowerCase()))
-    }
+    if (await copyText(value)) toast.success(copy.copied(what))
+    else toast.error(copy.copy(what.toLowerCase()))
   }
 
   // Render logic
