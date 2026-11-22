@@ -39,11 +39,11 @@ export const CUSTOMIZE_OVERRIDES: Partial<Overrides> = {
   componentOverlay: (props) => <BlockToolbar {...props} />,
   actionBar: ({ children }) => <BlockToolbarFormat>{children}</BlockToolbarFormat>,
   // Puck's own field label can't tell field types apart (it only gets the label
-  // text), so it's suppressed here: every fieldTypes override below renders its
-  // own icon + label through FieldFrame instead.
-  // Puck types `field` as a wide union (every field type plus custom ones); each
-  // override is only ever called for its own type, so narrow it to what it reads.
-  fieldLabel: () => <></>,
+  // text), so its text is dropped here: every fieldTypes override below renders its
+  // own icon + label through FieldFrame instead. Its children must stay: Puck draws
+  // a field's control inside the label (the rich text editor), so dropping them left
+  // a `richtext` setting such as "Offer panel steps" with a label and no editor.
+  fieldLabel: ({ children }) => <>{children}</>,
   // Basic / Advanced: filters the selected section's fields by name (see InspectorFields).
   // Puck 0.24 passes the rendered fields keyed by name; `children` is now one layout element.
   fields: ({ fields }) => <InspectorFields fields={fields} />,

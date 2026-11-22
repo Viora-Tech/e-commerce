@@ -6,7 +6,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@commerce/ui/shadcn/collapsible'
-import { AutoField, type Field } from '@puckeditor/core'
+import type { Field } from '@puckeditor/core'
 import type { ReactNode } from 'react'
 import { iconForField } from '@/lib/customize-field-icons'
 import {
@@ -25,6 +25,7 @@ import ImageField from './image-field'
 import LinkPicker from './link-picker'
 import ResponsiveNumberField from './responsive-number-field'
 import SectionSettingsGroups from './section-settings-groups'
+import StableAutoField from './stable-auto-field'
 import VideoSettingField from './video-setting-field'
 
 type CustomizeObjectFieldProps = {
@@ -105,7 +106,7 @@ export default function CustomizeObjectField({
   const subFields = (
     <>
       {Object.entries(objectFields).map(([key, subField]) => (
-        <AutoField
+        <StableAutoField
           key={key}
           field={subField}
           value={objectValue[key]}
@@ -137,7 +138,7 @@ export default function CustomizeObjectField({
           {Object.entries(objectFields)
             .filter(([key]) => key !== 'href')
             .map(([key, subField]) => (
-              <AutoField
+              <StableAutoField
                 key={key}
                 field={subField}
                 value={objectValue[key]}
