@@ -99,6 +99,7 @@ function fetchMedia(
 
 function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
   // Hooks
+  const mediaCopy = useCopy(mediaContent)
   const { library: copy, dropzone: dropCopy } = useCopy(mediaContent)
   const { title: editImageLabel } = useCopy(imageEditorContent)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -232,26 +233,26 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
       setUsedBytes(r.usedBytes)
     })
     reloadFolders()
-    toast.success(mediaContent.toasts.deleted)
+    toast.success(mediaCopy.toasts.deleted)
   }
   const handleDelete = async () => {
     if (!deleting) return
     try {
       await api.media.delete({ id: deleting.id })
     } catch (err) {
-      toast.error(errorText(err, mediaContent.errors.generic))
+      toast.error(errorText(err, mediaCopy.errors.generic))
       throw err
     }
     handleDeleted(deleting.id)
   }
 
   const actionsFor = (item: Item): MediaTileAction[] => [
-    { label: mediaContent.tile.editAlt, onSelect: () => setEditing(item) },
-    { label: mediaContent.tile.moveToFolder, onSelect: () => setMoving(item) },
+    { label: mediaCopy.tile.editAlt, onSelect: () => setEditing(item) },
+    { label: mediaCopy.tile.moveToFolder, onSelect: () => setMoving(item) },
     ...(isEditableImage(item.contentType)
       ? [{ label: editImageLabel, onSelect: () => setRetouching(item) }]
       : []),
-    { label: mediaContent.tile.delete, onSelect: () => setDeleting(item), destructive: true },
+    { label: mediaCopy.tile.delete, onSelect: () => setDeleting(item), destructive: true },
   ]
   /** The file's page carries the search and type, so its arrows step through this same list. */
   const fileHref = (id: string) => routes.content.file(id, { query, type })
@@ -421,8 +422,8 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
                     )}
                     <span className="absolute inset-x-0 bottom-0 bg-card/90 px-2 py-1 text-center text-caption">
                       {p.error
-                        ? mediaContent.tile.failed
-                        : mediaContent.tile.uploading(Math.round(p.progress * 100))}
+                        ? mediaCopy.tile.failed
+                        : mediaCopy.tile.uploading(Math.round(p.progress * 100))}
                     </span>
                   </li>
                 ))}

@@ -67,6 +67,7 @@ export default function MediaPickGrid({
   onDismiss,
 }: MediaPickGridProps) {
   // Hooks
+  const mediaCopy = useCopy(mediaContent)
   const { picker: copy } = useCopy(mediaContent)
 
   // Event handlers
@@ -166,7 +167,7 @@ export default function MediaPickGrid({
                   p.error ? 'text-destructive' : 'text-muted-foreground',
                 )}
               >
-                {p.error ? mediaContent.tile.failed : `${pct}%`}
+                {p.error ? mediaCopy.tile.failed : `${pct}%`}
               </p>
             </div>
           </li>

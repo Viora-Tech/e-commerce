@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { mediaContent } from '@/data/media'
+import { useCopy } from '@/hooks/use-copy'
 import { errorText } from '@/lib/api-errors'
 import { rejectReason, type UploadedMedia, uploadFile } from '@/lib/upload'
 
@@ -19,6 +20,7 @@ export type PendingUpload = {
  * queue; failed ones stay until retried or dismissed.
  */
 export function useUploadQueue(onDone: (item: UploadedMedia) => void) {
+  const mediaCopy = useCopy(mediaContent)
   const [pending, setPending] = useState<PendingUpload[]>([])
 
   const update = (key: string, patch: Partial<PendingUpload>) =>
@@ -32,7 +34,7 @@ export function useUploadQueue(onDone: (item: UploadedMedia) => void) {
       onDone(done)
       return true
     } catch (err) {
-      update(entry.key, { error: errorText(err, mediaContent.errors.generic) })
+      update(entry.key, { error: errorText(err, mediaCopy.errors.generic) })
       return false
     }
   }
@@ -58,7 +60,7 @@ export function useUploadQueue(onDone: (item: UploadedMedia) => void) {
     setPending((list) => [...list, ...accepted])
     const results = await Promise.all(accepted.map(run))
     const ok = results.filter(Boolean).length
-    if (ok) toast.success(mediaContent.toasts.uploaded(ok))
+    if (ok) toast.success(mediaCopy.toasts.uploaded(ok))
   }
 
   const retry = (key: string) => {

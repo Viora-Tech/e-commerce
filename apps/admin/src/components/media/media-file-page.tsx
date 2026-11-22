@@ -52,6 +52,7 @@ type MediaFilePageProps = {
  */
 export default function MediaFilePage({ file, usedIn, neighbours, filter }: MediaFilePageProps) {
   // Hooks
+  const mediaCopy = useCopy(mediaContent)
   const { details: copy, library, toasts } = useCopy(mediaContent)
   const { title: editImageLabel } = useCopy(imageEditorContent)
   const router = useRouter()
@@ -64,7 +65,7 @@ export default function MediaFilePage({ file, usedIn, neighbours, filter }: Medi
     try {
       await api.media.delete({ id: file.id })
     } catch (err) {
-      toast.error(errorText(err, mediaContent.errors.generic))
+      toast.error(errorText(err, mediaCopy.errors.generic))
       throw err
     }
     toast.success(toasts.deleted)
