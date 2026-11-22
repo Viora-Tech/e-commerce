@@ -7,7 +7,7 @@ import type { ReactNode } from 'react'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
-import { shortcutsContent as copy } from '@/data/command-palette'
+import { shortcutsContent } from '@/data/command-palette'
 import { dialogContent } from '@/data/common'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -32,6 +32,7 @@ export default function KeyboardShortcutsDialog({
   children,
 }: KeyboardShortcutsDialogProps) {
   // Hooks
+  const copy = useCopy(shortcutsContent)
   const shared = useCopy(dialogContent)
 
   // Render logic
