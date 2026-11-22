@@ -13,6 +13,7 @@ import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
 import StatusChip from '@/components/layout/status-chip'
 import { analyticsContent } from '@/data/analytics'
+import { useCopy } from '@/hooks/use-copy'
 import type { LoadFailure } from '@/hooks/use-load'
 import { type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
@@ -43,6 +44,7 @@ type Shape = ReportDefinition['chart']
  */
 export default function ReportView({ report, initialRange, initial }: ReportViewProps) {
   // Hooks
+  const analyticsCopy = useCopy(analyticsContent)
   const [range, setRange] = useState(initialRange)
   const [data, setData] = useState(initial)
   const [shape, setShape] = useState<Shape>(report.chart)
@@ -90,7 +92,7 @@ export default function ReportView({ report, initialRange, initial }: ReportView
   const handleSave = async (name: string) => {
     try {
       await api.analytics.saveReport({ name, reportSlug: report.slug, range })
-      toast.success(analyticsContent.reports.save.saved)
+      toast.success(analyticsCopy.reports.save.saved)
       setSaving(false)
     } catch (err) {
       toast.error(errorText(err, String(err)))
@@ -102,7 +104,7 @@ export default function ReportView({ report, initialRange, initial }: ReportView
   }
 
   // Render logic
-  const c = analyticsContent.reports
+  const c = analyticsCopy.reports
   const understood = report.ranged || Boolean(data.previousTotals)
 
   return (

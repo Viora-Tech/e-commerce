@@ -2,7 +2,8 @@ import type { AnalyticsOverview } from '@commerce/api'
 import KitProgress from '@/components/kit/kit-progress'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
-import { analyticsContent as copy } from '@/data/analytics'
+import { analyticsContent } from '@/data/analytics'
+import { useCopy } from '@/hooks/use-copy'
 import { formatRate } from '@/lib/analytics-range'
 import { formatCompact } from '@/lib/money'
 
@@ -10,6 +11,9 @@ type FunnelCardProps = { steps: AnalyticsOverview['funnel'] }
 
 /** Sessions to orders, each step against sessions with its drop from the step before. */
 export default function FunnelCard({ steps }: FunnelCardProps) {
+  // Hooks
+  const copy = useCopy(analyticsContent)
+
   // Render logic
   const c = copy.funnel
   const empty = steps.every((s) => s.value === 0)

@@ -8,7 +8,8 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 import PillTabs from '@/components/layout/pill-tabs'
-import { globeSettingsContent as copy } from '@/data/live-globe'
+import { globeSettingsContent } from '@/data/live-globe'
+import { useCopy } from '@/hooks/use-copy'
 import { readPalette } from './globe-palette'
 import type {
   GlobeLayerSettings,
@@ -26,7 +27,7 @@ type GlobeSettingsPanelProps = {
   onReset: () => void
 }
 
-type Tab = keyof typeof copy.tabs
+type Tab = keyof typeof globeSettingsContent.tabs
 
 const TABS: readonly Tab[] = ['look', 'layers', 'data', 'palette']
 const LAYER_KEYS = ['borders', 'coastlines', 'grid', 'arcs', 'glow'] as const
@@ -64,6 +65,7 @@ export default function GlobeSettingsPanel({
   onReset,
 }: GlobeSettingsPanelProps) {
   // Hooks
+  const copy = useCopy(globeSettingsContent)
   const [tab, setTab] = useState<Tab>('look')
 
   // Helpers
@@ -402,6 +404,7 @@ type ColorRowProps = {
 /** A colour picker row: a round swatch (the native colour input, styled circular) plus "use
  * theme colour" once an override is picked. */
 function ColorRow({ label, value, fallback, onChange }: ColorRowProps) {
+  const copy = useCopy(globeSettingsContent)
   return (
     <LabelRow label={label}>
       <div className="flex items-center gap-2">

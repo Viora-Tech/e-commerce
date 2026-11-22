@@ -6,7 +6,8 @@ import ChartLoading from '@/components/layout/chart-loading'
 import DataCard from '@/components/layout/data-card'
 import DeltaChip from '@/components/layout/delta-chip'
 import EmptyState from '@/components/layout/empty-state'
-import { analyticsContent as copy } from '@/data/analytics'
+import { analyticsContent } from '@/data/analytics'
+import { useCopy } from '@/hooks/use-copy'
 import { formatDay } from '@/lib/analytics-range'
 import { change, formatCell, LOWER_IS_BETTER } from '@/lib/report-format'
 
@@ -41,6 +42,9 @@ function metricColumn(report: ReportDefinition): ReportColumn {
  * and its change.
  */
 export default function ReportChart({ report, data, shape }: ReportChartProps) {
+  // Hooks
+  const copy = useCopy(analyticsContent)
+
   // Render logic
   const c = copy.reports
   const metric = metricColumn(report)
