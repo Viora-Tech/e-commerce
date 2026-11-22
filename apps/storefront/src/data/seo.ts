@@ -61,7 +61,19 @@ export const SEO_DESCRIPTION_MAX = 160
  * collection views are not here: they carry `noindex, follow`, which Google can only read
  * on a page it may crawl.
  */
-export const ROBOTS_DISALLOW = ['/cart', '/checkout', '/account', '/search', '/documents'] as const
+export const ROBOTS_DISALLOW = [
+  '/cart',
+  '/checkout',
+  '/account',
+  '/search',
+  '/documents',
+  // Endpoints and one-use token links, not pages (Search Console listed them as 404s). Trailing
+  // slash so a real page that merely starts with the word (`/cod-guide`) stays crawlable.
+  '/theme-actions/',
+  '/newsletter/confirm/',
+  '/unsubscribe/',
+  '/cod/',
+] as const
 
 /** How many product names a collection's written-for-you description lists. */
 export const AUTO_DESCRIPTION_PRODUCTS = 3

@@ -1,6 +1,7 @@
 import 'server-only'
 import type { CardProduct } from '@commerce/blocks'
 import { notSystemTest, soldInRequestCatalog } from '@commerce/core'
+import { bestByHandle, handleCandidates } from '@commerce/core/catalog'
 import type { CollectionSort } from '@commerce/core/collections'
 import type { StoreTx } from '@commerce/db'
 import {
@@ -105,10 +106,12 @@ export async function getCollectionByHandle(
   tx: StoreTx,
   handle: string,
 ): Promise<CollectionDetail | null> {
-  const [row] = await tx
+  const tries = handleCandidates(handle)
+  const rows = await tx
     .select()
     .from(collection)
-    .where(and(eq(collection.handle, handle), eq(collection.status, 'active')))
+    .where(and(inArray(collection.handle, tries), eq(collection.status, 'active')))
+  const row = bestByHandle(rows, tries, (r) => r.handle)
   if (!row) return handle === 'all' ? ALL_PRODUCTS : null
   const [image] = row.imageMediaId
     ? await tx.select({ url: media.url }).from(media).where(eq(media.id, row.imageMediaId))

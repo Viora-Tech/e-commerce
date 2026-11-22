@@ -10,15 +10,20 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import ResourceTable from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
+import { brokenLinksContent } from '@/data/broken-links'
 import { type RedirectListItem, redirectsContent } from '@/data/redirects'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
+import BrokenLinksTable from './broken-links-table'
 import ImportRedirectsDialog from './import-redirects-dialog'
 import RedirectActions from './redirect-actions'
 import { redirectColumns } from './redirect-columns'
 import RedirectDialog from './redirect-dialog'
+
+type RedirectsView = 'redirects' | 'broken'
 
 type RedirectsListProps = {
   initial: { items: RedirectListItem[]; total: number }
@@ -27,7 +32,10 @@ type RedirectsListProps = {
 export default function RedirectsList({ initial }: RedirectsListProps) {
   // Hooks
   const copy = useCopy(redirectsContent)
+  const brokenCopy = useCopy(brokenLinksContent)
   const fmt = useFormat()
+  const [view, setView] = useState<RedirectsView>('redirects')
+  const [brokenTotal, setBrokenTotal] = useState<number | null>(null)
   const [data, setData] = useState(initial)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
@@ -113,6 +121,25 @@ export default function RedirectsList({ initial }: RedirectsListProps) {
 
   // Render logic
   const columns = redirectColumns(copy, fmt)
+  const views = (
+    <ViewSelect<RedirectsView>
+      value={view}
+      label={brokenCopy.views.label}
+      options={[
+        { value: 'redirects', label: brokenCopy.views.redirects, count: data.total },
+        {
+          value: 'broken',
+          label: brokenCopy.views.broken,
+          ...(brokenTotal === null ? {} : { count: brokenTotal }),
+        },
+      ]}
+      onChange={setView}
+    />
+  )
+  const summary =
+    view === 'broken' && brokenTotal !== null
+      ? brokenCopy.summary(brokenTotal)
+      : copy.summary(data.total)
   const addButton = (
     <Button type="button" onClick={() => setCreating(true)}>
       <Plus />
@@ -125,7 +152,7 @@ export default function RedirectsList({ initial }: RedirectsListProps) {
       header={
         <PageHeader
           title={copy.title}
-          summary={copy.summary(data.total)}
+          summary={summary}
           back={{ label: copy.back, href: routes.content.menus() }}
           actions={
             <>
@@ -149,44 +176,49 @@ export default function RedirectsList({ initial }: RedirectsListProps) {
         />
       }
       main={
-        <ResourceTable
-          resourceName={copy.resource}
-          columns={columns}
-          items={data.items}
-          getId={(r) => r.id}
-          loading={loading}
-          error={failed ? { heading: copy.loadFailed, onRetry: handleChanged } : undefined}
-          query={query}
-          onQueryChange={handleQuery}
-          page={page}
-          perPage={perPage}
-          total={data.total}
-          onPageChange={setPage}
-          onPerPageChange={handlePerPage}
-          selectable
-          bulkActions={(ids, clear) => (
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={() => setRemoving({ ids, clear })}
-            >
-              <Trash2 aria-hidden="true" />
-              {copy.actions.deleteSelected(ids.length)}
-            </Button>
-          )}
-          rowActions={(r) => (
-            <RedirectActions
-              onEdit={() => setEditing(r)}
-              onDelete={() => setRemoving({ ids: [r.id], clear: () => {} })}
-            />
-          )}
-          empty={
-            query
-              ? { heading: copy.empty.searchHeading }
-              : { heading: copy.empty.heading, body: copy.empty.body, action: addButton }
-          }
-        />
+        view === 'broken' ? (
+          <BrokenLinksTable views={views} onRedirected={handleChanged} onTotal={setBrokenTotal} />
+        ) : (
+          <ResourceTable
+            resourceName={copy.resource}
+            columns={columns}
+            items={data.items}
+            getId={(r) => r.id}
+            loading={loading}
+            error={failed ? { heading: copy.loadFailed, onRetry: handleChanged } : undefined}
+            views={views}
+            query={query}
+            onQueryChange={handleQuery}
+            page={page}
+            perPage={perPage}
+            total={data.total}
+            onPageChange={setPage}
+            onPerPageChange={handlePerPage}
+            selectable
+            bulkActions={(ids, clear) => (
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => setRemoving({ ids, clear })}
+              >
+                <Trash2 aria-hidden="true" />
+                {copy.actions.deleteSelected(ids.length)}
+              </Button>
+            )}
+            rowActions={(r) => (
+              <RedirectActions
+                onEdit={() => setEditing(r)}
+                onDelete={() => setRemoving({ ids: [r.id], clear: () => {} })}
+              />
+            )}
+            empty={
+              query
+                ? { heading: copy.empty.searchHeading }
+                : { heading: copy.empty.heading, body: copy.empty.body, action: addButton }
+            }
+          />
+        )
       }
     >
       {creating || editing ? (

@@ -13,14 +13,21 @@ import { errorText } from '@/lib/api-errors'
 type RedirectDialogProps = {
   /** Null creates a new redirect. */
   redirect: RedirectListItem | null
+  /** A new redirect's "Redirect from", filled in (Broken links' Choose target). */
+  initialPath?: string | undefined
   onClose: () => void
   onSaved: () => void
 }
 
-export default function RedirectDialog({ redirect, onClose, onSaved }: RedirectDialogProps) {
+export default function RedirectDialog({
+  redirect,
+  initialPath,
+  onClose,
+  onSaved,
+}: RedirectDialogProps) {
   // Hooks
   const { dialog: copy } = useCopy(redirectsContent)
-  const [path, setPath] = useState(redirect?.path ?? '')
+  const [path, setPath] = useState(redirect?.path ?? initialPath ?? '')
   const [target, setTarget] = useState(redirect?.target ?? '')
   const [busy, setBusy] = useState(false)
 

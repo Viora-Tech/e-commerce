@@ -314,6 +314,11 @@ describe('crawler files', () => {
     const txt = robotsTxt(origin, { search: true, ai: true })
     expect(txt).toContain('Disallow: /checkout')
     expect(txt).toContain('Disallow: /account')
+    // Endpoints and token links Google crawled; real pages that start with the word stay open.
+    for (const p of ['/theme-actions/', '/newsletter/confirm/', '/unsubscribe/', '/cod/']) {
+      expect(txt.split('\n')).toContain(`Disallow: ${p}`)
+    }
+    expect(txt.split('\n')).not.toContain('Disallow: /cod')
     // Sorted views carry noindex, which a crawler blocked by robots.txt never reads.
     expect(txt).not.toContain('sort=')
     expect(txt).toContain('Sitemap: https://waimers.in/sitemap.xml')

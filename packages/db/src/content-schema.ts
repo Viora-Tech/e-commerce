@@ -1,4 +1,13 @@
-import { jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+import {
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core'
 import { newId, store } from './schema'
 
 /* Storefront content the merchant edits: URL redirects, builder pages and menus. */
@@ -33,6 +42,30 @@ export const urlRedirect = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('url_redirect_store_path').on(t.storeId, t.path)],
+)
+
+/**
+ * A storefront path that answered 404 (Content › Menus › URL redirects › Broken links). `path`
+ * is normalised like `url_redirect.path` and never carries a query string; `referrer` is the
+ * last referring page's origin and path only. Written in batches by the storefront, no PII.
+ * `dismissed_at` hides it from the list until it is hit again after the dismissal.
+ */
+export const brokenLink = pgTable(
+  'broken_link',
+  {
+    id: id(),
+    storeId: storeId(),
+    path: text('path').notNull(),
+    hits: integer('hits').notNull().default(0),
+    lastSeen: timestamp('last_seen', { withTimezone: true }).notNull().defaultNow(),
+    referrer: text('referrer'),
+    dismissedAt: timestamp('dismissed_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('broken_link_store_path').on(t.storeId, t.path),
+    index('broken_link_store_hits').on(t.storeId, t.hits),
+  ],
 )
 
 /** Builder pages. `data` is the draft (Puck JSON); `publishedData` is what the storefront renders. */

@@ -254,6 +254,8 @@ export const ACTION_DOCS: Record<string, string> = {
     "Make one saved address the customer's default billing address (draft orders bill it).",
   'customers.sheet':
     'Rows for the Customers bulk-edit spreadsheet, in the order the ids were given.',
+  'customers.signInAs':
+    'A single-use link (2 minutes) that signs the opener in to the storefront as this customer for an hour.',
   'customers.whatsappChat':
     '"WhatsApp" click to chat from the customer page: their phone and name, plus their latest order\'s links for the order and shipping messages.',
   'dashboard.analytics':
@@ -486,6 +488,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'navigation.themePlacements':
     "Per menu handle, where the live theme's sections pick it (header, footer or a page).",
   'notifications.allowSuppressedEmail': '"Allow again" from the Sender email card\'s list.',
+  'notifications.branding':
+    "Email branding: what the merchant saved (or null) and the theme's look it starts from.",
   'notifications.checkSenderEmail': '"Check now": ask SES again.',
   'notifications.design':
     'Edit design: the saved design (or null), the default to start from, the locked blocks and variables.',
@@ -494,12 +498,17 @@ export const ACTION_DOCS: Record<string, string> = {
   'notifications.overview':
     'Settings → Notifications: every message the shop sends and how messages go out.',
   'notifications.preview': 'The message filled with a sample order, for the Preview dialog.',
+  'notifications.previewBranding':
+    "Email branding's live preview: one email with branding not saved yet.",
   'notifications.previewDesign':
     "The editor's live preview: an unsaved design filled with the sample order.",
   'notifications.removeSenderEmail':
     'Stop sending from the address; customer email goes back to the platform sender.',
+  'notifications.resetBranding': "Back to the theme's look for every email.",
   'notifications.resetDesign':
     'Reset to default: delete the saved design, so the built-in email goes out again.',
+  'notifications.saveBranding':
+    'Save the logo, logo size and colours every email uses from now on.',
   'notifications.saveDesign':
     "Save the merchant's design; every email of this kind is drawn from it from now on.",
   'notifications.senderEmail':
@@ -572,6 +581,8 @@ export const ACTION_DOCS: Record<string, string> = {
     "The Orders page's server render in one call and one transaction: the first page of rows (as list), the tab badges (tabCounts), the stat cards (tiles) and the installed apps' order actions (apps.order…",
   'orders.markDraftSeen':
     "The member opened one draft: it leaves the sidebar's unseen checkout drafts count.",
+  'orders.markLineNotShipped':
+    'Fulfilled card › a line\'s ⋯ › "Mark as unfulfilled": that line only (owner, 22 Nov 2026).',
   'orders.markNotDelivered':
     '"Mark as not delivered": undo a "Mark as delivered" pressed by mistake.',
   'orders.markNotShipped':
@@ -740,6 +751,9 @@ export const ACTION_DOCS: Record<string, string> = {
     'What the dialog needs: which factor to offer, and whether a step-up is even needed now.',
   'reauth.verify':
     'Verify an OTP or a passkey answer; on success the session is stamped re-authenticated.',
+  'redirects.brokenLinks':
+    'Broken links tab: storefront paths that answered 404, most hit first, each with the closest product or collection as a suggested target.',
+  'redirects.dismissBrokenLinks': 'Hide broken paths; one hit again after this comes back.',
   'redirects.exportCsv': "Every redirect as Shopify's two-column CSV (Redirect from, Redirect to).",
   'redirects.importCsv': 'Add or update redirects from a CSV.',
   'returns.create': "Open a return on the shopper's behalf.",
@@ -826,6 +840,8 @@ export const ACTION_DOCS: Record<string, string> = {
     "Connection state for the app's pages: account, property, last sync, refresh cooldown.",
   'seo.agentReadiness':
     "Settings → Store health › AI shopping agents: the store's live site checked as a browser and as AI bots (GET only); null without a live domain of its own.",
+  'seo.health':
+    'Settings → Store health › SEO: counts of the search-listing gaps, with the first few items.',
   'shipments.counts':
     "Rows per Shipments tab plus the summary line; provider: one courier's (its app's page).",
   'shipments.courierOverview':

@@ -13,15 +13,24 @@ export function redirectColumns(
       id: 'path',
       title: copy.columns.path,
       hideable: false,
-      render: (r) => <span className="font-medium break-all text-ink-strong">{r.path}</span>,
+      // Long handles truncate with the full path on hover, instead of running into Redirect to.
+      className: 'w-[40%]',
+      minWidth: 12,
+      render: (r) => (
+        <span className="block min-w-0 truncate font-medium text-ink-strong" title={r.path}>
+          {r.path}
+        </span>
+      ),
     },
     {
       id: 'target',
       title: copy.columns.target,
+      className: 'w-[36%]',
+      minWidth: 10,
       render: (r) => (
-        <span className="flex items-center gap-2 break-all text-muted-foreground">
+        <span className="flex min-w-0 items-center gap-2 text-muted-foreground" title={r.target}>
           <ArrowRight className="size-3.5 shrink-0" aria-hidden="true" />
-          {r.target}
+          <span className="min-w-0 truncate">{r.target}</span>
         </span>
       ),
     },

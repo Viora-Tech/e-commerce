@@ -2,7 +2,9 @@ import {
   allRedirects,
   DuplicateRedirect,
   deleteRedirects,
+  dismissBrokenLinks,
   importRedirectsCsv,
+  listBrokenLinks,
   listRedirects,
   parseRedirectsCsv,
   permissions,
@@ -55,6 +57,25 @@ export const redirectsRouter = {
   delete: can(permissions.ONLINE_STORE_WRITE)
     .input(z.object({ ids: z.array(z.uuid()).min(1).max(250) }))
     .handler(({ context, input }) => deleteRedirects(context.tx, input.ids)),
+
+  /**
+   * Broken links tab: storefront paths that answered 404, most hit first, each with the closest
+   * product or collection as a suggested target. A redirect from the path takes it off the list.
+   */
+  brokenLinks: can(permissions.ONLINE_STORE_READ)
+    .input(
+      z.object({
+        page: z.number().int().min(1).max(PAGE_MAX).default(1),
+        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(50),
+        query: z.string().trim().max(SEARCH_MAX).optional(),
+      }),
+    )
+    .handler(({ context, input }) => listBrokenLinks(context.tx, input)),
+
+  /** Hide broken paths; one hit again after this comes back. */
+  dismissBrokenLinks: can(permissions.ONLINE_STORE_WRITE)
+    .input(z.object({ ids: z.array(z.uuid()).min(1).max(250) }))
+    .handler(({ context, input }) => dismissBrokenLinks(context.tx, input.ids)),
 
   /** Every redirect as Shopify's two-column CSV (`Redirect from`, `Redirect to`). */
   exportCsv: can(permissions.ONLINE_STORE_READ)

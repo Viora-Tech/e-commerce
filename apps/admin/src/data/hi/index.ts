@@ -19,6 +19,7 @@ import backInStock from './back-in-stock'
 import backgroundWork from './background-work'
 import billing from './billing'
 import bluedart from './bluedart'
+import brokenLinks from './broken-links'
 import bugReport from './bug-report'
 import bulkActions from './bulk-actions'
 import bulkEdit from './bulk-edit'
@@ -217,6 +218,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...backgroundWork,
   ...billing,
   ...bluedart,
+  ...brokenLinks,
   ...mcp,
   ...approvals,
   ...bugReport,
