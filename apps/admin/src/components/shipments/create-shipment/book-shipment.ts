@@ -26,6 +26,8 @@ type BookShipmentArgs = {
     /** The row's name ("Delhivery Surface"), kept on the shipment for its details. */
     providerLabel?: string | undefined
     needsTrackingNumber?: boolean | undefined
+    /** The row's price before insurance: saved as the shipment's courier charge. */
+    pricePaise?: number | null | undefined
   } | null
   /** Ship it yourself with an AWB from a connected courier's own panel: that app tracks it. */
   panelProviderId?: string | null | undefined
@@ -75,12 +77,14 @@ export async function bookShipment(a: BookShipmentArgs): Promise<BookedShipment>
     paymentMode: a.parsed.paymentMode,
     codAmountPaise: a.parsed.codAmountPaise,
     insured: a.insured,
+    quotedChargePaise: a.courier?.pricePaise ?? undefined,
   })
   /* Until the courier has a pickup request for this place and day, the waybill sits in its
      "Ready to Ship" list. The request goes out right after the booking; a refusal is recorded
      (not thrown), so its status is read here and the details view offers "Request pickup". */
-  let pickupRequested = false
-  if (a.pickup.ask && a.canPickup) {
+  // The courier may schedule the pickup itself at booking (RapidShyp): nothing left to ask.
+  let pickupRequested = s.pickupId !== null
+  if (a.pickup.ask && a.canPickup && !pickupRequested) {
     try {
       const pickups = await api.shipments.schedulePickup({
         shipmentIds: [s.id],
@@ -94,9 +98,14 @@ export async function bookShipment(a: BookShipmentArgs): Promise<BookedShipment>
       toast.error(errorText(err, a.pickupFailed))
     }
   }
+  // What the courier booked, which an aggregator can change (#2082: Blue Dart for Amazon).
+  const asked = a.courier?.providerLabel
+  const swappedFrom = s.serviceLabel && asked && s.serviceLabel !== asked ? asked : undefined
   return {
     shipmentId: s.id,
-    courier: a.courierLabel ?? s.provider,
+    courier: (swappedFrom ? s.serviceLabel : a.courierLabel) ?? s.provider,
+    ...(swappedFrom ? { swappedFrom } : {}),
+    chargePaise: s.courierChargePaise,
     waybill: s.waybill,
     labelUrl: s.labelUrl,
     trackingUrl: s.trackingUrl,

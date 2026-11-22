@@ -24,6 +24,12 @@ export type OrderFacts = {
   isTest: boolean
 }
 
+/**
+ * What installed apps said about one order (`api.apps.orderStates`), by app id; null until the
+ * answer is in (actions gated by `whenState` stay hidden meanwhile).
+ */
+export type OrderAppStates = Readonly<Record<string, readonly string[]>> | null
+
 const UNFULFILLED: ReadonlySet<string> = new Set(UNFULFILLED_STATUSES)
 const UNPAID: ReadonlySet<string> = new Set(UNPAID_PAYMENT_STATUSES)
 
@@ -41,27 +47,40 @@ export function meets(order: OrderFacts, condition: OrderActionCondition): boole
   }
 }
 
+/**
+ * Whether an app's states meet an action's `whenState`: `invoiced` must be there, `!invoiced`
+ * must not. No tests always pass; unknown states (null) fail any test.
+ */
+export function meetsStates(have: readonly string[] | null, tests: readonly string[] = []) {
+  if (tests.length === 0) return true
+  if (!have) return false
+  return tests.every((t) => (t.startsWith('!') ? !have.includes(t.slice(1)) : have.includes(t)))
+}
+
 /** Open, units still to pack, and paid or cash on delivery: the order can be shipped now. */
 export const readyToShip = (order: OrderFacts) =>
   meets(order, 'open') && meets(order, 'unfulfilled') && meets(order, 'paid-or-cod')
 
 /**
  * The groups and actions for one menu: actions placed on `target`, whose conditions the order
- * meets (the bulk bar passes no order and keeps them all; the handler skips what it cannot do),
- * and that the admin can run (`runnable`: a procedure needs its registered call). Apps left
- * with nothing drop out.
+ * meets, with the app's states (`states`) meeting its `whenState` (the bulk bar passes no
+ * order and keeps them all; the handler skips what it cannot do), and that the admin can run
+ * (`runnable`: a procedure needs its registered call). Apps left with nothing drop out.
  */
 export function actionsFor(
   groups: readonly OrderActionGroup[],
   target: OrderActionTarget,
   order: OrderFacts | null,
   runnable: (action: OrderAction) => boolean,
+  states: OrderAppStates = null,
 ): OrderActionGroup[] {
   return groups.flatMap((g) => {
+    const have = states ? (states[g.appId] ?? []) : null
     const actions = g.actions.filter(
       (a) =>
         a.targets.includes(target) &&
-        (!order || (a.requires ?? []).every((c) => meets(order, c))) &&
+        (!order ||
+          ((a.requires ?? []).every((c) => meets(order, c)) && meetsStates(have, a.whenState))) &&
         runnable(a),
     )
     return actions.length ? [{ ...g, actions }] : []

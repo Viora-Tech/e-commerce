@@ -17,6 +17,15 @@ export const orderAppActionsContent = {
     download: 'Download',
     viewAll: 'View invoices',
     openQueue: 'Open queue',
+    /** "Email invoice to customer": queued to the worker, which sends and notes it on the timeline. */
+    emailed: (numbers: string[]) =>
+      numbers.length === 1
+        ? `Emailing invoice ${numbers[0]} to the customer`
+        : `Emailing ${numbers.length} invoices to the customer: ${numbers.join(', ')}`,
+    /** "Download invoice": a split order saves one PDF per parcel. */
+    downloaded: (count: number) =>
+      count === 1 ? 'Invoice downloaded' : `Downloaded ${count} invoices`,
+    noPdf: 'This order has no invoice PDF. An invoice recorded from outside Koomerce has none.',
     /** Bulk "Add to invoice queue": every selected order is accounted for. */
     queued: (c: {
       added: number

@@ -77,6 +77,27 @@ export const ORDER_ACTION_PROCEDURES: Record<string, OrderActionProcedure> = {
     }
     return { message }
   },
+  // Once invoiced (`whenState: ['invoice-pdf']`): the worker sends it and notes it on the timeline.
+  'gst-invoices/email': async (orderIds, copy) => {
+    const numbers: string[] = []
+    for (const orderId of orderIds) {
+      numbers.push(...(await api.gstInvoices.emailInvoice({ orderId })).numbers)
+    }
+    return { message: copy.gst.emailed(numbers) }
+  },
+  // Each issued invoice PDF of the order (a split order has one per parcel); recorded ones have none.
+  'gst-invoices/download': async (orderIds, copy) => {
+    let count = 0
+    for (const orderId of orderIds) {
+      const { documents } = await api.gstInvoices.forOrder({ orderId })
+      const pdfs = documents.filter(
+        (d) => d.kind === 'tax_invoice' && d.status === 'issued' && d.source !== 'external',
+      )
+      for (const d of pdfs) await pdf(d.id, 'download')()
+      count += pdfs.length
+    }
+    return { message: count ? copy.gst.downloaded(count) : copy.gst.noPdf }
+  },
   'gst-invoices/queue-add': async (orderIds, copy) => {
     const counts = { added: 0, skipped: 0, alreadyQueued: 0, alreadyInvoiced: 0 }
     for (let i = 0; i < orderIds.length; i += QUEUE_BATCH) {

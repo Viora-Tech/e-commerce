@@ -286,7 +286,13 @@ describe('RapidshypProvider createShipment (wrapper API)', () => {
       serviceId: 'BD',
       serviceLabel: 'Blue Dart Air',
     })
-    expect(r).toEqual({ waybill: 'BD-1', providerRef: '2471', labelUrl: 'https://l/bd.pdf' })
+    expect(r).toEqual({
+      waybill: 'BD-1',
+      providerRef: '2471',
+      labelUrl: 'https://l/bd.pdf',
+      bookedService: { id: 'BD', label: 'Blue Dart Air' },
+      pickupScheduled: true,
+    })
 
     const paths = f.calls.map((c) => c.url.pathname.split('/').pop())
     // Never the wrapper: it books by the account's courier priority (Amazon Shipping, 14 Nov).
@@ -491,7 +497,12 @@ describe('RapidshypProvider createShipment (wrapper API)', () => {
       serviceId: 'BD',
       pushed: { externalOrderId: '2471', externalShipmentId: 'ship-9' },
     })
-    expect(r).toEqual({ waybill: 'BD-3', providerRef: '2471', labelUrl: 'https://l/3.pdf' })
+    expect(r).toEqual({
+      waybill: 'BD-3',
+      providerRef: '2471',
+      labelUrl: 'https://l/3.pdf',
+      pickupScheduled: true,
+    })
     expect(f.calls.some((c) => c.url.pathname.endsWith('/create_order'))).toBe(false)
     expect(f.calls.some((c) => c.url.pathname.endsWith('/wrapper'))).toBe(false)
     const assign = f.calls.find((c) => c.url.pathname.endsWith('/assign_awb'))
@@ -564,6 +575,108 @@ describe('RapidshypProvider createShipment (wrapper API)', () => {
     })
     const p = new RapidshypProvider({ ...config, fetchImpl: f.impl })
     await expect(p.createShipment(sampleShipment)).rejects.toMatchObject({ kind: 'rejected' })
+  })
+})
+
+describe('RapidshypProvider booking truth (#2082, 22 Nov 2026)', () => {
+  const chosenRoutes = (assign: unknown, pickup: unknown = { status: 'SUCCESS' }) =>
+    fakeFetch({
+      '/rapidshyp/apis/v1/create_order': () =>
+        json({ status: 'SUCCESS', order_id: '2082', shipment: [{ shipment_id: 'ship-82' }] }),
+      '/rapidshyp/apis/v1/assign_awb': () => json(assign),
+      '/rapidshyp/apis/v1/schedule_pickup': () => json(pickup),
+      '/rapidshyp/apis/v1/generate_label': () =>
+        json({ status: true, labelData: [{ labelURL: 'https://l/82.pdf' }] }),
+    })
+
+  it('sends the picked courier code and reports the courier RapidShyp actually booked', async () => {
+    const f = chosenRoutes({
+      status: 'SUCCESS',
+      awb: 'BD-82',
+      courier_code: 'BDS',
+      courier_name: 'Blue Dart Surface',
+    })
+    const p = new RapidshypProvider({ ...config, fetchImpl: f.impl })
+    const r = await p.createShipment({
+      ...sampleShipment,
+      orderNumber: 2082,
+      serviceId: 'AMZS',
+      serviceLabel: 'Amazon Shipping Surface (RapidShyp)',
+    })
+    const assign = f.calls.find((c) => c.url.pathname.endsWith('/assign_awb'))
+    expect(JSON.parse(assign?.init?.body as string)).toEqual({
+      shipment_id: 'ship-82',
+      courier_code: 'AMZS',
+    })
+    expect(r.bookedService).toEqual({ id: 'BDS', label: 'Blue Dart Surface' })
+  })
+
+  it('sends the box and the weight in grams the merchant saw, not a 10 cm cube', async () => {
+    const f = chosenRoutes({ status: 'SUCCESS', awb: 'BD-82' })
+    const p = new RapidshypProvider({ ...config, fetchImpl: f.impl })
+    await p.createShipment({
+      ...sampleShipment,
+      serviceId: 'AMZS',
+      weightGrams: 510,
+      dimensionsCm: { length: 20, width: 20, height: 5 },
+    })
+    const create = JSON.parse(
+      f.calls.find((c) => c.url.pathname.endsWith('/create_order'))?.init?.body as string,
+    )
+    expect(create.packageDetails).toEqual({
+      packageLength: 20,
+      packageBreadth: 20,
+      packageHeight: 5,
+      packageWeight: 510,
+    })
+  })
+
+  it('still sends a 10 cm cube when the parcel has no box', async () => {
+    const f = chosenRoutes({ status: 'SUCCESS', awb: 'BD-82' })
+    const p = new RapidshypProvider({ ...config, fetchImpl: f.impl })
+    await p.createShipment({ ...sampleShipment, serviceId: 'AMZS', weightGrams: 510 })
+    const create = JSON.parse(
+      f.calls.find((c) => c.url.pathname.endsWith('/create_order'))?.init?.body as string,
+    )
+    expect(create.packageDetails).toMatchObject({ packageLength: 10, packageWeight: 510 })
+  })
+
+  it('says the pickup is scheduled only when schedule_pickup answers SUCCESS', async () => {
+    const refused = chosenRoutes({ awb: 'BD-82' }, { status: 'FAILED', remarks: 'No slot' })
+    const r = await new RapidshypProvider({ ...config, fetchImpl: refused.impl }).createShipment({
+      ...sampleShipment,
+      serviceId: 'AMZS',
+    })
+    expect(r.waybill).toBe('BD-82')
+    expect(r.pickupScheduled).toBeUndefined()
+  })
+
+  it('reads the wrapper’s pickupScheduled flag and courier without asking for a pickup again', async () => {
+    const f = fakeFetch({
+      '/rapidshyp/apis/v1/wrapper': () =>
+        json({
+          orderCreated: true,
+          orderId: '2082',
+          shipment: [
+            {
+              shipmentId: 'ship-82',
+              awb: 'BD-82',
+              pickupScheduled: true,
+              courierCode: 'BDS',
+              courierName: 'Blue Dart Surface',
+              labelURL: 'https://l/82.pdf',
+            },
+          ],
+        }),
+    })
+    const r = await new RapidshypProvider({ ...config, fetchImpl: f.impl }).createShipment(
+      sampleShipment,
+    )
+    expect(r).toMatchObject({
+      pickupScheduled: true,
+      bookedService: { id: 'BDS', label: 'Blue Dart Surface' },
+    })
+    expect(f.calls.some((c) => c.url.pathname.endsWith('/schedule_pickup'))).toBe(false)
   })
 })
 

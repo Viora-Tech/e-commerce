@@ -38,7 +38,12 @@ import {
 } from '../services/gst-invoices.service'
 import { asOrpc, Gst, gstScope, Period, renderDeps, requireInstalled } from './gst-invoices-context'
 import { fileProcedures } from './gst-invoices-files'
-import { addToQueue, generateInvoice, invoiceFixProcedures } from './gst-invoices-order-actions'
+import {
+  addToQueue,
+  emailOrderInvoice,
+  generateInvoice,
+  invoiceFixProcedures,
+} from './gst-invoices-order-actions'
 import { recordExternal, undoExternal } from './gst-invoices-record'
 import { returnsProcedures } from './gst-invoices-returns'
 import { Filter, Selection, selectedIds } from './gst-invoices-selection'
@@ -149,6 +154,8 @@ export const gstInvoicesRouter = {
 
   /** "Generate GST invoice": queue and issue one order at once (`./gst-invoices-order-actions`). */
   generate: generateInvoice,
+  /** "Email invoice to customer": the order's issued invoice PDFs to its email (`./gst-invoices-order-actions`). */
+  emailInvoice: emailOrderInvoice,
 
   queue: {
     list: can(permissions.ORDERS_READ)

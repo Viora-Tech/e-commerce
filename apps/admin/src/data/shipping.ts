@@ -159,6 +159,9 @@ export const shipmentDetailsContent = {
   size: (l: number, w: number, h: number) => `${l} × ${w} × ${h} cm`,
   pickup: 'Pickup',
   pickupOn: (date: string, time: string) => `Pickup requested for ${date}, from ${time}`,
+  /** The courier scheduled it itself when the parcel was booked (RapidShyp), in its own slot. */
+  pickupAtBooking: (date: string) =>
+    `Pickup scheduled for ${date}: the courier booked it with the shipment and comes in its own time slot`,
   noPickup:
     'Not requested yet. Until it is, the parcel waits in the courier’s “Ready to Ship” list.',
   requestPickup: 'Request pickup',

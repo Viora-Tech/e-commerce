@@ -253,14 +253,20 @@ export function bulkBookRequest(
       dimensionsCm?: Dimensions
       paymentMode?: 'cod' | 'prepaid'
       insured: boolean
+      quotedChargePaise?: number
     }
   > = {}
   for (const l of booking) {
     const e = edits[l.order.orderId]
+    // The package the couriers were asked about, so the booking sends what the row showed.
+    const asked = l.parcel ? orderQuoteRequest(l.order, l.parcel, e) : null
+    // The picked row's own price, before the insurance `insuredRows` adds on top.
+    const quoted = l.quote?.options.find((o) => o.optionKey === l.pick?.optionKey)?.pricePaise
     perOrder[l.order.orderId] = {
       insured: l.insured,
-      ...(e?.weightGrams ? { weightGrams: Math.round(e.weightGrams) } : {}),
-      ...(usableDims(e?.dimensionsCm) ? { dimensionsCm: e?.dimensionsCm } : {}),
+      ...(asked?.weightGrams ? { weightGrams: asked.weightGrams } : {}),
+      ...(asked?.dimensionsCm ? { dimensionsCm: asked.dimensionsCm } : {}),
+      ...(quoted != null ? { quotedChargePaise: quoted } : {}),
       ...(e?.paymentMode && e.paymentMode !== l.order.paymentMode
         ? { paymentMode: e.paymentMode }
         : {}),

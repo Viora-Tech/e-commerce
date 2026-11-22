@@ -1,4 +1,5 @@
 import { isPermission, type Permission } from '@commerce/core/permissions'
+import { getRegistries } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import {
   DEFAULT_ORDER_ACTION_PERMISSION,
@@ -61,4 +62,40 @@ export async function storeOrderActions(
 ): Promise<OrderActionGroup[]> {
   const { apps, connectedIds } = await storeAppStates(tx, storeId)
   return orderActionGroups(apps, { can, enabledProviderIds: connectedIds })
+}
+
+/** Order ids `apps.orderStates` takes in one call: a page of the Orders list. */
+export const ORDER_STATES_MAX = 100
+
+/**
+ * The states installed, set-up apps report for these orders (their order actions'
+ * `whenState`), keyed by order id, then app id. Only apps that have a gated action and an
+ * `orderStates` read are asked, each in a savepoint: a read that fails must not abort the
+ * request, that app's gated actions just stay hidden.
+ */
+export async function storeOrderStates(
+  tx: StoreTx,
+  storeId: string,
+  orderIds: readonly string[],
+): Promise<Record<string, Record<string, string[]>>> {
+  const out: Record<string, Record<string, string[]>> = {}
+  if (orderIds.length === 0) return out
+  const { apps } = await storeAppStates(tx, storeId)
+  const ready = new Set(
+    apps
+      .filter((a) => a.installed && a.connected && a.admin.orderActions.some((x) => x.whenState))
+      .map((a) => a.id),
+  )
+  for (const p of getRegistries().plugins) {
+    const read = p.orderStates
+    if (!read || !ready.has(p.id)) continue
+    const states = await tx
+      .transaction((sp) => read({ tx: sp, storeId }, orderIds))
+      .catch(() => ({}) as Record<string, string[]>)
+    for (const [orderId, names] of Object.entries(states)) {
+      if (!orderIds.includes(orderId) || names.length === 0) continue
+      out[orderId] = { ...out[orderId], [p.id]: names }
+    }
+  }
+  return out
 }

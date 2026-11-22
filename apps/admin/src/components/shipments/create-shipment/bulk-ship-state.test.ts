@@ -288,7 +288,26 @@ describe('totals and booking', () => {
       orderIds: ['a'],
       courierOverrides: { a: 'delhivery' },
       parcelIds: { a: 'p-a' },
-      perOrder: { a: { insured: false, weightGrams: 950, paymentMode: 'cod' } },
+      perOrder: {
+        a: {
+          insured: false,
+          weightGrams: 950,
+          // The box the couriers were asked about, and the picked row's price (#2082).
+          dimensionsCm: { length: 48, width: 42, height: 4 },
+          quotedChargePaise: 12550,
+          paymentMode: 'cod',
+        },
+      },
+    })
+  })
+
+  it('sends an unedited row the package and price its courier quoted (#2082)', () => {
+    const lines = linesFor([order('a')], [quote('a', OPTIONS)])
+    const request = bulkBookRequest(lines, new Set(), {})
+    expect(request.perOrder.a).toMatchObject({
+      weightGrams: 820,
+      dimensionsCm: { length: 48, width: 42, height: 4 },
+      quotedChargePaise: 12550,
     })
   })
 

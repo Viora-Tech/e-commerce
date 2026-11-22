@@ -116,6 +116,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Every plugin this deployment ships, flagged with whether this store installed it, its status (Connected, Needs setup, Error) and its history for the Installed apps list.',
   'apps.orderActions':
     "Actions installed apps add to orders (the order page's More actions, the Orders list's row menu and bulk bar), grouped by app, limited to what this member may run.",
+  'apps.orderStates':
+    'What installed apps say about some orders (invoiced, invoice-pdf), keyed by order id then app id: the order menus show an action whose whenState these meet.',
   'apps.testConnection': 'Read-only check of the account typed in the install flow.',
   'apps.uninstallMany': 'Bulk uninstall from the Installed apps list: all or none.',
   'automations.approvals.decide':
@@ -308,6 +310,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'gstInvoices.bulkPrint': 'One merged PDF for the printer.',
   'gstInvoices.cancel': 'Cancel an issued invoice that has not been reported in a filed GSTR-1.',
   'gstInvoices.download': "One document's PDF.",
+  'gstInvoices.emailInvoice':
+    '"Email invoice to customer": the order\'s issued invoice PDFs to its email (./gst-invoices-order-actions).',
   'gstInvoices.forOrder': 'Documents and refunds for the order card.',
   'gstInvoices.generate':
     '"Generate GST invoice": queue and issue one order at once (./gst-invoices-order-actions).',
@@ -840,6 +844,12 @@ export const ACTION_DOCS: Record<string, string> = {
     "Connection state for the app's pages: account, property, last sync, refresh cooldown.",
   'seo.agentReadiness':
     "Settings → Store health › AI shopping agents: the store's live site checked as a browser and as AI bots (GET only); null without a live domain of its own.",
+  'seo.assistant':
+    'Online store → SEO → Search opportunities: every product, collection and page Google showed (Google Search Console app), with its searches, numbers and gaps, biggest opportunity first.',
+  'seo.assistantApply':
+    '"Apply": writes the approved drafts through each item\'s own save, never on its own.',
+  'seo.assistantDraft':
+    '"Fix with AI": drafts a search title, description and intro or FAQ per item.',
   'seo.health':
     'Settings → Store health › SEO: counts of the search-listing gaps, with the first few items.',
   'shipments.counts':

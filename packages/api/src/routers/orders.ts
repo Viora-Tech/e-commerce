@@ -210,7 +210,13 @@ export const ordersRouter = {
       const { tx, scope } = context
       const { shipping } = await storeRegistries(tx, scope.storeId)
       if (input.providerId && !input.sameBoxAs) {
-        await assertCourierConnected(tx, scope.storeId, shipping, settingsSecret(), input.providerId)
+        await assertCourierConnected(
+          tx,
+          scope.storeId,
+          shipping,
+          settingsSecret(),
+          input.providerId,
+        )
       }
       const providerId = // a courier named by hand that is a connected app: that app (#2462)
         input.providerId ??
@@ -305,6 +311,8 @@ export const ordersRouter = {
         paymentMode: z.enum(['cod', 'prepaid']).optional(),
         codAmountPaise: z.number().int().min(0).optional(),
         insured: z.boolean().optional(),
+        /** The picked row's price before insurance: the shipment's courier charge if it books. */
+        quotedChargePaise: z.number().int().min(0).optional(),
       }),
     )
     .handler(async ({ context, input }) => {

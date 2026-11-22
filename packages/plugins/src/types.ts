@@ -235,6 +235,13 @@ export type OrderAction = {
   /** The permission a member needs to see and run it, e.g. `orders.fulfil`. Default `orders.write`. */
   permission?: string | undefined
   requires?: OrderActionCondition[] | undefined
+  /**
+   * States of the order in the app's own terms, from its `orderStates` read: `invoiced` needs the
+   * app to report that state for the order, `!invoiced` needs it not to. Like `requires`, the
+   * detail page and row menus hide the action when the order does not match (and until the
+   * states have loaded); the bulk bar ignores them.
+   */
+  whenState?: string[] | undefined
 }
 
 /**
@@ -400,6 +407,19 @@ export type AppBarContext = {
   courierActivity(provider: string): Promise<{ moving: number; lastUpdate: Date | null }>
 }
 
+/** What an `orderStates` read gets: the store's transaction. */
+export type OrderStatesContext = { tx: StoreTx; storeId: string }
+
+/**
+ * An app's states for some orders (at most a page of them), keyed by order id: the names its
+ * order actions' `whenState` test, e.g. `['invoiced', 'invoice-pdf']`. An order left out has
+ * none. Must be cheap: a statement or two for the whole page, never one per order.
+ */
+export type OrderStates = (
+  ctx: OrderStatesContext,
+  orderIds: readonly string[],
+) => Promise<Record<string, string[]>>
+
 /** An app's newest use, in its own words ("New review on Linen shirt"); null text when unsaid. */
 export type AppLastUsed = { at: Date; summary: string | null }
 
@@ -421,6 +441,8 @@ export type PluginManifest = {
   hooks?: Partial<Record<AppEvent, AppHook>> | undefined
   /** Links added to the shopper's order page and order emails. Must be cheap: runs per render. */
   orderLinks?: ((ctx: OrderLinkContext, orderId: string) => Promise<OrderLink[]>) | undefined
+  /** Order states for its order actions' `whenState` (the admin's menus ask for a page at a time). */
+  orderStates?: OrderStates | undefined
   productFields?: ProductField[] | undefined
   admin?: AppAdmin | undefined
   /** Open-source projects this app is built on. */

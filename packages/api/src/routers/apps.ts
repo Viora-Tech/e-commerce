@@ -20,7 +20,11 @@ import {
 } from '../services/app-connect.service'
 import { disconnectStoreApp, installStoreApp, uninstallStoreApp } from '../services/apps.service'
 import { storeAppSummaries } from '../services/installed-apps.service'
-import { storeOrderActions } from '../services/order-actions.service'
+import {
+  ORDER_STATES_MAX,
+  storeOrderActions,
+  storeOrderStates,
+} from '../services/order-actions.service'
 import { TEST_CONNECTION_RULE } from '../services/shipping.service'
 
 /** The store's apps (installed and not) with what each costs; `apps.list` and the admin shell. */
@@ -78,6 +82,16 @@ export const appsRouter = {
   orderActions: can(permissions.ORDERS_READ).handler(({ context }) =>
     storeOrderActions(context.tx, context.scope.storeId, context.scope.can),
   ),
+
+  /**
+   * What installed apps say about some orders (`invoiced`, `invoice-pdf`), keyed by order id
+   * then app id: the order menus show an action whose `whenState` these meet. A page at a time.
+   */
+  orderStates: can(permissions.ORDERS_READ)
+    .input(z.object({ orderIds: z.array(z.uuid()).max(ORDER_STATES_MAX) }))
+    .handler(({ context, input }) =>
+      storeOrderStates(context.tx, context.scope.storeId, input.orderIds),
+    ),
 
   /**
    * Install, optionally saving the account typed in the install flow's first step in the same

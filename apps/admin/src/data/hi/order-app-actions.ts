@@ -17,6 +17,12 @@ export default [
       download: 'डाउनलोड',
       viewAll: 'इनवॉइस देखें',
       openQueue: 'कतार खोलें',
+      emailed: (numbers) =>
+        numbers.length === 1
+          ? `इनवॉइस ${numbers[0]} ग्राहक को ईमेल हो रहा है`
+          : `${numbers.length} इनवॉइस ग्राहक को ईमेल हो रहे हैं: ${numbers.join(', ')}`,
+      downloaded: (count) => (count === 1 ? 'इनवॉइस डाउनलोड हो गया' : `${count} इनवॉइस डाउनलोड हुए`),
+      noPdf: 'इस ऑर्डर के इनवॉइस की PDF नहीं है। Koomerce के बाहर बने इनवॉइस की PDF नहीं होती।',
       queued: (c) => {
         const parts = [
           c.added === 0 ? 'इनवॉइस कतार में जोड़ने को कुछ नया नहीं' : `${c.added} इनवॉइस कतार में जोड़े गए`,

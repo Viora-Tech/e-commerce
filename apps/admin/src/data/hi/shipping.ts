@@ -193,6 +193,8 @@ export default [
     size: (l, w, h) => `${l} × ${w} × ${h} सेमी`,
     pickup: 'पिकअप',
     pickupOn: (date, time) => `${date} को ${time} से पिकअप माँगा गया`,
+    pickupAtBooking: (date) =>
+      `${date} का पिकअप तय है: कूरियर ने शिपमेंट के साथ ही बुक किया, वह अपने समय पर आएगा`,
     noPickup: 'अभी पिकअप नहीं माँगा गया। तब तक पार्सल कूरियर की “Ready to Ship” लिस्ट में रहेगा।',
     requestPickup: 'पिकअप माँगें',
     pickupMissed: (date, time) => `${date} को ${time} से का पिकअप छूट गया: कूरियर पार्सल नहीं ले गया`,

@@ -70,11 +70,17 @@ export default function ShipmentDetails({
       : null
   const pkg = [kg, size].filter(Boolean).join(' · ')
   const time = shipment.pickup?.timeFrom.match(HHMM)
+  const pickupDay = shipment.pickup
+    ? fmt.pattern(shipment.pickup.date, { weekday: 'short', day: 'numeric', month: 'short' })
+    : ''
+  // No time asked: the courier scheduled it at booking, in its own slot (RapidShyp).
   const pickup = shipment.pickup
-    ? (shipment.pickupMissed ? copy.pickupMissed : copy.pickupOn)(
-        fmt.pattern(shipment.pickup.date, { weekday: 'short', day: 'numeric', month: 'short' }),
-        time ? `${time[1]?.padStart(2, '0')}:${time[2]}` : shipment.pickup.timeFrom,
-      )
+    ? !shipment.pickupMissed && shipment.pickup.timeFrom === ''
+      ? copy.pickupAtBooking(pickupDay)
+      : (shipment.pickupMissed ? copy.pickupMissed : copy.pickupOn)(
+          pickupDay,
+          time ? `${time[1]?.padStart(2, '0')}:${time[2]}` : shipment.pickup.timeFrom,
+        )
     : shipment.status === 'created'
       ? copy.noPickup
       : null

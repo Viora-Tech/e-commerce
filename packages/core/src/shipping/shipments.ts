@@ -20,6 +20,7 @@ import { separateShippedUnits } from '../order/parcel-split'
 import { recomputeOrderStatuses } from '../order/recompute'
 import { assertWaybillFree } from '../order/waybill-owner'
 import { insertOutboxEvent } from '../outbox/write'
+import { bookedCourier, noteCourierSwapped, recordPickupAtBooking } from './booking-truth'
 import { deliveryForParcel, noteOffRoute } from './delivery-options/booking'
 import { bookingInsurancePaise, declaredValuePaise } from './delivery-options/insurance'
 import { bookedCarrier } from './delivery-options/routes'
@@ -92,6 +93,8 @@ export type CreateShipmentOptions = {
   trackingNumber?: string | undefined
   /** The box packed, picked in the booking flow; omitted, the parcel's own box (parcelBoxPreset). */
   boxPresetId?: string | undefined
+  /** The picked courier's price before insurance, kept as its charge when it books that one. */
+  quotedChargePaise?: number | undefined
 }
 
 /** A line's customs fields, only those it has (domestic couriers never read them). */
@@ -379,6 +382,9 @@ export async function createShipmentForOrder(
   })
   if (pushed) await markCourierOrderBooked(ctx, o.id, provider.id)
   if (route && !onRoute) await noteOffRoute(ctx, o.id, route, provider.label, options.serviceLabel)
+  // What the courier booked, not only what was picked (#2082: Blue Dart for an Amazon pick).
+  const truth = bookedCourier(provider, options, result)
+  if (truth.swapped) await noteCourierSwapped(ctx, o.id, provider, truth.swapped)
 
   // The consignment carries its parcel: the named one, or the order's only one.
   const shipmentId = crypto.randomUUID()
@@ -405,8 +411,8 @@ export async function createShipmentForOrder(
       // What the courier was told: the location's own name, else its account default.
       pickupLocationName:
         shipFrom.pickupLocationName ?? provider.defaultPickupLocationName ?? shipFrom.address.name,
-      serviceLabel: options.serviceLabel?.trim() || null,
-      carrier,
+      serviceLabel: truth.serviceLabel,
+      carrier: truth.carrier ?? carrier,
       weightGrams,
       lengthCm: parcelPackage?.lengthCm ?? null,
       widthCm: parcelPackage?.widthCm ?? null,
@@ -414,8 +420,8 @@ export async function createShipmentForOrder(
       insured,
       insurancePaise,
       declaredValuePaise: valuePaise,
-      // What the courier charges, when its booking said; the merchant can type it otherwise.
-      courierChargePaise: result.chargePaise ?? null,
+      // Its booking's charge, else the quote for the courier booked; Profit can still override.
+      courierChargePaise: truth.courierChargePaise,
       // Packing as it costs today, so a later box price change never moves this order's profit.
       packingCostPaise: box?.costPaise ?? null,
       boxPresetId: box?.id ?? null,
@@ -426,7 +432,8 @@ export async function createShipmentForOrder(
      label and commercial invoice, joined label-first): kept privately, linked by id. The
      booking stands even if storage fails: the AWB is real, and the label can be reprinted
      from the courier's own site. */
-  let booked = row
+  // Scheduled by the courier at booking (RapidShyp): on a pickup, so To be picked up lists it.
+  let booked = result.pickupScheduled ? await recordPickupAtBooking(ctx, provider, row) : row
   const labelDocument = result.labelUrl
     ? undefined
     : (result.labelDocument ??
@@ -434,14 +441,14 @@ export async function createShipmentForOrder(
         ? await shipmentDocumentsAsLabel(result.documents).catch(() => null)
         : null))
   if (labelDocument) {
-    const labelUrl = await storeShippingLabel(ctx, row.id, labelDocument)
+    const labelUrl = await storeShippingLabel(ctx, booked.id, labelDocument)
     if (labelUrl) {
       const [withLabel] = await ctx.tx
         .update(shipment)
         .set({ labelUrl })
         .where(eq(shipment.id, row.id))
         .returning()
-      booked = withLabel ?? row
+      booked = withLabel ?? booked
     }
   }
   // The label exists, so the parcel ships: its lines (every line, for the whole order) are

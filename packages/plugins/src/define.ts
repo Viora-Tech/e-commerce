@@ -77,6 +77,7 @@ export function definePlugin(input: DefinePluginInput): PluginManifest {
     tested: input.tested,
     hooks: input.hooks,
     orderLinks: input.orderLinks,
+    orderStates: input.orderStates,
     productFields: input.productFields,
     admin: input.admin,
     credits: input.credits,

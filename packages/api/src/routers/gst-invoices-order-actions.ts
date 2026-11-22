@@ -1,7 +1,8 @@
 /**
  * The GST invoices procedures behind its order actions (developer docs, Plugins, "Order
- * actions"): adding orders to the invoice queue and "Generate GST invoice". Split out of
- * `./gst-invoices.ts`, which mounts them as `gstInvoices.queue.add` and `gstInvoices.generate`.
+ * actions"): adding orders to the invoice queue, "Generate GST invoice" and "Email invoice to
+ * customer". Split out of `./gst-invoices.ts`, which mounts them as `gstInvoices.queue.add`,
+ * `gstInvoices.generate` and `gstInvoices.emailInvoice`.
  */
 import { enqueueAppJob, permissions } from '@commerce/core'
 import {
@@ -9,6 +10,7 @@ import {
   enqueueOrderParcels,
   GST_INVOICES_ID,
   InvoiceError,
+  invoicesToEmail,
   isCancelledOrder,
   issueDrafts,
   issuedInvoiceIds,
@@ -17,9 +19,10 @@ import {
   renderAndStore,
   soldOnlyGiftCards,
 } from '@commerce/plugin-gst-invoices/server'
+import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { BULK_MAX, can } from '../procedures'
-import { orderIdsByNumber } from '../services/gst-invoices.service'
+import { createEmailBatch, orderIdsByNumber } from '../services/gst-invoices.service'
 import { asOrpc, renderDeps, requireInstalled } from './gst-invoices-context'
 import { Selection, selectedIds } from './gst-invoices-selection'
 
@@ -131,6 +134,38 @@ export const generateInvoice = can(permissions.ORDERS_WRITE)
         ...plan.map((p) => ({ id: p.id, number: p.number })),
       ]
       return { issued: plan.map((p) => p.number), alreadyIssued, invoices }
+    } catch (err) {
+      asOrpc(err)
+    }
+  })
+
+/**
+ * "Email invoice to customer" (the order's More actions and row menu, once it is invoiced): the
+ * order's issued invoice PDFs (one per parcel) go to the order's email through the `email` job,
+ * the same one as the Invoices list's bulk Email, which notes each send on the order's timeline.
+ */
+export const emailOrderInvoice = can(permissions.ORDERS_WRITE)
+  .input(z.object({ orderId: z.uuid() }))
+  .handler(async ({ context, input }) => {
+    await requireInstalled(context)
+    const jobs = context.appJobs
+    if (!jobs) {
+      throw new ORPCError('SERVICE_UNAVAILABLE', { message: 'The worker queue is not configured' })
+    }
+    try {
+      const rows = await invoicesToEmail(context.tx, input.orderId)
+      const { storeId } = context.scope
+      const batch = await createEmailBatch(context.tx, storeId, rows.length)
+      const data = {
+        batchId: batch.id,
+        ids: rows.map((r) => r.id),
+        author: context.session.user.email,
+      }
+      // The job reads the batch row, so it is queued once that is saved.
+      context.afterCommit(async () => {
+        await enqueueAppJob(jobs, { storeId, pluginId: GST_INVOICES_ID, name: 'email', data })
+      })
+      return { batchId: batch.id, numbers: rows.flatMap((r) => (r.number ? [r.number] : [])) }
     } catch (err) {
       asOrpc(err)
     }

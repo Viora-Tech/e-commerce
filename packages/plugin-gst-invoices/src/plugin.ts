@@ -1,34 +1,22 @@
-import { DocumentSnapshotSchema } from '@commerce/invoices'
 import type { Attachment } from '@commerce/notifications'
 import { type AppHookContext, definePlugin } from '@commerce/plugins'
-import { eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { gstAppBar } from './app-bar'
 import { issueCreditNotes } from './credit-notes'
+import { emailDocuments } from './email-documents'
 import { InvoiceError, issueDocument, liveDocuments, loadSettings } from './issue'
 import { orderLinks } from './links'
 import { reviseForOrderEdit } from './order-edit'
+import { gstOrderStates, INVOICE_PDF, INVOICED } from './order-states'
 import { enqueueOrderParcels, isPreorder, issueDrafts, removeFromQueue } from './queue'
 import { hasPdf } from './record-external'
 import { pdfBytes, pdfFilename, renderAndStore } from './render'
-import { documentsByIds } from './reports'
-import { invoiceBatch } from './schema'
 import { voidUnshippedSale } from './void-unshipped'
 import { issueReceiptVoucher, issueRefundVoucher } from './vouchers'
 
 export const GST_INVOICES_ID = 'gst-invoices'
 
 const RenderJob = z.object({ invoiceId: z.uuid() })
-const EmailJob = z.object({ batchId: z.uuid(), ids: z.array(z.uuid()).max(500) })
-
-const DOCUMENT_LABELS = {
-  tax_invoice: 'tax invoice',
-  credit_note: 'credit note',
-  packing_slip: 'packing slip',
-  order_confirmation: 'order confirmation',
-  receipt_voucher: 'receipt voucher',
-  refund_voucher: 'refund voucher',
-} as const
 
 /**
  * An order was paid or dispatched: put it in the invoice queue when the rule
@@ -304,55 +292,10 @@ export const gstInvoicesPlugin = definePlugin({
     render: async (ctx, data) => {
       await renderAndStore(ctx, RenderJob.parse(data).invoiceId)
     },
-    email: async (ctx, data) => {
-      const job = EmailJob.parse(data)
-      const rows = await ctx.inStore((tx) => documentsByIds(tx, job.ids))
-      for (const row of rows) {
-        const doc = DocumentSnapshotSchema.parse(row.snapshot)
-        let ok = false
-        let error = ''
-        try {
-          const r = await ctx.notify({
-            orderId: row.orderId,
-            template: 'document_copy',
-            documentLabel: `${DOCUMENT_LABELS[row.kind]}${row.number ? ` ${row.number}` : ''}`,
-            document: {
-              number: row.number ?? undefined,
-              gstin: doc.seller.gstin || undefined,
-              fileName: pdfFilename(row),
-            },
-            attachments: [
-              {
-                filename: pdfFilename(row),
-                contentType: 'application/pdf',
-                content: await pdfBytes(ctx, row.id),
-              },
-            ],
-          })
-          ok = r.sent > 0
-          error = r.errors[0] ?? (ok ? '' : 'no email address on the order or no email channel')
-        } catch (err) {
-          error = err instanceof Error ? err.message : String(err)
-        }
-        const note = `${doc.number ?? doc.order.name}: ${error}`
-        await ctx.inStore((tx) =>
-          tx
-            .update(invoiceBatch)
-            .set(
-              ok
-                ? { sent: sql`${invoiceBatch.sent} + 1`, updatedAt: new Date() }
-                : {
-                    failed: sql`${invoiceBatch.failed} + 1`,
-                    errors: sql`(${invoiceBatch.errors} || ${JSON.stringify([note])}::jsonb)`,
-                    updatedAt: new Date(),
-                  },
-            )
-            .where(eq(invoiceBatch.id, job.batchId)),
-        )
-      }
-    },
+    email: emailDocuments,
   },
   orderLinks,
+  orderStates: gstOrderStates,
   emailAttachments,
   productFields: [
     { key: 'hsCode', label: 'HSN code', help: '4 digits up to ₹5 crore turnover, 6 above.' },
@@ -371,7 +314,10 @@ export const gstInvoicesPlugin = definePlugin({
       { path: 'invoices/[id]', title: 'Invoice' },
     ],
     orderDetailCard: true,
-    // Test-mode orders are hidden: they get no GST invoice (see `isTestOrder`).
+    // Test-mode orders are hidden: they get no GST invoice (see `isTestOrder`). Generate and Add
+    // to queue go once every parcel is invoiced (ours or recorded "Already invoiced"); Email and
+    // Download come once one of ours is issued (a recorded one has no PDF). The bulk bar keeps
+    // Add to queue: it counts the orders already invoiced.
     orderActions: [
       {
         id: 'generate-invoice',
@@ -379,6 +325,7 @@ export const gstInvoicesPlugin = definePlugin({
         targets: ['detail', 'row'],
         handler: { type: 'procedure', procedure: `${GST_INVOICES_ID}/generate` },
         requires: ['not-test'],
+        whenState: [`!${INVOICED}`],
       },
       {
         id: 'add-to-queue',
@@ -386,6 +333,22 @@ export const gstInvoicesPlugin = definePlugin({
         targets: ['detail', 'row', 'bulk'],
         handler: { type: 'procedure', procedure: `${GST_INVOICES_ID}/queue-add` },
         requires: ['not-test'],
+        whenState: [`!${INVOICED}`],
+      },
+      {
+        id: 'email-invoice',
+        label: { en: 'Email invoice to customer', hi: 'ग्राहक को इनवॉइस ईमेल करें' },
+        targets: ['detail', 'row'],
+        handler: { type: 'procedure', procedure: `${GST_INVOICES_ID}/email` },
+        whenState: [INVOICE_PDF],
+      },
+      {
+        id: 'download-invoice',
+        label: { en: 'Download invoice', hi: 'इनवॉइस डाउनलोड करें' },
+        targets: ['detail', 'row'],
+        handler: { type: 'procedure', procedure: `${GST_INVOICES_ID}/download` },
+        permission: 'orders.read',
+        whenState: [INVOICE_PDF],
       },
     ],
   },

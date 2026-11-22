@@ -41,6 +41,8 @@ export type OrderBookingOverride = {
   dimensionsCm?: { length: number; width: number; height: number } | undefined
   paymentMode?: 'cod' | 'prepaid' | undefined
   insured?: boolean | undefined
+  /** The picked row's price before insurance: the courier charge when it books that courier. */
+  quotedChargePaise?: number | undefined
 }
 
 /** One order's booking values: its own from the Edit popup, else the batch's. */
@@ -54,5 +56,6 @@ export function bookingFor(
     insured: own?.insured ?? batch.insured,
   }
   if (own?.paymentMode) out.paymentMode = own.paymentMode
+  if (own?.quotedChargePaise != null) out.quotedChargePaise = own.quotedChargePaise
   return out
 }

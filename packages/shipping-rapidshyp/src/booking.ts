@@ -38,6 +38,7 @@ import {
   courierOrderRef,
   type PushOrderResult,
 } from '@commerce/shipping'
+import { packageDetails } from './package'
 import type { RapidshypConfig } from './rapidshyp'
 import {
   AWB_TAKEN,
@@ -51,7 +52,7 @@ export type BookingCalls = {
   provider: string
   config: Pick<RapidshypConfig, 'storeName' | 'pickupAddressName'>
   post: <T>(path: string, body: unknown) => Promise<T>
-  assignAwb: (shipmentId: string, courierCode?: string) => Promise<{ awb: string }>
+  assignAwb: (shipmentId: string, courierCode?: string) => Promise<AssignedAwb>
   /**
    * The order's shipment id from Track Order by order id (create_order's answer has none), and
    * what Track Order said, for the staff message when it is not there.
@@ -63,8 +64,15 @@ export type BookingCalls = {
   /** Waits between lookups; tests pass one that does not. */
   wait?: (ms: number) => Promise<void>
   cancel: (orderId: string) => Promise<void>
-  schedulePickup: (shipmentId: string, awb: string) => Promise<unknown>
+  schedulePickup: (shipmentId: string, awb: string) => Promise<{ status?: string } | undefined>
   generateLabel: (shipmentIds: string[]) => Promise<string | undefined>
+}
+
+/** An AWB put on a shipment, and the courier RapidShyp put it with (it may not be the one asked). */
+export type AssignedAwb = {
+  awb: string
+  courierCode?: string | undefined
+  courierName?: string | undefined
 }
 
 type WrapperShipment = {
@@ -227,12 +235,7 @@ function buildOrderPayload(
       tax: 0,
     })),
     paymentMethod: input.paymentMode === 'cod' ? 'COD' : 'PREPAID',
-    packageDetails: {
-      packageLength: 10,
-      packageBreadth: 10,
-      packageHeight: 10,
-      packageWeight: Math.max(input.weightGrams, 1),
-    },
+    packageDetails: packageDetails(input),
   }
 }
 
@@ -300,14 +303,14 @@ async function bookPushed(
   input: CreateShipmentInput,
   shipmentId: string,
 ): Promise<CreateShipmentResult> {
-  let awb: string
+  let assigned: AssignedAwb
   try {
-    awb = (await calls.assignAwb(shipmentId, input.serviceId)).awb
+    assigned = await calls.assignAwb(shipmentId, input.serviceId)
   } catch (error) {
     // The pending order was there before this booking; it stays on RapidShyp as it was.
     throw courierRefused(calls, input, error, 'The order is still on RapidShyp, not booked.')
   }
-  return finishBooking(calls, shipmentId, awb, {
+  return finishBooking(calls, shipmentId, assigned, {
     orderRef: input.pushed?.externalOrderId || courierOrderRef(input),
   })
 }
@@ -352,14 +355,14 @@ async function bookChosen(
       },
     )
   }
-  let awb: string
+  let assigned: AssignedAwb
   try {
-    awb = (await calls.assignAwb(shipmentId, courierCode)).awb
+    assigned = await calls.assignAwb(shipmentId, courierCode)
   } catch (error) {
     // Nothing is left behind: the order made a moment ago goes, so a rebook starts clean.
     throw courierRefused(calls, input, error, await takeBack(calls, orderRef))
   }
-  return finishBooking(calls, shipmentId, awb, { orderRef })
+  return finishBooking(calls, shipmentId, assigned, { orderRef })
 }
 
 /** RapidShyp already holds this order number: an earlier booking left it there, no courier. */
@@ -398,35 +401,61 @@ async function bookByPriority(
   }
   // The wrapper's own AWB step came back empty (no courier matched its priority): one retry,
   // letting RapidShyp pick its default courier again.
-  const awb = first?.awb || (await calls.assignAwb(shipmentId).catch(() => null))?.awb
-  if (!awb) {
+  const assigned: AssignedAwb | null = first?.awb
+    ? { awb: first.awb, courierCode: first.courierCode, courierName: first.courierName }
+    : await calls.assignAwb(shipmentId).catch(() => null)
+  if (!assigned?.awb) {
     throw orderRefused(
       calls.provider,
       `RapidShyp created shipment ${shipmentId} but could not assign a courier`,
       order.remarks,
     )
   }
-  return finishBooking(calls, shipmentId, awb, {
+  return finishBooking(calls, shipmentId, assigned, {
     orderRef: order.orderId || ref,
     labelUrl: first?.labelURL,
     pickupScheduled: first?.pickupScheduled === true,
   })
 }
 
-/** Pickup and label for a booked shipment, each best-effort: neither undoes the booking. */
+/** Schedule Pickup answered SUCCESS (its documented answer): the courier has the request. */
+const pickupTaken = (r: { status?: string } | undefined) =>
+  String(r?.status ?? '').toUpperCase() === 'SUCCESS'
+
+/**
+ * Pickup and label for a booked shipment, each best-effort: neither undoes the booking. What
+ * comes back says what RapidShyp did, not what was asked: the courier it booked (from the
+ * assign or wrapper answer) and whether the pickup is scheduled (the wrapper's flag, or
+ * schedule_pickup's SUCCESS), so the shipment is recorded as on a pickup (22 Nov 2026).
+ */
 async function finishBooking(
   calls: BookingCalls,
   shipmentId: string,
-  awb: string,
+  assigned: AssignedAwb,
   done: { orderRef: string; labelUrl?: string | undefined; pickupScheduled?: boolean },
 ): Promise<CreateShipmentResult> {
-  if (!done.pickupScheduled) {
-    // The merchant can retry a failed pickup from the Shipments workspace's pickup tab.
-    await calls.schedulePickup(shipmentId, awb).catch(() => undefined)
-  }
+  // A refused pickup can be asked again from Shipments › Booked (Create pickup).
+  const pickupScheduled =
+    done.pickupScheduled === true ||
+    pickupTaken(await calls.schedulePickup(shipmentId, assigned.awb).catch(() => undefined))
   const labelUrl = done.labelUrl || (await calls.generateLabel([shipmentId]).catch(() => undefined))
+  const booked =
+    assigned.courierCode || assigned.courierName
+      ? {
+          bookedService: {
+            ...(assigned.courierCode ? { id: assigned.courierCode } : {}),
+            ...(assigned.courierName ? { label: assigned.courierName } : {}),
+          },
+        }
+      : {}
   // cancel_order takes this order id: the one sent (`2471`), or RapidShyp's echo of it.
-  return { waybill: awb, providerRef: done.orderRef, labelUrl }
+  return {
+    waybill: assigned.awb,
+    providerRef: done.orderRef,
+    labelUrl,
+    ...booked,
+    ...(pickupScheduled ? { pickupScheduled: true } : {}),
+  }
 }
 
 /** Cancel an order this booking just made, and say for the merchant how that went. */
