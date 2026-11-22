@@ -2,8 +2,8 @@ import { ChevronRight } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { useState } from 'react'
 import ProductThumb from '@/components/products/product-thumb'
-import { selectProductsContent as copy } from '@/data/select-products'
-import { useFormat } from '@/hooks/use-copy'
+import { selectProductsContent } from '@/data/select-products'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
 import SelectProductsCheckbox from './select-products-checkbox'
 
@@ -39,6 +39,7 @@ export default function SelectProductsRow({
   onToggleVariant,
 }: SelectProductsRowProps) {
   // Hooks
+  const copy = useCopy(selectProductsContent)
   const fmt = useFormat()
   const [open, setOpen] = useState(false)
 
