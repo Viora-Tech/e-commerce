@@ -2,11 +2,11 @@
 
 import type { CheckoutFields, FieldRequirement } from '@commerce/core/checkout-settings'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
+import SwitchRow from '@/components/fields/switch-row'
 import ChoiceList from '@/components/returns/choice-list'
 import { checkoutRulesContent } from '@/data/checkout-rules'
 import { checkoutBrandingContent } from '@/data/checkout-settings'
 import { useCopy } from '@/hooks/use-copy'
-import CheckoutToggleRow from './checkout-toggle-row'
 import SettingsCard from './settings-card'
 
 type CheckoutFieldsCardProps = {
@@ -64,12 +64,14 @@ export default function CheckoutFieldsCard({
             choices={requirementChoices}
           />
         </Field>
-        <CheckoutToggleRow
+        <SwitchRow
           id="checkout-gstin"
           label={shown.gstin}
-          hint={shown.gstinHint}
+          description={shown.gstinHint}
           checked={gstin}
           onChange={onGstin}
+          weight="semibold"
+          divided
         />
         <Field>
           <FieldLabel>{copy.line2}</FieldLabel>

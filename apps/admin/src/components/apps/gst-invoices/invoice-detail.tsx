@@ -15,14 +15,15 @@ import DataCard from '@/components/layout/data-card'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import PageHeader from '@/components/layout/page-header'
 import PageHeaderSkeleton from '@/components/layout/page-header-skeleton'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import { appsContent } from '@/data/apps'
 import { gstAlreadyInvoicedContent } from '@/data/gst-already-invoiced'
-import { gstInvoiceRefreshContent as refreshCopy } from '@/data/gst-invoice-refresh'
+import { gstInvoiceRefreshContent } from '@/data/gst-invoice-refresh'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatDay } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
@@ -41,9 +42,6 @@ type Shipping = {
   exchangeRate: string
 }
 
-const copy = gstInvoicesContent.detail
-const kinds = gstInvoicesContent.kinds
-
 const shippingOf = (doc: Doc): Shipping => ({
   portCode: doc.snapshot.exportSupply?.portCode ?? '',
   shippingBillNumber: doc.snapshot.exportSupply?.shippingBillNumber ?? '',
@@ -55,6 +53,9 @@ const shippingOf = (doc: Doc): Shipping => ({
 /** One issued document: its facts, the PDF, export details and cancellation. */
 export default function InvoiceDetail({ params }: AppPageProps) {
   // Hooks
+  const copy = useCopy(gstInvoicesContent.detail)
+  const refreshCopy = useCopy(gstInvoiceRefreshContent)
+  const kinds = useCopy(gstInvoicesContent.kinds)
   const apps = useCopy(appsContent)
   const outsideCopy = useCopy(gstAlreadyInvoicedContent)
   const [ship, setShip] = useState<Shipping | null>(null)
@@ -80,7 +81,7 @@ export default function InvoiceDetail({ params }: AppPageProps) {
       setDoc(d)
       if (done) toast.success(done)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.cancel)
+      toast.error(errorText(err, copy.cancel))
     } finally {
       setBusy(null)
     }
@@ -174,7 +175,7 @@ export default function InvoiceDetail({ params }: AppPageProps) {
       <PageHeader
         title={`${kinds[doc.kind]} ${doc.number ?? ''}`.trim()}
         back={{ label: copy.back, href: routes.apps.page('gst-invoices', 'invoices') }}
-        badges={<OrderChip kind="gstDoc" value={doc.status} />}
+        badges={<StatusLabel kind="gstDoc" value={doc.status} variant="soft" />}
         summary={
           doc.number ? (
             <span className="group/row flex items-center gap-1">

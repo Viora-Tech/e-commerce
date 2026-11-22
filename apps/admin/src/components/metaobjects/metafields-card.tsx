@@ -21,6 +21,7 @@ import { useCopy } from '@/hooks/use-copy'
 import type { LoadFailure } from '@/hooks/use-load'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { isForbidden } from '@/lib/forbidden'
 import { routes } from '@/lib/routes'
 import FieldInput from './field-input'
@@ -142,7 +143,7 @@ export default function MetafieldsCard({
       toast.success(copy.saved)
     } catch (err) {
       setErrors(fieldErrorsOf(err))
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

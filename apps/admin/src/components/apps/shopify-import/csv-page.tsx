@@ -15,17 +15,17 @@ import DataCard from '@/components/layout/data-card'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import CsvDropzone from './csv-dropzone'
 import CsvHelp from './csv-help'
 import StorageNotice from './storage-notice'
-
-const base = shopifyImportContent.base
 
 const KIND_ICON = { products: Package, customers: Users, orders: ShoppingBag } as const
 
 /** Upload one of Shopify's CSV exports; the preview starts at once. */
 export default function CsvPage() {
   // Hooks
+  const base = useCopy(shopifyImportContent).base
   const copy = useCopy(shopifyImportContent.csv)
   const router = useRouter()
   const [resource, setResource] = useState<CsvResource>('products')
@@ -56,7 +56,7 @@ export default function CsvPage() {
       const run = await api.shopifyImport.createCsvRun({ resource, fileName: file.name, csv })
       router.push(`${base}/runs/${run.id}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       setBusy(false)
     }
   }

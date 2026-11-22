@@ -1,15 +1,17 @@
-import { inventoryContent } from '@/data/inventory'
+import type { inventoryContent } from '@/data/inventory'
 import type { api } from '@/lib/api-client'
 import { downloadCsv, toCsv } from '@/lib/csv'
 
 type Row = Awaited<ReturnType<typeof api.inventory.exportRows>>[number]
 
-const copy = inventoryContent.exporting
-
 const rupees = (paise: number | null) => (paise == null ? '' : (paise / 100).toFixed(2))
 
 /** One CSV line per SKU at the chosen location. */
-export function downloadInventoryCsv(rows: Row[], locationName: string) {
+export function downloadInventoryCsv(
+  rows: Row[],
+  locationName: string,
+  copy: typeof inventoryContent.exporting,
+) {
   downloadCsv(
     copy.filename,
     toCsv(

@@ -18,6 +18,7 @@ import InlineState from '@/components/states/inline-state'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import { BESIDE_SIDEBAR } from '@/lib/sidebar-motion'
 import PickupDayCards from './pickup-day-cards'
@@ -143,7 +144,7 @@ export default function PickupDrawer({
       onOpenChange(false)
       onDone(date)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.refused)
+      toast.error(errorText(err, copy.refused))
     } finally {
       setBusy(false)
     }

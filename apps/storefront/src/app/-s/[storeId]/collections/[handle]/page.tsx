@@ -8,16 +8,19 @@ import {
   type SearchParamsInput,
 } from '@commerce/core/browse'
 import type { CollectionSort } from '@commerce/core/collections'
+import { store } from '@commerce/db'
 import { parseRichText, richTextToPlainText } from '@commerce/richtext'
+import { eq } from 'drizzle-orm'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import MainCollection from '@/components/collections/main-collection'
 import { COLLECTION_SORTS } from '@/data/browse'
 import { COLLECTION_PER_PAGE } from '@/data/collections'
+import { AUTO_DESCRIPTION_PRODUCTS } from '@/data/seo'
 import { listCardProducts } from '@/lib/catalog'
-import { getCollectionByHandle } from '@/lib/collections'
+import { collectionLeadTitles, getCollectionByHandle } from '@/lib/collections'
 import { digest } from '@/lib/liquid-cache'
-import { marketCanonical, metaDescription, requestOrigin } from '@/lib/seo'
+import { collectionDescription, marketCanonical, requestOrigin } from '@/lib/seo'
 import { storeShareImages } from '@/lib/share-image'
 import { storeRead } from '@/lib/store-cache'
 import { renderTemplate } from '@/lib/template-render'
@@ -45,9 +48,24 @@ export async function generateMetadata({ params, searchParams }: Params): Promis
   if (!found) return {}
   const query = await searchParams
   const title = found.seoTitle || found.title
-  const description = metaDescription(
-    found.seoDescription || richTextToPlainText(parseRichText(found.description)),
-  )
+  const plain = richTextToPlainText(parseRichText(found.description))
+  // Only read when the merchant wrote nothing: the store name and first products for the
+  // description written for them.
+  const facts =
+    found.seoDescription || plain.trim()
+      ? null
+      : await storeRead(storeId, `collection-seo|${handle}`, async (tx) => {
+          const [s] = await tx.select({ name: store.name }).from(store).where(eq(store.id, storeId))
+          const products = await collectionLeadTitles(tx, found, AUTO_DESCRIPTION_PRODUCTS)
+          return { storeName: s?.name ?? '', products }
+        })
+  const description = collectionDescription({
+    seoDescription: found.seoDescription,
+    plain,
+    title: found.title,
+    storeName: facts?.storeName ?? '',
+    products: facts?.products ?? [],
+  })
   // Filtered and re-sorted views are the same collection: they point at the plain
   // page and stay out of the index, as Shopify's do.
   const url = await marketCanonical(`/collections/${found.handle}`, parsePage(query.page))
@@ -55,7 +73,7 @@ export async function generateMetadata({ params, searchParams }: Params): Promis
   const image = found.imageUrl ? [{ url: found.imageUrl, alt: found.title }] : undefined
   return {
     title,
-    // None of its own: the layout's store description stays, as Shopify's `page_description`.
+    // Always the collection's own (written for the merchant when empty), never the store's.
     ...(description ? { description } : {}),
     alternates: { canonical: url },
     openGraph: {

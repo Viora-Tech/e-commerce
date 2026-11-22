@@ -8,6 +8,7 @@ import RowMenu from '@/components/table/row-menu'
 import { pagesListContent } from '@/data/content'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type PageRowMenuProps = {
@@ -35,7 +36,7 @@ export default function PageRowMenu({ page, path, storefrontOrigin, onChanged }:
       toast.success(visible ? list.row.shown : list.row.hidden)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : list.row.failed)
+      toast.error(errorText(err, list.row.failed))
     }
   }
 
@@ -45,7 +46,7 @@ export default function PageRowMenu({ page, path, storefrontOrigin, onChanged }:
       toast.success(list.row.deleted)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : list.row.failed)
+      toast.error(errorText(err, list.row.failed))
       throw err
     }
   }

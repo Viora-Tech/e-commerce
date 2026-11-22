@@ -6,7 +6,7 @@ import {
 } from '@commerce/blocks'
 import { mainProductRichtext, productFieldsRichtext } from '@commerce/blocks/richtext-node'
 import { loadProductPageExtras } from '@commerce/core'
-import { seoSnippet } from '@commerce/core/catalog'
+import { seoProse, seoSnippet } from '@commerce/core/catalog'
 import { isAbroad } from '@commerce/core/checkout-address'
 import { productOfferPolicies } from '@commerce/core/offer-policies'
 import {
@@ -16,6 +16,7 @@ import {
 } from '@commerce/core/preorder'
 import { numericId } from '@commerce/core/theme-import'
 import { store } from '@commerce/db'
+import { formatMoney, isCurrency } from '@commerce/money'
 import { emiOfferFor } from '@commerce/plugin-emi/offer'
 import { parseRichText, richTextToPlainText } from '@commerce/richtext'
 import { eq } from 'drizzle-orm'
@@ -32,6 +33,7 @@ import NotifyMeForm from '@/components/product/notify-me-form'
 import RecentlyViewed from '@/components/product/recently-viewed'
 import RecordView from '@/components/product/record-view'
 import RelatedProducts from '@/components/product/related-products'
+import JsonLd from '@/components/seo/json-ld'
 import LiquidAppBlock from '@/components/theme/liquid-app-block'
 import LiquidPreorderNote from '@/components/theme/liquid-preorder-note'
 import { notifyMeAction } from '@/lib/back-in-stock-actions'
@@ -41,13 +43,14 @@ import { getProductByHandle, getProductSeo, type ProductDetail } from '@/lib/cat
 import { storeEmiOffers } from '@/lib/emi-offers'
 import { MARKET_HEADERS } from '@/lib/markets'
 import { storeOffersEmi, storeUpiDiscount } from '@/lib/payments'
+import { productForView } from '@/lib/product-view-props'
 import { policyPanels } from '@/lib/related'
 import { productReviews } from '@/lib/reviews'
 import {
-  jsonLd,
   marketCanonical,
   metaDescription,
   paiseToAmount,
+  productDescription,
   productGraph,
   requestOrigin,
 } from '@/lib/seo'
@@ -108,12 +111,25 @@ const loadProduct = cache((storeId: string, handle: string) =>
     const seo = await getProductSeo(tx, found.id)
     const product = withDepositPolicy(found, policy)
     const text = richTextToPlainText(parseRichText(product.description))
+    const storeName = s?.name ?? ''
+    const currency = s?.currency ?? 'INR'
+    const pricePaise = defaultVariant(product)?.pricePaise
     return {
       product,
       title: seo?.seoTitle || product.title,
-      description: metaDescription(seo?.seoDescription || seoSnippet(text)),
-      storeName: s?.name ?? '',
-      currency: s?.currency ?? 'INR',
+      description: productDescription({
+        seoDescription: seo?.seoDescription,
+        prose: seoProse(text),
+        title: product.title,
+        vendor: product.vendor,
+        storeName,
+        price:
+          pricePaise != null && isCurrency(currency) ? formatMoney(pricePaise, currency) : null,
+      }),
+      // The structured data keeps the body's own words, spec rows and all.
+      ldDescription: metaDescription(seo?.seoDescription || seoSnippet(text)),
+      storeName,
+      currency,
     }
   }),
 )
@@ -129,7 +145,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const images = product.images
     .filter((i) => !i.contentType?.startsWith('video/'))
     .slice(0, 4)
-    .map((i) => ({ url: shareImageUrl(i), alt: i.alt ?? product.title }))
+    .map((i) => ({ url: shareImageUrl(i), alt: i.alt || product.title }))
   return {
     title,
     description,
@@ -170,7 +186,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
       storeName: found.storeName,
     }),
     storeRead(storeId, `product-extras|${product.id}`, (tx) =>
-      loadProductPageExtras(tx, product.id),
+      loadProductPageExtras(tx, product.id, product.vendor),
     ),
     storeRead(storeId, 'upi-discount', (tx) => storeUpiDiscount(tx, storeId)),
     storeRead(storeId, 'emi-offers', (tx) => storeEmiOffers(tx, storeId)),
@@ -211,7 +227,8 @@ export default async function ProductPage({ params, searchParams }: Params) {
   const schema = productGraph(
     {
       ...product,
-      description: found.description,
+      description: found.ldDescription ?? found.description,
+      collection: extras.collection,
       images: product.images.filter((i) => !i.contentType?.startsWith('video/')),
       rating: rated ? { value: rated.rating, count: rated.count } : null,
       reviews:
@@ -255,13 +272,15 @@ export default async function ProductPage({ params, searchParams }: Params) {
     },
     renderers: {
       MainProduct: (s) => {
+        const settings = mainProductSettings(s)
         const view = (
           <ProductView
-            product={shown}
+            // Only what the buy box draws reaches the page's RSC payload.
+            product={productForView(shown, settings)}
             onAddToCart={addLineAction}
             settings={{
               // Body copy sanitised here, so the browser never loads the sanitiser.
-              ...mainProductRichtext(mainProductSettings(s)),
+              ...mainProductRichtext(settings),
               ...(abroad ? { showPaymentSignals: false } : {}),
               ratingValue: rated?.rating ?? 0,
               ratingCount: rated?.count ?? 0,
@@ -310,8 +329,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
   })
   return (
     <>
-      {/* biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from our own data; jsonLd() escapes it. */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(schema)} />
+      <JsonLd data={schema} />
       {/* Pixels app: ViewContent, sent only after a yes to marketing. */}
       <PixelTrack
         event={{

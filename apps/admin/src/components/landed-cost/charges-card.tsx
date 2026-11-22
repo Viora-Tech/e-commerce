@@ -11,6 +11,7 @@ import StatusChip from '@/components/layout/status-chip'
 import { chargesContent, warningText } from '@/data/purchasing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatMinor } from '@/lib/money'
 import ChargeDialog from './charge-dialog'
 import type { ChargeOwner, CostPreview, PreviewCharge } from './types'
@@ -56,7 +57,7 @@ export default function ChargesCard({
       toast.success(copy.removed)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setRemoving(null)
     }

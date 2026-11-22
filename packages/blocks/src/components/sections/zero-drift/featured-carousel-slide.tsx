@@ -87,7 +87,7 @@ export default function FeaturedCarouselSlide({
               <a href={productPath} className="featured-lockup__stage-link">
                 <Picture
                   image={main}
-                  alt={main.alt ?? product.title}
+                  alt={main.alt || product.title}
                   className="featured-lockup__image"
                   fill
                   placeholder={false}

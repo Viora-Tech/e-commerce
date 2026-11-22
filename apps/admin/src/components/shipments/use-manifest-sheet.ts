@@ -1,4 +1,6 @@
-'use client'
+import { errorText } from '@/lib/api-errors'
+
+;('use client')
 
 /**
  * SOURCE OF TRUTH KEYWORDS: useManifestSheet, print pickup manifest
@@ -41,7 +43,7 @@ export function useManifestSheet() {
       toast.success(copy.done(res.shipments, res.manifests))
     } catch (err) {
       tab?.close()
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setPrinting(false)
     }

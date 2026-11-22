@@ -13,6 +13,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { automationEditorContent, automationPiecesContent } from '@/data/automations'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { useWorkflowDraft } from '@/hooks/use-workflow-draft'
+import { errorText } from '@/lib/api-errors'
 import { automationApi } from '@/lib/automation-api'
 import { editorIssues, riskSummary } from '@/lib/automation-issues'
 import { fieldLabel } from '@/lib/automation-labels'
@@ -48,9 +49,6 @@ type WorkflowEditorProps = {
 }
 
 type Dialog = 'publish' | 'test' | 'pause' | 'trigger' | null
-
-const messageOf = (err: unknown, fallback: string) =>
-  err instanceof Error && err.message ? err.message : fallback
 
 /** The Flow-like editor: header, the canvas of steps, and the picked step's settings beside it. */
 export default function WorkflowEditor({
@@ -123,7 +121,7 @@ export default function WorkflowEditor({
       toast.success(copy.publish.published(result.version))
       setDialog(null)
     } catch (err) {
-      toast.error(messageOf(err, copy.publish.failed))
+      toast.error(errorText(err, copy.publish.failed))
     } finally {
       setBusy(false)
     }
@@ -139,7 +137,7 @@ export default function WorkflowEditor({
       toast.success(status === 'on' ? copy.pause.activated : copy.pause.paused)
       setDialog(null)
     } catch (err) {
-      toast.error(messageOf(err, copy.publish.failed))
+      toast.error(errorText(err, copy.publish.failed))
     } finally {
       setBusy(false)
     }
@@ -150,7 +148,7 @@ export default function WorkflowEditor({
       replace(await automationApi.restoreVersion({ id: workflow.id, versionId }))
       toast.success(copy.versions.restored(number))
     } catch (err) {
-      toast.error(messageOf(err, copy.publish.failed))
+      toast.error(errorText(err, copy.publish.failed))
     }
   }
 

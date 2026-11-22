@@ -2,12 +2,14 @@
 
 import { RefreshCw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import EmptyState from '@/components/layout/empty-state'
 import { reviewToolsContent } from '@/data/review-tools'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type ProductSummaryProps = {
   productId: string
@@ -23,18 +25,12 @@ export default function ProductSummary({ productId }: ProductSummaryProps) {
   // Hooks
   const { summary: copy } = useCopy(reviewToolsContent)
   const format = useFormat()
-  const [state, setState] = useState<State | null>(null)
+  // A failed read leaves the summary off.
+  const { data: state, setData: setState } = useLoad<State>(
+    () => api.reviews.summary({ productId }),
+    [productId],
+  )
   const [busy, setBusy] = useState(false)
-  useEffect(() => {
-    let live = true
-    api.reviews
-      .summary({ productId })
-      .then((s) => live && setState(s))
-      .catch(() => undefined)
-    return () => {
-      live = false
-    }
-  }, [productId])
 
   // Event handlers
   const handleRefresh = async () => {
@@ -44,7 +40,7 @@ export default function ProductSummary({ productId }: ProductSummaryProps) {
       toast.success(copy.queued)
       setState(await api.reviews.summary({ productId }))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

@@ -1,8 +1,17 @@
 import type { EmailBlock } from '../../emails/blocks'
 import type { TemplateData, TemplateId } from '../../types'
 import { blockCopy } from '../content-blocks'
+import { invoiceFile, whatsappButton } from './contact'
 import type { Composer } from './index'
-import { button, itemCount, orderItems, parcelsList, present, routeTicket, shopperName } from './order'
+import {
+  button,
+  itemCount,
+  orderItems,
+  parcelsList,
+  present,
+  routeTicket,
+  shopperName,
+} from './order'
 
 /**
  * Batch 3, delivery tickets: the route ticket with the courier, AWB and arrival, the tracking
@@ -64,7 +73,9 @@ const shipped: Composer = (d, action) => ({
     }),
     parcelsList(d),
     button(action, d.trackingUrl ? c().trackParcel : undefined),
+    invoiceFile(d),
     orderItems(d, { title: c().inThisParcel, totals: false }),
+    whatsappButton(d),
   ]),
 })
 
@@ -79,7 +90,12 @@ const outForDelivery: Composer = (d, action) => ({
       foot: { line: c().outLine(itemCount(d)), note: c().outNote },
     }),
     d.paymentState === 'cod'
-      ? { kind: 'notice', tone: 'accent', title: c().keepReady(d.totalLabel), body: c().keepReadyBody }
+      ? {
+          kind: 'notice',
+          tone: 'accent',
+          title: c().keepReady(d.totalLabel),
+          body: c().keepReadyBody,
+        }
       : null,
     button(action, d.trackingUrl ? c().trackParcel : undefined),
     orderItems(d, { title: c().inThisParcel, totals: false }),

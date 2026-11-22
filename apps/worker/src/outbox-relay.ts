@@ -22,6 +22,7 @@ import {
   Queue,
   Worker,
 } from '@commerce/queue'
+import { noteIndexNowRemoved } from './indexnow'
 
 // The producer side (`OutboxRelayJob`, `nudgeOutboxRelay`) lives in
 // @commerce/queue so any app, not just the worker, can nudge the relay after
@@ -72,6 +73,7 @@ export function createOutboxRelay(
     pixelOrders: opts.pixelOrders,
     push: opts.push,
     appJobs,
+    indexNowRemoved: (storeId, paths) => noteIndexNowRemoved(connection, storeId, paths),
     salesStoreId: loadEnv(process.env).PLATFORM_SALES_STORE_ID,
     log: (message) => logger.info(message, { area: 'outbox' }),
   }

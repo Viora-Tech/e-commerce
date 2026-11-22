@@ -1,7 +1,15 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { Database, Images, LayoutGrid, ListView, Search, Upload } from '@commerce/ui/icons'
+import {
+  Database,
+  ImagePlus,
+  Images,
+  LayoutGrid,
+  ListView,
+  Search,
+  Upload,
+} from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
@@ -9,6 +17,7 @@ import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { type FormEvent, Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import FileDropzone from '@/components/fields/file-dropzone'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
@@ -19,13 +28,13 @@ import { imageEditorContent } from '@/data/image-editor'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { isEditableImage } from '@/lib/image-edit'
 import { routes } from '@/lib/routes'
 import AltTextDialog from './alt-text-dialog'
 import BackgroundWorkNotice from './background-work-notice'
 import { displayName, FILE_TABS, type FileTab, fileKind, formatBytes } from './file-meta'
 import ImageEditorDialog from './image-editor-dialog'
-import MediaDropzone from './media-dropzone'
 import MediaFileRows from './media-file-rows'
 import MediaFolderBar from './media-folder-bar'
 import MediaTile, { type MediaTileAction } from './media-tile'
@@ -90,7 +99,8 @@ function fetchMedia(
 
 function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
   // Hooks
-  const { library: copy } = useCopy(mediaContent)
+  const mediaCopy = useCopy(mediaContent)
+  const { library: copy, dropzone: dropCopy } = useCopy(mediaContent)
   const { title: editImageLabel } = useCopy(imageEditorContent)
   const fileInput = useRef<HTMLInputElement>(null)
   const [{ page, perPage, query, type, view, folder }, setQ] = useQueryStates(
@@ -223,26 +233,26 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
       setUsedBytes(r.usedBytes)
     })
     reloadFolders()
-    toast.success(mediaContent.toasts.deleted)
+    toast.success(mediaCopy.toasts.deleted)
   }
   const handleDelete = async () => {
     if (!deleting) return
     try {
       await api.media.delete({ id: deleting.id })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : mediaContent.errors.generic)
+      toast.error(errorText(err, mediaCopy.errors.generic))
       throw err
     }
     handleDeleted(deleting.id)
   }
 
   const actionsFor = (item: Item): MediaTileAction[] => [
-    { label: mediaContent.tile.editAlt, onSelect: () => setEditing(item) },
-    { label: mediaContent.tile.moveToFolder, onSelect: () => setMoving(item) },
+    { label: mediaCopy.tile.editAlt, onSelect: () => setEditing(item) },
+    { label: mediaCopy.tile.moveToFolder, onSelect: () => setMoving(item) },
     ...(isEditableImage(item.contentType)
       ? [{ label: editImageLabel, onSelect: () => setRetouching(item) }]
       : []),
-    { label: mediaContent.tile.delete, onSelect: () => setDeleting(item), destructive: true },
+    { label: mediaCopy.tile.delete, onSelect: () => setDeleting(item), destructive: true },
   ]
   /** The file's page carries the search and type, so its arrows step through this same list. */
   const fileHref = (id: string) => routes.content.file(id, { query, type })
@@ -297,7 +307,13 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
           body={copy.empty.body}
           action={
             <div className="w-full max-w-md">
-              <MediaDropzone onFiles={handleFiles} />
+              <FileDropzone
+                onFiles={handleFiles}
+                accept={mediaContent.accept}
+                copy={dropCopy}
+                icon={ImagePlus}
+                className="py-8"
+              />
             </div>
           }
         />
@@ -406,8 +422,8 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
                     )}
                     <span className="absolute inset-x-0 bottom-0 bg-card/90 px-2 py-1 text-center text-caption">
                       {p.error
-                        ? mediaContent.tile.failed
-                        : mediaContent.tile.uploading(Math.round(p.progress * 100))}
+                        ? mediaCopy.tile.failed
+                        : mediaCopy.tile.uploading(Math.round(p.progress * 100))}
                     </span>
                   </li>
                 ))}

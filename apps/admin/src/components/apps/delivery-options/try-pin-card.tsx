@@ -10,13 +10,14 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { itemTabs } from '@/components/discounts/pick-sources'
 import MoneyInput from '@/components/fields/money-input'
+import SwitchRow from '@/components/fields/switch-row'
 import ResourcePickDialog from '@/components/pickers/resource-pick-dialog'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { discountFormContent } from '@/data/discounts'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { TryPinResult } from './format'
 import TryPinCards from './try-pin-cards'
 import TryPinLines, { type TryPinLine } from './try-pin-lines'
@@ -77,7 +78,7 @@ export default function TryPinCard({ result, onResult }: TryPinCardProps) {
         }),
       )
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -148,13 +149,15 @@ export default function TryPinCard({ result, onResult }: TryPinCardProps) {
           <p className="text-body text-muted-foreground">{t.ruleProductsHelp}</p>
         </Field>
       )}
-      <SettingsToggleRow
+      <SwitchRow
         id="try-decline-insurance"
         label={t.declineInsurance}
         description={t.declineInsuranceHelp}
         className="border-t border-hairline pt-5 first:pt-5"
         checked={declineInsurance}
         onChange={setDeclineInsurance}
+        weight="semibold"
+        divided
       />
       {/* Above the results, not the card's footer: under a long trace it sat alone (#1781). */}
       <div className="flex justify-end">

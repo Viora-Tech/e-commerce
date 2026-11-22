@@ -17,8 +17,9 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import MoneyInput from '@/components/fields/money-input'
-import { segmentsContent as copy } from '@/data/customers'
+import { segmentsContent } from '@/data/customers'
 import { INDIAN_STATES } from '@/data/india'
+import { useCopy } from '@/hooks/use-copy'
 import SegmentProductField from './segment-product-field'
 import SegmentRangeField from './segment-range-field'
 
@@ -28,23 +29,9 @@ type ConditionRowProps = {
   onChange: (next: SegmentCondition) => void
   onRemove: () => void
 }
-
-const stateItems = INDIAN_STATES.map((s) => ({ value: s.code, label: s.name }))
-const marketingItems = [
-  { value: 'true', label: copy.marketingValues.true ?? 'Subscribed' },
-  { value: 'false', label: copy.marketingValues.false ?? 'Not subscribed' },
-]
-const abandonedItems = [
-  { value: 'true', label: copy.abandonedValues.true ?? 'Yes' },
-  { value: 'false', label: copy.abandonedValues.false ?? 'No' },
-]
 /** Rupee fields: rupees in the box, paise in the rule. */
 const MONEY_FIELDS = new Set<SegmentField>(['spend', 'aov'])
 const TEXT_FIELDS = new Set<SegmentField>(['tag', 'city'])
-const businessItems = [
-  { value: 'true', label: copy.businessValues.true ?? 'Business' },
-  { value: 'false', label: copy.businessValues.false ?? 'Individual' },
-]
 
 /** Rupees in the input, paise in the rule, so spend rules compare like the list does. */
 function paiseToRupees(paise: string): string {
@@ -59,6 +46,24 @@ function rupeesToPaise(rupees: string): string {
 
 /** One field/operator/value row of a segment rule. */
 export default function ConditionRow({ condition, fields, onChange, onRemove }: ConditionRowProps) {
+  // Hooks
+  const copy = useCopy(segmentsContent)
+
+  // Derived
+  const stateItems = INDIAN_STATES.map((s) => ({ value: s.code, label: s.name }))
+  const marketingItems = [
+    { value: 'true', label: copy.marketingValues.true ?? 'Subscribed' },
+    { value: 'false', label: copy.marketingValues.false ?? 'Not subscribed' },
+  ]
+  const abandonedItems = [
+    { value: 'true', label: copy.abandonedValues.true ?? 'Yes' },
+    { value: 'false', label: copy.abandonedValues.false ?? 'No' },
+  ]
+  const businessItems = [
+    { value: 'true', label: copy.businessValues.true ?? 'Business' },
+    { value: 'false', label: copy.businessValues.false ?? 'Individual' },
+  ]
+
   // Event handlers
   const handleField = (value: unknown) => {
     const field = String(value) as SegmentField

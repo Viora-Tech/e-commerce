@@ -45,14 +45,18 @@ export class SearchConsoleError extends CommerceError {
 export type GoogleOAuthApp = { clientId: string; clientSecret: string }
 
 /**
- * The Google OAuth client for Search Console: `GSC_GOOGLE_CLIENT_ID`/`_SECRET`, or, when both
- * are unset, the merchant sign-in client (`MERCHANT_GOOGLE_CLIENT_ID`/`_SECRET`). Null turns
- * "Connect Google Search Console" off.
+ * The Google OAuth client for Search Console: `GOOGLE_SEARCH_CONSOLE_CLIENT_ID`/`_SECRET`
+ * (the older names `GSC_GOOGLE_CLIENT_ID`/`_SECRET` still work), or, when both are unset, the
+ * merchant sign-in client (`MERCHANT_GOOGLE_CLIENT_ID`/`_SECRET`). Null turns "Connect Google
+ * Search Console" off: the admin shows "Not available yet".
  */
 export function searchConsoleOAuthApp(
   env: Record<string, string | undefined>,
 ): GoogleOAuthApp | null {
-  const own = { id: env.GSC_GOOGLE_CLIENT_ID?.trim(), secret: env.GSC_GOOGLE_CLIENT_SECRET?.trim() }
+  const own = {
+    id: env.GOOGLE_SEARCH_CONSOLE_CLIENT_ID?.trim() || env.GSC_GOOGLE_CLIENT_ID?.trim(),
+    secret: env.GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET?.trim() || env.GSC_GOOGLE_CLIENT_SECRET?.trim(),
+  }
   if (own.id && own.secret) return { clientId: own.id, clientSecret: own.secret }
   if (own.id || own.secret) return null
   const id = env.MERCHANT_GOOGLE_CLIENT_ID?.trim()

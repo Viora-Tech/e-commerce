@@ -6,8 +6,12 @@ const listPickups = vi.fn()
 const schedulePickup = vi.fn()
 const createManifest = vi.fn()
 const manifestSheet = vi.fn()
+const returnShipmentToBooked = vi.fn()
 vi.mock('@/lib/api-client', () => ({
-  api: { shipments: { listPickups, schedulePickup, createManifest, manifestSheet } },
+  api: {
+    shipments: { listPickups, schedulePickup, createManifest, manifestSheet },
+    orders: { returnShipmentToBooked },
+  },
 }))
 const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn() }
 vi.mock('sonner', () => ({ toast }))
@@ -76,5 +80,37 @@ describe('ShipmentsBulkActions › Print manifest (To be picked up)', () => {
   it('is not offered on Booked, where parcels have no pickup yet', () => {
     render(<ShipmentsBulkActions ids={['s1']} tab="booked" onDone={vi.fn()} />)
     expect(screen.queryByRole('button', { name: /print manifest/i })).toBeNull()
+  })
+})
+
+describe('ShipmentsBulkActions › Cancel pickup (To be picked up, owner 22 Nov 2026)', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  const confirm = async () => {
+    fireEvent.click(screen.getByRole('button', { name: /cancel pickup/i }))
+    const buttons = await screen.findAllByRole('button', { name: /cancel pickup/i })
+    fireEvent.click(buttons[buttons.length - 1] as HTMLElement)
+  }
+
+  it('sends every ticked parcel back to Booked, and no Create manifest is offered', async () => {
+    returnShipmentToBooked.mockResolvedValue({})
+    const onDone = vi.fn()
+    render(<ShipmentsBulkActions ids={['s1', 's2']} tab="toPickUp" onDone={onDone} />)
+    expect(screen.queryByRole('button', { name: /create manifest/i })).toBeNull()
+    await confirm()
+    await waitFor(() => expect(onDone).toHaveBeenCalled())
+    expect(returnShipmentToBooked).toHaveBeenCalledTimes(2)
+    expect(toast.success).toHaveBeenCalledWith('2 parcels are back in Booked.')
+  })
+
+  it('says how many could not leave the pickup', async () => {
+    returnShipmentToBooked.mockResolvedValueOnce({}).mockRejectedValueOnce(new Error('picked'))
+    render(<ShipmentsBulkActions ids={['s1', 's2']} tab="toPickUp" onDone={vi.fn()} />)
+    await confirm()
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        '1 back in Booked; 1 could not leave the pickup (already collected?).',
+      ),
+    )
   })
 })

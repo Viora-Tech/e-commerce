@@ -19,7 +19,6 @@ import RunStatTiles from './run-stat-tiles'
 import RunTypeGrid from './run-type-grid'
 import type { RunDetail } from './types'
 
-const base = shopifyImportContent.base
 const POLL_MS = 2000
 
 /** Runs that will not move again until someone starts them. */
@@ -46,6 +45,7 @@ function message(
 /** One import: live progress while it runs, then counts, a sample and every problem. */
 export default function RunPage({ params }: AppPageProps) {
   // Hooks
+  const base = useCopy(shopifyImportContent).base
   const copy = useCopy(shopifyImportContent.run)
   const home = useCopy(shopifyImportContent.home)
   const fmt = useFormat()

@@ -127,7 +127,7 @@ export default function HeroSlideView({
   const image: HeroImage | undefined = hasImage(slide.image)
     ? slide.image
     : productImage
-      ? { ...productImage, alt: productImage.alt ?? slide.product?.title ?? '' }
+      ? { ...productImage, alt: productImage.alt || slide.product?.title || '' }
       : undefined
   const video = slide.kind === 'video' ? safeVideoFile(slide.videoUrl ?? '') : null
   const poster = hasImage(slide.poster) ? posterUrl(slide.poster) : undefined

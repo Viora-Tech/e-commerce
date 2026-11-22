@@ -6,6 +6,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { AutoField, type Field } from '@puckeditor/core'
 import { useState } from 'react'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { FIELD_CONTROL, SWATCH_CHIP, swatchChipState } from '@/lib/customize-field-styles'
 import { useThemePreview } from '@/lib/customize-theme-context'
 import SettingsSegmented from './settings-segmented'
@@ -22,8 +23,6 @@ type BackgroundFieldProps = {
 }
 
 type Mode = 'colour' | 'image'
-
-const copy = customizeContent.settingsControls
 
 /** The theme colours offered first; stored by name (`SECTION_BACKGROUND_TOKENS`) or as hex. */
 const TOKENS = ['ink', 'brand', 'background'] as const
@@ -46,6 +45,7 @@ export default function BackgroundField({
   onOverlay,
 }: BackgroundFieldProps) {
   // Hooks
+  const copy = useCopy(customizeContent.settingsControls)
   const theme = useThemePreview()
   const [mode, setMode] = useState<Mode>(image.url ? 'image' : 'colour')
   const [customOpen, setCustomOpen] = useState(

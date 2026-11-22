@@ -1,3 +1,8 @@
+/** What a failed call says in words: the error's own message, or `fallback` when it has none. */
+export function errorText(err: unknown, fallback: string): string {
+  return err instanceof Error && err.message ? err.message : fallback
+}
+
 /** Per-field messages an API validation failure carries in `data.errors`, keyed by field. */
 export function fieldErrorsOf(err: unknown): Record<string, string> {
   const data = (err as { data?: { errors?: Record<string, string> } } | null)?.data

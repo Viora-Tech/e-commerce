@@ -28,6 +28,7 @@ const FLOATING_CARD = 'glass-bar gap-0 bg-glass-bar p-5'
  *  15 seconds. The globe polls dashboard data on its own, independent cadence. */
 export default function LiveView({ initial, globe }: LiveViewProps) {
   // Hooks
+  const analyticsCopy = useCopy(analyticsContent)
   const { live: c } = useCopy(analyticsContent)
   const [data, setData] = useState(initial)
   const [paused, setPaused] = useState(false)
@@ -62,7 +63,7 @@ export default function LiveView({ initial, globe }: LiveViewProps) {
           <PageHeader
             title={c.title}
             summary={c.people(data.visitors.last30)}
-            back={{ label: analyticsContent.title, href: routes.analytics.home() }}
+            back={{ label: analyticsCopy.title, href: routes.analytics.home() }}
             actions={
               <Button variant="outline" onClick={() => setPaused((p) => !p)}>
                 {paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}

@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowUp } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { layoutContent } from '@/data/layout'
+import { useCopy } from '@/hooks/use-copy'
 
 /** Percent change between two window values; null when there is nothing to compare against. */
 export function percentDelta(value: number, previous: number): number | null {
@@ -18,6 +19,7 @@ type DeltaChipProps = {
 }
 
 export default function DeltaChip({ delta, invert, size = 'default', className }: DeltaChipProps) {
+  const layoutCopy = useCopy(layoutContent)
   if (delta === null || delta === undefined) return null
   const flat = Math.abs(delta) < 0.05
   const up = delta > 0
@@ -33,7 +35,7 @@ export default function DeltaChip({ delta, invert, size = 'default', className }
       )}
     >
       {flat ? null : <Icon className="size-4" />}
-      {flat ? layoutContent.noChange : `${Math.abs(delta).toFixed(1)}%`}
+      {flat ? layoutCopy.noChange : `${Math.abs(delta).toFixed(1)}%`}
     </span>
   )
 }

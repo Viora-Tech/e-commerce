@@ -12,6 +12,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { useId } from 'react'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import type { FieldLike } from '@/lib/customize-field-shape'
 import { FIELD_CONTROL } from '@/lib/customize-field-styles'
 import FieldFrame from './field-frame'
@@ -37,6 +38,7 @@ export default function ColourChoiceField({
   onChange,
 }: ColourChoiceFieldProps) {
   // Hooks
+  const colourChoiceCopy = useCopy(customizeContent.colourChoice)
   const id = useId()
 
   // Render logic
@@ -79,7 +81,7 @@ export default function ColourChoiceField({
             <Input
               value={custom}
               onChange={(e) => onChange({ token, custom: e.target.value })}
-              placeholder={customizeContent.colourChoice.placeholder}
+              placeholder={colourChoiceCopy.placeholder}
               aria-label={customField.label ?? label}
               aria-invalid={custom !== '' && !valid}
               size="lg"

@@ -10,6 +10,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type AffiliateRowActionsProps = {
@@ -46,7 +47,7 @@ export default function AffiliateRowActions({
       toast.success(done)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : failed)
+      toast.error(errorText(err, failed))
     }
   }
 
@@ -67,7 +68,7 @@ export default function AffiliateRowActions({
       if (onRemoved) onRemoved()
       else onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : failed)
+      toast.error(errorText(err, failed))
       throw err
     }
   }

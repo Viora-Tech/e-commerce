@@ -4,7 +4,9 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import FormDialog from '@/components/layout/form-dialog'
 import { returnDetailContent } from '@/data/returns'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import ChoiceList from './choice-list'
 import type { PickupChoice, ReturnDetail } from './return-types'
 
@@ -15,8 +17,6 @@ type PickupDialogProps = {
   onClose: () => void
   onDone: () => void
 }
-
-const copy = returnDetailContent.approveDialog
 
 function toChoice(value: string): PickupChoice {
   if (value === 'customer') return { method: 'customer' }
@@ -33,6 +33,8 @@ function defaultChoice(detail: ReturnDetail): string {
 /** Approve a return and say how it comes back: a courier pickup, or the customer sends it. */
 export default function PickupDialog({ detail, mode, onClose, onDone }: PickupDialogProps) {
   // Hooks
+  const copy = useCopy(returnDetailContent.approveDialog)
+  const returnDetailCopy = useCopy(returnDetailContent)
   const [value, setValue] = useState(() => defaultChoice(detail))
   const [busy, setBusy] = useState(false)
 
@@ -50,7 +52,7 @@ export default function PickupDialog({ detail, mode, onClose, onDone }: PickupDi
       }
       onDone()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : returnDetailContent.failed)
+      toast.error(errorText(err, returnDetailCopy.failed))
     } finally {
       setBusy(false)
     }
@@ -74,7 +76,7 @@ export default function PickupDialog({ detail, mode, onClose, onDone }: PickupDi
       title={mode === 'approve' ? copy.title : copy.arrangeTitle}
       description={`${copy.body}${detail.pickupCouriers.length === 0 ? ` ${copy.noCourier}` : ''}`}
       submitLabel={mode === 'approve' ? copy.confirm : copy.arrangeConfirm}
-      cancelLabel={returnDetailContent.cancel}
+      cancelLabel={returnDetailCopy.cancel}
       busy={busy}
       onSubmit={handleConfirm}
     >

@@ -2,6 +2,7 @@
 
 import { AutoField, type Field } from '@puckeditor/core'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import FieldFrame from './field-frame'
 import ImageField from './image-field'
@@ -19,8 +20,6 @@ type VideoSettingFieldProps = {
   onChange: (value: unknown) => void
 }
 
-const copy = customizeContent.video
-
 const asVideo = (value: unknown) => (value ?? {}) as VideoValue
 
 /**
@@ -34,6 +33,9 @@ export default function VideoSettingField({
   value,
   onChange,
 }: VideoSettingFieldProps) {
+  // Hooks
+  const copy = useCopy(customizeContent.video)
+
   // Event handlers
   const handleUrl = async (next: unknown) => {
     const current = asVideo(value)

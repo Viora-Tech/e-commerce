@@ -21,6 +21,7 @@ import { affiliatesContent } from '@/data/affiliates'
 import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 /** Store-wide settings: open or paused, the link window, Share and earn, holds and payouts, TDS. */
@@ -63,7 +64,7 @@ export default function SettingsPage() {
       setSaved(next)
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : failed)
+      toast.error(errorText(err, failed))
     } finally {
       setBusy(false)
     }

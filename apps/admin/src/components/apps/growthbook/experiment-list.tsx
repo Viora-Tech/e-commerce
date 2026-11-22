@@ -6,6 +6,7 @@ import SettingsCard from '@/components/settings/settings-card'
 import { growthbookContent } from '@/data/growthbook'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type ExperimentListProps = {
   /** Changes whenever the settings are saved, so the list reloads. */
@@ -40,9 +41,7 @@ export default function ExperimentList({ version, openUrl }: ExperimentListProps
     api.growthbook
       .experiments()
       .then(setView)
-      .catch((err: unknown) =>
-        setView({ state: 'error', message: err instanceof Error ? err.message : '' }),
-      )
+      .catch((err: unknown) => setView({ state: 'error', message: errorText(err, '') }))
   }, [version])
 
   // Helpers

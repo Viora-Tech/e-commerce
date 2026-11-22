@@ -103,6 +103,13 @@ export default function InboxLauncher({ widget, storeName, logoUrl }: InboxLaunc
   }, [])
 
   useEffect(() => {
+    // "Continue the chat" in a chat email links to `?chat=open`: open it straight away.
+    if (new URLSearchParams(window.location.search).get('chat') !== 'open') return
+    setLoaded(true)
+    setOpen(true)
+  }, [])
+
+  useEffect(() => {
     if (!wasActive()) return
     // Load the chat once the page is idle (or after 2.5 s where idle callbacks do not exist).
     const timer = globalThis.setTimeout(() => setLoaded(true), 2500)

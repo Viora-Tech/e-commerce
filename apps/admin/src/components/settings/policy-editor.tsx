@@ -10,18 +10,20 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import RichTextField from '@/components/fields/rich-text-field'
+import SwitchRow from '@/components/fields/switch-row'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsTextRow from '@/components/settings/settings-text-row'
-import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import InlineState from '@/components/states/inline-state'
-import { policyEditorContent as copy, policiesContent } from '@/data/policies'
+import { policiesContent, policyEditorContent } from '@/data/policies'
 import { settingsContent } from '@/data/settings'
+import { useCopy } from '@/hooks/use-copy'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatDate } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
 
@@ -50,6 +52,9 @@ export default function PolicyEditor({
   storefrontOrigin,
 }: PolicyEditorProps) {
   // Hooks
+  const copy = useCopy(policyEditorContent)
+  const settingsCopy = useCopy(settingsContent)
+  const policiesCopy = useCopy(policiesContent)
   const announceSetup = useSetupNext()
   const [policy, setPolicy] = useState<StorePolicy | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
@@ -102,7 +107,7 @@ export default function PolicyEditor({
       setEditorKey((k) => k + 1)
       toast.success(copy.filled)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setFilling(false)
       setConfirming(false)
@@ -138,7 +143,7 @@ export default function PolicyEditor({
       toast.success(copy.saved)
       void announceSetup('policies')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -160,19 +165,17 @@ export default function PolicyEditor({
     <div className="flex flex-col gap-4">
       <SaveBar
         open={dirty}
-        message={settingsContent.general.unsaved}
+        message={settingsCopy.general.unsaved}
         saveLabel={copy.save}
-        discardLabel={settingsContent.general.discard}
+        discardLabel={settingsCopy.general.discard}
         onSave={handleSave}
         onDiscard={handleDiscard}
         saving={busy}
       />
       <PageHeader
-        title={policiesContent.names[type]}
+        title={policiesCopy.names[type]}
         subtitle={
-          policy?.updatedAt
-            ? copy.updated(formatDate(policy.updatedAt))
-            : policiesContent.hints[type]
+          policy?.updatedAt ? copy.updated(formatDate(policy.updatedAt)) : policiesCopy.hints[type]
         }
         back={{ label: copy.back, href: routes.settings.policies() }}
         actions={
@@ -213,12 +216,14 @@ export default function PolicyEditor({
             </Alert>
           ) : null}
           <SettingsCard>
-            <SettingsToggleRow
+            <SwitchRow
               id="policy-visible"
               label={copy.visible}
               description={draft.published ? copy.visibleHint(path) : copy.hiddenHint}
               checked={draft.published}
               onChange={(published) => setDraft({ ...draft, published })}
+              weight="semibold"
+              divided
             />
             <SettingsTextRow
               id="policy-title"

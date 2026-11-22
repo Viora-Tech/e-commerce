@@ -1,9 +1,10 @@
 'use client'
 
 import { Spinner } from '@commerce/ui/shadcn/spinner'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { shipmentDetailsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import ShipmentDetails, { type ShipmentDetailsData } from './shipment-details'
 
@@ -21,21 +22,12 @@ export default function ShipmentDetailsLoader({
 }: ShipmentDetailsLoaderProps) {
   // Hooks
   const copy = useCopy(shipmentDetailsContent)
-  const [shipment, setShipment] = useState<ShipmentDetailsData | null>(null)
-  const [failed, setFailed] = useState(false)
   const [revision, setRevision] = useState(0)
-  useEffect(() => {
-    // `revision` reads the shipment again after a change; it is never negative.
-    if (revision < 0) return
-    let live = true
-    api.shipments
-      .get({ id: shipmentId })
-      .then((s) => live && setShipment(s))
-      .catch(() => live && setFailed(true))
-    return () => {
-      live = false
-    }
-  }, [shipmentId, revision])
+  // `revision` reads the shipment again after a change.
+  const { data: shipment, failed } = useLoad<ShipmentDetailsData>(
+    () => api.shipments.get({ id: shipmentId }),
+    [shipmentId, revision],
+  )
 
   // Event handlers
   const handleChanged = () => {

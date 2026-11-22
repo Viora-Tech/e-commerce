@@ -1,10 +1,9 @@
 'use client'
 
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { FOOTER_ZONE, HEADER_ZONE, MAIN_ZONE } from '@/lib/customize-doc'
 import SectionGroup from './section-group'
-
-const copy = customizeContent.groups
 
 /** The left panel's Sections tab: header group, the template's sections, footer group. */
 type SectionsTreeProps = {
@@ -13,6 +12,9 @@ type SectionsTreeProps = {
 }
 
 export default function SectionsTree({ templateLabel }: SectionsTreeProps) {
+  // Hooks
+  const copy = useCopy(customizeContent.groups)
+
   // Render logic
   return (
     <div className="flex flex-col">

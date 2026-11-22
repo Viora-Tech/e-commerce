@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import type { ResourceKind, ResourceOption } from '@/lib/customize-resource'
 
 type ResourcePickerProps = {
@@ -17,10 +18,11 @@ type ResourcePickerProps = {
   onChange: (id: string) => void
 }
 
-const copy = customizeContent.resource
-
 /** Which product, collection or page the preview draws the template with. */
 export default function ResourcePicker({ kind, value, options, onChange }: ResourcePickerProps) {
+  // Hooks
+  const copy = useCopy(customizeContent.resource)
+
   // Event handlers
   const handleChange = (next: unknown) => {
     if (typeof next === 'string') onChange(next)

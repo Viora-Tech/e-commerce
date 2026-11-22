@@ -8,7 +8,8 @@ import {
 } from '@commerce/ui/shadcn/collapsible'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { rapidshypAppContent as appCopy } from '@/data/rapidshyp'
+import { rapidshypAppContent } from '@/data/rapidshyp'
+import { useCopy } from '@/hooks/use-copy'
 
 type ConnectAdvancedFieldsProps = {
   baseUrl: string
@@ -16,8 +17,6 @@ type ConnectAdvancedFieldsProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
-
-const copy = appCopy.connect.advanced
 
 /** The one rarely-touched field: a manual base URL override. Collapsed by default so the
  *  guided fields above stay the whole story for a merchant who only needs the basics.
@@ -29,6 +28,7 @@ export default function ConnectAdvancedFields({
   open,
   onOpenChange,
 }: ConnectAdvancedFieldsProps) {
+  const copy = useCopy(rapidshypAppContent.connect.advanced)
   return (
     <Collapsible open={open} onOpenChange={onOpenChange}>
       <CollapsibleTrigger className="group flex w-fit items-center gap-1.5 text-body font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">

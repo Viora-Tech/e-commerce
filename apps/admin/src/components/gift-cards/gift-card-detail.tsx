@@ -7,9 +7,11 @@ import { toast } from 'sonner'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
-import OrderChip from '@/components/orders/order-chip'
-import { giftCardDetailContent as copy } from '@/data/gift-cards'
+import StatusLabel from '@/components/status/status-label'
+import { giftCardDetailContent } from '@/data/gift-cards'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import BalanceCard from './balance-card'
 import CustomerCard from './customer-card'
@@ -26,6 +28,7 @@ type GiftCardDetailProps = { initial: GiftCardDetailData }
 /** One gift card: balance and history on the left, customer, expiry and notes on the right. */
 export default function GiftCardDetail({ initial }: GiftCardDetailProps) {
   // Hooks
+  const copy = useCopy(giftCardDetailContent)
   const [card, setCard] = useState(initial)
   const [busy, setBusy] = useState<string | null>(null)
 
@@ -59,7 +62,7 @@ export default function GiftCardDetail({ initial }: GiftCardDetailProps) {
       else toast.error(r[0]?.error ?? copy.resendFailed)
       await reload()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.resendFailed)
+      toast.error(errorText(err, copy.resendFailed))
     } finally {
       setBusy(null)
     }
@@ -75,7 +78,7 @@ export default function GiftCardDetail({ initial }: GiftCardDetailProps) {
         title={title}
         back={{ label: copy.breadcrumb, href: routes.products.giftCards() }}
         lead={{ kind: 'icon', node: <Gift aria-hidden="true" /> }}
-        badges={<OrderChip kind="giftCard" value={card.state} />}
+        badges={<StatusLabel kind="giftCard" value={card.state} variant="soft" />}
         actions={
           <>
             {canResend ? (

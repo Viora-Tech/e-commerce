@@ -55,6 +55,13 @@ export const figmaOrder = {
   placedLabel: '19 November 2026',
 } satisfies Partial<TemplateData>
 
+/** The GST invoices app's signed order link (made up): the invoice shows as a file with Download. */
+export const figmaInvoiceLink = {
+  kind: 'invoice' as const,
+  label: 'Download invoice',
+  url: 'https://waimers.example/documents/order/sample?e=0&t=sample',
+}
+
 /** Three made-up products for the "Popular right now" row (welcome and gift card previews). */
 export const figmaProducts = [
   {

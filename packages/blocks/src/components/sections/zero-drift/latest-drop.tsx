@@ -63,7 +63,7 @@ export default function LatestDrop({
           {main?.url ? (
             <Picture
               image={main}
-              alt={main.alt ?? product.title}
+              alt={main.alt || product.title}
               className="latest-drop__image latest-drop__image--primary"
               fill
               placeholder={false}

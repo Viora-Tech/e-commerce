@@ -22,6 +22,7 @@ import PageState from '@/components/states/page-state'
 import { accountContent } from '@/data/account'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { authClient } from '@/lib/auth-client'
 import AvatarField from './avatar-field'
 import DeleteAccountCard from './delete-account-card'
@@ -92,7 +93,7 @@ export default function ProfilePage() {
       setAttempted(false)
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setSaving(false)
     }

@@ -34,13 +34,21 @@ import { MARKET_HEADERS } from '../markets'
 import { attachImageMedia } from '../media-lookup'
 import { storePixels } from '../pixels/pixels'
 import { abThemeId } from '../rollout-ab'
-import { jsonLd, marketCanonical, metaDescription, requestOrigin, storeGraph } from '../seo'
+import {
+  jsonLd,
+  marketCanonical,
+  metaDescription,
+  requestOrigin,
+  socialProfiles,
+  storeGraph,
+} from '../seo'
 import { storeShareImages } from '../share-image'
 import { storeRead } from '../store-cache'
 import { liveThemeId, templateSections } from '../template-render'
 import { resolveThemeMode, THEME_COOKIE, themeViewport } from '../theme-mode'
 import { umamiTrackerOf } from '../umami'
 import { chatLauncherHtml, chatModuleSpec } from './chat-launcher'
+import { fallbackHomeHeading } from './home-heading'
 import { islandScript } from './islands'
 import { plainKind, plainPageHandle } from './route'
 import { THEME_COMPAT_CSS } from './theme-compat'
@@ -298,15 +306,30 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
     marketBanner,
   })}</script>`
 
+  const mainHtml = draw(content, main)
+  const footerHtml = draw(footerContent, footer)
+  // The home page's one h1: the theme's, else the store name, hidden (`home-heading.ts`).
+  const heading =
+    kind === 'home'
+      ? fallbackHomeHeading(current.name, [
+          layout.beforeHeader,
+          wrappedHeader,
+          mainHtml,
+          footerHtml,
+          layout.afterFooter,
+        ])
+      : ''
   const body = [
     `<body${attrs(layout.bodyAttrs)}>`,
     layout.beforeHeader,
     wrappedHeader,
     `<main id="MainContent" tabindex="-1"${attrs(withoutId(layout.mainAttrs))}>`,
-    draw(content, main),
+    mainHtml,
+    // After the sections, so a theme's `main > .shopify-section:first-child` rules still match.
+    heading,
     graph,
     '</main>',
-    draw(footerContent, footer),
+    footerHtml,
     layout.afterFooter,
     inboxChat ? chatLauncherHtml(inboxChat) : '',
     island,
@@ -352,6 +375,7 @@ async function seoFor(
     return {
       name: s?.name ?? '',
       logoUrl: theme.brand.logo?.url,
+      sameAs: socialProfiles(theme.social.links),
       description: parsePreferences(s?.preferences).seo.description || undefined,
       email: s?.contactEmail,
       phone: s?.contactPhone,

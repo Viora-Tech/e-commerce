@@ -21,6 +21,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { onlineStoreContent } from '@/data/online-store'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type CreatePageDialogProps = {
   open: boolean
@@ -49,7 +50,7 @@ export default function CreatePageDialog({ open, onOpenChange }: CreatePageDialo
       onOpenChange(false)
       router.push(`/online-store/pages/${p.id}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

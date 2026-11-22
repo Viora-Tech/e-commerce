@@ -1,5 +1,7 @@
 import {
+  applyEmailBranding,
   designedTemplates,
+  type EmailBranding,
   getPlatformEmail,
   isMessageOn,
   MESSAGE_CATALOGUE,
@@ -7,9 +9,11 @@ import {
   messageSwitchable,
   parseAppsSettings,
   parseNotificationSettings,
+  savedEmailBranding,
   savedTemplateDesign,
   storeEmailBrand,
   storeNotificationChannels,
+  themeEmailBrand,
   withMessage,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
@@ -138,8 +142,13 @@ function sampleFor(template: TemplateId, storeName: string | undefined): Templat
 /** The email (and WhatsApp text) a customer would get, filled with a sample order. */
 export async function previewMessage(tx: StoreTx, storeId: string, template: TemplateId) {
   const s = await getStore(tx, storeId)
-  // The store's own logo, colour and contact, so the preview matches what customers get.
-  const data = { ...sampleFor(template, s?.name), brand: await storeEmailBrand(tx, storeId) }
+  // The store's own logo, colour and contact, and its saved design (Edit), so the preview
+  // matches what customers get.
+  const data = {
+    ...sampleFor(template, s?.name),
+    brand: await storeEmailBrand(tx, storeId),
+    design: (await savedTemplateDesign(tx, storeId, template)) ?? undefined,
+  }
   const email = await renderEmail(template, data)
   const def = messageDef(template)
   return {
@@ -213,6 +222,43 @@ export async function previewTemplateDesign(
     ...sampleFor(template, s?.name),
     brand: await storeEmailBrand(tx, storeId),
     design: parseEmailDesign(design) ?? defaultEmailDesign(template),
+  }
+  const email = await renderEmail(template, data)
+  return { subject: email.subject, html: email.html }
+}
+
+/**
+ * Settings → Notifications → Email branding: what the merchant saved (null: the emails follow
+ * the theme) and the theme's own look, which the page shows as the starting values.
+ */
+export async function emailBrandingOverview(tx: StoreTx, storeId: string) {
+  const [saved, theme] = await Promise.all([
+    savedEmailBranding(tx, storeId),
+    themeEmailBrand(tx, storeId),
+  ])
+  return {
+    saved,
+    theme: {
+      logoUrl: theme.logoUrl ?? null,
+      logoWidth: theme.logoWidth ?? null,
+      colour: theme.colour ?? null,
+      onColour: theme.onColour ?? null,
+    },
+  }
+}
+
+/** One email with branding that is not saved yet, filled with the sample order (and its design). */
+export async function previewEmailBranding(
+  tx: StoreTx,
+  storeId: string,
+  template: TemplateId,
+  branding: EmailBranding,
+) {
+  const s = await getStore(tx, storeId)
+  const data = {
+    ...sampleFor(template, s?.name),
+    brand: applyEmailBranding(await themeEmailBrand(tx, storeId), branding),
+    design: (await savedTemplateDesign(tx, storeId, template)) ?? undefined,
   }
   const email = await renderEmail(template, data)
   return { subject: email.subject, html: email.html }

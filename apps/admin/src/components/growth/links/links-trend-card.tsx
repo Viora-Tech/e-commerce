@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import PillTabs from '@/components/layout/pill-tabs'
 import { growthLinksContent } from '@/data/growth'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { formatDay } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
 import GrowthTrendChart from '../growth-trend-chart'
@@ -30,24 +31,12 @@ export default function LinksTrendCard({ reloadKey }: LinksTrendCardProps) {
   // Hooks
   const copy = useCopy(growthLinksContent.trend)
   const fmt = useFormat()
-  const [trend, setTrend] = useState<Trend>([])
+  // A failed read keeps the chart's zero line; the table below still loads.
+  const { data } = useLoad(() => api.shortLinks.trend(), [reloadKey])
   const [metric, setMetric] = useState<Metric>('clicks')
 
-  useEffect(() => {
-    if (reloadKey < 0) return
-    let live = true
-    api.shortLinks
-      .trend()
-      .then((t) => live && setTrend(t))
-      .catch(() => {
-        // The chart keeps its zero line; the table below still loads.
-      })
-    return () => {
-      live = false
-    }
-  }, [reloadKey])
-
   // Render logic
+  const trend: Trend = data ?? []
   const points = trend.map((d) => ({ label: formatDay(d.day), value: metricValue(d, metric) }))
   const format = metric === 'revenue' ? fmt.moneyCompact : fmt.compact
 

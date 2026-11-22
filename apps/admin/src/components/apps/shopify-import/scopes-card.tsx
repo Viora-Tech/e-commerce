@@ -10,6 +10,7 @@ import StatusChip from '@/components/layout/status-chip'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type Check = Awaited<ReturnType<typeof api.shopifyImport.testConnection>>
 
@@ -26,7 +27,7 @@ export default function ScopesCard() {
     try {
       setCheck(await api.shopifyImport.testConnection())
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.testFailed)
+      toast.error(errorText(err, copy.testFailed))
     } finally {
       setBusy(false)
     }

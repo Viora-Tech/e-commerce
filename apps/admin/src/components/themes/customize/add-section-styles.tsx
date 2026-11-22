@@ -4,6 +4,7 @@ import { presetPictureKey, type SectionPreset } from '@commerce/blocks/section-p
 import { ChevronLeftIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { CHROME_FOCUS, CHROME_GROUP_LABEL, CHROME_TRANSITION } from '@/lib/customize-chrome'
 import SectionPicture, { hasSectionPicture } from './section-picture'
 import SectionPreview from './section-preview'
@@ -15,8 +16,6 @@ type AddSectionStylesProps = {
   onPick: (presetId: string) => void
   onBack: () => void
 }
-
-const copy = customizeContent.addSection.styles
 
 /**
  * The Add panel's second step for a section with styles (`@commerce/blocks/section-presets`):
@@ -31,6 +30,9 @@ export default function AddSectionStyles({
   onPick,
   onBack,
 }: AddSectionStylesProps) {
+  // Hooks
+  const copy = useCopy(customizeContent.addSection.styles)
+
   // Render logic
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
@@ -93,6 +95,9 @@ function StylePicture({
   label: string
   style: string
 }) {
+  // Hooks
+  const copy = useCopy(customizeContent.addSection.styles)
+
   // Early returns
   const key = presetPictureKey(type, presetId)
   if (hasSectionPicture(key)) {

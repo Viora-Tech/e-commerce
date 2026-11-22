@@ -24,6 +24,7 @@ import { documentTemplatesContent } from '@/data/document-templates'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import DocumentFrame from './document-frame'
 import MergeTagsDialog from './merge-tags-dialog'
@@ -65,7 +66,7 @@ export default function TemplateEditor({ template, store, gstApp }: TemplateEdit
       toast.success(content.editor.saved)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : content.editor.failed)
+      toast.error(errorText(err, content.editor.failed))
     } finally {
       setBusy(false)
     }
@@ -80,7 +81,7 @@ export default function TemplateEditor({ template, store, gstApp }: TemplateEdit
       toast.success(content.editor.resetDone)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : content.editor.failed)
+      toast.error(errorText(err, content.editor.failed))
     } finally {
       setBusy(false)
       setConfirmReset(false)

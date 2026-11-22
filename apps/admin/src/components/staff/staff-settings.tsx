@@ -25,6 +25,7 @@ import { useCopy } from '@/hooks/use-copy'
 import type { LoadFailure } from '@/hooks/use-load'
 import { refreshPermissions, usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { ADMIN_REFRESH_EVENT } from '@/lib/focus-refresh'
 import { isForbidden } from '@/lib/forbidden'
 import { routes } from '@/lib/routes'
@@ -119,7 +120,7 @@ export default function StaffSettings() {
       toast.success(copy.members.removed)
       reload()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.errors.load)
+      toast.error(errorText(err, copy.errors.load))
     }
   }
 
@@ -133,7 +134,7 @@ export default function StaffSettings() {
       void revalidateStaff().catch(() => undefined)
       reload()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.errors.load)
+      toast.error(errorText(err, copy.errors.load))
     }
   }
 

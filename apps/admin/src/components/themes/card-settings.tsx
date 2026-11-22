@@ -1,28 +1,30 @@
 'use client'
 
 import type { Theme } from '@commerce/core/theme'
-import { themesContent as copy } from '@/data/themes'
+import SwitchRow from '@/components/fields/switch-row'
+import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 import ChoiceField from './choice-field'
 import RangeField from './range-field'
-import SwitchField from './switch-field'
 
 type CardSettingsProps = {
   theme: Theme
   onChange: (next: Theme) => void
 }
 
-const STYLES = (['standard', 'minimal'] as const).map((value) => ({
-  value,
-  label: copy.cards.styles[value],
-}))
+const STYLES = ['standard', 'minimal'] as const
 
-const RATIOS = (['square', 'portrait', 'landscape', 'natural'] as const).map((value) => ({
-  value,
-  label: copy.cards.ratios[value],
-}))
+const RATIOS = ['square', 'portrait', 'landscape', 'natural'] as const
 
 /** Product card image shape, extras and corner radius. */
 export default function CardSettings({ theme, onChange }: CardSettingsProps) {
+  // Hooks
+  const copy = useCopy(themesContent)
+
+  // Derived
+  const styles = STYLES.map((value) => ({ value, label: copy.cards.styles[value] }))
+  const ratios = RATIOS.map((value) => ({ value, label: copy.cards.ratios[value] }))
+
   // Helpers
   const setCards = (patch: Partial<Theme['cards']>) =>
     onChange({ ...theme, cards: { ...theme.cards, ...patch } })
@@ -35,45 +37,51 @@ export default function CardSettings({ theme, onChange }: CardSettingsProps) {
       <ChoiceField
         label={copy.cards.style}
         value={cards.style}
-        options={STYLES}
+        options={styles}
         onChange={(style) => setCards({ style })}
       />
       <ChoiceField
         label={copy.cards.ratio}
         value={cards.imageRatio}
-        options={RATIOS}
+        options={ratios}
         onChange={(imageRatio) => setCards({ imageRatio })}
       />
-      <SwitchField
+      <SwitchRow
         label={copy.cards.vendor}
         checked={cards.showVendor}
         onChange={(showVendor) => setCards({ showVendor })}
+        weight="normal"
       />
-      <SwitchField
+      <SwitchRow
         label={copy.cards.saleBadge}
         checked={cards.showSaleBadge}
         onChange={(showSaleBadge) => setCards({ showSaleBadge })}
+        weight="normal"
       />
-      <SwitchField
+      <SwitchRow
         label={copy.cards.rating}
-        help={copy.cards.ratingHelp}
+        description={copy.cards.ratingHelp}
         checked={cards.showRating}
         onChange={(showRating) => setCards({ showRating })}
+        weight="normal"
       />
-      <SwitchField
+      <SwitchRow
         label={copy.cards.quickAdd}
         checked={cards.showQuickAdd}
         onChange={(showQuickAdd) => setCards({ showQuickAdd })}
+        weight="normal"
       />
-      <SwitchField
+      <SwitchRow
         label={copy.cards.wishlist}
         checked={cards.showWishlist}
         onChange={(showWishlist) => setCards({ showWishlist })}
+        weight="normal"
       />
-      <SwitchField
+      <SwitchRow
         label={copy.cards.hoverImage}
         checked={cards.hoverImage}
         onChange={(hoverImage) => setCards({ hoverImage })}
+        weight="normal"
       />
       <RangeField
         label={copy.cards.radius}

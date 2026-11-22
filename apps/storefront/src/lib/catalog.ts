@@ -1,6 +1,7 @@
 import 'server-only'
 import type { CardProduct, ProductDetail } from '@commerce/blocks'
 import { campaignsByIds, soldInRequestCatalog } from '@commerce/core'
+import { bestByHandle, handleCandidates } from '@commerce/core/catalog'
 import {
   campaignApplies,
   campaignColours,
@@ -265,10 +266,13 @@ export async function getProductByHandle(
   /** The store's default pre-order note (`store.preorder.note`), for a product without its own. */
   storeNote: string | null = null,
 ): Promise<ProductDetail | null> {
-  const [found] = await tx
+  // Decoded, then the ASCII slug (`handleCandidates`): old Shopify links with non-ASCII handles.
+  const tries = handleCandidates(handle)
+  const rows = await tx
     .select({ p: product, soldHere: sql<boolean>`${soldInRequestCatalog(product.id)}` })
     .from(product)
-    .where(and(eq(product.handle, handle), eq(product.status, 'active')))
+    .where(and(inArray(product.handle, tries), eq(product.status, 'active')))
+  const found = bestByHandle(rows, tries, (r) => r.p.handle)
   if (!found) return null
   const { p, soldHere } = found
   // Outside the market's catalog (Markets › Catalogs) the page still shows, never sells.

@@ -29,13 +29,14 @@ import { checkoutRulesContent } from '@/data/checkout-rules'
 import {
   checkoutBrandingContent,
   checkoutRecommendedContent,
-  checkoutSettingsContent as copy,
+  checkoutSettingsContent,
 } from '@/data/checkout-settings'
 import { PAYMENTS_PAGE_HREF } from '@/data/payments-setup'
 import { settingsContent } from '@/data/settings'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import SettingsCard from './settings-card'
 
 type Form = { settings: Settings; codFee: PaymentAdjustment | null }
@@ -54,6 +55,8 @@ const formOf = (v: Loaded): Form => ({ settings: v.settings, codFee: v.codFee })
  */
 export default function CheckoutSettings() {
   // Hooks
+  const copy = useCopy(checkoutSettingsContent)
+  const settingsCopy = useCopy(settingsContent)
   const brandingCopy = useCopy(checkoutBrandingContent)
   const recCopy = useCopy(checkoutRecommendedContent)
   const rules = useCopy(checkoutRulesContent)
@@ -100,7 +103,7 @@ export default function CheckoutSettings() {
       setSaved(JSON.stringify(formOf(next)))
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -240,9 +243,9 @@ export default function CheckoutSettings() {
     <div className="flex flex-col gap-4">
       <SaveBar
         open={dirty}
-        message={settingsContent.general.unsaved}
+        message={settingsCopy.general.unsaved}
         saveLabel={copy.save}
-        discardLabel={settingsContent.general.discard}
+        discardLabel={settingsCopy.general.discard}
         onSave={handleSave}
         onDiscard={handleDiscard}
         saving={busy}

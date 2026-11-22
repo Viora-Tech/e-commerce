@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import SaveBar from '@/components/layout/save-bar'
 import { giftCardDetailContent } from '@/data/gift-cards'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type NoteCardProps = {
@@ -13,11 +14,11 @@ type NoteCardProps = {
   onChanged: () => Promise<void>
 }
 
-const copy = giftCardDetailContent.note
-
 /** Staff-only note; the floating save bar appears once the text changes. */
 export default function NoteCard({ card, onChanged }: NoteCardProps) {
   // Hooks
+  const copy = useCopy(giftCardDetailContent.note)
+  const giftCardDetailCopy = useCopy(giftCardDetailContent)
   const [value, setValue] = useState(card.note ?? '')
   const [busy, setBusy] = useState(false)
 
@@ -29,7 +30,7 @@ export default function NoteCard({ card, onChanged }: NoteCardProps) {
       toast.success(copy.saved)
       await onChanged()
     } catch {
-      toast.error(giftCardDetailContent.failed)
+      toast.error(giftCardDetailCopy.failed)
     } finally {
       setBusy(false)
     }

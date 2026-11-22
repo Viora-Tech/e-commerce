@@ -5,7 +5,8 @@ import { DynamicSource } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
-import { dynamicSourcesContent as copy } from '@/data/dynamic-sources'
+import { dynamicSourcesContent } from '@/data/dynamic-sources'
+import { useCopy } from '@/hooks/use-copy'
 import type { FieldLike } from '@/lib/customize-field-shape'
 import {
   loadCatalog,
@@ -42,6 +43,7 @@ export default function DynamicSourceField({
   children,
 }: DynamicSourceFieldProps) {
   // Hooks
+  const copy = useCopy(dynamicSourcesContent)
   const scope = useDynamicSourceScope()
   const [picking, setPicking] = useState(false)
   const [catalog, setCatalog] = useState<SourceOption[] | null>(null)

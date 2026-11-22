@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { billingContent } from '@/data/billing'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 export type AutopayState = Awaited<ReturnType<typeof api.billing.autopay>>
 
@@ -27,7 +28,7 @@ export default function AutopayRow({ autopay, billingReady }: AutopayRowProps) {
       const r = await api.billing.startAutopay()
       window.location.assign(r.approveUrl)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.payment.autopayFailed)
+      toast.error(errorText(err, copy.payment.autopayFailed))
       setBusy(false)
     }
   }

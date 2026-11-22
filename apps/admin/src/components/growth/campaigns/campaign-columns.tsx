@@ -1,9 +1,9 @@
 import type { CampaignPerformanceRow } from '@commerce/api'
 import RelativeTime from '@/components/layout/relative-time'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { growthCampaignTabsContent } from '@/data/growth-home'
-import { campaignReportContent, type campaignsContent } from '@/data/marketing-campaigns'
+import type { campaignReportContent, campaignsContent } from '@/data/marketing-campaigns'
 import type { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
 
@@ -21,9 +21,9 @@ const dash = '—'
 export function campaignColumns(
   copy: Copy,
   fmt: Formatters,
+  rate: (typeof campaignReportContent)['rate'],
   ytd?: { rows: Map<string, CampaignPerformanceRow>; copy: typeof growthCampaignTabsContent },
 ): ResourceColumnSpec<CampaignRow>[] {
-  const rate = campaignReportContent.rate
   const year = (c: CampaignRow) => ytd?.rows.get(c.id)
   const ytdColumns: ResourceColumnSpec<CampaignRow>[] = ytd
     ? [
@@ -101,7 +101,7 @@ export function campaignColumns(
       id: 'status',
       title: copy.columns.status,
       align: 'center',
-      render: (c) => <OrderChip kind="campaign" value={c.status} />,
+      render: (c) => <StatusLabel kind="campaign" value={c.status} variant="soft" />,
     },
     {
       id: 'date',

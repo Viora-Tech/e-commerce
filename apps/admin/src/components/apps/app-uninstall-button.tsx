@@ -9,6 +9,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type AppUninstallButtonProps = {
@@ -37,7 +38,7 @@ export default function AppUninstallButton({ appId, name, settingsHref }: AppUni
       router.push(routes.apps.list())
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.actionFailed)
+      toast.error(errorText(err, copy.actionFailed))
     }
   }
 

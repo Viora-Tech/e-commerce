@@ -1,5 +1,6 @@
 import { siteConfig } from '@commerce/config/site'
 import type { PerformanceReport } from './report-types'
+import type { SeoWeeklyEmail } from './seo-weekly-types'
 
 /**
  * Made-up reports for the email previews and tests, the figures from the agreed Figma frames
@@ -238,4 +239,44 @@ export const sampleDailyReport: PerformanceReport = {
     { label: 'Refunds', amount: '₹0' },
   ],
   footer: 'Sent every day at the hour you chose to staff who turned on the daily summary.',
+}
+
+/** A made-up weekly SEO email: two pages up, one down, three suggestions. */
+export const sampleSeoWeekly: SeoWeeklyEmail = {
+  periodLabel: 'Week of 23 November',
+  clicksLabel: '1,240',
+  impressionsLabel: '48,600',
+  sinceLastWeek: true,
+  up: [
+    { title: 'Maboroshi mousepad', from: 11.2, to: 6.4, url: `${admin}/products` },
+    { title: 'Wireless mice', from: 9.8, to: 7.1, url: `${admin}/collections` },
+  ],
+  down: [{ title: 'Glass mousepad XL', from: 5.2, to: 8.9, url: `${admin}/products` }],
+  suggestions: [
+    {
+      title: 'Glass mousepad XL',
+      kind: 'title',
+      impressions: 6400,
+      position: 8.9,
+      topQuery: 'glass mousepad',
+      url: `${admin}/online-store/seo/assistant`,
+    },
+    {
+      title: 'Keyboards',
+      kind: 'description',
+      impressions: 3100,
+      position: 12.3,
+      topQuery: 'mechanical keyboard india',
+      url: `${admin}/online-store/seo/assistant`,
+    },
+    {
+      title: 'Shipping and returns',
+      kind: 'snippet',
+      impressions: 900,
+      position: 6.1,
+      topQuery: null,
+      url: `${admin}/online-store/seo/assistant`,
+    },
+  ],
+  url: `${admin}/online-store/seo/assistant`,
 }

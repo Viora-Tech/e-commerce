@@ -6,15 +6,18 @@ import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import NameDialog from '@/components/fields/name-dialog'
 import DataCard from '@/components/layout/data-card'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
 import StatusChip from '@/components/layout/status-chip'
 import { analyticsContent } from '@/data/analytics'
+import { useCopy } from '@/hooks/use-copy'
 import type { LoadFailure } from '@/hooks/use-load'
 import { type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { downloadCsv } from '@/lib/csv'
 import { isForbidden } from '@/lib/forbidden'
 import { csvOf } from '@/lib/report-csv'
@@ -23,7 +26,6 @@ import ProfitInsightsCard from './profit-insights-card'
 import RangeFailed from './range-failed'
 import RangePicker from './range-picker'
 import ReportChart from './report-chart'
-import ReportNameDialog from './report-name-dialog'
 import ReportTable from './report-table'
 
 type ReportViewProps = {
@@ -42,6 +44,7 @@ type Shape = ReportDefinition['chart']
  */
 export default function ReportView({ report, initialRange, initial }: ReportViewProps) {
   // Hooks
+  const analyticsCopy = useCopy(analyticsContent)
   const [range, setRange] = useState(initialRange)
   const [data, setData] = useState(initial)
   const [shape, setShape] = useState<Shape>(report.chart)
@@ -89,10 +92,10 @@ export default function ReportView({ report, initialRange, initial }: ReportView
   const handleSave = async (name: string) => {
     try {
       await api.analytics.saveReport({ name, reportSlug: report.slug, range })
-      toast.success(analyticsContent.reports.save.saved)
+      toast.success(analyticsCopy.reports.save.saved)
       setSaving(false)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     }
   }
   const handleExport = () => {
@@ -101,7 +104,7 @@ export default function ReportView({ report, initialRange, initial }: ReportView
   }
 
   // Render logic
-  const c = analyticsContent.reports
+  const c = analyticsCopy.reports
   const understood = report.ranged || Boolean(data.previousTotals)
 
   return (
@@ -174,13 +177,16 @@ export default function ReportView({ report, initialRange, initial }: ReportView
         </div>
       )}
       {saving ? (
-        <ReportNameDialog
+        <NameDialog
           title={c.save.title}
           description={c.save.help}
-          confirm={c.save.confirm}
+          label={c.save.name}
+          cancelLabel={c.save.cancel}
+          maxLength={120}
+          submitLabel={c.save.confirm}
           initialName={report.title}
           onCancel={() => setSaving(false)}
-          onConfirm={handleSave}
+          onSubmit={handleSave}
         />
       ) : null}
     </PageBody>

@@ -5,14 +5,27 @@ import { eq } from 'drizzle-orm'
 import { primaryStoreHostname } from '../domains/origin'
 import { storeSender } from '../marketing/send'
 import { liveThemeSettings } from '../theme/library'
+import { applyEmailBranding, savedEmailBranding } from './email-branding'
 import { storeEmailDarkLogo, storeEmailLogo } from './email-logo'
+
+/**
+ * The store's email look: the live theme's (`themeEmailBrand`) with the merchant's own Email
+ * branding on top (`applyEmailBranding`). Never throws.
+ */
+export async function storeEmailBrand(tx: StoreTx, storeId: string): Promise<EmailBrandInfo> {
+  const [theme, branding] = await Promise.all([
+    themeEmailBrand(tx, storeId),
+    savedEmailBranding(tx, storeId).catch(() => null),
+  ])
+  return applyEmailBranding(theme, branding)
+}
 
 /**
  * The store's email look from its live theme (logo, see `storeEmailLogo`; the light scheme's button colour, social
  * profiles) and its store details (contact email and phone, address, primary domain).
  * Never throws: a store with a broken theme still sends, in the neutral look.
  */
-export async function storeEmailBrand(tx: StoreTx, storeId: string): Promise<EmailBrandInfo> {
+export async function themeEmailBrand(tx: StoreTx, storeId: string): Promise<EmailBrandInfo> {
   try {
     const [theme, sender, host, [s]] = await Promise.all([
       liveThemeSettings(tx, storeId),

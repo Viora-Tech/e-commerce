@@ -6,7 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import SaveErrorAlert from '@/components/approvals/save-error-alert'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
@@ -14,8 +14,11 @@ import DataCard from '@/components/layout/data-card'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
-import { campaignEditorContent as copy } from '@/data/marketing-campaigns'
+import { campaignEditorContent } from '@/data/marketing-campaigns'
+import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import CampaignSettingsCard from './campaign-settings-card'
 import EmailContentSwitch from './email-content-switch'
@@ -49,9 +52,10 @@ function initial(
   campaign: LoadedCampaign | null,
   kind: CampaignKind,
   segmentId: string | null,
+  names: { newEmail: string; newWhatsapp: string },
 ): CampaignForm {
   if (campaign) return fromCampaign(campaign)
-  const blank = emptyForm(kind, kind === 'email' ? copy.newEmail : copy.newWhatsapp)
+  const blank = emptyForm(kind, kind === 'email' ? names.newEmail : names.newWhatsapp)
   return segmentId ? { ...blank, segmentId } : blank
 }
 
@@ -67,30 +71,24 @@ export default function CampaignEditor({
   segmentId = null,
 }: CampaignEditorProps) {
   // Hooks
+  const copy = useCopy(campaignEditorContent)
   const router = useRouter()
-  const [start] = useState(() => initial(campaign, kind, segmentId))
+  const [start] = useState(() => initial(campaign, kind, segmentId, copy))
   const [form, setForm] = useState(start)
   const [saved, setSaved] = useState(() => JSON.stringify(start))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [reach, setReach] = useState<number | null>(null)
-  const [templates, setTemplates] = useState<TemplatesResult | null>(null)
+  const { data: reach } = useLoad(
+    async () =>
+      (await api.marketing.campaigns.audience({ kind: form.kind, segmentId: form.segmentId }))
+        .count,
+    [form.kind, form.segmentId],
+  )
+  const { data: templates } = useLoad<TemplatesResult | null>(
+    async () => (form.kind === 'whatsapp' ? api.marketing.campaigns.whatsappTemplates() : null),
+    [form.kind],
+  )
   const [dialog, setDialog] = useState<'test' | 'send' | 'delete' | null>(null)
-
-  useEffect(() => {
-    let live = true
-    api.marketing.campaigns.audience({ kind: form.kind, segmentId: form.segmentId }).then((r) => {
-      if (live) setReach(r.count)
-    })
-    return () => {
-      live = false
-    }
-  }, [form.kind, form.segmentId])
-
-  useEffect(() => {
-    if (form.kind !== 'whatsapp') return
-    api.marketing.campaigns.whatsappTemplates().then(setTemplates)
-  }, [form.kind])
 
   // Helpers
   const patch = (p: Partial<CampaignForm>) => setForm((f) => ({ ...f, ...p }))
@@ -115,7 +113,7 @@ export default function CampaignEditor({
       if (!campaign && id) router.replace(routes.growth.campaign(id))
       else router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.toasts.failed)
+      setError(errorText(err, copy.toasts.failed))
     } finally {
       setBusy(false)
     }
@@ -137,7 +135,7 @@ export default function CampaignEditor({
       router.replace(routes.growth.campaign(id))
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.toasts.failed)
+      setError(errorText(err, copy.toasts.failed))
     } finally {
       setBusy(false)
     }
@@ -152,7 +150,7 @@ export default function CampaignEditor({
       router.push(routes.growth.campaigns())
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.toasts.failed)
+      setError(errorText(err, copy.toasts.failed))
       setBusy(false)
     }
   }

@@ -15,6 +15,7 @@ import { notificationsSettingsContent } from '@/data/notifications'
 import { whatsappAppContent } from '@/data/whatsapp-app'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type Page = Awaited<ReturnType<typeof api.platformApps.whatsappMessages>>
@@ -89,7 +90,7 @@ export default function WhatsappMessagesPage() {
       setRows((prev) => [...(prev ?? []), ...r.rows])
       setNext(r.next)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     } finally {
       setLoadingMore(false)
     }

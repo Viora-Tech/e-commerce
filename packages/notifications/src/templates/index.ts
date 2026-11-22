@@ -54,6 +54,10 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'staff_daily_summary',
   'staff_weekly_report',
   'staff_monthly_report',
+  'staff_seo_weekly',
+  'staff_chat_waiting',
+  'chat_reply',
+  'chat_transcript',
   'contact_message',
   'review_request',
   'review_reminder',
@@ -117,6 +121,10 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   staff_daily_summary: 'Daily summary (team member alert)',
   staff_weekly_report: 'Weekly report (team member alert)',
   staff_monthly_report: 'Monthly report (team member alert)',
+  staff_seo_weekly: 'Weekly SEO email (store owner)',
+  staff_chat_waiting: 'Chats waiting for a reply (team member alert)',
+  chat_reply: 'Chat reply while away',
+  chat_transcript: 'Chat transcript',
   contact_message: 'New form message (merchant)',
   review_request: 'Review request',
   review_reminder: 'Review reminder',
@@ -186,6 +194,8 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
       return 'Weekly report'
     case 'staff_monthly_report':
       return 'Monthly report'
+    case 'staff_seo_weekly':
+      return 'Weekly SEO'
     case 'email_change_code':
     case 'email_changed':
       return 'Your sign-in email'
@@ -364,7 +374,13 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
   const primaryAction = primaryActionFor(template, d)
   // Messages already built from the shared blocks (emails/blocks), batch by batch.
   const composed = composeEmail(template, d, primaryAction)
-  const extraLinks = (d.links ?? []).filter((l) => l.url !== primaryAction?.url)
+  // A link a block already shows as a file (the invoice's Download) is not listed again.
+  const shown = new Set(
+    composed?.blocks.flatMap((b) => (b.kind === 'attachment' && b.link ? [b.link.url] : [])),
+  )
+  const extraLinks = (d.links ?? []).filter(
+    (l) => l.url !== primaryAction?.url && !shown.has(l.url),
+  )
 
   if (design) {
     try {

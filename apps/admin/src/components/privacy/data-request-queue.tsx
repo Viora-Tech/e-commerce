@@ -15,11 +15,12 @@ import StatusChip from '@/components/layout/status-chip'
 import DataRequestStatusBadge from '@/components/privacy/data-request-status-badge'
 import LogRequestDialog from '@/components/privacy/log-request-dialog'
 import {
-  dataRequestsContent as copy,
+  dataRequestsContent,
   KIND_LABEL,
   SOURCE_LABEL,
   URGENCY_LABEL,
 } from '@/data/customer-privacy'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 
@@ -37,6 +38,7 @@ const TABS: Tab[] = ['open', 'closed', 'all']
 /** The data request queue: open work first, soonest due at the top. */
 export default function DataRequestQueue() {
   // Hooks
+  const copy = useCopy(dataRequestsContent)
   const [tab, setTab] = useState<Tab>('open')
   const [rows, setRows] = useState<DataRequestListItem[] | null>(null)
   const [failed, setFailed] = useState(false)

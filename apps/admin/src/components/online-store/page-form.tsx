@@ -19,6 +19,7 @@ import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import { onlineStoreContent } from '@/data/online-store'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import PageSeoCard from './page-seo-card'
 import PageTemplateCard from './page-template-card'
@@ -95,7 +96,7 @@ export default function PageForm({
       toast.success(copy.saved)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

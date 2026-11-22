@@ -11,7 +11,7 @@ export const statement = {
   drafts: ['read', 'write'],
   products: ['read', 'write', 'delete', 'import'],
   inventory: ['read', 'write'],
-  customers: ['read', 'write', 'delete'],
+  customers: ['read', 'write', 'delete', 'sign_in_as'],
   inbox: ['read', 'reply', 'manage'],
   discounts: ['read', 'write'],
   marketing: ['read', 'write', 'send'],
@@ -61,6 +61,11 @@ export const permissions = {
   CUSTOMERS_READ: permission('customers', 'read'),
   CUSTOMERS_WRITE: permission('customers', 'write'),
   CUSTOMERS_DELETE: permission('customers', 'delete'),
+  /**
+   * "Sign in as customer": open the storefront as the shopper for an hour (their cart, orders
+   * and addresses). The owner always may; every other role starts with it off.
+   */
+  CUSTOMERS_SIGN_IN_AS: permission('customers', 'sign_in_as'),
   /** See Inbox conversations and their unread counts. */
   INBOX_READ: permission('inbox', 'read'),
   /** Send messages and notes, assign, close, reopen and block conversations. */
@@ -127,7 +132,11 @@ export const RESOURCE_METADATA: { [R in Resource]: ResourceMeta } = {
     description: 'View the catalogue, edit products, delete them and run imports.',
   },
   inventory: { label: 'Inventory', description: 'View stock levels and adjust quantities.' },
-  customers: { label: 'Customers', description: 'View customer records, edit and delete them.' },
+  customers: {
+    label: 'Customers',
+    description:
+      'View customer records, edit and delete them, and sign in to the store as a customer.',
+  },
   inbox: {
     label: 'Inbox',
     description:
@@ -214,5 +223,10 @@ export const DEFAULT_APPROVAL_PERMISSIONS: Permission[] = [
 
 /** Ticks can only sit on grains that change something (approving itself never waits). */
 export function canNeedApproval(permission: Permission): boolean {
-  return !permission.endsWith('.read') && permission !== permissions.APPROVALS_MANAGE
+  return (
+    !permission.endsWith('.read') &&
+    permission !== permissions.APPROVALS_MANAGE &&
+    // A sign-in hand-off works for two minutes: it cannot wait in Approvals.
+    permission !== permissions.CUSTOMERS_SIGN_IN_AS
+  )
 }

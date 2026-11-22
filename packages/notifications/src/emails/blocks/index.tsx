@@ -1,23 +1,24 @@
 import { Link, Section, Text } from '@react-email/components'
 import type { ComponentProps, ReactNode } from 'react'
 import { Body, DividerLabel, LinkLine, PrimaryButton } from '../components'
-import { theme } from '../theme'
 import { ItemsPanel } from '../items-panel'
+import { theme } from '../theme'
 import {
-  type ColumnsBlock,
   Columns,
-  type FactsBlock,
+  type ColumnsBlock,
   Facts,
-  type NoticeBlock,
+  type FactsBlock,
   Notice,
-  type QuoteBlock,
+  type NoticeBlock,
   Quote,
-  type StatsBlock,
+  type QuoteBlock,
   Stats,
-  type StatusBlock,
+  type StatsBlock,
   Status,
+  type StatusBlock,
 } from './boxes'
 import { Code, type CodeBlock, Coupon, type CouponBlock } from './codes'
+import { Whatsapp, type WhatsappBlock } from './contact'
 import {
   Attachment,
   type AttachmentBlock,
@@ -45,6 +46,7 @@ export type {
   StatsBlock,
   StatusBlock,
   TicketBlock,
+  WhatsappBlock,
 }
 
 /** The order lines and totals (`ItemsPanel`), under a "YOUR ORDER" divider. */
@@ -90,6 +92,7 @@ export type EmailBlock =
   | DividerBlock
   | TextBlock
   | LinksBlock
+  | WhatsappBlock
 
 /** The card's side padding around a block; phones narrow it (`k-pad`). */
 function Pad({ children }: { children: ReactNode }) {
@@ -194,7 +197,10 @@ function Block({ block: b, accent }: { block: EmailBlock; accent: string }) {
           <PrimaryButton href={b.url}>{b.label}</PrimaryButton>
           {b.secondary ? (
             <Section style={{ padding: '12px 24px 0', textAlign: 'center' }}>
-              <Link href={b.secondary.url} style={{ fontSize: '14px', color: theme.body, textDecoration: 'underline' }}>
+              <Link
+                href={b.secondary.url}
+                style={{ fontSize: '14px', color: theme.body, textDecoration: 'underline' }}
+              >
                 {b.secondary.label}
               </Link>
             </Section>
@@ -209,6 +215,12 @@ function Block({ block: b, accent }: { block: EmailBlock; accent: string }) {
           ))}
         </Pad>
       )
+    case 'whatsapp':
+      return (
+        <Pad>
+          <Whatsapp block={b} />
+        </Pad>
+      )
     case 'divider':
       return <DividerLabel>{b.label}</DividerLabel>
     case 'text':
@@ -216,7 +228,14 @@ function Block({ block: b, accent }: { block: EmailBlock; accent: string }) {
         <Pad>
           {b.muted ? (
             <Text
-              style={{ margin: 0, fontSize: '13.5px', lineHeight: '20px', fontStyle: 'italic', color: theme.muted, textAlign: 'center' }}
+              style={{
+                margin: 0,
+                fontSize: '13.5px',
+                lineHeight: '20px',
+                fontStyle: 'italic',
+                color: theme.muted,
+                textAlign: 'center',
+              }}
             >
               {b.text}
             </Text>

@@ -4,6 +4,7 @@ import type { AlternateKind, TemplateAssignments } from '@commerce/core/theme'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { customizeContent } from '@/data/customize'
+import { errorText } from '@/lib/api-errors'
 import { api } from './api-client'
 
 /** What changed, so the editor can refresh its list and follow the open template. */
@@ -55,7 +56,7 @@ export function useTemplateManager(input: {
     try {
       await work()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

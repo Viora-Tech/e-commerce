@@ -3,10 +3,11 @@
 import { POLICY_TITLES, POLICY_TYPES } from '@commerce/core/policies'
 import { CheckIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import RecordCombobox from '@/components/pickers/record-combobox'
 import { menusContent, type NavigationItemType } from '@/data/menus'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 
 type DestinationPickerProps = {
@@ -57,26 +58,10 @@ export default function DestinationPicker({
   // Hooks
   const { item: copy } = useCopy(menusContent)
   const [query, setQuery] = useState('')
-  const [candidates, setCandidates] = useState<Candidate[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    loadCandidates(type)
-      .then((rows) => {
-        if (cancelled) return
-        setCandidates(rows)
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [type])
+  const { data, loading } = useLoad(() => loadCandidates(type), [type])
 
   // Render logic
+  const candidates = data ?? []
   const q = query.trim().toLowerCase()
   const shown = candidates.filter((c) => !q || c.title.toLowerCase().includes(q))
 

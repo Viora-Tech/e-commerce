@@ -12,6 +12,7 @@ import PageHeader from '@/components/layout/page-header'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import ImportPreview from './import-preview'
 
@@ -24,6 +25,7 @@ const MAX_BYTES = 4 * 1024 * 1024
 /** Import from Judge.me (Apps, Reviews 20:670): export steps, upload, check, import. */
 export default function ImportPage() {
   // Hooks
+  const reviewsCopy = useCopy(reviewsContent)
   const { import: copy } = useCopy(reviewsContent)
   const router = useRouter()
   const input = useRef<HTMLInputElement>(null)
@@ -65,7 +67,7 @@ export default function ImportPage() {
       }
       setPreview(r)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.errors.read)
+      toast.error(errorText(err, copy.errors.read))
       reset()
     } finally {
       setReading(false)
@@ -83,7 +85,7 @@ export default function ImportPage() {
       toast.success(copy.done(r.imported, r.photosToCopy))
       router.push(routes.apps.page('reviews'))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : reviewsContent.list.failed)
+      toast.error(errorText(err, reviewsCopy.list.failed))
     } finally {
       setImporting(false)
     }
@@ -116,7 +118,7 @@ export default function ImportPage() {
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
-        back={{ label: reviewsContent.detail.back, href: routes.apps.page('reviews') }}
+        back={{ label: reviewsCopy.detail.back, href: routes.apps.page('reviews') }}
       />
       <PageColumns
         main={

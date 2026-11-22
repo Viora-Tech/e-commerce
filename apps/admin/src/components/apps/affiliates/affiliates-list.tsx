@@ -3,7 +3,7 @@
 import { siteConfig } from '@commerce/config/site'
 import { Button } from '@commerce/ui/shadcn/button'
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useState } from 'react'
 import AddAffiliateDialog from '@/components/apps/affiliates/add-affiliate-dialog'
 import AffiliateRowActions from '@/components/apps/affiliates/affiliate-row-actions'
 import { statusTone } from '@/components/apps/affiliates/tones'
@@ -17,6 +17,7 @@ import { affiliatesContent } from '@/data/affiliates'
 import { appsContent } from '@/data/apps'
 import { filterPanelContent } from '@/data/filter-panel'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import {
   AFFILIATE_FILTER_PARAMS,
   affiliateFilterGroups,
@@ -54,47 +55,25 @@ function AffiliatesTable() {
     },
     { shallow: true },
   )
-  const [rows, setRows] = useState<Row[] | null>(null)
-  const [programs, setPrograms] = useState<Program[]>([])
-  const [loading, setLoading] = useState(true)
-  /** The last read failed: the table says so with Try again. */
-  const [failed, setFailed] = useState(false)
-  const [adding, setAdding] = useState(false)
-  const [reload, setReload] = useState(0)
-
   // Search and filters run on the server; paging stays in the browser (the list is capped at 1000).
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `reload` re-runs the load after a change
-  useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    api.affiliates
-      .list({ search: q.query || undefined, ...affiliateFilterInput(q) })
-      .then(
-        (r) => {
-          if (cancelled) return
-          setFailed(false)
-          setRows(r)
-        },
-        () => {
-          if (!cancelled) setFailed(true)
-        },
-      )
-      .finally(() => !cancelled && setLoading(false))
-    return () => {
-      cancelled = true
-    }
-  }, [q, reload])
-  useEffect(() => {
-    api.affiliates.programs
-      .list()
-      .then((all) => setPrograms(all.map((p) => ({ id: p.id, name: p.name }))))
-      .catch(() => undefined)
-  }, [])
+  const {
+    data: rows,
+    failed,
+    loading,
+    retry,
+  } = useLoad<Row[]>(
+    () => api.affiliates.list({ search: q.query || undefined, ...affiliateFilterInput(q) }),
+    [q],
+  )
+  // The program filter's options; without them the filter lists none.
+  const { data: programList } = useLoad(() => api.affiliates.programs.list())
+  const [adding, setAdding] = useState(false)
 
   // Event handlers
-  const handleChanged = () => setReload((n) => n + 1)
+  const handleChanged = retry
 
   // Render logic
+  const programs: Program[] = (programList ?? []).map((p) => ({ id: p.id, name: p.name }))
   const l = copy.list
   const columns: ResourceColumnSpec<Row>[] = [
     {

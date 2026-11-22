@@ -13,6 +13,7 @@ import { storeCreditGiftCardsContent } from '@/data/store-credit-gift-cards'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatPattern } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 
@@ -100,7 +101,7 @@ export default function StoreCreditCardsCard({ onMoved }: StoreCreditCardsCardPr
       onMoved()
       await reload()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       throw err
     }
   }

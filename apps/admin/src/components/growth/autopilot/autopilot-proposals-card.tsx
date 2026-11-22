@@ -10,6 +10,7 @@ import EmptyState from '@/components/layout/empty-state'
 import { growthAutopilotContent } from '@/data/growth-home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import AutopilotProposalRow from './autopilot-proposal-row'
 
 type AutopilotProposalsCardProps = {
@@ -34,7 +35,7 @@ export default function AutopilotProposalsCard({ view, onChange }: AutopilotProp
       onChange(await work())
       toast.success(done)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
     }
@@ -48,7 +49,7 @@ export default function AutopilotProposalsCard({ view, onChange }: AutopilotProp
       onChange(next)
       toast.success(copy.proposals.planned(Math.max(0, waitingCount(next) - waitingCount(view))))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setPlanning(false)
     }

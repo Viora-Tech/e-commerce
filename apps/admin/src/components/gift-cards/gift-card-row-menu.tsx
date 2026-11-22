@@ -8,6 +8,7 @@ import RowMenu from '@/components/table/row-menu'
 import { giftCardListActionsContent } from '@/data/gift-cards'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type GiftCardRowMenuProps = {
@@ -31,7 +32,7 @@ export default function GiftCardRowMenu({ card, onChanged }: GiftCardRowMenuProp
   // Event handlers
   const handleResend = async () => {
     const deliveries = await api.giftCards.resend({ id: card.id }).catch((err: unknown) => {
-      toast.error(err instanceof Error ? err.message : copy.resendFailed)
+      toast.error(errorText(err, copy.resendFailed))
       return null
     })
     if (!deliveries) return

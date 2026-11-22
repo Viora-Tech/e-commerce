@@ -15,6 +15,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import InboxTable from './inbox-table'
 import QuickReplyDialog, { type QuickReply } from './quick-reply-dialog'
 
@@ -36,8 +37,7 @@ export default function QuickRepliesPage() {
   } = useLoad(() => api.inbox.quickReplies.list())
 
   // Helpers
-  const fail = (err: unknown) =>
-    toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+  const fail = (err: unknown) => toast.error(errorText(err, copy.failed))
 
   // Event handlers
   const handleSaved = () => {

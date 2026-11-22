@@ -1,12 +1,12 @@
 'use client'
 
 import { schemeFor, type Theme } from '@commerce/core/theme'
+import SwitchRow from '@/components/fields/switch-row'
 import { customizeContent } from '@/data/customize'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 import { CORNER_RADII, type CornerStyle, cornerStyleOf } from '@/lib/theme-quick-settings'
 import RangeField from '../range-field'
-import SwitchField from '../switch-field'
 import MoreSettings from './more-settings'
 import SettingsSegmented from './settings-segmented'
 
@@ -23,6 +23,8 @@ const rem = (px: number) => `${px / 16}rem`
 /** Theme settings › Buttons: corners, filled or outline, a live sample, then the rest. */
 export default function ThemeButtonsGroup({ theme, mode, onChange }: ThemeButtonsGroupProps) {
   // Hooks
+  const buttonsCopy = useCopy(themesContent.buttons)
+  const unitsCopy = useCopy(themesContent.units)
   const copy = useCopy(customizeContent.themePanel)
 
   // Helpers
@@ -82,18 +84,19 @@ export default function ThemeButtonsGroup({ theme, mode, onChange }: ThemeButton
         </span>
       </div>
       <MoreSettings label={copy.moreButtons}>
-        <SwitchField
-          label={themesContent.buttons.uppercase}
+        <SwitchRow
+          label={buttonsCopy.uppercase}
           checked={theme.buttons.uppercase}
           onChange={(uppercase) => setButtons({ uppercase })}
+          weight="normal"
         />
         <RangeField
-          label={themesContent.buttons.radius}
+          label={buttonsCopy.radius}
           value={theme.shape.buttonRadius}
           min={0}
           max={40}
           step={1}
-          format={themesContent.units.px}
+          format={unitsCopy.px}
           onChange={setRadius}
         />
       </MoreSettings>

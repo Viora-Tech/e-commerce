@@ -11,7 +11,6 @@ import { paymentRulesContent } from '@/data/payment-rules'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { shownAttemptStatus } from '@/lib/order-next-move'
 import FailedAttemptReason from './failed-attempt-reason'
-import OrderChip from './order-chip'
 import {
   methodLabel,
   type OrderDetail,
@@ -131,7 +130,7 @@ export default function PaymentCard({
                   ) : null}
                 </p>
                 <div className="flex items-center gap-3">
-                  {shown ? <OrderChip kind="payment" value={shown} /> : null}
+                  {shown ? <StatusLabel kind="payment" value={shown} variant="soft" /> : null}
                   {p.status === 'authorized' && onCapture ? (
                     <Button
                       loading={busy}

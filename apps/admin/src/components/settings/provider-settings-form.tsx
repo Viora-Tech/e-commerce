@@ -11,8 +11,10 @@ import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import LoadFailed from '@/components/states/load-failed'
-import { providerSettingsContent as copy } from '@/data/provider-settings'
+import { providerSettingsContent } from '@/data/provider-settings'
+import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
+import { errorText } from '@/lib/api-errors'
 import ProviderCard, { type ProviderDef } from './provider-card'
 import SectionTabs, { type SectionTab } from './section-tabs'
 import SettingsSection from './settings-section'
@@ -96,6 +98,7 @@ export default function ProviderSettingsForm<Extra extends object>({
   linked = [],
 }: ProviderSettingsFormProps<Extra>) {
   // Hooks
+  const copy = useCopy(providerSettingsContent)
   const [available, setAvailable] = useState<ProviderDef[] | null>(null)
   const [form, setForm] = useState<FormState<Extra>>({
     enabled: [],
@@ -146,7 +149,7 @@ export default function ProviderSettingsForm<Extra extends object>({
       for (const l of linked) if (l.dirty) await l.save()
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.saveFailed)
+      toast.error(errorText(err, copy.saveFailed))
     } finally {
       setBusy(false)
     }

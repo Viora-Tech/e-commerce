@@ -13,6 +13,7 @@ import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import ScrollSection from '@/components/layout/scroll-section'
 import { giftCardDetailContent } from '@/data/gift-cards'
+import { useCopy } from '@/hooks/use-copy'
 import { formatPattern } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
@@ -30,8 +31,6 @@ type Transaction = {
 }
 
 type HistoryCardProps = { transactions: Transaction[] }
-
-const copy = giftCardDetailContent.history
 const WHEN = {
   day: 'numeric',
   month: 'short',
@@ -42,6 +41,7 @@ const WHEN = {
 
 /** Every balance movement, newest first, with the order it came from and who made it. */
 export default function HistoryCard({ transactions }: HistoryCardProps) {
+  const copy = useCopy(giftCardDetailContent.history)
   return (
     <DataCard title={copy.heading} flush>
       <div>

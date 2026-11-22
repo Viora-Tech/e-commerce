@@ -4,6 +4,7 @@ import { ChevronDown } from '@commerce/ui/icons'
 import Link from 'next/link'
 import { useState } from 'react'
 import { gstInvoicesContent } from '@/data/gst-invoices'
+import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 
 type OrderCardChangesProps = {
@@ -12,8 +13,6 @@ type OrderCardChangesProps = {
   reported: boolean
 }
 
-const copy = gstInvoicesContent.orderCard.changes
-
 /**
  * "Need to change this invoice?" under the order's issued invoice: an issued tax invoice is
  * never edited (CGST Act s.34: corrections go through a credit note or a fresh invoice), so
@@ -21,6 +20,7 @@ const copy = gstInvoicesContent.orderCard.changes
  */
 export default function OrderCardChanges({ invoiceId, reported }: OrderCardChangesProps) {
   // Hooks
+  const copy = useCopy(gstInvoicesContent.orderCard.changes)
   const [open, setOpen] = useState(false)
 
   // Event handlers

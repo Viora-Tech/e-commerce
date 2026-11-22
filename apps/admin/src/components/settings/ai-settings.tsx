@@ -15,6 +15,7 @@ import { Progress } from '@commerce/ui/shadcn/progress'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import SwitchRow from '@/components/fields/switch-row'
 import DataCard from '@/components/layout/data-card'
 import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
@@ -25,12 +26,12 @@ import { settingsContent } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import AiActivityCard from './ai-activity-card'
 import SettingsCard from './settings-card'
 import SettingsDrill from './settings-drill'
 import SettingsDrillPanel from './settings-drill-panel'
 import SettingsRow from './settings-row'
-import SettingsToggleRow from './settings-toggle-row'
 
 type Loaded = Awaited<ReturnType<typeof api.ai.settings>>
 
@@ -96,7 +97,7 @@ export default function AiSettings() {
       setQuality(next.writingQuality)
       toast.success(copy.settings.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.settings.failed)
+      toast.error(errorText(err, copy.settings.failed))
     } finally {
       setBusy(false)
     }
@@ -109,7 +110,7 @@ export default function AiSettings() {
       if (bill.url) window.location.assign(bill.url)
       else toast.error(copy.settings.usage.buyFailed)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.settings.usage.buyFailed)
+      toast.error(errorText(err, copy.settings.usage.buyFailed))
     } finally {
       setBuying(false)
     }
@@ -230,18 +231,20 @@ export default function AiSettings() {
               description={copy.settings.features.help}
             >
               {AI_FEATURES.map((feature) => (
-                <SettingsToggleRow
+                <SwitchRow
                   key={feature}
                   id={`ai-${feature}`}
                   label={copy.settings.features[feature].label}
                   description={copy.settings.features[feature].help}
                   checked={features[feature]}
                   onChange={(on) => setFeatures({ ...features, [feature]: on })}
+                  weight="semibold"
+                  divided
                 >
                   <span className="text-caption text-muted-foreground tabular-nums">
                     {copy.settings.usage.requestCount(usage.byFeature[feature].calls)}
                   </span>
-                </SettingsToggleRow>
+                </SwitchRow>
               ))}
               <SettingsRow
                 label={copy.settings.quality.label}

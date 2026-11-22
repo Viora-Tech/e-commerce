@@ -1,4 +1,4 @@
-import { onHandleChange } from '@commerce/core'
+import { noteIndexNowRemoved, onHandleChange } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { page } from '@commerce/db'
 import { desc, eq } from 'drizzle-orm'
@@ -85,6 +85,13 @@ export async function updatePage(tx: StoreTx, storeId: string, id: string, input
 }
 
 export async function deletePage(tx: StoreTx, id: string) {
-  const rows = await tx.delete(page).where(eq(page.id, id)).returning({ id: page.id })
+  const rows = await tx
+    .delete(page)
+    .where(eq(page.id, id))
+    .returning({ handle: page.handle, publishedAt: page.publishedAt })
+  const [gone] = rows
+  if (gone) {
+    await noteIndexNowRemoved(tx, 'page', { handle: gone.handle, live: gone.publishedAt !== null })
+  }
   return rows.length > 0
 }

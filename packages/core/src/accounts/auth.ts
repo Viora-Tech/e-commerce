@@ -167,6 +167,8 @@ export async function startCustomerSession(
   customerId: string,
   now: Date = new Date(),
   ttlMs: number = CUSTOMER_SESSION_TTL_MS,
+  /** The staff user signing in as this customer ("Sign in as customer"), if any. */
+  impersonatedBy: string | null = null,
 ): Promise<{ ok: true; token: string; customerId: string; expiresAt: Date }> {
   const token = randomBytes(32).toString('base64url')
   const expiresAt = new Date(now.getTime() + ttlMs)
@@ -175,6 +177,7 @@ export async function startCustomerSession(
     customerId,
     tokenHash: hashSessionToken(token),
     expiresAt,
+    impersonatedBy,
     createdAt: now,
   })
   // Housekeeping: this customer's dead sessions go with each new sign-in.
@@ -205,6 +208,11 @@ export type SignedInCustomer = {
   acceptsMarketing: boolean
   acceptsWhatsapp: boolean
   acceptsSms: boolean
+  /**
+   * The staff user id when this session was opened with "Sign in as customer" (the storefront
+   * shows its "Signed in as … by staff" bar); null or absent for the shopper's own session.
+   */
+  impersonatedBy?: string | null
 }
 
 const TOKEN = /^[A-Za-z0-9_-]{20,100}$/
@@ -226,6 +234,7 @@ export async function customerForSession(
       acceptsMarketing: customer.acceptsMarketing,
       acceptsWhatsapp: customer.acceptsWhatsapp,
       acceptsSms: customer.acceptsSms,
+      impersonatedBy: customerSession.impersonatedBy,
     })
     .from(customerSession)
     .innerJoin(customer, eq(customer.id, customerSession.customerId))

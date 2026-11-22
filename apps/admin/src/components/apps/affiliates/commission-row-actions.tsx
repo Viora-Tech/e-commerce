@@ -6,6 +6,7 @@ import ActionMenu from '@/components/layout/action-menu'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type CommissionRowActionsProps = {
   id: string
@@ -33,7 +34,7 @@ export default function CommissionRowActions({
       toast.success(decision === 'clear' ? copy.cleared : copy.reversed)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : failed)
+      toast.error(errorText(err, failed))
     }
   }
 

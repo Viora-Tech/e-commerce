@@ -9,6 +9,7 @@ import { shopifyImportContent } from '@/data/shopify-import'
 import { shopifyImportRunContent } from '@/data/shopify-import-run'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { RunDetail } from './types'
 
 type RunActionsProps = {
@@ -16,8 +17,6 @@ type RunActionsProps = {
   /** The run was queued again (Import now, Run again, Try again). */
   onQueued: () => void
 }
-
-const base = shopifyImportContent.base
 
 /**
  * What can happen next to a finished run, secondary first and primary last: Import now
@@ -27,6 +26,7 @@ const base = shopifyImportContent.base
  */
 export default function RunActions({ run, onQueued }: RunActionsProps) {
   // Hooks
+  const base = useCopy(shopifyImportContent).base
   const copy = useCopy(shopifyImportContent.run)
   const view = useCopy(shopifyImportRunContent)
   const router = useRouter()
@@ -55,7 +55,7 @@ export default function RunActions({ run, onQueued }: RunActionsProps) {
       toast.success(copy.started)
       onQueued()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.startFailed)
+      toast.error(errorText(err, copy.startFailed))
     } finally {
       setBusy(false)
     }
@@ -68,7 +68,7 @@ export default function RunActions({ run, onQueued }: RunActionsProps) {
       toast.success(copy.started)
       router.push(`${base}/runs/${next.id}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.retryFailed)
+      toast.error(errorText(err, copy.retryFailed))
       setBusy(false)
     }
   }
@@ -82,7 +82,7 @@ export default function RunActions({ run, onQueued }: RunActionsProps) {
       })
       router.push(`${base}/runs/${next.id}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : view.previewAgainFailed)
+      toast.error(errorText(err, view.previewAgainFailed))
       setBusy(false)
     }
   }

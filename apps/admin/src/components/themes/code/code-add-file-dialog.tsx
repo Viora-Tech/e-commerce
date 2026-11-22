@@ -11,6 +11,7 @@ import FormDialog from '@/components/layout/form-dialog'
 import { themeCodeContent } from '@/data/theme-code'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type CodeAddFileDialogProps = {
   open: boolean
@@ -66,7 +67,7 @@ export default function CodeAddFileDialog({
       handleOpenChange(false)
       onCreated(path)
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.failed)
+      setError(errorText(err, copy.failed))
     }
   }
 

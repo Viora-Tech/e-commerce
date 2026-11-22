@@ -4,6 +4,7 @@ import { Minus, Plus } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { type FocusEvent, useEffect, useState } from 'react'
 import { inventoryContent } from '@/data/inventory'
+import { useCopy } from '@/hooks/use-copy'
 
 type AvailableCellProps = {
   name: string
@@ -16,8 +17,6 @@ type AvailableCellProps = {
   /** Called once the group loses focus with a changed value; resolves when saved. */
   onCommit: (delta: number) => Promise<boolean>
 }
-
-const copy = inventoryContent.cell
 
 // Resting cell is a plain bordered number (Figma 279:15066); the steppers open on hover or focus.
 const STEP =
@@ -37,12 +36,14 @@ export default function AvailableCell({
   available,
   lowAt,
   disabled,
-  label = copy.label,
+  label: labelProp,
   onCommit,
 }: AvailableCellProps) {
   // Hooks
+  const copy = useCopy(inventoryContent).cell
   const [text, setText] = useState(String(available))
   const [saving, setSaving] = useState(false)
+  const label = labelProp ?? copy.label
 
   useEffect(() => {
     setText(String(available))

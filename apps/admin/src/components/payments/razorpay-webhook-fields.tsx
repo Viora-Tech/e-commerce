@@ -3,10 +3,10 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import CopyButton from '@/components/fields/copy-button'
+import CopyField from '@/components/fields/copy-field'
 import { gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
 import { razorpayWebsitesContent } from '@/data/razorpay-websites'
 import { useCopy } from '@/hooks/use-copy'
-import CopyField from './copy-field'
 import RazorpayWebsiteList from './razorpay-website-list'
 
 type RazorpayWebhookFieldsProps = {

@@ -3,6 +3,7 @@ import {
   checkRateLimit,
   checkSenderEmail,
   createMemoryRateLimitStore,
+  EmailBrandingSchema,
   EmailTemplateDesignSchema,
   MESSAGE_CATALOGUE,
   messageDef,
@@ -10,9 +11,11 @@ import {
   type RateLimitRule,
   rateLimitKey,
   removeSenderEmail,
+  resetEmailBranding,
   resetTemplateDesign,
   retryAfterSeconds,
   SenderEmailError,
+  saveEmailBranding,
   saveTemplateDesign,
   setSenderEmail,
 } from '@commerce/core'
@@ -27,7 +30,9 @@ import {
   emailSuppressionList,
 } from '../services/email-suppression.service'
 import {
+  emailBrandingOverview,
   notificationsOverview,
+  previewEmailBranding,
   previewMessage,
   previewTemplateDesign,
   sendTestMessage,
@@ -183,6 +188,38 @@ export const notificationsRouter = {
     .handler(async ({ context, input }) => {
       await limitOrThrow(context, 'notifications-design-preview', DESIGN_PREVIEW_RULE)
       return previewTemplateDesign(context.tx, context.scope.storeId, input.id, input.design)
+    }),
+
+  /** Email branding: what the merchant saved (or null) and the theme's look it starts from. */
+  branding: can(permissions.SETTINGS_READ).handler(({ context }) =>
+    emailBrandingOverview(context.tx, context.scope.storeId),
+  ),
+
+  /** Save the logo, logo size and colours every email uses from now on. */
+  saveBranding: can(permissions.SETTINGS_MANAGE)
+    .input(EmailBrandingSchema)
+    .handler(async ({ context, input }) => {
+      await saveEmailBranding(
+        context.tx,
+        context.scope.storeId,
+        input,
+        context.session.user.email ?? null,
+      )
+      return emailBrandingOverview(context.tx, context.scope.storeId)
+    }),
+
+  /** Back to the theme's look for every email. */
+  resetBranding: can(permissions.SETTINGS_MANAGE).handler(async ({ context }) => {
+    await resetEmailBranding(context.tx, context.scope.storeId)
+    return emailBrandingOverview(context.tx, context.scope.storeId)
+  }),
+
+  /** Email branding's live preview: one email with branding not saved yet. Nothing is saved. */
+  previewBranding: can(permissions.SETTINGS_READ)
+    .input(z.object({ id: messageId, branding: EmailBrandingSchema }))
+    .handler(async ({ context, input }) => {
+      await limitOrThrow(context, 'notifications-design-preview', DESIGN_PREVIEW_RULE)
+      return previewEmailBranding(context.tx, context.scope.storeId, input.id, input.branding)
     }),
 
   /** Settings → Notifications → Sender email: the address, its DNS records and what customers see. */

@@ -5,6 +5,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { type KeyboardEvent, useEffect, useState } from 'react'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import {
   type GroupedTargets,
   readRecentLinks,
@@ -33,8 +34,6 @@ type LinkPickerPanelProps = {
 
 type Load = { state: 'loading' } | { state: 'failed' } | { state: 'done'; groups: GroupedTargets }
 
-const copy = customizeContent.link
-
 const SEARCH_DELAY_MS = 180
 
 /** A typed query that reads as a web address, offered as "Use …" above the results. */
@@ -52,6 +51,7 @@ function pastedFrom(query: string): string | null {
  */
 export default function LinkPickerPanel({ value, onPick, newTab, onNewTab }: LinkPickerPanelProps) {
   // Hooks
+  const copy = useCopy(customizeContent.link)
   const reducedMotion = useReducedMotion()
   const [kind, setKind] = useState<LinkKind | null>(null)
   const [query, setQuery] = useState('')

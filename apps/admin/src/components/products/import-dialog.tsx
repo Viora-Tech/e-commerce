@@ -13,6 +13,7 @@ import StatusChip from '@/components/layout/status-chip'
 import { productsListContent } from '@/data/products'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type Preview = Awaited<ReturnType<typeof api.products.previewImport>>
 
@@ -58,7 +59,7 @@ export default function ImportDialog({ open, onOpenChange, onImported }: ImportD
       setCsv(text)
       setPreview(await api.products.previewImport({ csv: text }))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       reset()
     } finally {
       setBusy(false)
@@ -76,7 +77,7 @@ export default function ImportDialog({ open, onOpenChange, onImported }: ImportD
       onOpenChange(false)
       reset()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

@@ -20,6 +20,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { chargesContent, PURCHASE_CHARGE_KINDS, SPLIT_METHODS } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { type ChargeDraft, chargeFields, draftFrom, figuresOf } from './charge-draft'
 import ChargeLinesField from './charge-lines-field'
 import CurrencySelect from './currency-select'
@@ -70,7 +71,7 @@ export default function ChargeDialog({
       onOpenChange(false)
       onSaved()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

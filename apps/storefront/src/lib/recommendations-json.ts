@@ -49,7 +49,7 @@ export function shopifyProductJson(p: LiquidProductData) {
       ? {
           id: i.id ? numericId(i.id) : null,
           src: i.url,
-          alt: i.alt ?? p.title,
+          alt: i.alt || p.title,
           width: i.width ?? null,
           height: i.height ?? null,
           position,

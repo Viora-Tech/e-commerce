@@ -10,6 +10,7 @@ import RowMenu from '@/components/table/row-menu'
 import { campaignsContent } from '@/data/marketing-campaigns'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type CampaignRowMenuProps = {
@@ -37,7 +38,7 @@ export default function CampaignRowMenu({ campaign }: CampaignRowMenuProps) {
       toast.success(copy.duplicated)
       router.push(routes.growth.campaign(row.id))
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     }
   }
 
@@ -47,7 +48,7 @@ export default function CampaignRowMenu({ campaign }: CampaignRowMenuProps) {
       toast.success(copy.unscheduled)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       throw err
     }
   }
@@ -58,7 +59,7 @@ export default function CampaignRowMenu({ campaign }: CampaignRowMenuProps) {
       toast.success(copy.deleted)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       throw err
     }
   }

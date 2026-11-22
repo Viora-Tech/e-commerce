@@ -12,6 +12,7 @@ import { gstInvoicesContent } from '@/data/gst-invoices'
 import { gstQueuePageContent } from '@/data/gst-queue-page'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 export type DateRange = { from: string; to: string }
 
@@ -43,6 +44,7 @@ export default function QueueMoreMenu({
   busy,
 }: QueueMoreMenuProps) {
   // Hooks
+  const gstInvoicesCopy = useCopy(gstInvoicesContent)
   const copy = useCopy(gstQueuePageContent)
   const [dialog, setDialog] = useState<'add' | 'dates' | null>(null)
   const [numbers, setNumbers] = useState('')
@@ -54,13 +56,13 @@ export default function QueueMoreMenu({
     if (!list.length) return
     try {
       const r = await api.gstInvoices.queue.add({ orderNumbers: list })
-      toast.success(gstInvoicesContent.queue.added(r?.added ?? 0))
-      if (r?.missing.length) toast.error(gstInvoicesContent.queue.notFound(r.missing.join(', ')))
+      toast.success(gstInvoicesCopy.queue.added(r?.added ?? 0))
+      if (r?.missing.length) toast.error(gstInvoicesCopy.queue.notFound(r.missing.join(', ')))
       setNumbers('')
       setDialog(null)
       onAdded()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : gstInvoicesContent.queue.failed)
+      toast.error(errorText(err, gstInvoicesCopy.queue.failed))
     }
   }
   const handleDates = () => {
@@ -104,7 +106,7 @@ export default function QueueMoreMenu({
         onOpenChange={(open) => setDialog(open ? 'add' : null)}
         title={copy.addTitle}
         description={copy.addBody}
-        submitLabel={gstInvoicesContent.queue.add}
+        submitLabel={gstInvoicesCopy.queue.add}
         submitDisabled={parseNumbers(numbers).length === 0}
         onSubmit={handleAdd}
       >
@@ -114,7 +116,7 @@ export default function QueueMoreMenu({
             id="gst-queue-add"
             size="lg"
             autoFocus
-            placeholder={gstInvoicesContent.queue.addPlaceholder}
+            placeholder={gstInvoicesCopy.queue.addPlaceholder}
             value={numbers}
             onChange={(e) => setNumbers(e.target.value)}
           />
@@ -129,7 +131,7 @@ export default function QueueMoreMenu({
       >
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <Label>{gstInvoicesContent.queue.from}</Label>
+            <Label>{gstInvoicesCopy.queue.from}</Label>
             <DateField
               value={draft.from}
               clearable
@@ -137,7 +139,7 @@ export default function QueueMoreMenu({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label>{gstInvoicesContent.queue.to}</Label>
+            <Label>{gstInvoicesCopy.queue.to}</Label>
             <DateField
               value={draft.to}
               clearable

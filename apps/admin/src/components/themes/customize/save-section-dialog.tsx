@@ -12,6 +12,7 @@ import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { saveMySection } from '@/lib/customize-my-sections'
 import { useEditingThemeId } from '@/lib/customize-theme-context'
 import SectionIcon from './section-icon'
@@ -23,11 +24,10 @@ type SaveSectionDialogProps = {
   onClose: () => void
 }
 
-const copy = customizeContent.saveSection
-
 /** "Save as my section": names a copy of the block and keeps it in the store's library. */
 export default function SaveSectionDialog({ block, defaultName, onClose }: SaveSectionDialogProps) {
   // Hooks
+  const copy = useCopy(customizeContent.saveSection)
   const themeId = useEditingThemeId()
   const [name, setName] = useState(defaultName)
   const [busy, setBusy] = useState(false)

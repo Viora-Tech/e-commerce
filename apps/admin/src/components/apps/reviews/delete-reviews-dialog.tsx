@@ -5,6 +5,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type DeleteReviewsDialogProps = {
   ids: string[]
@@ -30,7 +31,7 @@ export default function DeleteReviewsDialog({
       toast.success(copy.bulk.deleted(deleted))
       onDeleted()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       throw err
     }
   }

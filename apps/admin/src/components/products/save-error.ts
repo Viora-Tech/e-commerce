@@ -1,12 +1,12 @@
 import type { productFormContent } from '@/data/product-form'
-import { validationIssuesOf } from '@/lib/api-errors'
+import { errorText, validationIssuesOf } from '@/lib/api-errors'
 
 type Copy = typeof productFormContent
 
 /** A failed product save in plain words: the first few fields the server turned down, else its message. */
 export function saveErrorMessage(copy: Copy, err: unknown): string {
   const issues = validationIssuesOf(err)
-  if (!issues.length) return err instanceof Error ? err.message : copy.toasts.failed
+  if (!issues.length) return errorText(err, copy.toasts.failed)
   return issues
     .slice(0, 3)
     .map((i) => {

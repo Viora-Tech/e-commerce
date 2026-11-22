@@ -5,10 +5,12 @@ import {
   PURCHASE_DOCUMENT_MAX_BYTES,
   type PurchaseDocumentKind,
 } from '@commerce/core/inventory'
+import { Upload } from '@commerce/ui/icons'
 import { CardContent } from '@commerce/ui/shadcn/card'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import FileDropzone from '@/components/fields/file-dropzone'
 import OptionSelect from '@/components/landed-cost/option-select'
 import type { ChargeOwner } from '@/components/landed-cost/types'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
@@ -17,7 +19,7 @@ import EmptyState from '@/components/layout/empty-state'
 import { PURCHASE_DOCUMENT_KINDS, purchaseDocumentsContent } from '@/data/purchase-documents'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import DocumentDrop from './document-drop'
+import { errorText } from '@/lib/api-errors'
 import DocumentRow, { type DocumentSummary } from './document-row'
 import ReviewDialog from './review-dialog'
 
@@ -33,8 +35,6 @@ type DocumentsCardProps = {
 const POLL_MS = 2500
 
 const busy = (d: DocumentSummary) => d.status === 'pending' || d.status === 'reading'
-
-const message = (err: unknown, fallback: string) => (err instanceof Error ? err.message : fallback)
 
 /** Upload supplier and import bills, watch the AI read them, then check and apply each one. */
 export default function DocumentsCard({ owner, aiReading, onApplied }: DocumentsCardProps) {
@@ -74,7 +74,7 @@ export default function DocumentsCard({ owner, aiReading, onApplied }: Documents
       await api.purchaseDocuments.read({ id })
       toast.success(copy.readStarted)
     } catch (err) {
-      toast.error(message(err, copy.failed))
+      toast.error(errorText(err, copy.failed))
     }
     await refresh()
   }
@@ -98,7 +98,7 @@ export default function DocumentsCard({ owner, aiReading, onApplied }: Documents
         if (aiReading) await api.purchaseDocuments.read({ id: up.id }).catch(() => undefined)
       }
     } catch (err) {
-      toast.error(message(err, copy.failed))
+      toast.error(errorText(err, copy.failed))
     } finally {
       setUploading(false)
       await refresh()
@@ -112,7 +112,7 @@ export default function DocumentsCard({ owner, aiReading, onApplied }: Documents
       toast.success(copy.removed)
       await refresh()
     } catch (err) {
-      toast.error(message(err, copy.failed))
+      toast.error(errorText(err, copy.failed))
     } finally {
       setRemoving(null)
     }
@@ -140,7 +140,15 @@ export default function DocumentsCard({ owner, aiReading, onApplied }: Documents
             />
           </Field>
           <div className="min-w-0 flex-1">
-            <DocumentDrop disabled={uploading} uploading={uploading} onFiles={handleFiles} />
+            <FileDropzone
+              disabled={uploading}
+              uploading={uploading}
+              onFiles={handleFiles}
+              accept="application/pdf,image/jpeg,image/png"
+              copy={copy.drop}
+              icon={Upload}
+              className="h-full min-h-20 py-4"
+            />
           </div>
         </CardContent>
       ) : null}

@@ -7,7 +7,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
@@ -15,7 +15,9 @@ import StatusChip from '@/components/layout/status-chip'
 import TotalsList, { type TotalsLine } from '@/components/layout/totals-list'
 import { profitCardContent } from '@/data/order-cards'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type ProfitCardProps = {
@@ -45,31 +47,17 @@ export default function ProfitCard({ orderId, shipment }: ProfitCardProps) {
   // Hooks
   const copy = useCopy(profitCardContent)
   const fmt = useFormat()
-  const [profit, setProfit] = useState<OrderProfit | null>(null)
   const [charge, setCharge] = useState(
     shipment?.courierChargePaise != null ? String(shipment.courierChargePaise / 100) : '',
   )
   const [saving, setSaving] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
-  const [hidden, setHidden] = useState(false)
-
-  useEffect(() => {
-    // reloadKey re-runs the fetch after a courier charge is saved.
-    if (reloadKey < 0) return
-    let live = true
-    api.orders
-      .profit({ orderId })
-      .then((p) => {
-        if (live) setProfit(p)
-      })
-      // Staff without analytics access (or a failed read) see no profit card.
-      .catch(() => {
-        if (live) setHidden(true)
-      })
-    return () => {
-      live = false
-    }
-  }, [orderId, reloadKey])
+  // reloadKey re-runs the read after a courier charge is saved. Staff without analytics access
+  // (or a failed read) see no profit card.
+  const { data: profit, failed: hidden } = useLoad<OrderProfit | null>(
+    () => api.orders.profit({ orderId }),
+    [orderId, reloadKey],
+  )
 
   // Event handlers
   const handleSaveCharge = async () => {
@@ -85,7 +73,7 @@ export default function ProfitCard({ orderId, shipment }: ProfitCardProps) {
       toast.success(copy.courierSaved)
       setReloadKey((k) => k + 1)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setSaving(false)
     }

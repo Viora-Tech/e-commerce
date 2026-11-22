@@ -637,8 +637,9 @@ worked example of a per-store **OAuth** connection with a daily background pull:
   `apps/admin/src/app/api/apps/google-search-console/oauth/callback`, which calls
   `searchConsole.connectComplete` (`settings.manage`). The refresh token is kept as an
   `encryptSecret` blob in `store.apps.settings['google-search-console']`; disconnect revokes it
-  at Google and deletes it. The OAuth client is `GSC_GOOGLE_CLIENT_ID`/`_SECRET`, or the merchant
-  sign-in client when those are blank.
+  at Google and deletes it. The OAuth client is `GOOGLE_SEARCH_CONSOLE_CLIENT_ID`/`_SECRET`
+  (older names `GSC_GOOGLE_CLIENT_ID`/`_SECRET` still work), or the merchant sign-in client
+  when those are blank; with none set the app shows "Not available yet".
 - **Google calls** (`./google`): plain `fetch` to the OAuth endpoints and the Search Console API
   (`sites.list`, `searchAnalytics.query`, `sitemaps.list`, `sitemaps.submit`), 20 s timeouts,
   `SearchConsoleError` (`GOOGLE_AUTH` = connect again, `GOOGLE_API` = Google's own words).
@@ -657,6 +658,17 @@ worked example of a per-store **OAuth** connection with a daily background pull:
   `almost_page_one` issues, which never lower the score. The same module registers the stored
   per-page searches with `setSearchQueriesSource` (`seo/search-queries.ts`), so "Suggest
   keywords" grounds its suggestions in real Google searches once the app is connected.
+- **SEO assistant** (Online store → SEO → Search opportunities; `@commerce/core/seo-assistant`
+  pure, `/seo-assistant-service` server): each live product, collection and page Google showed,
+  with its top searches, numbers and SEO report gaps, ranked by opportunity (impressions times a
+  position weight that peaks at 4–15, a quarter more with a weak title or description).
+  `api.seo.assistantDraft` writes a title (≤60), description (≤155) and an 80–150 word intro or
+  FAQ per item through the product writer's AI allowance; nothing is saved until
+  `api.seo.assistantApply`, which needs `products.write` (products, collections) or
+  `online_store.write` (pages). The worker's `seo-weekly-email` sweep (every 10 minutes) emails
+  the owner on Monday from 9:00 IST (`staff_seo_weekly`): pages that moved since last week's
+  `seo_weekly_snapshot` row (migration 0264) and the top three suggestions. Off unless the app
+  is connected (`stores_with_search_console_connected()`).
 
 `packages/plugin-meilisearch` (Meilisearch, id `meilisearch`, category `search`) is the worked
 example of an app that **replaces a core behaviour behind a fallback**:

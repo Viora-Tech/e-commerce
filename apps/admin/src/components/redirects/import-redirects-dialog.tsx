@@ -11,6 +11,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { redirectsContent } from '@/data/redirects'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type ImportRedirectsDialogProps = {
   onClose: () => void
@@ -48,7 +49,7 @@ export default function ImportRedirectsDialog({ onClose, onImported }: ImportRed
       const r = await api.redirects.importCsv({ csv, dryRun: true })
       setPreview({ ...r, csv, name: file.name })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
       if (input.current) input.current.value = ''
@@ -64,7 +65,7 @@ export default function ImportRedirectsDialog({ onClose, onImported }: ImportRed
       onImported()
       onClose()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

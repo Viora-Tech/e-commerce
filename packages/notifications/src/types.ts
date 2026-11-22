@@ -1,4 +1,6 @@
+import type { ChatEmail, ChatWaitingEmail } from './chat-types'
 import type { PerformanceReport } from './report-types'
+import type { SeoWeeklyEmail } from './seo-weekly-types'
 import type { TemplateId } from './template-ids'
 import type { ChannelTemplateSpec, ChannelTemplateStatus } from './template-types'
 
@@ -153,8 +155,8 @@ export type TemplateData = {
   actionUrl?: string | undefined
   /** For document_copy: what is attached, e.g. "tax invoice INV/25-26/0007". */
   documentLabel?: string | undefined
-  /** Extra links installed apps add, e.g. "Download invoice". */
-  links?: { label: string; url: string }[] | undefined
+  /** Extra links installed apps add, e.g. "Download invoice" (`kind: 'invoice'`, drawn as a file). */
+  links?: { label: string; url: string; kind?: 'invoice' | undefined }[] | undefined
   /** For delivery_failed: what the courier's latest scan said went wrong, if known. */
   deliveryIssue?: { reasonLabel?: string | undefined } | undefined
   /** For refund_issued: how much went back, by what method, and roughly when it lands. */
@@ -292,6 +294,12 @@ export type TemplateData = {
     | undefined
   /** For the staff daily summary and weekly/monthly reports: the whole report, formatted. */
   report?: PerformanceReport | undefined
+  /** For chat_reply and chat_transcript: the shopper's chat with the store. */
+  chat?: ChatEmail | undefined
+  /** For staff_chat_waiting: the chats nobody has answered yet. */
+  chatWaiting?: ChatWaitingEmail | undefined
+  /** For staff_seo_weekly: the week's Google moves and suggestions. */
+  seoWeekly?: SeoWeeklyEmail | undefined
   /** For staff_daily_summary: the period and its figures, already formatted. */
   dailySummary?:
     | { periodLabel: string; orders: number; salesLabel: string; toShip: number }

@@ -5,16 +5,17 @@ import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { mediaContent } from '@/data/media'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import SettingsCard from './settings-card'
 
 type Verify = Awaited<ReturnType<typeof api.store.verifyStorage>>
 
-const copy = mediaContent.settings
-
 /** "Test connection" for Content › Files › Storage. Hits the saved settings, not the unsaved form. */
 export default function StorageVerify() {
   // Hooks
+  const copy = useCopy(mediaContent).settings
   const [result, setResult] = useState<Verify | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -24,7 +25,7 @@ export default function StorageVerify() {
     try {
       setResult(await api.store.verifyStorage())
     } catch (err) {
-      setResult({ ok: false, message: err instanceof Error ? err.message : 'Could not verify' })
+      setResult({ ok: false, message: errorText(err, 'Could not verify') })
     } finally {
       setBusy(false)
     }

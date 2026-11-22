@@ -4,12 +4,13 @@ import { BadgePercent } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogHeader from '@/components/layout/dialog-header'
 import EmptyState from '@/components/layout/empty-state'
 import { inboxConversationsContent } from '@/data/inbox-conversations'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 
 type DiscountShareDialogProps = {
@@ -23,23 +24,10 @@ type Code = Awaited<ReturnType<typeof api.inbox.shareableDiscounts>>[number]
 export default function DiscountShareDialog({ onClose, onShare }: DiscountShareDialogProps) {
   // Hooks
   const copy = useCopy(inboxConversationsContent)
-  const [codes, setCodes] = useState<Code[] | null>(null)
+  const { data, failed } = useLoad<Code[]>(() => api.inbox.shareableDiscounts())
+  // A failed read lists no codes.
+  const codes: Code[] | null = failed ? [] : data
   const [busy, setBusy] = useState<string | null>(null)
-
-  useEffect(() => {
-    let live = true
-    api.inbox
-      .shareableDiscounts()
-      .then((rows) => {
-        if (live) setCodes(rows)
-      })
-      .catch(() => {
-        if (live) setCodes([])
-      })
-    return () => {
-      live = false
-    }
-  }, [])
 
   // Event handlers
   const handleShare = async (id: string) => {

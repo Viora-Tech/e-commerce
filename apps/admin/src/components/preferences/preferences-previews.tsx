@@ -3,7 +3,8 @@
 import type { StorePreferences } from '@commerce/core/preferences'
 import DataCard from '@/components/layout/data-card'
 import FallbackImage from '@/components/layout/fallback-image'
-import { preferencesContent as copy } from '@/data/preferences'
+import { preferencesContent } from '@/data/preferences'
+import { useCopy } from '@/hooks/use-copy'
 
 type PreferencesPreviewsProps = {
   seo: StorePreferences['seo']
@@ -15,6 +16,9 @@ type PreferencesPreviewsProps = {
 
 /** Figma Preferences side column: how the home page shows on Google and when shared on WhatsApp. */
 export default function PreferencesPreviews({ seo, origin, storeName }: PreferencesPreviewsProps) {
+  // Hooks
+  const copy = useCopy(preferencesContent)
+
   // Render logic
   const host = origin.replace(/^https?:\/\//, '')
   const title = seo.title || storeName || host

@@ -4,7 +4,8 @@ import { ExternalLink } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import ConnectStep from '@/components/apps/shared/connect-step'
-import { decentroAppContent as appCopy } from '@/data/decentro'
+import { decentroAppContent } from '@/data/decentro'
+import { useCopy } from '@/hooks/use-copy'
 
 type ConnectGuideProps = {
   step1Done: boolean
@@ -13,8 +14,6 @@ type ConnectGuideProps = {
   onOpenSignup: () => void
 }
 
-const copy = appCopy.connect
-
 /** The 3-step guide at the top of the Connect page: where each value comes from, in plain words. */
 export default function ConnectGuide({
   step1Done,
@@ -22,6 +21,7 @@ export default function ConnectGuide({
   step3Done,
   onOpenSignup,
 }: ConnectGuideProps) {
+  const copy = useCopy(decentroAppContent.connect)
   return (
     <Card size="form">
       <CardContent className="flex flex-col gap-5">

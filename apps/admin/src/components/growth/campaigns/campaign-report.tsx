@@ -15,12 +15,13 @@ import KeyValueList from '@/components/layout/key-value-list'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import StatStrip from '@/components/layout/stat-strip'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import {
   campaignEditorContent,
+  campaignReportContent,
   campaignsContent,
-  campaignReportContent as copy,
 } from '@/data/marketing-campaigns'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { noteRefreshed } from '@/lib/focus-refresh'
 import { formatDate, formatDateTime } from '@/lib/format-date'
@@ -39,21 +40,6 @@ type CampaignReportProps = {
 
 const POLL_MS = 5000
 
-function headline(c: LoadedCampaign): string {
-  const parts = [
-    c.status === 'scheduled' && c.scheduledAt
-      ? copy.scheduledFor(formatDateTime(c.scheduledAt))
-      : c.status === 'sending'
-        ? copy.sendingNow
-        : c.finishedAt
-          ? copy.sentOn(formatDateTime(c.finishedAt))
-          : '',
-    campaignsContent.kind[c.kind],
-    c.segmentName ?? campaignsContent.allSubscribers,
-  ]
-  return parts.filter(Boolean).join(' · ')
-}
-
 /** The discount code block's code, when the email carries one. */
 function discountCode(blocks: EmailBlock[]): string | null {
   for (const b of blocks) if (b.type === 'discount' && b.code) return b.code
@@ -70,6 +56,9 @@ export default function CampaignReport({
   storefrontUrl,
 }: CampaignReportProps) {
   // Hooks
+  const copy = useCopy(campaignReportContent)
+  const campaignsCopy = useCopy(campaignsContent)
+  const campaignEditorCopy = useCopy(campaignEditorContent)
   const router = useRouter()
   /* Which header action runs, so it spins on its own button and the other waits. */
   const [busy, setBusy] = useState<'cancel' | 'duplicate' | null>(null)
@@ -84,6 +73,22 @@ export default function CampaignReport({
     }, POLL_MS)
     return () => clearInterval(t)
   }, [campaign.status, router])
+
+  // Derived
+  function headline(c: LoadedCampaign): string {
+    const parts = [
+      c.status === 'scheduled' && c.scheduledAt
+        ? copy.scheduledFor(formatDateTime(c.scheduledAt))
+        : c.status === 'sending'
+          ? copy.sendingNow
+          : c.finishedAt
+            ? copy.sentOn(formatDateTime(c.finishedAt))
+            : '',
+      campaignsCopy.kind[c.kind],
+      c.segmentName ?? campaignsCopy.allSubscribers,
+    ]
+    return parts.filter(Boolean).join(' · ')
+  }
 
   // Event handlers
   const handleDuplicate = async () => {
@@ -152,7 +157,7 @@ export default function CampaignReport({
           kind: 'icon',
           node: email ? <Send aria-hidden="true" /> : <WhatsappLogo aria-hidden="true" />,
         }}
-        badges={<OrderChip kind="campaign" value={campaign.status} />}
+        badges={<StatusLabel kind="campaign" value={campaign.status} variant="soft" />}
         actions={
           <>
             {campaign.status === 'scheduled' || campaign.status === 'sending' ? (
@@ -183,7 +188,7 @@ export default function CampaignReport({
             id: 'recipients',
             label: t.recipients,
             value: formatNumber(audienceCount),
-            note: campaign.segmentName ?? campaignsContent.allSubscribers,
+            note: campaign.segmentName ?? campaignsCopy.allSubscribers,
           },
           {
             id: 'delivered',
@@ -267,7 +272,7 @@ export default function CampaignReport({
               rows={[
                 {
                   label: r.segment,
-                  value: campaign.segmentName ?? campaignsContent.allSubscribers,
+                  value: campaign.segmentName ?? campaignsCopy.allSubscribers,
                 },
                 {
                   label: email ? r.accepts : r.optedIn,
@@ -281,8 +286,8 @@ export default function CampaignReport({
             />
             <p className="mt-3 text-caption text-muted-foreground">
               {email
-                ? campaignEditorContent.audience.consentEmail
-                : campaignEditorContent.audience.consentWhatsapp}
+                ? campaignEditorCopy.audience.consentEmail
+                : campaignEditorCopy.audience.consentWhatsapp}
             </p>
           </DataCard>
           <DataCard title={copy.ordersHeading}>

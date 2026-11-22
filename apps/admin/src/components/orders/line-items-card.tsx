@@ -3,12 +3,12 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import TotalsList, { type TotalsLine } from '@/components/layout/totals-list'
+import StatusLabel from '@/components/status/status-label'
 import { orderDetailContent } from '@/data/order-detail'
 import { orderEditContent } from '@/data/order-edit'
 import type { StatusValue } from '@/data/status'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { shownAttemptStatus } from '@/lib/order-next-move'
-import OrderChip from './order-chip'
 import { type OrderDetail, packedQuantity, unfulfilledLines } from './order-detail-types'
 import OrderLinesTable from './order-lines-table'
 import { totalRows } from './order-totals'
@@ -80,7 +80,9 @@ export default function LineItemsCard({
           costs (subtotal, discount, shipping, the GST split), a rule, then what was settled. */}
       <DataCard
         title={copy.payment.heading}
-        icon={shownPill ? <OrderChip kind="payment" value={shownPill} /> : undefined}
+        icon={
+          shownPill ? <StatusLabel kind="payment" value={shownPill} variant="soft" /> : undefined
+        }
         action={
           editHref ? (
             <Button

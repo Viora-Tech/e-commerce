@@ -14,6 +14,7 @@ import { abandonedDetailContent } from '@/data/abandoned-detail'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import AbandonedActivityCard from './abandoned-activity-card'
 import AbandonedCartCard from './abandoned-cart-card'
@@ -55,7 +56,7 @@ export default function AbandonedDetail({ checkout }: AbandonedDetailProps) {
       toast.success(copy.toasts.sent(r.sent))
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.toasts.failed)
+      toast.error(errorText(err, copy.toasts.failed))
     } finally {
       setSending(false)
     }
@@ -72,7 +73,11 @@ export default function AbandonedDetail({ checkout }: AbandonedDetailProps) {
       header={
         <PageHeader
           title={who || copy.heading(ref)}
-          summary={copy.summary(fmt.money(checkout.subtotalPaise), ref, fmt.ago(checkout.updatedAt))}
+          summary={copy.summary(
+            fmt.money(checkout.subtotalPaise),
+            ref,
+            fmt.ago(checkout.updatedAt),
+          )}
           back={{ label: copy.back.label, href: routes.orders.abandonedCheckouts() }}
           lead={{ kind: 'icon', node: <ShoppingCart aria-hidden="true" /> }}
           size="sm"

@@ -26,7 +26,13 @@ import {
   sampleDocument,
 } from '../src'
 import { buildCreditNote } from '../src/credit-note'
-import { documentLinkPath, signDocumentLink, verifyDocumentLink } from '../src/link'
+import {
+  documentLinkPath,
+  orderInvoiceLinkPath,
+  signDocumentLink,
+  verifyDocumentLink,
+  verifyOrderInvoiceLink,
+} from '../src/link'
 
 describe('words', () => {
   it('uses the Indian system', () => {
@@ -378,5 +384,32 @@ describe('download links', () => {
 
   it('builds a storefront path', () => {
     expect(documentLinkPath('secret', input, now)).toMatch(/^\/documents\/d1\?e=\d+&t=[\w-]{32}$/)
+  })
+})
+
+describe('order invoice links', () => {
+  const now = new Date('2025-06-01T00:00:00Z')
+  const parse = (path: string) => {
+    const u = new URL(path, 'https://shop.example')
+    return { expires: Number(u.searchParams.get('e')), token: u.searchParams.get('t') ?? '' }
+  }
+
+  it('opens only its own order, and a document token never opens an order', () => {
+    const path = orderInvoiceLinkPath('secret', { storeId: 's1', orderId: 'o1' }, now)
+    expect(path).toMatch(/^\/documents\/order\/o1\?e=\d+&t=[\w-]{32}$/)
+    const signed = parse(path)
+    expect(verifyOrderInvoiceLink('secret', { storeId: 's1', orderId: 'o1', ...signed }, now)).toBe(
+      true,
+    )
+    expect(verifyOrderInvoiceLink('secret', { storeId: 's1', orderId: 'o2', ...signed }, now)).toBe(
+      false,
+    )
+    expect(verifyOrderInvoiceLink('secret', { storeId: 's2', orderId: 'o1', ...signed }, now)).toBe(
+      false,
+    )
+    const doc = parse(documentLinkPath('secret', { storeId: 's1', documentId: 'o1' }, now))
+    expect(verifyOrderInvoiceLink('secret', { storeId: 's1', orderId: 'o1', ...doc }, now)).toBe(
+      false,
+    )
   })
 })

@@ -1,4 +1,5 @@
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import {
   CONTACT_KEYS,
   contactPayload,
@@ -22,9 +23,6 @@ const PART_KEYS: Record<Part, readonly string[]> = {
   tags: ['tags'],
   mark: ['mark'],
 }
-
-const messageOf = (err: unknown, fallback: string) =>
-  err instanceof Error && err.message ? err.message : fallback
 
 /** The keys of the parts that saved, to copy from the saved row into the new baseline. */
 export const savedKeys = (done: Part[]) => done.flatMap((p) => PART_KEYS[p])
@@ -53,7 +51,7 @@ async function saveRow(row: GridRow, base: GridRow, fallback: string): Promise<R
     }
     return { id: row.id, done, error: null }
   } catch (err) {
-    return { id: row.id, done, error: messageOf(err, fallback) }
+    return { id: row.id, done, error: errorText(err, fallback) }
   }
 }
 

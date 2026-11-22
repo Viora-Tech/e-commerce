@@ -1,4 +1,5 @@
 import { senderEmailContent } from '@/data/sender-email'
+import { useCopy } from '@/hooks/use-copy'
 import type { SenderEmailOverview } from './types'
 
 type SenderPreviewProps = {
@@ -7,10 +8,11 @@ type SenderPreviewProps = {
   devOnly: boolean
 }
 
-const copy = senderEmailContent.now
-
 /** What a customer's inbox shows right now: the From line and where replies go. */
 export default function SenderPreview({ preview, devOnly }: SenderPreviewProps) {
+  // Hooks
+  const copy = useCopy(senderEmailContent.now)
+
   // Render logic
   const note = preview.using === 'own' ? copy.ownNote : copy.platformNote
 

@@ -1,22 +1,26 @@
 'use client'
 
 import type { Theme } from '@commerce/core/theme'
-import { themesContent as copy } from '@/data/themes'
+import SwitchRow from '@/components/fields/switch-row'
+import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 import ChoiceField from './choice-field'
-import SwitchField from './switch-field'
 
 type CartSettingsProps = {
   theme: Theme
   onChange: (next: Theme) => void
 }
 
-const TYPES = (['drawer', 'page'] as const).map((value) => ({
-  value,
-  label: copy.cart.types[value],
-}))
+const TYPES = ['drawer', 'page'] as const
 
 /** Theme settings → Cart: drawer or cart page, and the free shipping bar. */
 export default function CartSettings({ theme, onChange }: CartSettingsProps) {
+  // Hooks
+  const copy = useCopy(themesContent)
+
+  // Derived
+  const types = TYPES.map((value) => ({ value, label: copy.cart.types[value] }))
+
   // Helpers
   const setCart = (patch: Partial<Theme['cart']>) =>
     onChange({ ...theme, cart: { ...theme.cart, ...patch } })
@@ -27,15 +31,16 @@ export default function CartSettings({ theme, onChange }: CartSettingsProps) {
       <ChoiceField
         label={copy.cart.type}
         value={theme.cart.type}
-        options={TYPES}
+        options={types}
         onChange={(type) => setCart({ type })}
       />
       <p className="text-period text-muted-foreground">{copy.cart.typeHelp}</p>
-      <SwitchField
+      <SwitchRow
         label={copy.cart.freeShippingBar}
-        help={copy.cart.freeShippingHelp}
+        description={copy.cart.freeShippingHelp}
         checked={theme.cart.freeShippingBar}
         onChange={(freeShippingBar) => setCart({ freeShippingBar })}
+        weight="normal"
       />
     </>
   )

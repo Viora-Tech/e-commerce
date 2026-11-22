@@ -2,7 +2,8 @@
 
 import { DynamicSource, XIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { dynamicSourcesContent as copy } from '@/data/dynamic-sources'
+import { dynamicSourcesContent } from '@/data/dynamic-sources'
+import { useCopy } from '@/hooks/use-copy'
 
 type DynamicSourceChipProps = {
   /** "Product › Title". */
@@ -19,6 +20,7 @@ export default function DynamicSourceChip({
   onChange,
   onDisconnect,
 }: DynamicSourceChipProps) {
+  const copy = useCopy(dynamicSourcesContent)
   return (
     <div className="flex min-h-8 items-center gap-1 rounded-lg border border-primary/40 bg-primary/5 pr-1 pl-2.5">
       <button

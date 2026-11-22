@@ -110,6 +110,15 @@ export {
   sectionWriterInstructions,
 } from './section-writer'
 export {
+  SEO_ASSISTANT_MARKER,
+  type SeoAssistantInput,
+  type SeoDraftLimits,
+  type SeoDraftOutput,
+  SeoDraftSchema,
+  seoAssistantContent,
+  seoAssistantInstructions,
+} from './seo-assistant/prompt'
+export {
   type SeoKeywordsInput,
   seoKeywordsContent,
   seoKeywordsInstructions,

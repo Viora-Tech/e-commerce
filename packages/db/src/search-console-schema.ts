@@ -4,9 +4,11 @@ import {
   doublePrecision,
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
 import { newId, store } from './schema'
@@ -49,4 +51,28 @@ export const searchConsoleRow = pgTable(
       sql`${t.dimension} in ('total', 'page', 'query', 'page_query', 'device', 'country')`,
     ),
   ],
+)
+
+/**
+ * The weekly SEO email (0264): one row per store and week (`week_key`, the week's Monday), made
+ * when that week's email is claimed. `pages` keeps each page's Google position, impressions and
+ * clicks that week, so next week's email can say which pages moved. The unique key is the claim:
+ * overlapping worker ticks send each week once. Under RLS like every tenant table.
+ */
+export const seoWeeklySnapshot = pgTable(
+  'seo_weekly_snapshot',
+  {
+    id: uuid('id').primaryKey().$defaultFn(newId),
+    storeId: uuid('store_id')
+      .notNull()
+      .references(() => store.id),
+    weekKey: text('week_key').notNull(),
+    pages: jsonb('pages')
+      .$type<Record<string, { position: number; impressions: number; clicks: number }>>()
+      .notNull()
+      .default({}),
+    sentAt: timestamp('sent_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('seo_weekly_snapshot_store_week').on(t.storeId, t.weekKey)],
 )

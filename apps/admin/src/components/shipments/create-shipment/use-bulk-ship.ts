@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { bulkShipContent } from '@/data/bulk-ship'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { repriced } from './bulk-edit-state'
 import {
   type BookResult,
@@ -93,7 +94,7 @@ export function useBulkShip(orderIds: string[], courier: string | undefined) {
         setProviderId(start.providerId)
       })
       .catch((err) => {
-        if (live) setQuoteError(err instanceof Error && err.message ? err.message : '')
+        if (live) setQuoteError(errorText(err, ''))
       })
       .finally(() => live && setAsking(new Set()))
     return () => {
@@ -113,7 +114,7 @@ export function useBulkShip(orderIds: string[], courier: string | undefined) {
       })
       if (answer) setQuotes((q) => ({ ...q, [orderId]: answer }))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     } finally {
       setAsking((s) => new Set([...s].filter((id) => id !== orderId)))
     }
@@ -150,7 +151,7 @@ export function useBulkShip(orderIds: string[], courier: string | undefined) {
       )
       toast.success(copy.payOnlineSent(customerName))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     } finally {
       setBusy(false)
     }
@@ -167,7 +168,7 @@ export function useBulkShip(orderIds: string[], courier: string | undefined) {
       setResults([...booked, ...skipped])
       return true
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
       return false
     } finally {
       setBusy(false)

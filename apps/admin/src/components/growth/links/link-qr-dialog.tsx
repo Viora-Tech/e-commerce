@@ -5,12 +5,12 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { toDataURL, toString as toSvg } from 'qrcode'
-import { useEffect, useState } from 'react'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { linkQrContent } from '@/data/growth-report'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 
 type LinkQrDialogProps = {
   name: string
@@ -38,18 +38,7 @@ function save(href: string, filename: string) {
 export default function LinkQrDialog({ name, slug, url, onClose }: LinkQrDialogProps) {
   // Hooks
   const copy = useCopy(linkQrContent)
-  const [png, setPng] = useState<string | null>(null)
-  const [failed, setFailed] = useState(false)
-
-  useEffect(() => {
-    let live = true
-    toDataURL(url, OPTIONS)
-      .then((data) => live && setPng(data))
-      .catch(() => live && setFailed(true))
-    return () => {
-      live = false
-    }
-  }, [url])
+  const { data: png, failed } = useLoad(() => toDataURL(url, OPTIONS), [url])
 
   // Event handlers
   const handlePng = () => {

@@ -1,6 +1,7 @@
 import { formatNumber } from '@commerce/money'
 import StatStrip from '@/components/layout/stat-strip'
 import { giftCardsContent } from '@/data/gift-cards'
+import { useCopy } from '@/hooks/use-copy'
 import { formatPaise } from '@/lib/money'
 
 type GiftCardTilesProps = {
@@ -15,8 +16,11 @@ export default function GiftCardTiles({
   outstandingPaise,
   products,
 }: GiftCardTilesProps) {
+  // Hooks
+  const giftCardsCopy = useCopy(giftCardsContent)
+
   // Render logic
-  const t = giftCardsContent.tiles
+  const t = giftCardsCopy.tiles
   const onSale = products.filter((p) => p.status === 'active').length
 
   return (

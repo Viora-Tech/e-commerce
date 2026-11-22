@@ -27,7 +27,7 @@ import { orderCustomerContent } from '@/data/customer-merge'
 import { orderDetailContent } from '@/data/order-detail'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { fieldErrorsOf } from '@/lib/api-errors'
+import { errorText, fieldErrorsOf } from '@/lib/api-errors'
 import EmailOwnerOffer from './email-owner-offer'
 import type { OrderDetail } from './order-detail-types'
 
@@ -154,7 +154,7 @@ export default function EditOrderContactDialog({
       onClose()
     } catch (err) {
       setErrors(fieldErrorsOf(err))
-      toast.error(err instanceof Error ? err.message : c.failed)
+      toast.error(errorText(err, c.failed))
     } finally {
       setSaving(false)
     }

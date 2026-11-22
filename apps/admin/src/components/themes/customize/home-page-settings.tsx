@@ -14,6 +14,7 @@ import MediaPickDialog from '@/components/media/media-pick-dialog'
 import { customizeContent } from '@/data/customize'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { FIELD_INPUT, FIELD_TEXTAREA } from '@/lib/customize-field-styles'
 import FieldFrame from './field-frame'
 import SettingsSegmented from './settings-segmented'
@@ -73,7 +74,7 @@ export default function HomePageSettings({ title, domain }: HomePageSettingsProp
       setForm(next)
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

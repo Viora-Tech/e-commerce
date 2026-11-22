@@ -12,7 +12,7 @@ import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsLinkRow from '@/components/settings/settings-link-row'
 import SettingsList from '@/components/settings/settings-list'
-import { domainsContent as copy, domainEdgeContent } from '@/data/domains'
+import { domainEdgeContent, domainsContent } from '@/data/domains'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { routes } from '@/lib/routes'
@@ -26,29 +26,30 @@ type DomainsSettingsProps = {
   apexRedirectOnly: boolean
 }
 
-function trafficLabel(d: DomainView): string {
-  if (d.isPrimary) return copy.list.isPrimary
-  return d.redirectToPrimary ? copy.list.redirects : copy.list.serves
-}
-
-/** The quiet line under a domain: what kind it is, what to do next, and how it serves traffic. */
-function domainLine(d: DomainView): string {
-  return [
-    d.kind === 'platform' ? copy.list.platform : null,
-    d.kind === 'custom' && d.status === 'pending' ? copy.list.addRecords : null,
-    d.isPrimary ? null : trafficLabel(d),
-  ]
-    .filter(Boolean)
-    .join(' · ')
-}
-
 /** Settings → Domains: the primary domain, every hostname, and connecting a new one. */
 export default function DomainsSettings({ domains, apexRedirectOnly }: DomainsSettingsProps) {
   // Hooks
+  const copy = useCopy(domainsContent)
   const { hasPermission } = usePermissions()
   const edge = useCopy(domainEdgeContent)
   const [connectOpen, setConnectOpen] = useState(false)
   const [primaryOpen, setPrimaryOpen] = useState(false)
+
+  // Derived
+  function trafficLabel(d: DomainView): string {
+    if (d.isPrimary) return copy.list.isPrimary
+    return d.redirectToPrimary ? copy.list.redirects : copy.list.serves
+  }
+  /** The quiet line under a domain: what kind it is, what to do next, and how it serves traffic. */
+  function domainLine(d: DomainView): string {
+    return [
+      d.kind === 'platform' ? copy.list.platform : null,
+      d.kind === 'custom' && d.status === 'pending' ? copy.list.addRecords : null,
+      d.isPrimary ? null : trafficLabel(d),
+    ]
+      .filter(Boolean)
+      .join(' · ')
+  }
 
   // Render logic
   const canManage = hasPermission(permissions.SETTINGS_MANAGE)

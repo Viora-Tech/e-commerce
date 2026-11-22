@@ -9,6 +9,7 @@ import RowMenu from '@/components/table/row-menu'
 import { segmentsContent } from '@/data/customers'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type SegmentRowMenuProps = { id: string }
@@ -25,7 +26,7 @@ export default function SegmentRowMenu({ id }: SegmentRowMenuProps) {
     try {
       await api.customers.deleteSegment({ id })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.deleteFailed)
+      toast.error(errorText(err, copy.deleteFailed))
       throw err
     }
     toast.success(copy.deleted)

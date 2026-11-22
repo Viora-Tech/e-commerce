@@ -1,4 +1,6 @@
-'use client'
+import { errorText } from '@/lib/api-errors'
+
+;('use client')
 
 /**
  * SOURCE OF TRUTH KEYWORDS: ProviderConnectPage, ConnectContext, ConnectPageCopy, TestOutcome
@@ -209,7 +211,7 @@ export default function ProviderConnectPage<R extends TestOutcome>({
     } catch (err) {
       setTestState({
         status: 'error',
-        message: err instanceof Error ? err.message : copy.rateLimited,
+        message: errorText(err, copy.rateLimited),
       })
     }
   }
@@ -237,7 +239,7 @@ export default function ProviderConnectPage<R extends TestOutcome>({
       setSnapshot(JSON.stringify(saved))
       toast.success(copy.saved)
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.saveFailed)
+      setError(errorText(err, copy.saveFailed))
     } finally {
       setBusy(false)
     }

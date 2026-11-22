@@ -4,8 +4,9 @@ import { accentCss } from '@commerce/core/admin-accent'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
+import SwitchRow from '@/components/fields/switch-row'
 import { appearanceContent } from '@/data/appearance'
-import SettingsToggleRow from './settings-toggle-row'
+import { useCopy } from '@/hooks/use-copy'
 
 type AccentPreviewProps = {
   /** `#rrggbb` being tried; the preview recolours before anything is saved. */
@@ -13,12 +14,7 @@ type AccentPreviewProps = {
 }
 
 const SCOPE = 'accent-preview'
-const copy = appearanceContent.preview
-const PILLS = [
-  { id: 'all', label: copy.pillActive },
-  { id: 'open', label: copy.pillIdle },
-  { id: 'paid', label: copy.pillOther },
-] as const
+const PILLS = ['all', 'open', 'paid'] as const
 
 /**
  * A slice of the admin in the accent being tried: buttons, filter pills and a switch. The
@@ -27,8 +23,12 @@ const PILLS = [
  */
 export default function AccentPreview({ accent }: AccentPreviewProps) {
   // Hooks
-  const [pill, setPill] = useState<(typeof PILLS)[number]['id']>('all')
+  const copy = useCopy(appearanceContent).preview
+  const [pill, setPill] = useState<(typeof PILLS)[number]>('all')
   const [tracked, setTracked] = useState(true)
+
+  // Derived
+  const pillLabels = { all: copy.pillActive, open: copy.pillIdle, paid: copy.pillOther }
 
   // Render logic
   const css = accentCss(accent, `#${SCOPE}`)
@@ -44,30 +44,32 @@ export default function AccentPreview({ accent }: AccentPreviewProps) {
         <Button variant="outline">{copy.secondary}</Button>
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
-        {PILLS.map((p) => (
+        {PILLS.map((id) => (
           <button
-            key={p.id}
+            key={id}
             type="button"
-            aria-pressed={pill === p.id}
-            onClick={() => setPill(p.id)}
+            aria-pressed={pill === id}
+            onClick={() => setPill(id)}
             className={cn(
               'h-[1.875rem] rounded-full border px-3 text-body transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
-              pill === p.id
+              pill === id
                 ? 'border-primary bg-primary text-primary-foreground'
                 : 'border-border text-foreground hover:bg-muted',
             )}
           >
-            {p.label}
+            {pillLabels[id]}
           </button>
         ))}
       </div>
-      <SettingsToggleRow
+      <SwitchRow
         id={`${SCOPE}-switch`}
         label={copy.switchLabel}
         description={copy.switchHelp}
         checked={tracked}
         onChange={setTracked}
         className="py-3 first:pt-3 last:pb-3"
+        weight="semibold"
+        divided
       />
     </div>
   )

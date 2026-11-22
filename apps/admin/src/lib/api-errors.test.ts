@@ -2,10 +2,23 @@ import { describe, expect, it } from 'vitest'
 import { validationContent } from '@/data/common'
 import {
   describeValidation,
+  errorText,
   fieldErrorsOf,
   validationIssuesOf,
   withReadableValidation,
 } from './api-errors'
+
+describe('errorText', () => {
+  it('returns the message of an error that has one', () => {
+    expect(errorText(new Error('Out of stock'), 'Could not save')).toBe('Out of stock')
+  })
+
+  it('falls back for an empty message or something that is not an error', () => {
+    expect(errorText(new Error(''), 'Could not save')).toBe('Could not save')
+    expect(errorText('boom', 'Could not save')).toBe('Could not save')
+    expect(errorText(null, 'Could not save')).toBe('Could not save')
+  })
+})
 
 describe('validationIssuesOf', () => {
   it('reads issues, joins the path and keeps the limit of too-big ones', () => {

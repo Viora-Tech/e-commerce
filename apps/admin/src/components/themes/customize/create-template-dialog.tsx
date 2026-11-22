@@ -13,6 +13,7 @@ import {
 import { useState } from 'react'
 import FormDialog from '@/components/layout/form-dialog'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import type { TemplateRef } from './template-picker'
 
 export type AlternateKind = (typeof ALTERNATE_KINDS)[number]
@@ -27,9 +28,6 @@ type CreateTemplateDialogProps = {
   onCreate: (kind: AlternateKind, suffix: string, basedOn: string) => void
 }
 
-const copy = customizeContent.createDialog
-const names = customizeContent.templates.names
-
 const isAlternateKind = (key: string): key is AlternateKind =>
   (ALTERNATE_KINDS as readonly string[]).includes(key)
 
@@ -42,6 +40,8 @@ export default function CreateTemplateDialog({
   onCreate,
 }: CreateTemplateDialogProps) {
   // Hooks
+  const names = useCopy(customizeContent.templates.names)
+  const copy = useCopy(customizeContent.createDialog)
   const [kind, setKind] = useState<AlternateKind>(
     initialKind ?? (isAlternateKind(current.key) ? current.key : 'product'),
   )

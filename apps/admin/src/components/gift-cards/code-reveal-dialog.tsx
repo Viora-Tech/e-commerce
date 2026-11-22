@@ -9,6 +9,7 @@ import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { giftCardIssueContent } from '@/data/gift-cards'
+import { useCopy } from '@/hooks/use-copy'
 
 export type IssuedCard = {
   id: string
@@ -21,10 +22,11 @@ type CodeRevealDialogProps = {
   onDone: (id: string) => void
 }
 
-const copy = giftCardIssueContent.reveal
-
 /** Shows a new card's full code once, with copy, and whether the email went out. */
 export default function CodeRevealDialog({ issued, onDone }: CodeRevealDialogProps) {
+  // Hooks
+  const copy = useCopy(giftCardIssueContent.reveal)
+
   // Event handlers
   const handleCopy = async () => {
     if (!issued) return

@@ -3,7 +3,8 @@
 import { Minus, Plus, RotateCcw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import type { ReactNode } from 'react'
-import { liveGlobeContent as copy } from '@/data/live-globe'
+import { liveGlobeContent } from '@/data/live-globe'
+import { useCopy } from '@/hooks/use-copy'
 import type { GlobeMarker } from './types'
 
 type GlobeOverlayProps = {
@@ -32,6 +33,9 @@ export default function GlobeOverlay({
   onZoom,
   settingsButton,
 }: GlobeOverlayProps) {
+  // Hooks
+  const copy = useCopy(liveGlobeContent)
+
   // Event handlers
   const handleMarkerEnter = (id: string) => onActiveChange(id)
   const handleMarkerLeave = (id: string) => {

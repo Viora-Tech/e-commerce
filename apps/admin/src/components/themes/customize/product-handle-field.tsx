@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/pop
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { FIELD_CONTROL } from '@/lib/customize-field-styles'
 import { searchLinkTargets } from '@/lib/customize-link-targets'
 import type { LinkTarget } from '@/lib/customize-links'
@@ -23,8 +24,6 @@ type ProductHandleFieldProps = {
   onChange: (handle: string) => void
   readOnly?: boolean | undefined
 }
-
-const copy = customizeContent.productPicker
 
 /** `/products/<handle>` → `<handle>`. */
 const handleOf = (target: LinkTarget) =>
@@ -41,6 +40,7 @@ export default function ProductHandleField({
   readOnly,
 }: ProductHandleFieldProps) {
   // Hooks
+  const copy = useCopy(customizeContent.productPicker)
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<LinkTarget[] | null>(null)

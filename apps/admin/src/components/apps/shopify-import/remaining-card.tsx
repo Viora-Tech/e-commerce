@@ -29,6 +29,7 @@ import StatusLabel from '@/components/status/status-label'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type RemainingCardProps = {
   /** Connected to Shopify; without it the counts are only what earlier previews saw. */
@@ -50,8 +51,6 @@ type Row = {
   resources: ImportResource[] | null
   action: 'import' | 'images' | 'files' | 'preview' | null
 }
-
-const base = shopifyImportContent.base
 const ROWS_LOADING = 6
 const RUNNING_REFRESH_MS = 8000
 
@@ -108,6 +107,7 @@ const TABLE_EDGES =
  */
 export default function RemainingCard({ connected }: RemainingCardProps) {
   // Hooks
+  const base = useCopy(shopifyImportContent).base
   const copy = useCopy(shopifyImportContent.remaining)
   const labels = useCopy(shopifyImportContent.resources)
   const fmt = useFormat()
@@ -174,7 +174,7 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
       toast.success(action === 'preview' ? copy.previewStarted : copy.started)
       router.push(`${base}/runs/${run.id}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.startFailed)
+      toast.error(errorText(err, copy.startFailed))
       setBusy(null)
     }
   }

@@ -15,6 +15,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { bugReportContent } from '@/data/bug-report'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { recentClientErrors } from '@/lib/client-errors'
 
 type BugReportDialogProps = {
@@ -84,7 +85,7 @@ export default function BugReportDialog({
       reset()
       onOpenChange(false)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setSending(false)
     }

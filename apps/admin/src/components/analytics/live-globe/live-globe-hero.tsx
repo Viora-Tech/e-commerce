@@ -5,8 +5,8 @@ import { useReducedMotion } from 'motion/react'
 import { useTheme } from 'next-themes'
 import type { ComponentType, ReactNode } from 'react'
 import { useEffect, useState } from 'react'
-import { liveGlobeContent as copy } from '@/data/live-globe'
-import { useLocale } from '@/hooks/use-copy'
+import { liveGlobeContent } from '@/data/live-globe'
+import { useCopy, useLocale } from '@/hooks/use-copy'
 import { useGlobeSettings } from '@/hooks/use-globe-settings'
 import { useLiveGlobeData } from '@/hooks/use-live-globe-data'
 import { isWebglSupported } from '@/lib/webgl'
@@ -50,6 +50,7 @@ function loadGlobe(): Promise<ComponentType<GlobeCanvasProps>> {
  */
 export default function LiveGlobeHero({ initial, header, left, right }: LiveGlobeHeroProps) {
   // Hooks
+  const copy = useCopy(liveGlobeContent)
   const locale = useLocale()
   const { resolvedTheme } = useTheme()
   const reducedMotion = useReducedMotion()

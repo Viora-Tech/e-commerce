@@ -27,6 +27,7 @@ import { affiliatesContent } from '@/data/affiliates'
 import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type Program = Awaited<ReturnType<typeof api.affiliates.programs.get>>
@@ -105,7 +106,7 @@ export default function ProgramEditor({ params }: AppPageProps) {
       setForm({ name: next.name, slug: next.slug, rules: next.rules })
       toast.success(copy.program.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

@@ -9,23 +9,26 @@ import {
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
 import { useRouter } from 'next/navigation'
-import { campaignsContent as copy } from '@/data/marketing-campaigns'
+import { campaignsContent } from '@/data/marketing-campaigns'
+import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
-
-const OPTIONS = [
-  { kind: 'email', icon: Send, label: copy.createEmail, hint: copy.createEmailHint },
-  {
-    kind: 'whatsapp',
-    icon: MessageSquare,
-    label: copy.createWhatsapp,
-    hint: copy.createWhatsappHint,
-  },
-] as const
 
 /** "Create campaign" with the two kinds, email and WhatsApp, as Shopify offers its apps. */
 export default function CreateCampaignMenu() {
   // Hooks
+  const copy = useCopy(campaignsContent)
   const router = useRouter()
+
+  // Derived
+  const options = [
+    { kind: 'email', icon: Send, label: copy.createEmail, hint: copy.createEmailHint },
+    {
+      kind: 'whatsapp',
+      icon: MessageSquare,
+      label: copy.createWhatsapp,
+      hint: copy.createWhatsappHint,
+    },
+  ] as const
 
   // Render logic
   return (
@@ -35,7 +38,7 @@ export default function CreateCampaignMenu() {
         <ChevronDown />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72">
-        {OPTIONS.map((o) => (
+        {options.map((o) => (
           <DropdownMenuItem
             key={o.kind}
             onClick={() => router.push(`${routes.growth.newCampaign()}?kind=${o.kind}`)}

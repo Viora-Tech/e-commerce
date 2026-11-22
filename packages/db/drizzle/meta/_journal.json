@@ -1723,6 +1723,34 @@
       "when": 1795280900000,
       "tag": "0261_email_template_design",
       "breakpoints": true
+    },
+    {
+      "idx": 246,
+      "version": "7",
+      "when": 1795281000000,
+      "tag": "0262_customer_sign_in_as",
+      "breakpoints": true
+    },
+    {
+      "idx": 247,
+      "version": "7",
+      "when": 1795281100000,
+      "tag": "0263_broken_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 248,
+      "version": "7",
+      "when": 1795281200000,
+      "tag": "0264_seo_weekly_snapshot",
+      "breakpoints": true
+    },
+    {
+      "idx": 249,
+      "version": "7",
+      "when": 1795281300000,
+      "tag": "0265_inbox_chat_emails",
+      "breakpoints": true
     }
   ]
 }

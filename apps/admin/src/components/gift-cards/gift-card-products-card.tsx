@@ -4,7 +4,8 @@ import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import StatusLabel from '@/components/status/status-label'
-import { giftCardProductsContent as copy } from '@/data/gift-cards'
+import { giftCardProductsContent } from '@/data/gift-cards'
+import { useCopy } from '@/hooks/use-copy'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
 
@@ -22,6 +23,7 @@ type GiftCardProductsCardProps = {
 
 /** The gift card products shoppers can buy, each linking to its product page. */
 export default function GiftCardProductsCard({ products, onAdd }: GiftCardProductsCardProps) {
+  const copy = useCopy(giftCardProductsContent)
   return (
     <DataCard
       title={copy.heading}

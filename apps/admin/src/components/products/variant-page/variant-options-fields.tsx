@@ -8,11 +8,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
+import SwitchRow from '@/components/fields/switch-row'
 import EmptyState from '@/components/layout/empty-state'
 import { variantPageContent } from '@/data/variant-page'
 import { useCopy } from '@/hooks/use-copy'
 import type { OptionRow, VariantRow } from '../form-state'
-import SwitchRow from '../switch-row'
 
 type VariantOptionsFieldsProps = {
   options: OptionRow[]
@@ -87,9 +87,10 @@ export default function VariantOptionsFields({
       <SwitchRow
         id="variant-hidden"
         label={fields.hide}
-        help={fields.hideHelp}
+        description={fields.hideHelp}
         checked={draft.hiddenOnStore}
         onChange={(hiddenOnStore) => onPatch({ hiddenOnStore })}
+        weight="normal"
       />
     </div>
   )

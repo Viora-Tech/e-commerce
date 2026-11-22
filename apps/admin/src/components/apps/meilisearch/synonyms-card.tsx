@@ -15,6 +15,7 @@ import SettingsRow from '@/components/settings/settings-row'
 import { meilisearchContent } from '@/data/meilisearch'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type SynonymsCardProps = {
   synonyms: string[][]
@@ -38,7 +39,7 @@ export default function SynonymsCard({ synonyms, onSaved }: SynonymsCardProps) {
       await onSaved()
       toast.success(copy.synonyms.saved)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setSaving(false)
     }

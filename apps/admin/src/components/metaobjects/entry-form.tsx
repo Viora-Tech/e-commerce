@@ -15,6 +15,7 @@ import SaveBar from '@/components/layout/save-bar'
 import { entryFormContent, entryListContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import EntrySideCards from './entry-side-cards'
 import FieldInput from './field-input'
 import {
@@ -87,7 +88,7 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
       }
     } catch (err) {
       setErrors(fieldErrorsOf(err))
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
     }
@@ -106,7 +107,7 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
       toast.success(copy.duplicated)
       router.push(`${entriesPath(definition.type)}/${id}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       setBusy(null)
     }
   }
@@ -120,7 +121,7 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
       toast.success(copy.deleted)
       router.push(entriesPath(definition.type))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       setBusy(null)
     }
   }

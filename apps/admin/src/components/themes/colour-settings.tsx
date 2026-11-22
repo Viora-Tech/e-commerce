@@ -6,11 +6,12 @@ import {
   type Theme,
   themeContrastWarnings,
 } from '@commerce/core/theme'
-import { themesContent as copy } from '@/data/themes'
+import SwitchRow from '@/components/fields/switch-row'
+import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 import ChoiceField from './choice-field'
 import ColourField from './colour-field'
 import ContrastWarnings from './contrast-warnings'
-import SwitchField from './switch-field'
 
 type ColourSettingsProps = {
   theme: Theme
@@ -35,10 +36,7 @@ const ROLES: ColourRole[] = [
   'accent',
 ]
 const STATUS: (keyof StatusColors)[] = ['success', 'danger', 'sale']
-const DARK_DEFAULTS = (['system', 'light', 'dark'] as const).map((value) => ({
-  value,
-  label: copy.colours.darkDefaults[value],
-}))
+const DARK_DEFAULTS = ['system', 'light', 'dark'] as const
 
 const schemeOf = (theme: Theme, mode: 'light' | 'dark') => {
   const id = mode === 'light' ? theme.lightScheme : theme.darkScheme
@@ -55,6 +53,15 @@ export default function ColourSettings({
   onChange,
   roles = ROLES,
 }: ColourSettingsProps) {
+  // Hooks
+  const copy = useCopy(themesContent)
+
+  // Derived
+  const darkDefaults = DARK_DEFAULTS.map((value) => ({
+    value,
+    label: copy.colours.darkDefaults[value],
+  }))
+
   // Event handlers
   const handleRole = (role: ColourRole, hex: string) => {
     const id = schemeOf(theme, mode)?.id
@@ -100,17 +107,18 @@ export default function ColourSettings({
       </div>
       <ContrastWarnings warnings={warnings} />
       <div className="flex flex-col gap-4 border-t border-border pt-4">
-        <SwitchField
+        <SwitchRow
           label={copy.colours.darkMode}
-          help={copy.colours.darkModeHelp}
+          description={copy.colours.darkModeHelp}
           checked={theme.darkMode.enabled}
           onChange={(enabled) => onChange({ ...theme, darkMode: { ...theme.darkMode, enabled } })}
+          weight="normal"
         />
         {theme.darkMode.enabled ? (
           <ChoiceField
             label={copy.colours.darkDefault}
             value={theme.darkMode.default}
-            options={DARK_DEFAULTS}
+            options={darkDefaults}
             onChange={(value) =>
               onChange({ ...theme, darkMode: { ...theme.darkMode, default: value } })
             }

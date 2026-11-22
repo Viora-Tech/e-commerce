@@ -11,8 +11,9 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import { useRef, useState, useTransition } from 'react'
-import { addressFormContent as copy } from '@/data/customers'
+import { addressFormContent } from '@/data/customers'
 import { INDIAN_STATES, stateName } from '@/data/india'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 export type AddressValue = {
@@ -48,6 +49,7 @@ const stateItems = INDIAN_STATES.map((s) => ({ value: s.code, label: s.name }))
  */
 export default function AddressFields({ idPrefix, value, onChange, errors }: AddressFieldsProps) {
   // Hooks
+  const copy = useCopy(addressFormContent)
   const [finding, startFind] = useTransition()
   const [found, setFound] = useState<string | null>(null)
   const latest = useRef('')

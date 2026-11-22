@@ -7,6 +7,7 @@ import ActionMenu from '@/components/layout/action-menu'
 import { gstExportContent } from '@/data/gst-queue-page'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import { monthLabel, recentMonths } from './return-months'
 import { saveFile } from './save-file'
@@ -32,7 +33,7 @@ export default function GstExportButton() {
           : await api.gstInvoices.returns.gstr1Json({ period })
       saveFile(file)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

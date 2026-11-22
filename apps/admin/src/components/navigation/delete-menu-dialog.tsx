@@ -6,6 +6,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { type MenuListItem, menusContent } from '@/data/menus'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type DeleteMenuDialogProps = {
   menu: MenuListItem
@@ -27,7 +28,7 @@ export default function DeleteMenuDialog({ menu, onClose, onDeleted }: DeleteMen
       if (!removed) throw new Error(copy.failed)
       toast.success(copy.done)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       throw err
     }
     if (onDeleted) onDeleted()

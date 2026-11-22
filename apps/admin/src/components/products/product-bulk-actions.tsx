@@ -25,6 +25,7 @@ import { productBulkShippingContent } from '@/data/product-bulk-shipping'
 import { productsListContent } from '@/data/products'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { runBatched, toastOutcome } from '@/lib/run-batched'
 import AddToCollectionDialog from './add-to-collection-dialog'
 import BulkShippingDialog from './bulk-shipping-dialog'
@@ -106,7 +107,7 @@ export default function ProductBulkActions({
       if (rows.length === 0) toast.error(exporting.empty)
       else downloadProductCsv(rows)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : exporting.failed)
+      toast.error(errorText(err, exporting.failed))
     } finally {
       setWorking(false)
     }

@@ -5,6 +5,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { gstInvoicesContent } from '@/data/gst-invoices'
+import { useCopy } from '@/hooks/use-copy'
 
 type PdfPreviewProps = {
   settings: InvoiceSettings
@@ -15,8 +16,6 @@ type PdfPreviewProps = {
 }
 
 type Inputs = [InvoiceSettings, DocumentKind, string, string | null, string | null]
-
-const copy = gstInvoicesContent.settings
 const FONT_BASE = '/api/apps/gst-invoices/fonts'
 const DEBOUNCE_MS = 600
 
@@ -41,6 +40,7 @@ export default function PdfPreview({
   signatureUrl,
 }: PdfPreviewProps) {
   // Hooks
+  const copy = useCopy(gstInvoicesContent.settings)
   const [url, setUrl] = useState<string | null>(null)
   const [busy, setBusy] = useState(true)
   const [failed, setFailed] = useState(false)

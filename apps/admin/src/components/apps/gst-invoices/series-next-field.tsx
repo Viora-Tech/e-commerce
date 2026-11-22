@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { gstSeriesNextContent } from '@/data/gst-invoices'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type SeriesNextFieldProps = {
   seriesId: string
@@ -45,7 +46,7 @@ export default function SeriesNextField({ seriesId, saved, onSet }: SeriesNextFi
       setDraft('')
       onSet()
     } catch (err) {
-      setError(err instanceof Error && err.message ? err.message : copy.failed)
+      setError(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

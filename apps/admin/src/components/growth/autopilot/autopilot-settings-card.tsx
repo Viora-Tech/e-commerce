@@ -17,6 +17,7 @@ import DataCard from '@/components/layout/data-card'
 import { growthAutopilotContent } from '@/data/growth-home'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type AutopilotSettingsCardProps = {
   settings: AutopilotSettings
@@ -80,7 +81,7 @@ export default function AutopilotSettingsCard({ settings, onSaved }: AutopilotSe
       setDiscount(String(next.settings.maxDiscountPercent))
       toast.success(copy.settings.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

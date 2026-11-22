@@ -12,6 +12,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { pixelsContent } from '@/data/pixels'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type Pixel = Awaited<ReturnType<typeof api.pixels.list>>[number]
 
@@ -60,7 +61,7 @@ export default function PixelDialog({ open, onOpenChange, pixel, onSaved }: Pixe
       onOpenChange(false)
       onSaved()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : failed)
+      toast.error(errorText(err, failed))
     } finally {
       setBusy(false)
     }

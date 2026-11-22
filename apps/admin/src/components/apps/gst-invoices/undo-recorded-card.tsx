@@ -9,6 +9,7 @@ import DataCard from '@/components/layout/data-card'
 import { gstAlreadyInvoicedContent } from '@/data/gst-already-invoiced'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type UndoRecordedCardProps = {
@@ -33,7 +34,7 @@ export default function UndoRecordedCard({ invoiceId, number, disabled }: UndoRe
     try {
       await api.gstInvoices.queue.undoExternal({ id: invoiceId })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.undoFailed)
+      toast.error(errorText(err, copy.undoFailed))
       throw err
     }
     toast.success(copy.undone(number))

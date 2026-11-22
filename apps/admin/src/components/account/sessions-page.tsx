@@ -13,6 +13,7 @@ import PageState from '@/components/states/page-state'
 import { accountContent } from '@/data/account'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { deviceName, devicePlace } from '@/lib/device-label'
 
 type MemberSession = Awaited<ReturnType<typeof api.account.sessions>>[number]
@@ -51,7 +52,7 @@ export default function SessionsPage() {
       setOthersOpen(false)
       setVersion((n) => n + 1)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : content.sessions.failed)
+      toast.error(errorText(err, content.sessions.failed))
     } finally {
       setBusy(false)
     }

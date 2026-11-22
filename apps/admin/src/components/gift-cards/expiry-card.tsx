@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import DateField from '@/components/fields/date-field'
 import DataCard from '@/components/layout/data-card'
 import { giftCardDetailContent } from '@/data/gift-cards'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { formatPattern } from '@/lib/format-date'
 
@@ -16,11 +17,11 @@ type ExpiryCardProps = {
   onChanged: () => Promise<void>
 }
 
-const copy = giftCardDetailContent.expiry
-
 /** Expiry date with inline edit; clearing it makes the card never expire. */
 export default function ExpiryCard({ card, onChanged }: ExpiryCardProps) {
   // Hooks
+  const copy = useCopy(giftCardDetailContent.expiry)
+  const giftCardDetailCopy = useCopy(giftCardDetailContent)
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(card.expiresOn ?? '')
   /** `set` or `clear` while saving, so only the pressed button spins. */
@@ -35,7 +36,7 @@ export default function ExpiryCard({ card, onChanged }: ExpiryCardProps) {
       setEditing(false)
       await onChanged()
     } catch {
-      toast.error(giftCardDetailContent.failed)
+      toast.error(giftCardDetailCopy.failed)
     } finally {
       setBusy(null)
     }

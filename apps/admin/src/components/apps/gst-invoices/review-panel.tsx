@@ -12,6 +12,7 @@ import { reorderLabels } from '@/data/common'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatPaise } from '@/lib/money'
 import type { QueueRow } from './queue-page'
 
@@ -22,8 +23,6 @@ type ReviewPanelProps = {
 }
 
 type Item = { row: QueueRow; day: string }
-
-const copy = gstInvoicesContent.queue
 
 /** yyyy-mm-dd of an instant in IST. */
 function istDay(at: Date | string): string {
@@ -40,6 +39,7 @@ const atIstNoon = (day: string) => new Date(`${day}T12:00:00+05:30`)
  */
 export default function ReviewPanel({ rows, onBack, onIssued }: ReviewPanelProps) {
   // Hooks
+  const copy = useCopy(gstInvoicesContent.queue)
   const sortLabels = useCopy(reorderLabels)
   const [items, setItems] = useState<Item[]>(() =>
     rows.map((row) => ({ row, day: istDay(row.defaultDate) })),
@@ -59,7 +59,7 @@ export default function ReviewPanel({ rows, onBack, onIssued }: ReviewPanelProps
     try {
       await fn()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
     }

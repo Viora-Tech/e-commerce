@@ -27,8 +27,6 @@ type Item = { id: string; name: string }
 
 type Store = Parameters<Parameters<typeof useCustomizePuck>[0]>[0]
 
-const copy = customizeContent.tree
-
 /** The rows back from `rowsKey`. */
 function itemsOf(key: string): Item[] {
   return (JSON.parse(key) as [string, string][]).map(([id, name]) => ({ id, name }))
@@ -65,6 +63,7 @@ function rowsKey(s: Store, zone: string): string {
  */
 export default function SectionGroup({ title, everyPage, zone, group }: SectionGroupProps) {
   // Hooks
+  const copy = useCopy(customizeContent.tree)
   const groups = useCopy(customizeContent.groups)
   const dispatch = useCustomizePuck((s) => s.dispatch)
   const key = useCustomizePuck((s) => rowsKey(s, zone))

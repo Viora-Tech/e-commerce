@@ -4,6 +4,7 @@ import { type IconComponent, Monitor, Smartphone, Tablet } from '@commerce/ui/ic
 import { cn } from '@commerce/ui/lib/utils'
 import { Input } from '@commerce/ui/shadcn/input'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import type { FieldLike } from '@/lib/customize-field-shape'
 import { FIELD_CONTROL } from '@/lib/customize-field-styles'
 import FieldFrame from './field-frame'
@@ -23,8 +24,6 @@ const BREAKPOINTS: { key: Breakpoint; icon: IconComponent }[] = [
   { key: 'desktop', icon: Monitor },
 ]
 
-const copy = customizeContent.fields
-
 /**
  * One number per screen size (section padding), side by side with a device
  * glyph each — three short inputs on one row instead of three full-width
@@ -36,6 +35,9 @@ export default function ResponsiveNumberField({
   value,
   onChange,
 }: ResponsiveNumberFieldProps) {
+  // Hooks
+  const copy = useCopy(customizeContent.fields)
+
   // Event handlers
   const handleChange = (key: Breakpoint, raw: string) => {
     const next = Number(raw)

@@ -1,10 +1,11 @@
 'use client'
 
 import { schemeFor, type Theme } from '@commerce/core/theme'
-import { themesContent as copy } from '@/data/themes'
+import SwitchRow from '@/components/fields/switch-row'
+import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 import ChoiceField from './choice-field'
 import RangeField from './range-field'
-import SwitchField from './switch-field'
 
 type ButtonSettingsProps = {
   theme: Theme
@@ -12,19 +13,20 @@ type ButtonSettingsProps = {
   onChange: (next: Theme) => void
 }
 
-const STYLES = (['solid', 'outline'] as const).map((value) => ({
-  value,
-  label: copy.buttons.styles[value],
-}))
-const COLOURS = (['text', 'brand'] as const).map((value) => ({
-  value,
-  label: copy.buttons.colours[value],
-}))
+const STYLES = ['solid', 'outline'] as const
+const COLOURS = ['text', 'brand'] as const
 
 const rem = (px: number) => `${px / 16}rem`
 
 /** Style, colour source, label case and radius of the primary button. */
 export default function ButtonSettings({ theme, mode, onChange }: ButtonSettingsProps) {
+  // Hooks
+  const copy = useCopy(themesContent)
+
+  // Derived
+  const styles = STYLES.map((value) => ({ value, label: copy.buttons.styles[value] }))
+  const colours = COLOURS.map((value) => ({ value, label: copy.buttons.colours[value] }))
+
   // Helpers
   const setButtons = (patch: Partial<Theme['buttons']>) =>
     onChange({ ...theme, buttons: { ...theme.buttons, ...patch } })
@@ -58,19 +60,20 @@ export default function ButtonSettings({ theme, mode, onChange }: ButtonSettings
       <ChoiceField
         label={copy.buttons.style}
         value={buttons.style}
-        options={STYLES}
+        options={styles}
         onChange={(style) => setButtons({ style })}
       />
       <ChoiceField
         label={copy.buttons.colour}
         value={buttons.colour}
-        options={COLOURS}
+        options={colours}
         onChange={(colour) => setButtons({ colour })}
       />
-      <SwitchField
+      <SwitchRow
         label={copy.buttons.uppercase}
         checked={buttons.uppercase}
         onChange={(uppercase) => setButtons({ uppercase })}
+        weight="normal"
       />
       <RangeField
         label={copy.buttons.radius}

@@ -47,6 +47,7 @@ import {
 } from '../services/customer-segment.service'
 import { customerSheet } from '../services/customer-sheet.service'
 import { customerMergeRoutes, refuseTakenEmail } from './customer-merge'
+import { customerSignInAsRoutes } from './customer-sign-in-as'
 
 const FiltersSchema = z.object({
   search: z.string().trim().max(SEARCH_MAX).optional(),
@@ -142,6 +143,7 @@ function parseGstin(raw: string | null | undefined): string | null | undefined {
 
 export const customersRouter = {
   ...customerMergeRoutes,
+  ...customerSignInAsRoutes,
   list: can(permissions.CUSTOMERS_READ)
     .input(
       FiltersSchema.extend({

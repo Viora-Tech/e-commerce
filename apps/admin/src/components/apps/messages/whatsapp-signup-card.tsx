@@ -7,6 +7,7 @@ import StatusChip from '@/components/layout/status-chip'
 import { whatsappSignupContent } from '@/data/whatsapp-signup'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { runEmbeddedSignup } from '@/lib/facebook-sdk'
 
 type Loaded = Awaited<ReturnType<typeof api.platformApps.whatsapp>>
@@ -75,7 +76,7 @@ export default function WhatsappSignupCard() {
       toast.success(copy.disconnected)
       window.location.reload()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       setBusy('idle')
     }
   }

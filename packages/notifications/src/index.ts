@@ -1,9 +1,11 @@
+export type * from './chat-types'
 export * from './design'
 export { withFallback } from './fallback'
 export { NotificationRegistry } from './registry'
 export type * from './report-types'
 export { sampleTemplateDataByTemplate } from './samples'
 export { sampleTemplateDataFor } from './samples-dated'
+export type * from './seo-weekly-types'
 export type * from './template-types'
 export {
   type EmailBody,

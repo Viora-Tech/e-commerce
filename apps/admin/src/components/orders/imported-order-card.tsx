@@ -13,6 +13,7 @@ import { orderTakeoverContent } from '@/data/order-edit'
 import { importedOrderContent } from '@/data/orders'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { importedGatewayLabel, type OrderDetail } from './order-detail-types'
 
 type ImportedOrderCardProps = {
@@ -50,7 +51,7 @@ export default function ImportedOrderCard({
       toast.success(takeover.done)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : takeover.failed)
+      toast.error(errorText(err, takeover.failed))
     } finally {
       setBusy(false)
     }

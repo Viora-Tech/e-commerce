@@ -26,7 +26,7 @@ import { CHANNEL_LABEL } from '@/data/customer-privacy'
 import { newCustomerContent } from '@/data/new-customer'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { fieldErrorsOf } from '@/lib/api-errors'
+import { errorText, fieldErrorsOf } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import AddressFields, { type AddressValue, EMPTY_ADDRESS } from './address-fields'
 
@@ -117,7 +117,7 @@ export default function NewCustomerDialog({ onClose }: NewCustomerDialogProps) {
         setErrors({ [dup.field]: copy.duplicate[dup.field] })
       } else {
         setErrors(fieldErrorsOf(err))
-        toast.error(err instanceof Error ? err.message : copy.failed)
+        toast.error(errorText(err, copy.failed))
       }
     } finally {
       setSaving(false)

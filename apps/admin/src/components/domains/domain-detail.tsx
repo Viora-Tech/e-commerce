@@ -17,13 +17,13 @@ import { domainEdgeContent, domainsContent } from '@/data/domains'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatDateTime } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
 import DnsRecordsCard from './dns-records-card'
 import DomainSslSection from './domain-ssl-section'
 import DomainStatusBadge from './domain-status-badge'
 
-const copy = domainsContent.detail
 /** How often the page re-checks a domain that is still settling. */
 const POLL_MS = 10_000
 
@@ -40,17 +40,11 @@ const settling = (d: DomainView) =>
 const edgeUnconfirmed = (d: DomainView) =>
   d.status === 'active' && d.edgeRecords !== null && d.sslStatus !== 'active'
 
-function connectionText(d: DomainView, edge: typeof domainEdgeContent): string {
-  if (d.heldElsewhere) return edge.held
-  if (edgeUnconfirmed(d)) return d.error ?? edge.settling
-  if (d.status === 'active') return copy.verification.connected
-  if (d.status === 'failed') return d.error ?? copy.verification.failed
-  return copy.verification.pending
-}
-
 /** One domain: records to add, connection and SSL state, traffic, primary and removal. */
 export default function DomainDetail({ initial, primaryHostname }: DomainDetailProps) {
   // Hooks
+  const copy = useCopy(domainsContent.detail)
+  const domainsCopy = useCopy(domainsContent)
   const { hasPermission } = usePermissions()
   const edge = useCopy(domainEdgeContent)
   const router = useRouter()
@@ -74,13 +68,22 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
     return () => clearInterval(timer)
   }, [hasPermission, domain])
 
+  // Derived
+  function connectionText(d: DomainView, edge: typeof domainEdgeContent): string {
+    if (d.heldElsewhere) return edge.held
+    if (edgeUnconfirmed(d)) return d.error ?? edge.settling
+    if (d.status === 'active') return copy.verification.connected
+    if (d.status === 'failed') return d.error ?? copy.verification.failed
+    return copy.verification.pending
+  }
+
   // Helpers
   const run = async (fn: () => Promise<void>) => {
     setSaving(true)
     try {
       await fn()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : domainsContent.errors.action)
+      toast.error(errorText(err, domainsCopy.errors.action))
     } finally {
       setSaving(false)
     }
@@ -98,7 +101,7 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
       else if (next.status === 'pending') toast.info(copy.verification.stillPending)
       else toast.error(next.error ?? copy.verification.failed)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : domainsContent.errors.action)
+      toast.error(errorText(err, domainsCopy.errors.action))
     } finally {
       setChecking(false)
     }

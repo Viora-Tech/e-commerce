@@ -18,6 +18,7 @@ import NoticeBar from '@/components/layout/notice-bar'
 import { marketsContent } from '@/data/markets'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import CountryPicker from './country-picker'
 import {
   domainOptions,
@@ -109,7 +110,7 @@ export default function MarketDialog({
       toast.success(copy.toasts.saved)
       onSaved()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.toasts.failed)
+      toast.error(errorText(err, copy.toasts.failed))
       throw err
     }
   }

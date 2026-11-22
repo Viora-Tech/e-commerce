@@ -11,6 +11,7 @@ import FormDialog from '@/components/layout/form-dialog'
 import { inboxKnowledgeContent } from '@/data/inbox-knowledge'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 export type KnowledgeEntry = {
   id: string
@@ -51,7 +52,7 @@ export default function KnowledgeDialog({ entry, onClose, onSaved }: KnowledgeDi
       toast.success(copy.saved)
       onSaved()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       throw err
     }
   }

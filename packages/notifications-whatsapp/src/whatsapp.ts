@@ -150,6 +150,13 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
     case 'staff_weekly_report':
     case 'staff_monthly_report':
       return [d.storeName, d.report?.netLabel ?? '-', d.actionUrl ?? '-']
+    case 'staff_seo_weekly':
+      return [d.storeName, d.seoWeekly?.periodLabel ?? '-', d.actionUrl ?? '-']
+    // Inbox chat emails: email only in the catalogue; listed so the switch stays complete.
+    case 'chat_reply':
+    case 'chat_transcript':
+    case 'staff_chat_waiting':
+      return [d.storeName, d.actionUrl ?? '-']
     case 'back_in_stock_confirm':
       return [d.backInStock?.productTitle ?? '-', d.backInStock?.confirmUrl ?? '-']
     case 'back_in_stock_alert':

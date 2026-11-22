@@ -7,7 +7,7 @@ import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
@@ -25,56 +25,31 @@ import { shipmentsContent } from '@/data/shipments'
 import { shipmentDetailsContent } from '@/data/shipping'
 import { statesContent } from '@/data/states'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type NdrRow = Awaited<ReturnType<typeof api.shipments.listNdr>>[number]
 type Action = 'reattempt' | 'change_address' | 'rto'
 
-const copy = shipmentsContent.ndr
-
 /** Undelivered attempts waiting on a merchant decision: reattempt, re-address, or send it back. */
 export default function NdrTab() {
   // Hooks
+  const copy = useCopy(shipmentsContent.ndr)
   const details = useCopy(shipmentDetailsContent)
   const states = useCopy(statesContent)
   const shared = useCopy(dialogContent)
   /** `null` until the first answer, so the table never says "nothing here" before it knows. */
-  const [rows, setRows] = useState<NdrRow[] | null>(null)
-  const [failed, setFailed] = useState(false)
+  const { data: rows, failed, retry } = useLoad<NdrRow[]>(() => api.shipments.listNdr())
   const [dialog, setDialog] = useState<{ row: NdrRow; action: Action } | null>(null)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
   const [busy, setBusy] = useState(false)
-  const [reloadKey, setReloadKey] = useState(0)
-
-  useEffect(() => {
-    // reloadKey has no bearing on the query; bumping it just re-runs this effect
-    // after an NDR action, same idiom as customers-page.tsx.
-    if (reloadKey < 0) return
-    let cancelled = false
-    api.shipments.listNdr().then(
-      (r) => {
-        if (cancelled) return
-        setRows(r)
-        setFailed(false)
-      },
-      () => {
-        if (!cancelled) setFailed(true)
-      },
-    )
-    return () => {
-      cancelled = true
-    }
-  }, [reloadKey])
 
   // Event handlers
-  const handleRetry = () => {
-    setFailed(false)
-    setRows(null)
-    setReloadKey((k) => k + 1)
-  }
+  const handleRetry = retry
 
   const handleOpen = (row: NdrRow, action: Action) => {
     setName('')
@@ -96,9 +71,9 @@ export default function NdrTab() {
       })
       toast.success(copy.applied)
       setDialog(null)
-      setReloadKey((k) => k + 1)
+      retry()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     } finally {
       setBusy(false)
     }

@@ -13,6 +13,7 @@ import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
 import type { LoadFailure } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { isForbidden } from '@/lib/forbidden'
 
 type Migration = Awaited<ReturnType<typeof api.store.storageMigrationStatus>>
@@ -23,8 +24,6 @@ type MoveFilesCardProps = {
   /** Shown in the button and confirmation dialog, e.g. "Amazon S3". */
   targetLabel: string
 }
-
-const copy = appsContent.storage.migrate
 const POLL_MS = 2000
 
 /**
@@ -34,6 +33,7 @@ const POLL_MS = 2000
  */
 export default function MoveFilesCard({ targetProviderId, targetLabel }: MoveFilesCardProps) {
   // Hooks
+  const copy = useCopy(appsContent).storage.migrate
   const apps = useCopy(appsContent)
   const [migration, setMigration] = useState<Migration | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -86,7 +86,7 @@ export default function MoveFilesCard({ targetProviderId, targetLabel }: MoveFil
         void api.store.storageMigrationStatus().then(setMigration)
       }, POLL_MS)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failedToStart)
+      toast.error(errorText(err, copy.failedToStart))
     } finally {
       setStarting(false)
     }

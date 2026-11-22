@@ -32,6 +32,7 @@ import {
   hasAbandonedFilters,
 } from '@/lib/abandoned-list-filters'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { routes } from '@/lib/routes'
 import { parseRowsPerPage } from '@/lib/rows-per-page'
@@ -159,7 +160,7 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
         list.map((c) => (c.id === cartId ? { ...c, recoverySentAt: new Date() } : c)),
       )
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.sendFailed)
+      toast.error(errorText(err, copy.sendFailed))
     } finally {
       setSending(null)
     }

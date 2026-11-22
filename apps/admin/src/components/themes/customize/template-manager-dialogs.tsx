@@ -1,30 +1,42 @@
 'use client'
 
+import { TEMPLATE_SUFFIX } from '@commerce/core/theme'
+import NameDialog from '@/components/fields/name-dialog'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import type { useTemplateManager } from '@/lib/use-template-manager'
-import RenameTemplateDialog from './rename-template-dialog'
 import { usedLabel } from './template-list'
 
 type TemplateManagerDialogsProps = {
   manager: ReturnType<typeof useTemplateManager>
 }
 
-const copy = customizeContent.templates
-
 /** A template manager's rename and delete dialogs, kept outside the picker's popover. */
 export default function TemplateManagerDialogs({ manager }: TemplateManagerDialogsProps) {
+  // Hooks
+  const copy = useCopy(customizeContent.templates)
+
   // Early returns
   const pending = manager.pending
   if (pending?.action === 'rename') {
+    const renameCopy = copy.renameDialog
+    const used = usedLabel(manager, pending.kind, pending.suffix, copy)
     return (
-      <RenameTemplateDialog
+      <NameDialog
         key={`${pending.kind}.${pending.suffix}`}
-        suffix={pending.suffix}
-        used={usedLabel(manager, pending.kind, pending.suffix)}
+        title={renameCopy.title}
+        label={renameCopy.name}
+        submitLabel={renameCopy.confirm}
+        cancelLabel={renameCopy.cancel}
+        initialName={pending.suffix}
+        maxLength={40}
+        help={`${renameCopy.help}${used ? ` ${renameCopy.moves(used)}` : ''}`}
+        normalise={(typed) => typed.trim().toLowerCase()}
+        isValid={(name) => TEMPLATE_SUFFIX.test(name) && name !== pending.suffix}
         busy={manager.busy}
         onCancel={() => manager.setPending(null)}
-        onRename={manager.rename}
+        onSubmit={manager.rename}
       />
     )
   }
@@ -32,7 +44,7 @@ export default function TemplateManagerDialogs({ manager }: TemplateManagerDialo
 
   // Render logic
   const deleteCopy = copy.deleteDialog
-  const used = usedLabel(manager, pending.kind, pending.suffix)
+  const used = usedLabel(manager, pending.kind, pending.suffix, copy)
   return (
     <ConfirmDialog
       tone="destructive"

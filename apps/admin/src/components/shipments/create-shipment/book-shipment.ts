@@ -1,6 +1,7 @@
 import { toast } from 'sonner'
 import type { trackingPayload } from '@/components/orders/tracking-fields'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { BookedShipment } from './done-step'
 import {
   type DraftOrder,
@@ -90,7 +91,7 @@ export async function bookShipment(a: BookShipmentArgs): Promise<BookedShipment>
       if (refused) toast.error(refused.error || a.pickupFailed)
       else pickupRequested = true
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : a.pickupFailed)
+      toast.error(errorText(err, a.pickupFailed))
     }
   }
   return {

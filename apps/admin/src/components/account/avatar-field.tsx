@@ -7,6 +7,7 @@ import { type ChangeEvent, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { accountContent } from '@/data/account'
 import { useCopy } from '@/hooks/use-copy'
+import { errorText } from '@/lib/api-errors'
 import AvatarCropDialog from './avatar-crop-dialog'
 import MemberAvatar from './member-avatar'
 
@@ -54,7 +55,7 @@ export default function AvatarField({ name, email, image, onUpload, onRemove }: 
       setPicked(null)
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -66,7 +67,7 @@ export default function AvatarField({ name, email, image, onUpload, onRemove }: 
       await onRemove()
       toast.success(copy.removed)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

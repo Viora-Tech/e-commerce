@@ -3,7 +3,8 @@
 import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
-import { preferencesContent as copy } from '@/data/preferences'
+import { preferencesContent } from '@/data/preferences'
+import { useCopy } from '@/hooks/use-copy'
 
 type TextSettingProps = {
   id: string
@@ -32,6 +33,9 @@ export default function TextSetting({
   multiline,
   type = 'text',
 }: TextSettingProps) {
+  // Hooks
+  const copy = useCopy(preferencesContent)
+
   // Render logic
   const shared = {
     id,

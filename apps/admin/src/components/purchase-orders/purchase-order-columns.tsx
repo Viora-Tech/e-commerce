@@ -1,4 +1,4 @@
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { purchaseOrdersContent } from '@/data/inventory'
 import type { api } from '@/lib/api-client'
@@ -50,7 +50,7 @@ export const purchaseOrderColumns = (
     id: 'status',
     title: copy.columns.status,
     sortValue: (r) => r.status,
-    render: (r) => <OrderChip kind="purchaseOrder" value={r.status} />,
+    render: (r) => <StatusLabel kind="purchaseOrder" value={r.status} variant="soft" />,
   },
   {
     id: 'received',

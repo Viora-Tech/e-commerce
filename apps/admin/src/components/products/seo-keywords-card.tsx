@@ -26,6 +26,7 @@ import { rupees } from '@/data/products'
 import { seoKeywordsContent } from '@/data/seo-keywords'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { ProductFormState } from './form-state'
 import SeoKeywordSuggestions from './seo-keyword-suggestions'
 
@@ -83,7 +84,7 @@ export default function SeoKeywordsCard({ productId, form, aiOn, onChange }: Seo
         }),
       )
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.failed)
+      setError(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

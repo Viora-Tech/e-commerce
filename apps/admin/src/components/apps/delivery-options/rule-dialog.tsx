@@ -10,19 +10,20 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { itemTabs } from '@/components/discounts/pick-sources'
+import SwitchRow from '@/components/fields/switch-row'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import NoticeBar from '@/components/layout/notice-bar'
 import ResourcePickDialog from '@/components/pickers/resource-pick-dialog'
-import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { deliveryRuleFormContent } from '@/data/delivery-rule-form'
 import { discountFormContent } from '@/data/discounts'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { courierRows } from './courier-rows'
 import RuleCourierChips from './rule-courier-chips'
 import { draftOf, type RuleDraft, ruleErrors, ruleInputOf, withValidPreferred } from './rule-draft'
@@ -111,7 +112,7 @@ export default function RuleDialog({
       onSaved()
       onOpenChange(false)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -125,7 +126,7 @@ export default function RuleDialog({
       onSaved()
       onOpenChange(false)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -211,11 +212,13 @@ export default function RuleDialog({
           </RuleStep>
           <RuleMoreFields draft={draft} options={options} onChange={patch} />
           <RulePreviewLine draft={draft} options={options} />
-          <SettingsToggleRow
+          <SwitchRow
             id="rule-enabled"
             label={d.enabled}
             checked={draft.enabled}
             onChange={(enabled) => patch({ enabled })}
+            weight="semibold"
+            divided
           />
         </FieldGroup>
         <DialogFooter>

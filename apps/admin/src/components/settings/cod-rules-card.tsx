@@ -7,13 +7,14 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import Link from 'next/link'
 import { useRef, useState } from 'react'
+import SwitchRow from '@/components/fields/switch-row'
 import PaymentAdjustmentFields from '@/components/settings/payment-adjustment-fields'
 import RupeeInput from '@/components/settings/rupee-input'
-import { checkoutSettingsContent as content } from '@/data/checkout-settings'
+import { checkoutSettingsContent } from '@/data/checkout-settings'
+import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import SettingsCard from './settings-card'
 import SettingsRow from './settings-row'
-import SettingsToggleRow from './settings-toggle-row'
 
 type CodRulesCardProps = {
   codEnabled: boolean
@@ -22,8 +23,6 @@ type CodRulesCardProps = {
   onRules: (rules: CodRules) => void
   onFee: (fee: PaymentAdjustment | null) => void
 }
-
-const copy = content.cod
 
 /** Settings → Checkout: cash on delivery fee, limit, blocked PIN codes and the WhatsApp flag. */
 export default function CodRulesCard({
@@ -34,6 +33,7 @@ export default function CodRulesCard({
   onFee,
 }: CodRulesCardProps) {
   // Hooks
+  const copy = useCopy(checkoutSettingsContent.cod)
   const [text, setText] = useState(rules.blockedPincodes.join('\n'))
   const [invalid, setInvalid] = useState<string[]>([])
   const [tooMany, setTooMany] = useState(false)
@@ -121,12 +121,14 @@ export default function CodRulesCard({
           {copy.upload}
         </Button>
       </SettingsRow>
-      <SettingsToggleRow
+      <SwitchRow
         id="cod-whatsapp"
         label={copy.whatsapp}
         description={copy.whatsappHint}
         checked={rules.confirmOnWhatsApp}
         onChange={(confirmOnWhatsApp) => onRules({ ...rules, confirmOnWhatsApp })}
+        weight="semibold"
+        divided
       />
     </SettingsCard>
   )

@@ -2,6 +2,7 @@ import { gstOnPrice } from '@commerce/core/gst'
 import { cn } from '@commerce/ui/lib/utils'
 import SettingsCard from '@/components/settings/settings-card'
 import { taxesContent } from '@/data/taxes'
+import { useCopy } from '@/hooks/use-copy'
 import { formatPaise } from '@/lib/money'
 
 type GstExplainerProps = {
@@ -10,8 +11,6 @@ type GstExplainerProps = {
   inclusive: boolean
   composition: boolean
 }
-
-const copy = taxesContent.explainer
 const EXAMPLE_PAISE = 100_000
 
 /**
@@ -20,6 +19,9 @@ const EXAMPLE_PAISE = 100_000
  * merchant's own default rate (18% if it is 0, so the example still says something).
  */
 export default function GstExplainer({ ratePercent, inclusive, composition }: GstExplainerProps) {
+  // Hooks
+  const copy = useCopy(taxesContent.explainer)
+
   // Render logic
   const rate = ratePercent > 0 ? ratePercent : 18
   const examples = [true, false].map((incl) => {

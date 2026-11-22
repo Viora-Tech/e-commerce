@@ -12,6 +12,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { editTrackingContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type EditTrackingDialogProps = {
   /** The shipment to edit; null keeps the dialog closed. */
@@ -64,7 +65,7 @@ export default function EditTrackingDialog({
       toast.success(copy.saved)
       onSaved()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setSaving(false)
     }

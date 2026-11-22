@@ -3,10 +3,10 @@ import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
 import ProductThumb from '@/components/products/product-thumb'
+import StatusLabel from '@/components/status/status-label'
 import { partlyShippedContent } from '@/data/order-cards'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
-import OrderChip from './order-chip'
 import type { OrderDetail } from './order-detail-types'
 
 type PartlyShippedCardProps = {
@@ -54,7 +54,7 @@ export default function PartlyShippedCard({ order, canShip }: PartlyShippedCardP
   const title = (
     <span className="flex flex-wrap items-center gap-2">
       {copy.title(order.number)}
-      <OrderChip kind="orderPayment" value={order.paymentStatus} />
+      <StatusLabel kind="orderPayment" value={order.paymentStatus} variant="soft" />
       {shipped > 0 && shipped < live.length ? (
         <StatusChip tone="info">{copy.chip(shipped, live.length)}</StatusChip>
       ) : null}
@@ -130,7 +130,7 @@ function ParcelBlock({
         <span className="flex items-center gap-2 font-semibold text-ink-strong">
           {copy.parcel(n)}
           {label ? (
-            <OrderChip kind="shipment" value={label.status} />
+            <StatusLabel kind="shipment" value={label.status} variant="soft" />
           ) : (
             <StatusChip tone="attention">{copy.toShip}</StatusChip>
           )}

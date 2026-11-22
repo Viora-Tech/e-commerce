@@ -9,6 +9,7 @@ import { useState } from 'react'
 import { shippingSettingsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import SettingsCard from './settings-card'
 
 type Estimate = Awaited<ReturnType<typeof api.store.estimateDelivery>>
@@ -62,7 +63,7 @@ export default function ShippingTryPin() {
     try {
       setEstimate(await api.store.estimateDelivery({ pincode }))
     } catch (err) {
-      setEstimate({ ok: false, error: err instanceof Error ? err.message : '' })
+      setEstimate({ ok: false, error: errorText(err, '') })
     } finally {
       setChecking(false)
     }

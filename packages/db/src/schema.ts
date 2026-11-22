@@ -1243,6 +1243,8 @@ export const customerSession = pgTable(
       .references(() => customer.id),
     tokenHash: text('token_hash').notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    /** The staff user who opened this session with "Sign in as customer"; null for the shopper's own. */
+    impersonatedBy: text('impersonated_by'),
     createdAt: createdAt(),
   },
   (t) => [

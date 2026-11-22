@@ -25,10 +25,19 @@ export type CspHeader = {
   value: string
 }
 
-/** 128 random bits, base64. Web Crypto, so it works in any runtime the proxy runs in. */
+/**
+ * 128 random bits, base64url without padding. Web Crypto, so it works in any runtime the proxy
+ * runs in. Not plain base64: Next serialises the nonce into the page's flight data
+ * (`"nonce":"…"`), and Googlebot read the `/`, `+` and `==` shaped values there as relative
+ * links (`/p/rTkb+N5jFDLtEGNIoWw==`, Search Console 404s, November 2026). CSP accepts both
+ * alphabets.
+ */
 export function newNonce(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16))
   return btoa(String.fromCharCode(...bytes))
+    .replaceAll('+', '-')
+    .replaceAll('/', '_')
+    .replace(/=+$/, '')
 }
 
 /** `frame-ancestors` for the storefront: itself, plus the admin's origin when known. */

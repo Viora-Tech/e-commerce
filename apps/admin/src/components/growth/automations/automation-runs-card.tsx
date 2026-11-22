@@ -3,24 +3,27 @@ import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import RelativeTime from '@/components/layout/relative-time'
 import { automationEditorContent } from '@/data/marketing-automations'
+import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
 
 type Run = NonNullable<Awaited<ReturnType<typeof api.marketing.automations.get>>>['runs'][number]
 
 type AutomationRunsCardProps = { runs: Run[]; stepCount: number }
 
-const copy = automationEditorContent.runs
-
-function statusLine(r: Run, steps: number): string {
-  const s = copy.status[r.status as MarketingRunStatus] ?? r.status
-  if (r.status === 'active') return `${s} · ${copy.step(r.stepIndex, steps)}`
-  if (r.status === 'stopped' && r.stopReason)
-    return `${s} · ${copy.reasons[r.stopReason] ?? r.stopReason}`
-  return s
-}
-
 /** The latest shoppers in the automation and where each one is. */
 export default function AutomationRunsCard({ runs, stepCount }: AutomationRunsCardProps) {
+  // Hooks
+  const copy = useCopy(automationEditorContent).runs
+
+  // Derived
+  function statusLine(r: Run, steps: number): string {
+    const s = copy.status[r.status as MarketingRunStatus] ?? r.status
+    if (r.status === 'active') return `${s} · ${copy.step(r.stepIndex, steps)}`
+    if (r.status === 'stopped' && r.stopReason)
+      return `${s} · ${copy.reasons[r.stopReason] ?? r.stopReason}`
+    return s
+  }
+
   // Render logic
   return (
     <DataCard title={copy.title}>

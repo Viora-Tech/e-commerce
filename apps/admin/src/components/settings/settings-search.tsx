@@ -4,7 +4,8 @@ import { cn } from '@commerce/ui/lib/utils'
 import { useRouter } from 'next/navigation'
 import { type KeyboardEvent, useId, useState } from 'react'
 import SearchField from '@/components/fields/search-field'
-import { settingsSearchContent as copy, SETTINGS_SEARCH_INDEX } from '@/data/settings-search'
+import { SETTINGS_SEARCH_INDEX, settingsSearchContent } from '@/data/settings-search'
+import { useCopy } from '@/hooks/use-copy'
 import { isExternalHref } from '@/lib/routes'
 import { searchSettings, settingsPageOf } from '@/lib/settings-search'
 
@@ -16,6 +17,7 @@ const optionId = (listId: string, i: number) => `${listId}-option-${i}`
  */
 export default function SettingsSearch() {
   // Hooks
+  const copy = useCopy(settingsSearchContent)
   const router = useRouter()
   const listId = useId()
   const [query, setQuery] = useState('')

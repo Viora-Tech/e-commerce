@@ -258,6 +258,7 @@ export const routes = {
     blog: () => '/online-store/blog',
     preferences: () => '/online-store/preferences',
     seo: () => '/online-store/seo',
+    seoAssistant: () => '/online-store/seo/assistant',
   },
 
   salesChannels: {
@@ -324,6 +325,12 @@ export const routes = {
     domains: () => '/settings/domains',
     domain: (domainId: string) => `/settings/domains/${id(domainId)}`,
     notifications: () => '/settings/notifications',
+    /** One customer message: its preview, test and on/off (Shopify's email page). */
+    notification: (messageId: string) => `/settings/notifications/${id(messageId)}`,
+    /** The full-page block editor of one message's email. */
+    notificationEdit: (messageId: string) => `/settings/notifications/${id(messageId)}/edit`,
+    /** Logo, logo size, accent colour and buttons for every email at once. */
+    emailBranding: () => '/settings/notifications/branding',
     policies: () => '/settings/policies',
     /** Setups that break or hurt checkout and orders, each with a link to fix it. */
     storeHealth: () => '/settings/store-health',

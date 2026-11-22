@@ -14,6 +14,7 @@ import FormDialog from '@/components/layout/form-dialog'
 import { type AutomationRecordType, automationRecordsContent } from '@/data/automation-records'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { automationRoutes } from '@/lib/automation-routes'
 import { formatAgo } from '@/lib/format-date'
 
@@ -90,7 +91,7 @@ export default function RunAutomationDialog({
       onClose()
       onDone?.()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.dialog.failed)
+      toast.error(errorText(err, copy.dialog.failed))
       throw err
     }
   }

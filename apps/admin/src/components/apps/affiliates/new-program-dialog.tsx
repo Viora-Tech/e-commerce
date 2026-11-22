@@ -13,6 +13,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type NewProgramDialogProps = {
@@ -42,7 +43,7 @@ export default function NewProgramDialog({ open, onOpenChange }: NewProgramDialo
       setName('')
       router.push(routes.apps.page('affiliates', 'programs', made.id))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : failed)
+      toast.error(errorText(err, failed))
     } finally {
       setBusy(false)
     }

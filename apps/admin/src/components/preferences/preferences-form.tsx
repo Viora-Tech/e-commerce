@@ -10,14 +10,16 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import SwitchRow from '@/components/fields/switch-row'
 import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsToggleRow from '@/components/settings/settings-toggle-row'
-import { preferencesContent as copy } from '@/data/preferences'
+import { preferencesContent } from '@/data/preferences'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import HonoProductCard from './hono-product-card'
 import PreferencesPreviews from './preferences-previews'
@@ -63,6 +65,7 @@ export default function PreferencesForm({
   honoPreviewToken,
 }: PreferencesFormProps) {
   // Hooks
+  const copy = useCopy(preferencesContent)
   const [form, setForm] = useState(initial)
   const [saved, setSaved] = useState(initial)
   const [busy, setBusy] = useState(false)
@@ -84,7 +87,7 @@ export default function PreferencesForm({
       setAttempted(false)
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -163,11 +166,13 @@ export default function PreferencesForm({
               title={copy.password.heading}
               description={copy.password.body}
             >
-              <SettingsToggleRow
+              <SwitchRow
                 id="password-enabled"
                 label={copy.password.enabled}
                 checked={form.password.enabled}
                 onChange={(enabled) => patch('password', { enabled })}
+                weight="semibold"
+                divided
               />
               {form.password.enabled ? (
                 <>
@@ -201,14 +206,16 @@ export default function PreferencesForm({
                   </AlertDescription>
                 </Alert>
               ) : null}
-              <SettingsToggleRow
+              <SwitchRow
                 id="indexing-search"
                 label={copy.indexing.search}
                 description={copy.indexing.searchHelp}
                 checked={form.indexing.searchEngines}
                 onChange={(searchEngines) => patch('indexing', { searchEngines })}
+                weight="semibold"
+                divided
               />
-              <SettingsToggleRow
+              <SwitchRow
                 id="indexing-ai"
                 label={copy.indexing.ai}
                 description={
@@ -217,16 +224,20 @@ export default function PreferencesForm({
                 checked={form.indexing.searchEngines && form.indexing.aiCrawlers}
                 disabled={!form.indexing.searchEngines}
                 onChange={(aiCrawlers) => patch('indexing', { aiCrawlers })}
+                weight="semibold"
+                divided
               />
             </SettingsCard>
 
             <SettingsCard title={copy.delivery.heading} description={copy.delivery.body}>
-              <SettingsToggleRow
+              <SwitchRow
                 id="delivery-plain-html"
                 label={copy.delivery.plainHtml}
                 description={copy.delivery.plainHtmlHelp}
                 checked={form.delivery.plainHtml}
                 onChange={(plainHtml) => patch('delivery', { plainHtml })}
+                weight="semibold"
+                divided
               />
             </SettingsCard>
 

@@ -9,16 +9,18 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import { returnDetailContent } from '@/data/returns'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { type ReturnDetail, toRupees } from './return-types'
 
 type RtoCardProps = { detail: ReturnDetail; onChanged: () => void }
 
-const copy = returnDetailContent.rto
-
 /** The RTO task's banner: what happened, what to do, and the courier's charge for it. */
 export default function RtoCard({ detail: r, onChanged }: RtoCardProps) {
   // Hooks
+  const copy = useCopy(returnDetailContent.rto)
+  const returnDetailCopy = useCopy(returnDetailContent)
   const [cost, setCost] = useState(() =>
     r.courierCostPaise === null ? '' : toRupees(r.courierCostPaise),
   )
@@ -33,7 +35,7 @@ export default function RtoCard({ detail: r, onChanged }: RtoCardProps) {
       toast.success(copy.costSaved)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : returnDetailContent.failed)
+      toast.error(errorText(err, returnDetailCopy.failed))
     } finally {
       setBusy(false)
     }

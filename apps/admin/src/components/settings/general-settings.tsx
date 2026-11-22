@@ -16,15 +16,18 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import SwitchRow from '@/components/fields/switch-row'
 import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-rows'
 import LoadFailed from '@/components/states/load-failed'
 import { settingsContent } from '@/data/settings'
 import { taxesContent } from '@/data/taxes'
+import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import GeneralCompletion, { detailsDone } from './general-completion'
 import SettingsCard from './settings-card'
 import SettingsDrill from './settings-drill'
@@ -32,25 +35,13 @@ import SettingsDrillPanel from './settings-drill-panel'
 import SettingsPhoneRow from './settings-phone-row'
 import SettingsRow from './settings-row'
 import SettingsTextRow from './settings-text-row'
-import SettingsToggleRow from './settings-toggle-row'
 import StoreDataSection from './store-data-section'
 
 type Loaded = NonNullable<Awaited<ReturnType<typeof api.store.getGeneral>>>
 type Errors = Partial<Record<string, string>>
-
-const copy = settingsContent.general
-const movedCopy = taxesContent.movedFromGeneral
 const TAXES_HREF = '/settings/taxes'
-const timezoneItems = Object.fromEntries(copy.timezones.map((t) => [t.value, t.label]))
 /** ₹6,499: the price the format field previews. */
 const SAMPLE_PAISE = 649_900
-
-/** The format's help line, with how a sample price reads once it is valid. */
-function moneyFormatHelp(format: string): string {
-  const trimmed = format.trim()
-  if (!trimmed || !isMoneyFormat(trimmed)) return copy.locale.moneyFormatHelp
-  return `${copy.locale.moneyFormatHelp} ${copy.locale.moneyFormatPreview(formatStoreMoney(SAMPLE_PAISE, trimmed))}`
-}
 
 /** Zod issues keyed by dotted path, e.g. `address.pincode`. */
 /** Whether any of `keys` failed validation (a row shows "Needs a fix"). */
@@ -70,6 +61,8 @@ function validate(form: StoreGeneral): Errors {
  */
 export default function GeneralSettings() {
   // Hooks
+  const copy = useCopy(settingsContent).general
+  const movedCopy = useCopy(taxesContent.movedFromGeneral)
   const announceSetup = useSetupNext()
   const router = useRouter()
   const [form, setForm] = useState<Loaded | null>(null)
@@ -88,6 +81,15 @@ export default function GeneralSettings() {
     }
     return g
   })
+
+  // Derived
+  const timezoneItems = Object.fromEntries(copy.timezones.map((t) => [t.value, t.label]))
+  /** The format's help line, with how a sample price reads once it is valid. */
+  function moneyFormatHelp(format: string): string {
+    const trimmed = format.trim()
+    if (!trimmed || !isMoneyFormat(trimmed)) return copy.locale.moneyFormatHelp
+    return `${copy.locale.moneyFormatHelp} ${copy.locale.moneyFormatPreview(formatStoreMoney(SAMPLE_PAISE, trimmed))}`
+  }
 
   // Helpers
   const patch = (p: Partial<Loaded>) => setForm((f) => (f ? { ...f, ...p } : f))
@@ -111,7 +113,7 @@ export default function GeneralSettings() {
       toast.success(copy.saved)
       void announceSetup('store')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -274,12 +276,14 @@ export default function GeneralSettings() {
                 autoComplete="postal-code"
                 inputMode="numeric"
               />
-              <SettingsToggleRow
+              <SwitchRow
                 id="addr-show-in-emails"
                 label={copy.address.showInEmails}
                 description={copy.address.showInEmailsHelp}
                 checked={form.address.showInEmails !== false}
                 onChange={(showInEmails) => patchAddress({ showInEmails })}
+                weight="semibold"
+                divided
               />
             </SettingsCard>
             <div

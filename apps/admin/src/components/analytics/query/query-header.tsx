@@ -3,13 +3,13 @@
 import { Copy, Download, ListTree, Pencil, Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
+import NameDialog from '@/components/fields/name-dialog'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import { analyticsContent } from '@/data/analytics'
 import { useCopy } from '@/hooks/use-copy'
 import { downloadReportCsv } from '@/lib/report-csv'
 import { routes } from '@/lib/routes'
-import ReportNameDialog from '../report-name-dialog'
 import type { Ran } from './use-query-runner'
 
 type QueryHeaderProps = {
@@ -43,7 +43,7 @@ export default function QueryHeader({
 }: QueryHeaderProps) {
   // Hooks
   const copy = useCopy(analyticsContent.query)
-  const { rename } = useCopy(analyticsContent.reports)
+  const { rename, save: nameCopy } = useCopy(analyticsContent.reports)
   const [dialog, setDialog] = useState<Dialog>(null)
 
   // Event handlers
@@ -117,22 +117,28 @@ export default function QueryHeader({
         }
       />
       {dialog === 'save' || dialog === 'saveAs' ? (
-        <ReportNameDialog
+        <NameDialog
           title={copy.save.title}
           description={copy.save.help}
-          confirm={copy.save.confirm}
+          label={nameCopy.name}
+          cancelLabel={nameCopy.cancel}
+          maxLength={120}
+          submitLabel={copy.save.confirm}
           initialName={dialog === 'saveAs' && name ? copy.save.copyName(name) : ''}
           onCancel={() => setDialog(null)}
-          onConfirm={handleSaveNew}
+          onSubmit={handleSaveNew}
         />
       ) : null}
       {dialog === 'rename' && name ? (
-        <ReportNameDialog
+        <NameDialog
           title={rename.title}
-          confirm={rename.confirm}
+          label={nameCopy.name}
+          cancelLabel={nameCopy.cancel}
+          maxLength={120}
+          submitLabel={rename.confirm}
           initialName={name}
           onCancel={() => setDialog(null)}
-          onConfirm={handleRename}
+          onSubmit={handleRename}
         />
       ) : null}
       <ConfirmDialog

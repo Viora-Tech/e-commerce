@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import { customizeContent } from '@/data/customize'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { type CustomizeDoc, MAIN_ZONE } from '@/lib/customize-doc'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import { insertCopyActions, zoneItems } from '@/lib/customize-slots'
@@ -52,7 +53,7 @@ export default function SectionProposer({ page }: SectionProposerProps) {
     try {
       setProposal(await api.themes.proposeSection({ request: request.trim(), page }))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : ai.builder.failed)
+      toast.error(errorText(err, ai.builder.failed))
     } finally {
       setBusy(false)
     }

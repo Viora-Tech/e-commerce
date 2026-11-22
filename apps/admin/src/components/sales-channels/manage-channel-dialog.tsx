@@ -14,6 +14,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type ManageChannelDialogProps = {
   open: boolean
@@ -46,7 +47,7 @@ export default function ManageChannelDialog({
       onOpenChange(false)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
       setConfirming(false)

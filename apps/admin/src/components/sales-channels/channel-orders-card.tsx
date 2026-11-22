@@ -6,7 +6,7 @@ import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import SimpleTable from '@/components/table/simple-table'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -89,10 +89,10 @@ export default function ChannelOrdersCard({
               <td className="px-4 py-2.5">{o.customer ?? copy.guest}</td>
               <td className="px-4 py-2.5 text-right tabular-nums">{format.money(o.totalPaise)}</td>
               <td className="px-4 py-2.5">
-                <OrderChip kind="orderPayment" value={o.paymentStatus} />
+                <StatusLabel kind="orderPayment" value={o.paymentStatus} variant="soft" />
               </td>
               <td className="px-4 py-2.5">
-                <OrderChip kind="fulfilment" value={o.fulfillmentStatus} />
+                <StatusLabel kind="fulfilment" value={o.fulfillmentStatus} variant="soft" />
               </td>
             </tr>
           ))}

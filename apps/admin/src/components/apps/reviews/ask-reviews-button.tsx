@@ -16,6 +16,7 @@ import { reviewToolsContent } from '@/data/review-tools'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type Preview = Awaited<ReturnType<typeof api.reviews.pastOrdersPreview>>
 
@@ -44,6 +45,7 @@ function rangeInput(from: string, to: string) {
  */
 export default function AskReviewsButton() {
   // Hooks
+  const reviewsCopy = useCopy(reviewsContent)
   const { list: copy } = useCopy(reviewsContent)
   const { pastOrders: past } = useCopy(reviewToolsContent)
   const [open, setOpen] = useState(false)
@@ -69,13 +71,13 @@ export default function AskReviewsButton() {
           setPreview({
             key,
             data: null,
-            error: err instanceof Error ? err.message : reviewsContent.list.failed,
+            error: errorText(err, reviewsCopy.list.failed),
           }),
       )
     return () => {
       live = false
     }
-  }, [open, from, to])
+  }, [open, from, to, reviewsCopy])
 
   // Event handlers
   const handleSend = async () => {
@@ -85,7 +87,7 @@ export default function AskReviewsButton() {
       toast.success(past.done(r.orders))
       setOpen(false)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

@@ -9,11 +9,11 @@ import {
   PopoverTrigger,
 } from '@commerce/ui/shadcn/popover'
 import { senderEmailContent } from '@/data/sender-email'
-
-const copy = senderEmailContent.spam
+import { useCopy } from '@/hooks/use-copy'
 
 /** "Why emails might land in spam": the five usual reasons, in plain words. */
 export default function SpamHelp() {
+  const copy = useCopy(senderEmailContent.spam)
   return (
     <Popover>
       <PopoverTrigger className="inline-flex items-center gap-1 text-body font-medium text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">

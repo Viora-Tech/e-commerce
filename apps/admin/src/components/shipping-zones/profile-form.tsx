@@ -17,6 +17,7 @@ import { shippingRatesContent } from '@/data/shipping-rates'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import GeneralMoveCard from './general-move-card'
 import ProfileProductsCard from './profile-products-card'
@@ -84,7 +85,7 @@ export default function ProfileForm({ profile, othersHaveAreas = false }: Profil
       toast.success(copy.toasts.saved)
       router.refresh()
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : copy.toasts.failed)
+      setServerError(errorText(err, copy.toasts.failed))
     } finally {
       setBusy(false)
     }
@@ -105,7 +106,7 @@ export default function ProfileForm({ profile, othersHaveAreas = false }: Profil
       router.push(LIST_HREF)
       router.refresh()
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : copy.toasts.failed)
+      setServerError(errorText(err, copy.toasts.failed))
       setBusy(false)
       setConfirmDelete(false)
     }

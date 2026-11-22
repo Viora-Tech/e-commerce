@@ -9,6 +9,7 @@ import StatusChip from '@/components/layout/status-chip'
 import { orderDetailContent } from '@/data/order-detail'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { OrderDetail } from './order-detail-types'
 
 type CourierOrdersCardProps = {
@@ -50,7 +51,7 @@ export default function CourierOrdersCard({
       else toast.error(copy.refused)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.refused)
+      toast.error(errorText(err, copy.refused))
     } finally {
       setRetrying(null)
     }

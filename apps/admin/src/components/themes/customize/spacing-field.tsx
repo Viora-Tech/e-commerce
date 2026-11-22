@@ -4,6 +4,7 @@ import { Minus, Monitor, Plus, Smartphone, Tablet } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { useState } from 'react'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import SettingsSegmented from './settings-segmented'
 
 type Device = 'mobile' | 'tablet' | 'desktop'
@@ -17,13 +18,10 @@ type SpacingFieldProps = {
   onChange: (patch: Partial<Record<Side, Padding>>) => void
 }
 
-const copy = customizeContent.settingsControls
-const devices = customizeContent.fields.breakpoints
-
 const DEVICES = [
-  { value: 'desktop' as const, label: devices.desktop, icon: Monitor },
-  { value: 'tablet' as const, label: devices.tablet, icon: Tablet },
-  { value: 'mobile' as const, label: devices.mobile, icon: Smartphone },
+  { value: 'desktop' as const, icon: Monitor },
+  { value: 'tablet' as const, icon: Tablet },
+  { value: 'mobile' as const, icon: Smartphone },
 ]
 
 /** One press of a stepper; Shift steps ten times as far, as number fields do. */
@@ -39,7 +37,12 @@ const STEPPER =
  */
 export default function SpacingField({ value, max, onChange }: SpacingFieldProps) {
   // Hooks
+  const copy = useCopy(customizeContent.settingsControls)
+  const devices = useCopy(customizeContent.fields.breakpoints)
   const [device, setDevice] = useState<Device>('desktop')
+
+  // Derived
+  const deviceOptions = DEVICES.map((d) => ({ ...d, label: devices[d.value] }))
 
   // Helpers
   const current = (side: Side): number => {
@@ -115,7 +118,7 @@ export default function SpacingField({ value, max, onChange }: SpacingFieldProps
         <span className="text-xs text-muted-foreground">{copy.editing}</span>
         <SettingsSegmented
           label={copy.device}
-          options={DEVICES}
+          options={deviceOptions}
           value={device}
           onChange={setDevice}
           hideLabel

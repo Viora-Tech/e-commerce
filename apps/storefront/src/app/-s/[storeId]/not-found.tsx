@@ -1,6 +1,7 @@
 import { EmptyState, Icon } from '@commerce/blocks'
 import { headers } from 'next/headers'
 import { notFoundContent as copy } from '@/data/search'
+import { noteNotFoundRequest } from '@/lib/broken-links'
 import { notFoundMarkupNeeded } from '@/lib/not-found-markup'
 import { renderTemplate } from '@/lib/template-render'
 
@@ -9,10 +10,12 @@ import { renderTemplate } from '@/lib/template-render'
  * The browser draws it from the RSC payload (Next's error shell, or the Suspense boundary of the
  * themed reload, `lib/themed-rerender.ts`), never from server HTML: imported sections inline.
  * Under an imported theme a page load that will never draw it gets nothing (`lib/not-found-markup.ts`).
+ * Every 404 is counted for the admin's Broken links tab (`lib/broken-links.ts`, buffered).
  */
 export default async function StoreNotFound() {
   // Hooks
   const storeId = (await headers()).get('x-store-id')
+  if (storeId) await noteNotFoundRequest(storeId)
 
   // Early returns
   if (!storeId) return <h1 className="page-width py-16 h2">{copy.title}</h1>

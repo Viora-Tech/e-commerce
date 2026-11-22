@@ -1,6 +1,6 @@
 'use client'
 
-import { Eye, Pencil, Send } from '@commerce/ui/icons'
+import { Pencil, Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
@@ -19,21 +19,19 @@ type MessageRowProps = {
   saving: boolean
   testing: boolean
   onToggle: (on: boolean) => void
-  onPreview: () => void
   onTest: () => void
-  /** Opens Edit design; only for messages with an email a merchant can redesign. */
-  onEditDesign: () => void
 }
 
-/** One message as a table row: name and when it goes, channels, the switch, Preview and Test. */
+/**
+ * One message as a table row: name and when it goes, channels, the switch, Edit and Test. The
+ * row opens the message's own page (its preview); Edit opens the block editor.
+ */
 export default function MessageRow({
   message: m,
   saving,
   testing,
   onToggle,
-  onPreview,
   onTest,
-  onEditDesign,
 }: MessageRowProps) {
   // Hooks
   const copy = useCopy(notificationsSettingsContent)
@@ -42,6 +40,7 @@ export default function MessageRow({
   // Render logic
   const name = copy.messages[m.id]?.name ?? m.id
   const switchId = `message-${m.id}`
+  const page = routes.settings.notification(m.id)
   const badge =
     m.trigger === 'manual'
       ? copy.list.manualBadge
@@ -50,7 +49,7 @@ export default function MessageRow({
         : null
 
   return (
-    <SettingsTableRow>
+    <SettingsTableRow href={page}>
       {/* Wraps, so the switch stays in view; the name is not a label for it, so clicking the
           row's text never turns a customer message off by accident. */}
       <SettingsTableCell className="whitespace-normal">
@@ -93,21 +92,19 @@ export default function MessageRow({
         ) : null}
       </SettingsTableCell>
       <SettingsTableCell className="w-32 p-0 last:pr-2 md:last:pr-2">
-        <RowActionsCell>
+        <RowActionsCell href={page}>
           {m.designable ? (
             <Button
               size="icon"
               variant="ghost"
               aria-label={designCopy.row.edit}
               title={designCopy.row.edit}
-              onClick={onEditDesign}
+              nativeButton={false}
+              render={<Link href={routes.settings.notificationEdit(m.id)} />}
             >
               <Pencil aria-hidden="true" className="size-4" />
             </Button>
           ) : null}
-          <Button size="icon" variant="ghost" aria-label={copy.list.preview} onClick={onPreview}>
-            <Eye aria-hidden="true" className="size-4" />
-          </Button>
           <Button
             loading={testing}
             size="icon"

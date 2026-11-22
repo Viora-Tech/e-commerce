@@ -17,8 +17,10 @@ import StoreCreditExpiryField from '@/components/customers/store-credit-expiry-f
 import OptionSelect from '@/components/landed-cost/option-select'
 import DataCard from '@/components/layout/data-card'
 import { returnDetailContent } from '@/data/returns'
+import { useCopy } from '@/hooks/use-copy'
 import { useStoreCreditReturn } from '@/hooks/use-store-credit-return'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatPaise } from '@/lib/money'
 import ChoiceList from './choice-list'
 import RestockButton from './restock-button'
@@ -30,8 +32,6 @@ type Outcome = 'refund' | 'credit' | 'exchange' | 'reship' | 'close'
 type Way = 'original' | 'manual'
 
 type ReturnResolveCardProps = { detail: ReturnDetail; onChanged: () => void }
-
-const copy = returnDetailContent.resolve
 
 /** Ways to record money paid back by hand (store credit is its own outcome). */
 const HAND_METHODS = ['upi', 'bank_transfer', 'cash', 'cheque', 'other'] as const
@@ -58,6 +58,8 @@ const isWay = (v: string): v is Way => v === 'original' || v === 'manual'
 /** Settle a received return or RTO: refund, store credit, exchange, re-ship or close. */
 export default function ReturnResolveCard({ detail: r, onChanged }: ReturnResolveCardProps) {
   // Hooks
+  const returnDetailCopy = useCopy(returnDetailContent)
+  const copy = useCopy(returnDetailContent.resolve)
   // An order paid with store credit: the credit's original last day is pre-filled.
   const creditBack = useStoreCreditReturn(r.orderId)
   const [outcome, setOutcome] = useState<Outcome>(() => firstChoice(r))
@@ -78,7 +80,7 @@ export default function ReturnResolveCard({ detail: r, onChanged }: ReturnResolv
       toast.success(await run())
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : returnDetailContent.failed)
+      toast.error(errorText(err, returnDetailCopy.failed))
     } finally {
       setBusy(false)
     }

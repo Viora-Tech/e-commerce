@@ -47,6 +47,7 @@ import { draftEditorContent, draftsContent } from '@/data/drafts'
 import { whatsappChatContent } from '@/data/whatsapp-chat'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type Draft = NonNullable<Awaited<ReturnType<typeof api.orders.getDraft>>>
@@ -64,9 +65,6 @@ function draftTax(draft: Draft | null) {
   if (!draft || draft.taxPaise <= 0 || typeof rate !== 'number') return null
   return { ratePercent: rate, taxPaise: draft.taxPaise }
 }
-
-const message = (err: unknown, fallback: string) =>
-  err instanceof Error && err.message ? err.message : fallback
 
 export default function DraftForm({ draft, invoiceSent = false, initial }: DraftFormProps) {
   // Hooks
@@ -133,7 +131,7 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
       await persist()
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(message(err, copy.saveFailed))
+      toast.error(errorText(err, copy.saveFailed))
     } finally {
       setBusy(null)
     }
@@ -147,7 +145,7 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
       setSent(true)
       toast.success(copy.actions.invoiceSent(r.sentTo))
     } catch (err) {
-      toast.error(message(err, copy.actions.invoiceFailed))
+      toast.error(errorText(err, copy.actions.invoiceFailed))
     } finally {
       setBusy(null)
     }
@@ -161,7 +159,7 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
       toast.success(copy.actions.converted)
       router.push(routes.orders.detail(id))
     } catch (err) {
-      toast.error(message(err, copy.actions.convertFailed))
+      toast.error(errorText(err, copy.actions.convertFailed))
       setBusy(null)
     }
   }
@@ -186,7 +184,7 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
       toast.success(copy.actions.deleted)
       router.push(routes.orders.drafts())
     } catch (err) {
-      toast.error(message(err, copy.actions.deleteFailed))
+      toast.error(errorText(err, copy.actions.deleteFailed))
       setBusy(null)
       throw err
     }

@@ -4,6 +4,7 @@ import { APPS_CATEGORY } from '@commerce/blocks/puck'
 import { appStoreUrl } from '@commerce/config/site'
 import { Puzzle } from '@commerce/ui/icons'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { CHROME_GROUP_LABEL } from '@/lib/customize-chrome'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import SectionCard from './section-card'
@@ -16,8 +17,6 @@ type AppsTabProps = {
   onAdd: (type: string) => void
 }
 
-const copy = customizeContent.addSection
-
 /**
  * The Add panel's Apps tab: blocks an installed app registers via
  * `storefront.blocks` (see `APPS_CATEGORY` and `buildAppBlocks` in
@@ -27,6 +26,7 @@ const copy = customizeContent.addSection
  */
 export default function AppsTab({ query, hovered, onHover, labelOf, onAdd }: AppsTabProps) {
   // Hooks
+  const copy = useCopy(customizeContent.addSection)
   const appTypes = useCustomizePuck((s) => s.config.categories?.[APPS_CATEGORY]?.components ?? [])
   const owners = useCustomizePuck(
     (s) =>

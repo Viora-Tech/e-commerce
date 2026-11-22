@@ -4,6 +4,7 @@ import { ordersContent } from '@/data/orders'
 import { ordersBulkContent } from '@/data/orders-bulk'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { downloadCsv } from '@/lib/csv'
 import { ordersCsv } from '@/lib/orders-csv'
 
@@ -35,7 +36,7 @@ export function useOrdersExport() {
       )
       toast.success(bulkCopy.exportDone(rows.length))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : bulkCopy.exportFailed)
+      toast.error(errorText(err, bulkCopy.exportFailed))
     } finally {
       setExporting(false)
     }

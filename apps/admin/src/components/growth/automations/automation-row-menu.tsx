@@ -9,6 +9,7 @@ import RowMenu from '@/components/table/row-menu'
 import { automationsContent } from '@/data/marketing-automations'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type AutomationRowMenuProps = {
@@ -29,7 +30,7 @@ export default function AutomationRowMenu({ automation }: AutomationRowMenuProps
       toast.success(status === 'active' ? copy.row.turnedOn : copy.row.turnedOff)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.row.failed)
+      toast.error(errorText(err, copy.row.failed))
     }
   }
 
@@ -39,7 +40,7 @@ export default function AutomationRowMenu({ automation }: AutomationRowMenuProps
       toast.success(copy.row.deleted)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.row.failed)
+      toast.error(errorText(err, copy.row.failed))
       throw err
     }
   }

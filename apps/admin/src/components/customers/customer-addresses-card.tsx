@@ -10,6 +10,7 @@ import EmptyState from '@/components/layout/empty-state'
 import { customerAddressesContent } from '@/data/customer-addresses'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { type AddressRole, splitAddressBook } from './address-roles'
 import CustomerAddressBlock from './customer-address-block'
 import CustomerAddressDialog from './customer-address-dialog'
@@ -43,7 +44,7 @@ export default function CustomerAddressesCard({ customer, onChanged }: CustomerA
       toast.success(done)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.defaultFailed)
+      toast.error(errorText(err, copy.defaultFailed))
     } finally {
       setBusy(false)
     }
@@ -126,7 +127,7 @@ export default function CustomerAddressesCard({ customer, onChanged }: CustomerA
       toast.success(copy.confirm.done)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.confirm.failed)
+      toast.error(errorText(err, copy.confirm.failed))
     } finally {
       setBusy(false)
       setDeleting(null)

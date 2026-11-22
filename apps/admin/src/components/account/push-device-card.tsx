@@ -9,6 +9,7 @@ import { accountContent } from '@/data/account'
 import { useCopy } from '@/hooks/use-copy'
 import { usePushDevice } from '@/hooks/use-push-device'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type PushDeviceCardProps = {
   /** Null: the server has no VAPID keys, so push cannot be turned on here. */
@@ -36,15 +37,11 @@ export default function PushDeviceCard({
 
   // Event handlers
   const handleTurnOn = () => {
-    turnOn().catch((err: unknown) =>
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed),
-    )
+    turnOn().catch((err: unknown) => toast.error(errorText(err, copy.failed)))
   }
 
   const handleTurnOff = () => {
-    turnOff().catch((err: unknown) =>
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed),
-    )
+    turnOff().catch((err: unknown) => toast.error(errorText(err, copy.failed)))
   }
 
   const handleTest = async () => {
@@ -53,7 +50,7 @@ export default function PushDeviceCard({
       await api.account.sendPushTest()
       toast.success(copy.testSent)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setTesting(false)
     }

@@ -11,7 +11,8 @@ import {
 import { RotateCcw } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import { themesContent as copy } from '@/data/themes'
+import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 
 type ThemePresetsProps = {
   theme: Theme
@@ -28,6 +29,9 @@ const rem = (px: number) => `${px / 16}rem`
 
 /** Preset cards, each drawn in its own colours, radius and heading face, plus Reset to preset. */
 export default function ThemePresets({ theme, onChange, bare, compact }: ThemePresetsProps) {
+  // Hooks
+  const copy = useCopy(themesContent)
+
   // Event handlers
   const handlePick = (id: ThemePresetId) => onChange(applyThemePreset(theme, id))
   const handleReset = () => onChange(applyThemePreset(theme, theme.preset))

@@ -33,6 +33,14 @@ describe('searchConsoleOAuthApp', () => {
       searchConsoleOAuthApp({ MERCHANT_GOOGLE_CLIENT_ID: 'm', MERCHANT_GOOGLE_CLIENT_SECRET: 'n' }),
     ).toEqual({ clientId: 'm', clientSecret: 'n' })
     expect(searchConsoleOAuthApp({ GSC_GOOGLE_CLIENT_ID: 'a' })).toBeNull()
+    expect(
+      searchConsoleOAuthApp({
+        GOOGLE_SEARCH_CONSOLE_CLIENT_ID: 'g',
+        GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET: 'h',
+        GSC_GOOGLE_CLIENT_ID: 'a',
+        GSC_GOOGLE_CLIENT_SECRET: 'b',
+      }),
+    ).toEqual({ clientId: 'g', clientSecret: 'h' })
     expect(searchConsoleOAuthApp({})).toBeNull()
   })
 })

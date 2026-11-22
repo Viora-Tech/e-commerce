@@ -2,7 +2,8 @@
 
 import { Input } from '@commerce/ui/shadcn/input'
 import MoneyInput from '@/components/fields/money-input'
-import { segmentsContent as copy } from '@/data/customers'
+import { segmentsContent } from '@/data/customers'
+import { useCopy } from '@/hooks/use-copy'
 
 type SegmentRangeFieldProps = {
   /** "min,max"; money fields hold paise. */
@@ -30,6 +31,9 @@ export default function SegmentRangeField({
   label,
   onChange,
 }: SegmentRangeFieldProps) {
+  // Hooks
+  const copy = useCopy(segmentsContent)
+
   // Event handlers
   const handleSide = (side: 0 | 1, next: string) => {
     const parts = value.split(',')

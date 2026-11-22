@@ -5,6 +5,7 @@ import { orderDetailContent } from '@/data/order-detail'
 import { ordersContent } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { SendChannel } from './reminder-channel-picker'
 import type { CustomMessage } from './send-message-dialog'
 
@@ -28,7 +29,7 @@ export function useOrderMessages(
       toast.success(done)
       onSent()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : listCopy.bulk.failed)
+      toast.error(errorText(err, listCopy.bulk.failed))
     } finally {
       setBusy(false)
     }

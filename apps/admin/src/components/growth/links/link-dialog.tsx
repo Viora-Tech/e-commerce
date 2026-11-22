@@ -26,6 +26,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { growthLinksContent, LINK_PLACEMENTS } from '@/data/growth'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type Link = Awaited<ReturnType<typeof api.shortLinks.list>>['items'][number]
 
@@ -92,7 +93,7 @@ export default function LinkDialog({ link, origin, onClose, onSaved }: LinkDialo
       toast.success(link ? copy.saved : copy.created)
       onSaved()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     } finally {
       setBusy(false)
     }

@@ -13,11 +13,12 @@ import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import TemplateSelectCard from '@/components/themes/template-select-card'
 import { collectionDetailContent, collectionFormContent } from '@/data/collections'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import CollectionImageCard from './collection-image-card'
 import CollectionProductsCard from './collection-products-card'
@@ -103,7 +104,7 @@ export default function CollectionForm({ collection, storefrontOrigin }: Collect
         router.replace(routes.products.collection(id))
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.saveFailed)
+      toast.error(errorText(err, copy.saveFailed))
     } finally {
       setBusy(false)
     }
@@ -120,7 +121,7 @@ export default function CollectionForm({ collection, storefrontOrigin }: Collect
       toast.success(copy.deleted)
       router.push(routes.products.collections())
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.saveFailed)
+      toast.error(errorText(err, copy.saveFailed))
     } finally {
       setBusy(false)
     }
@@ -147,8 +148,8 @@ export default function CollectionForm({ collection, storefrontOrigin }: Collect
       badges={
         collection ? (
           <>
-            <OrderChip kind="collectionVisibility" value={form.status} />
-            <OrderChip kind="collectionType" value={form.kind} />
+            <StatusLabel kind="collectionVisibility" value={form.status} variant="soft" />
+            <StatusLabel kind="collectionType" value={form.kind} variant="soft" />
           </>
         ) : null
       }

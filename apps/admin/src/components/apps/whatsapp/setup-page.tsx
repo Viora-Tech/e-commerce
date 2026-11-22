@@ -15,6 +15,7 @@ import { whatsappAppContent } from '@/data/whatsapp-app'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import SetupStepRow from './setup-step-row'
 import ShoppersPreviewCard from './shoppers-preview-card'
@@ -96,7 +97,7 @@ export default function WhatsappSetupPage() {
       reportSubmit(await api.platformApps.submitWhatsappTemplates({ ids: [...setup.required] }))
       setTemplates(await api.platformApps.whatsappTemplates())
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.submit.error)
+      toast.error(errorText(err, copy.submit.error))
     } finally {
       setSubmitting(false)
     }

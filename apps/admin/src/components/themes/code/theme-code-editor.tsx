@@ -11,6 +11,7 @@ import { themeCodeContent } from '@/data/theme-code'
 import { isDirty, useCodeBuffers } from '@/hooks/use-code-buffers'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import {
   codeFileName,
@@ -137,7 +138,7 @@ export default function ThemeCodeEditor({ theme, origin, me, initialFile }: Them
       await code.reloadOpen()
       toast.success(copy.history.themeRestored(restored))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.history.restoreFailed)
+      toast.error(errorText(err, copy.history.restoreFailed))
     }
   }
 

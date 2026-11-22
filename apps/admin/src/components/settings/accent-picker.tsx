@@ -7,6 +7,7 @@ import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useId, useState } from 'react'
 import { appearanceContent } from '@/data/appearance'
+import { useCopy } from '@/hooks/use-copy'
 import AccentWheel from './accent-wheel'
 
 type AccentPickerProps = {
@@ -17,11 +18,10 @@ type AccentPickerProps = {
   help?: string
 }
 
-const copy = appearanceContent.accent
-
 /** Named preset swatches, a colour wheel, and a custom colour typed as a hex code. */
 export default function AccentPicker({ value, onChange, help }: AccentPickerProps) {
   // Hooks
+  const copy = useCopy(appearanceContent).accent
   const id = useId()
   const [draft, setDraft] = useState<string | null>(null)
 

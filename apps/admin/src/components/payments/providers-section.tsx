@@ -33,9 +33,6 @@ type ProvidersSectionProps = {
 /** Method marks shown on a row before "+N". */
 const MAX_MARKS = 3
 
-const monogramOf = (id: string) =>
-  gatewayCatalogue.find((g) => g.id === id)?.monogram ?? id.slice(0, 2)
-
 /**
  * "Payment providers": one row per connected gateway (logo, name, status, the ways to pay it
  * takes), each opening the provider's own page; "+ Add provider" opens the gateway list.
@@ -47,10 +44,15 @@ export default function ProvidersSection({
   onOpenGuide,
 }: ProvidersSectionProps) {
   // Hooks
+  const gatewayCatalogueCopy = useCopy(gatewayCatalogue)
   const { overview } = useCopy(paymentProvidersContent)
   const { openGuide } = useCopy(paymentsSetupContent)
   const names = useCopy(methodNames)
   const open = useDrillNav()
+
+  // Derived
+  const monogramOf = (id: string) =>
+    gatewayCatalogueCopy.find((g) => g.id === id)?.monogram ?? id.slice(0, 2)
 
   // Helpers
   const marksOf = (methods: string[]) =>

@@ -12,14 +12,14 @@ import {
 import { useState } from 'react'
 import PillTabs from '@/components/layout/pill-tabs'
 import { type DnsProviderId, senderEmailContent } from '@/data/sender-email'
-
-const copy = senderEmailContent.where
+import { useCopy } from '@/hooks/use-copy'
 
 const PROVIDERS: DnsProviderId[] = ['cloudflare', 'godaddy', 'hostinger', 'namecheap']
 
 /** "Where do I add these?": short steps for the four registrars most Indian shops use. */
 export default function DnsProviderHelp() {
   // Hooks
+  const copy = useCopy(senderEmailContent.where)
   const [provider, setProvider] = useState<DnsProviderId>('cloudflare')
 
   return (

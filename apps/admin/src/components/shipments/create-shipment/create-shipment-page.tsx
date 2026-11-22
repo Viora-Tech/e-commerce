@@ -10,17 +10,18 @@ import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import EditOrderContactDialog from '@/components/orders/edit-order-contact-dialog'
-import OrderChip from '@/components/orders/order-chip'
 import type { OrderDetail } from '@/components/orders/order-detail-types'
 import TrackingFields, {
   EMPTY_TRACKING,
   type TrackingDraft,
   trackingPayload,
 } from '@/components/orders/tracking-fields'
+import StatusLabel from '@/components/status/status-label'
 import { createShipmentContent } from '@/data/create-shipment'
 import { shipmentDetailsContent } from '@/data/shipping'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import ShipmentDetailsLoader from '../shipment-details-loader'
 import { bookShipment } from './book-shipment'
@@ -184,7 +185,7 @@ export default function CreateShipmentPage({
       const full = await api.orders.get({ id: orderId })
       if (full) setEditing(full)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     }
   }
   const handleCustomerSaved = () => {
@@ -269,7 +270,7 @@ export default function CreateShipmentPage({
         setMissingPlace(place)
         setDrawer(false)
         window.scrollTo({ top: 0, behavior: 'smooth' })
-      } else toast.error(err instanceof Error ? err.message : String(err))
+      } else toast.error(errorText(err, String(err)))
       if (split) handleSplitKept()
     } finally {
       setBusy(false)
@@ -357,8 +358,8 @@ export default function CreateShipmentPage({
           size="sm"
           badges={
             <>
-              <OrderChip kind="orderPayment" value={order.paymentStatus} />
-              <OrderChip kind="fulfilment" value={order.fulfillmentStatus} />
+              <StatusLabel kind="orderPayment" value={order.paymentStatus} variant="soft" />
+              <StatusLabel kind="fulfilment" value={order.fulfillmentStatus} variant="soft" />
             </>
           }
           actions={

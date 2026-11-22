@@ -9,6 +9,7 @@ import DataCard from '@/components/layout/data-card'
 import { draftEditorContent } from '@/data/drafts'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type DraftHoldCardProps = {
   /** The saved draft; null until it is first saved. */
@@ -46,7 +47,7 @@ export default function DraftHoldCard({ draftId, dirty, heldUntil }: DraftHoldCa
       setDay('')
       toast.success(copy.reserved)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -60,7 +61,7 @@ export default function DraftHoldCard({ draftId, dirty, heldUntil }: DraftHoldCa
       setUntil(null)
       toast.success(copy.released)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

@@ -11,6 +11,7 @@ import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import { blogsManageContent } from '@/data/blog'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import BlogDialog, { type EditableBlog } from './blog-dialog'
 
@@ -47,7 +48,7 @@ export default function BlogsManager({ initial }: BlogsManagerProps) {
       setDeleting(null)
       await refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

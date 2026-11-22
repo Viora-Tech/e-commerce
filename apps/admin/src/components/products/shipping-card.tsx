@@ -20,6 +20,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import Link from 'next/link'
 import { useState } from 'react'
+import SwitchRow from '@/components/fields/switch-row'
 import DataCard from '@/components/layout/data-card'
 import { COUNTRIES } from '@/data/countries'
 import { productFormContent } from '@/data/product-form'
@@ -31,7 +32,6 @@ import { boxLabel } from './box-label'
 import type { VariantRow } from './form-state'
 import type { ProductTax } from './product-tax'
 import ProductTaxFields from './product-tax-fields'
-import SwitchRow from './switch-row'
 import WeightInput from './weight-input'
 import { toGrams } from './weight-units'
 
@@ -168,9 +168,10 @@ export default function ShippingCard({
           <SwitchRow
             id="variant-physical"
             label={physical.physical}
-            help={physical.physicalHelp}
+            description={physical.physicalHelp}
             checked={variant.requiresShipping}
             onChange={(requiresShipping) => onChange({ requiresShipping })}
+            weight="normal"
           />
         ) : null}
         {/* One form style across the product page: label above the field (audit #28). */}

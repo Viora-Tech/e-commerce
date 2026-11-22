@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import { appInstallContent } from '@/data/app-install'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type BuyAccess = Extract<AppAccess, { state: 'buy' }>
@@ -41,7 +42,7 @@ export default function InstallBuyStep({ appId, appName, access, onCancel }: Ins
       if (bill.url) window.location.assign(bill.url)
       else toast.error(copy.buy.failed)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.buy.failed)
+      toast.error(errorText(err, copy.buy.failed))
     } finally {
       setBusy(false)
     }

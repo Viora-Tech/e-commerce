@@ -6,6 +6,7 @@ import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import Link from 'next/link'
 import StatusChip from '@/components/layout/status-chip'
 import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 import type { PreviewDevice } from './theme-preview'
 
 type CustomizerTopBarProps = {
@@ -25,9 +26,6 @@ type CustomizerTopBarProps = {
   onSave: () => void
   onPublish: () => void
 }
-
-const copy = themesContent.editor
-const preview = themesContent.preview
 
 const DEVICES = [
   { value: 'desktop', icon: Monitor },
@@ -56,6 +54,12 @@ export default function CustomizerTopBar({
   onSave,
   onPublish,
 }: CustomizerTopBarProps) {
+  // Hooks
+  const copy = useCopy(themesContent.editor)
+  const devicesCopy = useCopy(themesContent.preview.devices)
+  const modesCopy = useCopy(themesContent.preview.modes)
+  const themesCopy = useCopy(themesContent)
+
   // Event handlers
   const handleDevice = (values: unknown[]) => {
     const next = DEVICES.find((d) => d.value === values[0])
@@ -90,8 +94,8 @@ export default function CustomizerTopBar({
             <ToggleGroupItem
               key={value}
               value={value}
-              aria-label={preview.devices[value]}
-              title={preview.devices[value]}
+              aria-label={devicesCopy[value]}
+              title={devicesCopy[value]}
             >
               <Icon aria-hidden />
             </ToggleGroupItem>
@@ -103,8 +107,8 @@ export default function CustomizerTopBar({
               <ToggleGroupItem
                 key={value}
                 value={value}
-                aria-label={preview.modes[value]}
-                title={preview.modes[value]}
+                aria-label={modesCopy[value]}
+                title={modesCopy[value]}
               >
                 <Icon aria-hidden />
               </ToggleGroupItem>
@@ -128,7 +132,7 @@ export default function CustomizerTopBar({
           disabled={!dirty || saving}
         >
           <Save aria-hidden="true" />
-          {themesContent.save}
+          {themesCopy.save}
         </Button>
         {!live && canPublish ? (
           <Button

@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  type DiscoveryOverview,
   discoveryChange,
   discoveryRate,
   OVERVIEW_PERIODS,
@@ -15,13 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import StatStrip from '@/components/layout/stat-strip'
 import InlineState from '@/components/states/inline-state'
 import { searchDiscoveryContent } from '@/data/search-discovery'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { formatRate } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
 import RecommendationStatsTable from './recommendation-stats-table'
@@ -43,26 +43,7 @@ export default function OverviewPage() {
   const copy = useCopy(searchDiscoveryContent)
   const fmt = useFormat()
   const [days, setDays] = useState<number>(DEFAULT_DAYS)
-  const [data, setData] = useState<DiscoveryOverview | null>(null)
-  const [failed, setFailed] = useState(false)
-  const [attempt, setAttempt] = useState(0)
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` re-runs the load on "Try again".
-  useEffect(() => {
-    let live = true
-    setFailed(false)
-    api.search
-      .overview({ days })
-      .then((next) => {
-        if (live) setData(next)
-      })
-      .catch(() => {
-        if (live) setFailed(true)
-      })
-    return () => {
-      live = false
-    }
-  }, [days, attempt])
+  const { data, failed, retry } = useLoad(() => api.search.overview({ days }), [days])
 
   // Event handlers
   const handlePeriod = (value: unknown) => {
@@ -98,7 +79,7 @@ export default function OverviewPage() {
           kind="error"
           body={o.loadFailed}
           action={
-            <Button variant="outline" onClick={() => setAttempt((n) => n + 1)}>
+            <Button variant="outline" onClick={retry}>
               {o.retry}
             </Button>
           }

@@ -9,6 +9,7 @@ import StatusChip from '@/components/layout/status-chip'
 import { bulkShipContent } from '@/data/bulk-ship'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { todayKey } from '@/lib/format-date'
 import { upcomingPickups } from '../pickup-fields'
 import type { PickupGroup } from './bulk-ship-state'
@@ -93,7 +94,7 @@ export default function BulkPickupsCard({ groups, onLater }: BulkPickupsCardProp
       toast.success(copy.created)
       setDone(true)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.createFailed)
+      toast.error(errorText(err, copy.createFailed))
     } finally {
       setBusy(false)
     }

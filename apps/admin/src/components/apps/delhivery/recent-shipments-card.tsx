@@ -13,7 +13,7 @@ import Link from 'next/link'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
 import TableFailedRow from '@/components/apps/shared/table-failed-row'
 import DataCard from '@/components/layout/data-card'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import TableSkeletonRows from '@/components/table/table-skeleton-rows'
 import { appsContent } from '@/data/apps'
@@ -102,7 +102,7 @@ export default function RecentShipmentsCard({
                 </span>
               </TableCell>
               <TableCell className={CELL}>
-                <OrderChip kind="shipment" value={s.status} />
+                <StatusLabel kind="shipment" value={s.status} variant="soft" />
               </TableCell>
               <TableCell className={`${CELL} text-right text-muted-foreground`}>
                 {format.ago(s.updatedAt)}

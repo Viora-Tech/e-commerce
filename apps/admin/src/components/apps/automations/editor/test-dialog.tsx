@@ -15,6 +15,7 @@ import DialogContent from '@/components/layout/dialog-content'
 import DialogHeader from '@/components/layout/dialog-header'
 import { automationEditorContent, automationPiecesContent } from '@/data/automations'
 import { useCopy, useLocale } from '@/hooks/use-copy'
+import { errorText } from '@/lib/api-errors'
 import { automationApi } from '@/lib/automation-api'
 import { nodeView } from '@/lib/automation-node-view'
 import type { RecordKind, RecordOption } from '@/lib/automation-records'
@@ -86,7 +87,7 @@ export default function TestDialog({
       setResult(next)
       onTested(next)
     } catch (err) {
-      setError(err instanceof Error && err.message ? err.message : copy.test.failed)
+      setError(errorText(err, copy.test.failed))
     } finally {
       setBusy(false)
     }

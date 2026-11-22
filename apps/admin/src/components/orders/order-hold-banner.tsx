@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { orderHoldContent } from '@/data/order-hold'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { OrderDetail } from './order-detail-types'
 
 type OrderHoldBannerProps = {
@@ -40,7 +41,7 @@ export default function OrderHoldBanner({
       toast.success(copy.released)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

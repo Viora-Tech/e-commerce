@@ -4,6 +4,7 @@ import { Copy, Eye, EyeOff, MoreHorizontal } from '@commerce/ui/icons'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { type KeyboardEvent, useEffect, useRef, useState } from 'react'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 
 type BlockToolbarMoreProps = {
   label: string
@@ -11,8 +12,6 @@ type BlockToolbarMoreProps = {
   onToggleHidden: () => void
   onCopy: () => void
 }
-
-const copy = customizeContent.toolbar
 
 const ITEM =
   'flex h-8 w-full items-center gap-2 rounded-md border-0! bg-transparent! px-2 text-left text-xs text-popover-foreground! transition-colors duration-150 hover:bg-accent! focus-visible:bg-accent! focus-visible:outline-none motion-reduce:transition-none'
@@ -29,6 +28,7 @@ export default function BlockToolbarMore({
   onCopy,
 }: BlockToolbarMoreProps) {
   // Hooks
+  const copy = useCopy(customizeContent.toolbar)
   const reducedMotion = useReducedMotion()
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)

@@ -7,6 +7,7 @@ import FormDialog from '@/components/layout/form-dialog'
 import { customerMergeContent } from '@/data/customer-merge'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatPaise } from '@/lib/money'
 import type { CustomerDetail } from './customer-detail-types'
 import CustomerPicker, { type PickedCustomer } from './customer-picker'
@@ -57,7 +58,7 @@ export default function MergeCustomerDialog({
       setPreview(await api.customers.previewMerge({ keepId: customer.id, mergeId: picked.id }))
     } catch (err) {
       setOther(null)
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     }
   }
 
@@ -78,7 +79,7 @@ export default function MergeCustomerDialog({
       handleOpenChange(false)
       onMerged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setSaving(false)
     }

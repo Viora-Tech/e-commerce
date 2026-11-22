@@ -7,6 +7,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import NameDialog from '@/components/fields/name-dialog'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import PageBody from '@/components/layout/page-body'
@@ -15,10 +16,10 @@ import { analyticsContent } from '@/data/analytics'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { ANSWER_SLUG, answerReport, stashedAnswer } from '@/lib/answer-report'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import { useStorageScope } from '@/lib/storage-scope'
 import ReportChart from './report-chart'
-import ReportNameDialog from './report-name-dialog'
 import ReportSkeleton from './report-skeleton'
 import ReportTable from './report-table'
 
@@ -71,7 +72,7 @@ export default function AnswerReportView({ saved: initialSaved }: AnswerReportVi
       toast.success(c.save.saved)
       router.replace(`${routes.analytics.answer()}?saved=${row.id}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     }
   }
 
@@ -119,13 +120,16 @@ export default function AnswerReportView({ saved: initialSaved }: AnswerReportVi
         <ReportTable report={report} data={result} />
       </DataCard>
       {naming ? (
-        <ReportNameDialog
+        <NameDialog
           title={c.save.title}
           description={c.answer.saveHelp}
-          confirm={c.save.confirm}
+          label={c.save.name}
+          cancelLabel={c.save.cancel}
+          maxLength={120}
+          submitLabel={c.save.confirm}
           initialName={c.answer.title}
           onCancel={() => setNaming(false)}
-          onConfirm={handleSave}
+          onSubmit={handleSave}
         />
       ) : null}
     </PageBody>

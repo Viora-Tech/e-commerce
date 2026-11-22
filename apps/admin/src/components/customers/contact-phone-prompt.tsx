@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { customerDetailContent } from '@/data/customers'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { spacedMobile } from '@/lib/customer-contact'
 import { routes } from '@/lib/routes'
 import type { CustomerDetail } from './customer-detail-types'
@@ -44,7 +45,7 @@ export default function ContactPhonePrompt({
       toast.success(detail.contactPhone.saved)
       onSaved()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : detail.contactPhone.failed)
+      toast.error(errorText(err, detail.contactPhone.failed))
     } finally {
       setSaving(false)
     }

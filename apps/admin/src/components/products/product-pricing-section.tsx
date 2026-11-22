@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import DateField from '@/components/fields/date-field'
 import MoneyInput from '@/components/fields/money-input'
+import SwitchRow from '@/components/fields/switch-row'
 import ChoiceCard from '@/components/layout/choice-card'
 import { productFormContent } from '@/data/product-form'
 import { rupees } from '@/data/products'
@@ -12,7 +13,6 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { type Facets, margin, type VariantRow } from './form-state'
 import { type ProductTax, variantTax } from './product-tax'
 import ProductTaxFields from './product-tax-fields'
-import SwitchRow from './switch-row'
 import ZeroPriceWarning from './zero-price-warning'
 
 type ProductPricingSectionProps = {
@@ -151,9 +151,10 @@ export default function ProductPricingSection({
         <SwitchRow
           id="variant-taxable"
           label={copy.taxable}
-          help={copy.taxableHelp}
+          description={copy.taxableHelp}
           checked={variant.taxable}
           onChange={(taxable) => onVariant({ taxable })}
+          weight="normal"
         >
           {taxLine ? (
             <p className="text-caption text-ink-strong tabular-nums" aria-live="polite">

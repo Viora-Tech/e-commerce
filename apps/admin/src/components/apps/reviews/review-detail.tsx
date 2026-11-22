@@ -5,17 +5,19 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import type { AppPageProps } from '@/apps/registry'
 import EmptyState from '@/components/layout/empty-state'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import ActivityCard from './activity-card'
 import ReplyCard from './reply-card'
@@ -27,25 +29,18 @@ type Detail = Awaited<ReturnType<typeof api.reviews.get>>
 /** One review (Apps, Reviews 20:2): the review, the reply, its activity, product and customer. */
 export default function ReviewDetail({ params }: AppPageProps) {
   // Hooks
+  const reviewsCopy = useCopy(reviewsContent)
   const { detail: copy } = useCopy(reviewsContent)
   const router = useRouter()
-  const [detail, setDetail] = useState<Detail | null>(null)
-  const [missing, setMissing] = useState(false)
+  const [version, setVersion] = useState(0)
+  // A failed read reads as a review that is gone.
+  const { data: detail, failed: missing } = useLoad<Detail>(
+    () => api.reviews.get({ id: params.id ?? '' }),
+    [params.id, version],
+  )
   const [busy, setBusy] = useState(false)
   /** The status being set, so only that button spins while `busy`. */
   const [pending, setPending] = useState<'published' | 'hidden' | null>(null)
-  const [version, setVersion] = useState(0)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `version` re-runs the load after a change
-  useEffect(() => {
-    let cancelled = false
-    api.reviews
-      .get({ id: params.id ?? '' })
-      .then((d) => !cancelled && setDetail(d))
-      .catch(() => !cancelled && setMissing(true))
-    return () => {
-      cancelled = true
-    }
-  }, [params.id, version])
 
   // Helpers
   const reload = () => setVersion((v) => v + 1)
@@ -59,7 +54,7 @@ export default function ReviewDetail({ params }: AppPageProps) {
       toast.success(copy.saved)
       reload()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : reviewsContent.list.failed)
+      toast.error(errorText(err, reviewsCopy.list.failed))
     } finally {
       setBusy(false)
     }
@@ -99,7 +94,7 @@ export default function ReviewDetail({ params }: AppPageProps) {
       <PageHeader
         title={copy.title(r.reviewerName)}
         back={{ label: copy.back, href: routes.apps.page('reviews') }}
-        badges={<OrderChip kind="review" value={r.status} />}
+        badges={<StatusLabel kind="review" value={r.status} variant="soft" />}
         actions={
           <>
             {r.status !== 'hidden' ? (

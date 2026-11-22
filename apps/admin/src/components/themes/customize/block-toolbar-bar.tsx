@@ -16,6 +16,7 @@ import { motion, useReducedMotion } from 'motion/react'
 import { type MouseEvent, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { requestAskAi } from '@/lib/customize-canvas-events'
 import { forwardSectionDrag } from '@/lib/customize-canvas-interaction'
 import { deleteWithCollapse } from '@/lib/customize-canvas-motion'
@@ -34,8 +35,6 @@ type BlockToolbarBarProps = {
   componentId: string
   componentType: string
 }
-
-const copy = customizeContent
 
 /*
  * Figma: "Builder / Block toolbar" (500:5981, Online store page), built from the "Selected
@@ -78,6 +77,7 @@ export default function BlockToolbarBar({
   componentType,
 }: BlockToolbarBarProps) {
   // Hooks
+  const copy = useCopy(customizeContent)
   const storageScope = useStorageScope()
   const dispatch = useCustomizePuck((s) => s.dispatch)
   const components = useCustomizePuck((s) => s.config.components)

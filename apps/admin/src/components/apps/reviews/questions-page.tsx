@@ -3,7 +3,7 @@
 import type { QuestionStatus } from '@commerce/plugin-reviews/schema'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import PageHeader from '@/components/layout/page-header'
@@ -11,13 +11,10 @@ import PillTabs from '@/components/layout/pill-tabs'
 import { appsContent } from '@/data/apps'
 import { reviewToolsContent } from '@/data/review-tools'
 import { useCopy } from '@/hooks/use-copy'
-import type { LoadFailure } from '@/hooks/use-load'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
-import { isForbidden } from '@/lib/forbidden'
 import { routes } from '@/lib/routes'
 import QuestionCard from './question-card'
-
-type Page = Awaited<ReturnType<typeof api.reviews.questions.list>>
 
 /** The tabs: waiting for an answer first, the moderation statuses after. */
 const TABS = ['unanswered', 'pending', 'published', 'hidden'] as const
@@ -41,29 +38,27 @@ export default function QuestionsPage() {
   const [tab, setTab] = useState<Tab>('unanswered')
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
-  const [result, setResult] = useState<Page | null>(null)
-  const [version, setVersion] = useState(0)
-  /** The list read failed: "Could not load the questions" with Try again, not old or no rows. */
-  const [failed, setFailed] = useState<LoadFailure | false>(false)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `version` re-runs the load after a change (and is Try again)
-  useEffect(() => {
-    let live = true
-    setFailed(false)
-    api.reviews.questions
-      .list({ ...tabInput(tab), q: query.trim() || undefined, page, perPage: PER_PAGE })
-      .then((r) => live && setResult(r))
-      .catch((err: unknown) => live && setFailed(isForbidden(err) ? 'no-access' : 'error'))
-    return () => {
-      live = false
-    }
-  }, [tab, query, page, version])
+  const {
+    data: result,
+    failed,
+    retry,
+  } = useLoad(
+    () =>
+      api.reviews.questions.list({
+        ...tabInput(tab),
+        q: query.trim() || undefined,
+        page,
+        perPage: PER_PAGE,
+      }),
+    [tab, query, page],
+  )
 
   // Event handlers
   const handleTab = (value: string) => {
     setTab(value as Tab)
     setPage(1)
   }
-  const handleChanged = () => setVersion((v) => v + 1)
+  const handleChanged = retry
 
   // Render logic
   const counts = result

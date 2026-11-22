@@ -5,7 +5,7 @@ import { parseRupees } from '@commerce/money'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { useState } from 'react'
 import MoneyInput from '@/components/fields/money-input'
-import SettingsToggleRow from '@/components/settings/settings-toggle-row'
+import SwitchRow from '@/components/fields/switch-row'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy } from '@/hooks/use-copy'
 import { toRupees } from './format'
@@ -49,12 +49,14 @@ export default function InsuranceOfferFields({
 
   return (
     <div className="flex flex-col gap-3">
-      <SettingsToggleRow
+      <SwitchRow
         id={`${idPrefix}-insurance`}
         label={t.offer}
         description={t.offerHelp}
         checked={on}
         onChange={handleOffer}
+        weight="semibold"
+        divided
       />
       {on ? (
         <Field className="max-w-60">

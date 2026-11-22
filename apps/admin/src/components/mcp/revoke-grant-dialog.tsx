@@ -8,6 +8,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { mcpContent } from '@/data/mcp'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type RevokeGrantDialogProps = {
   /** The app or token to cut off; null closes the dialog. */
@@ -33,7 +34,7 @@ export default function RevokeGrantDialog({ grant, storeName, onClose }: RevokeG
       onClose()
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.revoke.failed)
+      toast.error(errorText(err, copy.revoke.failed))
     } finally {
       setBusy(false)
     }

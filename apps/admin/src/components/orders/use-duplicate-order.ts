@@ -7,6 +7,7 @@ import { orderDetailContent } from '@/data/order-detail'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 /**
@@ -25,7 +26,7 @@ export function useDuplicateOrder() {
       toast.success(draft.skipped.length > 0 ? copy.skipped(draft.skipped.length) : copy.done)
       router.push(routes.orders.draft(draft.id))
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     }
   }
 

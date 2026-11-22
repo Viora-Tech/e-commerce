@@ -1,7 +1,8 @@
 import { returnTimeline } from '@commerce/core/returns'
 import DataCard from '@/components/layout/data-card'
 import Timeline from '@/components/layout/timeline'
-import { returnDetailContent as copy } from '@/data/returns'
+import { returnDetailContent } from '@/data/returns'
+import { useCopy } from '@/hooks/use-copy'
 import { formatWhen } from '@/lib/format-date'
 import type { ReturnDetail } from './return-types'
 
@@ -11,6 +12,9 @@ const asDate = (v: Date | string | null): Date | null => (v ? new Date(v) : null
 
 /** Where the return stands: each step done (with its time) or still ahead. */
 export default function ReturnTimelineCard({ detail: r }: ReturnTimelineCardProps) {
+  // Hooks
+  const copy = useCopy(returnDetailContent)
+
   // Render logic
   const steps = returnTimeline({
     status: r.status,

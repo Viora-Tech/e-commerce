@@ -21,6 +21,7 @@ import { productPageContent } from '@/data/product-page'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { useOpenedOnce } from '@/hooks/use-opened-once'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { ProductLayout } from '@/lib/product-layout'
 import { routes } from '@/lib/routes'
 import AiWriterButton from './ai-writer-button'
@@ -263,7 +264,7 @@ export default function ProductForm({
       router.push(routes.products.list())
       router.refresh()
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : copy.toasts.failed)
+      setServerError(errorText(err, copy.toasts.failed))
       setBusy(false)
       setConfirmDelete(false)
     }

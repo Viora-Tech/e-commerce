@@ -5,6 +5,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { shipmentLostContent } from '@/data/shipment-lost'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import ShipmentClaimDialog from './shipment-claim-dialog'
 import type { ShipmentLostInfo } from './shipment-columns'
 
@@ -40,7 +41,7 @@ export default function ShipmentLostDialogs({
       toast.success(done)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       throw err
     }
   }

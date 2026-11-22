@@ -15,6 +15,7 @@ import { orderDetailContent } from '@/data/order-detail'
 import { sharedParcelContent } from '@/data/shared-parcel'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { awbClash } from '@/lib/awb-clash'
 import { routes } from '@/lib/routes'
 import { type OrderDetail, unfulfilledLines } from './order-detail-types'
@@ -115,9 +116,7 @@ export default function UnfulfilledCard({
       toast.error(
         clash
           ? shared.awbOnOther(clash.waybill, clash.orderNumber, clash.live)
-          : err instanceof Error
-            ? err.message
-            : copy.fulfilDialog.failed,
+          : errorText(err, copy.fulfilDialog.failed),
       )
     } finally {
       setBusy(false)

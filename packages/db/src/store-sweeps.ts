@@ -62,6 +62,14 @@ export async function storesWithSearchConsoleDue(db: Db): Promise<string[]> {
   return rows.map((r) => r.id)
 }
 
+/** Store ids with Google Search Console connected to a property, for the weekly SEO email. SECURITY DEFINER backed. */
+export async function storesWithSearchConsoleConnected(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_search_console_connected() as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
 /** Store ids with affiliate commissions whose hold is over (Affiliates app), for the worker. SECURITY DEFINER backed. */
 export async function storesWithDueAffiliateCommissions(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(
@@ -89,6 +97,12 @@ export async function storesWithMemberDailySummaries(db: Db): Promise<string[]> 
   const rows = await db.execute<{ id: string }>(
     sql`select stores_with_member_daily_summaries() as id`,
   )
+  return rows.map((r) => r.id)
+}
+
+/** Store ids with an Inbox chat touched in the last day that may need an email (a missed reply, a transcript, the team's waiting list). SECURITY DEFINER backed (0265). */
+export async function storesWithInboxChatEmails(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(sql`select stores_with_inbox_chat_emails() as id`)
   return rows.map((r) => r.id)
 }
 

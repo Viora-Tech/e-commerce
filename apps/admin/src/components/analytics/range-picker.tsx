@@ -2,7 +2,8 @@
 
 import DateRangePicker from '@/components/layout/date-range-picker'
 import PillTabs from '@/components/layout/pill-tabs'
-import { analyticsContent as copy, RANGE_KEYS } from '@/data/analytics'
+import { analyticsContent, RANGE_KEYS } from '@/data/analytics'
+import { useCopy } from '@/hooks/use-copy'
 import type { RangeState } from '@/lib/analytics-range'
 import { addDays, type HomeRange, istToday, rangeFor } from '@/lib/home-range'
 
@@ -33,6 +34,9 @@ function fromPickerRange(range: HomeRange): RangeState {
 
 /** Quick range tabs plus the shared date-range picker; the choice lives in the URL. */
 export default function RangePicker({ value, onChange }: RangePickerProps) {
+  // Hooks
+  const copy = useCopy(analyticsContent)
+
   // Event handlers
   const handleApply = (range: HomeRange) => onChange(fromPickerRange(range))
 

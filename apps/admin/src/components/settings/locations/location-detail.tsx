@@ -16,6 +16,7 @@ import { locationsContent } from '@/data/inventory'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import EditLocationDialog from './edit-location-dialog'
 import LocationLocalDeliveryCard from './location-local-delivery-card'
@@ -62,7 +63,7 @@ export default function LocationDetail({ location, registrations }: LocationDeta
       router.refresh()
     } catch (err) {
       setValue(previous)
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setSaving(false)
     }

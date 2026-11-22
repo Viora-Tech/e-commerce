@@ -17,6 +17,7 @@ import { umamiContent } from '@/data/umami'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { formatDay, formatRate, type RangeState } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { INTL_LOCALE } from '@/lib/i18n'
 import { formatCompact } from '@/lib/money'
 import { routes } from '@/lib/routes'
@@ -110,7 +111,7 @@ export default function VisitorsSection({ range }: VisitorsSectionProps) {
         if (live) {
           setView({
             state: 'error',
-            message: err instanceof Error ? err.message : '',
+            message: errorText(err, ''),
           })
         }
       })

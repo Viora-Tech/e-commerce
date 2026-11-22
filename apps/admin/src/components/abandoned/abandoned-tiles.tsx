@@ -1,7 +1,7 @@
 import { formatPercent } from '@commerce/money'
 import StatStrip from '@/components/layout/stat-strip'
-import { type AbandonedListFilter, abandonedContent as copy } from '@/data/drafts'
-import { useFormat } from '@/hooks/use-copy'
+import { type AbandonedListFilter, abandonedContent } from '@/data/drafts'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 
 export type AbandonedStats = {
   carts: number
@@ -22,6 +22,7 @@ type AbandonedTilesProps = {
 /** Four tiles above the table (Figma "Orders / Abandoned checkouts list"); Recovered and Reminders sent filter the table. */
 export default function AbandonedTiles({ stats, status, onSelect }: AbandonedTilesProps) {
   // Hooks
+  const copy = useCopy(abandonedContent)
   const fmt = useFormat()
 
   // Render logic

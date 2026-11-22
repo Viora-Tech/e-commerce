@@ -9,6 +9,7 @@ import { type FormEvent, useState } from 'react'
 import { onboardingContent } from '@/data/onboarding'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type WaitlistFormProps = { defaultEmail: string }
 
@@ -39,7 +40,7 @@ export default function WaitlistForm({ defaultEmail }: WaitlistFormProps) {
       await api.onboarding.joinWaitlist({ email, phone, sells })
       setDone(true)
     } catch (err) {
-      setError(err instanceof Error && err.message ? err.message : copy.waitlist.failed)
+      setError(errorText(err, copy.waitlist.failed))
     } finally {
       setSending(false)
     }

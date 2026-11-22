@@ -21,6 +21,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { shipmentLostContent } from '@/data/shipment-lost'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type ShipmentClaimDialogProps = {
   open: boolean
@@ -86,7 +87,7 @@ export default function ShipmentClaimDialog({
       onOpenChange(false)
       onSaved()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setSaving(false)
     }

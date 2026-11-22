@@ -9,6 +9,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import RowMenu from '@/components/table/row-menu'
 import { automationsContent } from '@/data/automations'
 import { useCopy } from '@/hooks/use-copy'
+import { errorText } from '@/lib/api-errors'
 import { automationApi } from '@/lib/automation-api'
 import { automationRoutes } from '@/lib/automation-routes'
 
@@ -17,9 +18,6 @@ type WorkflowRowMenuProps = {
   /** Reloads the list after a change. */
   onChanged: () => void
 }
-
-const messageOf = (err: unknown, fallback: string) =>
-  err instanceof Error && err.message ? err.message : fallback
 
 /** The ⋯ menu on a workflow row: edit, duplicate, pause or activate, delete. */
 export default function WorkflowRowMenu({ workflow, onChanged }: WorkflowRowMenuProps) {
@@ -35,7 +33,7 @@ export default function WorkflowRowMenu({ workflow, onChanged }: WorkflowRowMenu
       toast.success(list.row.duplicated)
       router.push(automationRoutes.workflow(copy.id))
     } catch (err) {
-      toast.error(messageOf(err, list.row.failed))
+      toast.error(errorText(err, list.row.failed))
     }
   }
 
@@ -46,7 +44,7 @@ export default function WorkflowRowMenu({ workflow, onChanged }: WorkflowRowMenu
       toast.success(status === 'on' ? list.row.activated : list.row.paused)
       onChanged()
     } catch (err) {
-      toast.error(messageOf(err, list.row.failed))
+      toast.error(errorText(err, list.row.failed))
     }
   }
 
@@ -56,7 +54,7 @@ export default function WorkflowRowMenu({ workflow, onChanged }: WorkflowRowMenu
       toast.success(list.row.deleted)
       onChanged()
     } catch (err) {
-      toast.error(messageOf(err, list.row.failed))
+      toast.error(errorText(err, list.row.failed))
       throw err
     }
   }

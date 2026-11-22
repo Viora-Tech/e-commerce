@@ -17,6 +17,7 @@ import { seoKeywordsContent } from '@/data/seo-keywords'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { type ApplyPicks, type CopyPatch, patchFromCopy } from '@/lib/ai-product-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import AiWriterOptions from './ai-writer-options'
 import AiWriterPreview from './ai-writer-preview'
 import type { ProductFormState } from './form-state'
@@ -84,7 +85,7 @@ export default function AiWriterDialog({ open, onOpenChange, form, onApply }: Ai
       setPicks(ALL_PICKS)
       setEditing(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.writer.failed)
+      setError(errorText(err, copy.writer.failed))
     } finally {
       setBusy(false)
     }

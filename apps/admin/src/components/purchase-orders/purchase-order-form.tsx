@@ -20,8 +20,8 @@ import NoticeBar from '@/components/layout/notice-bar'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
-import OrderChip from '@/components/orders/order-chip'
 import DocumentsCard from '@/components/purchase-documents/documents-card'
+import StatusLabel from '@/components/status/status-label'
 import type { PickedSupplier } from '@/components/suppliers/new-supplier-dialog'
 import {
   type PurchaseOrderStatus,
@@ -31,7 +31,7 @@ import {
 import { poCurrencyContent } from '@/data/purchasing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { focusField } from '@/lib/api-errors'
+import { errorText, focusField } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import CostSummaryCard from './cost-summary-card'
 import CurrencyCard from './currency-card'
@@ -101,7 +101,7 @@ export default function PurchaseOrderForm({
   const [dialog, setDialog] = useState<Dialog>(null)
 
   // Helpers
-  const message = (err: unknown) => (err instanceof Error ? err.message : copy.saveFailed)
+  const message = (err: unknown) => errorText(err, copy.saveFailed)
 
   const patch = (next: Partial<PoForm>) => setForm((f) => ({ ...f, ...next }))
 
@@ -222,7 +222,7 @@ export default function PurchaseOrderForm({
       toast.success(copy.duplicated)
       router.push(routes.stock.purchaseOrder(id))
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.duplicateFailed)
+      toast.error(errorText(err, copy.duplicateFailed))
     } finally {
       setBusy(false)
     }
@@ -289,7 +289,9 @@ export default function PurchaseOrderForm({
             }
             summary={summary}
             lead={{ kind: 'icon', node: <Package aria-hidden="true" /> }}
-            badges={status ? <OrderChip kind="purchaseOrder" value={status} /> : null}
+            badges={
+              status ? <StatusLabel kind="purchaseOrder" value={status} variant="soft" /> : null
+            }
             back={{ label: copy.back, href: LIST }}
             actions={
               <PoActions

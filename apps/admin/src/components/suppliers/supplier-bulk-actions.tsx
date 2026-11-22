@@ -16,6 +16,7 @@ import { bulkActionsContent } from '@/data/bulk-actions'
 import { suppliersContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { runBatched, toastOutcome } from '@/lib/run-batched'
 
 type SupplierBulkActionsProps = {
@@ -60,7 +61,7 @@ export default function SupplierBulkActions({ ids, onDone }: SupplierBulkActions
       setEditing(false)
       onDone()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

@@ -13,6 +13,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { productCollectionsContent } from '@/data/collections'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { CollectionOption } from './product-collections-field'
 
 type NewCollectionDialogProps = {
@@ -50,7 +51,7 @@ export default function NewCollectionDialog({
       setTitle('')
       onOpenChange(false)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setSaving(false)
     }

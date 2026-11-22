@@ -6,7 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import EmptyState from '@/components/layout/empty-state'
@@ -16,11 +16,11 @@ import { appsContent } from '@/data/apps'
 import { automationPiecesContent, automationsContent } from '@/data/automations'
 import { useAutomationCatalogue } from '@/hooks/use-automation-catalogue'
 import { useCopy, useLocale } from '@/hooks/use-copy'
-import type { LoadFailure } from '@/hooks/use-load'
+import { useLoad } from '@/hooks/use-load'
+import { errorText } from '@/lib/api-errors'
 import { automationApi } from '@/lib/automation-api'
 import { actionLabel } from '@/lib/automation-labels'
 import { automationRoutes, recordHref } from '@/lib/automation-routes'
-import { isForbidden } from '@/lib/forbidden'
 
 /** Needs approval: steps set to "Ask before running" waiting for a member to approve or decline. */
 export default function ApprovalsPage() {
@@ -30,23 +30,13 @@ export default function ApprovalsPage() {
   const pieces = useCopy(automationPiecesContent)
   const locale = useLocale()
   const catalogue = useAutomationCatalogue()
-  const [items, setItems] = useState<ApprovalItem[] | null>(null)
-  const [failed, setFailed] = useState<LoadFailure | false>(false)
-  const [attempt, setAttempt] = useState(0)
+  const {
+    data: items,
+    failed,
+    retry,
+    setData: setItems,
+  } = useLoad<ApprovalItem[]>(() => automationApi.approvals.list())
   const [deciding, setDeciding] = useState<string | null>(null)
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is Try again
-  useEffect(() => {
-    let live = true
-    setFailed(false)
-    automationApi.approvals
-      .list()
-      .then((rows) => live && setItems(rows))
-      .catch((err: unknown) => live && setFailed(isForbidden(err) ? 'no-access' : 'error'))
-    return () => {
-      live = false
-    }
-  }, [attempt])
 
   // Event handlers
   const handleDecide = async (item: ApprovalItem, approve: boolean) => {
@@ -56,7 +46,7 @@ export default function ApprovalsPage() {
       setItems((rows) => (rows ?? []).filter((r) => r.stepRunId !== item.stepRunId))
       toast.success(approve ? copy.approved : copy.declined)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setDeciding(null)
     }
@@ -69,7 +59,7 @@ export default function ApprovalsPage() {
         size="page"
         heading={apps.couldNotLoad.approvals}
         failed={failed}
-        onRetry={() => setAttempt((n) => n + 1)}
+        onRetry={retry}
       />
     )
   }

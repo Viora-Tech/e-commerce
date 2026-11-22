@@ -78,8 +78,8 @@ const byEmail: AlertSwitches = { email: true, whatsapp: false, push: false }
 const pushDefault = (alert: MemberAlert): boolean => isPushAlert(alert)
 
 /**
- * Before a member has saved anything: the owner hears about new orders, payment problems and
- * app errors by email; everyone else starts quiet, so a store with ten staff does not send ten
+ * Before a member has saved anything: the owner hears about new orders, unanswered chats, payment
+ * problems and app errors by email; everyone else starts quiet, so a store with ten staff does not send ten
  * copies of every order. The daily summary and the weekly and monthly reports are opt-in for all. News on a bug the member reported
  * themselves reaches everyone by email: it is only ever about their own report.
  */
@@ -91,7 +91,8 @@ function defaultMemberAlertPrefs(isOwner: boolean): MemberAlertPrefs {
   })
   return {
     newOrder: withPush(owner, 'newOrder'),
-    inboxMessage: withPush(off, 'inboxMessage'),
+    // The owner hears about chats nobody answered (owner, 22 Nov 2026); the team opts in.
+    inboxMessage: withPush(owner, 'inboxMessage'),
     approvalWaiting: withPush(off, 'approvalWaiting'),
     lowStock: withPush(off, 'lowStock'),
     paymentProblem: withPush(owner, 'paymentProblem'),

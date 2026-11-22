@@ -22,6 +22,7 @@ import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { LoadFailure } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { isForbidden } from '@/lib/forbidden'
 import ConnectForm from './connect-form'
 import PreflightCard from './preflight-card'
@@ -129,7 +130,7 @@ export default function ConnectPage() {
       })
       router.push(`${base}/runs/${run.id}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.previewFailed)
+      toast.error(errorText(err, copy.previewFailed))
       setBusy(false)
     }
   }

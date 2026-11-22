@@ -9,9 +9,15 @@ export type SystemRole = {
   permissions: Permission[]
 }
 
-/** Everything except the two that let a member reshape the store's access or spend money. */
+/**
+ * Everything except the two that let a member reshape the store's access or spend money, and
+ * "Sign in as customer", which only the owner has until they give it to a role of their own.
+ */
 const ADMIN_PERMISSIONS: Permission[] = ALL_PERMISSIONS.filter(
-  (p) => p !== permissions.BILLING_MANAGE && p !== permissions.STAFF_MANAGE,
+  (p) =>
+    p !== permissions.BILLING_MANAGE &&
+    p !== permissions.STAFF_MANAGE &&
+    p !== permissions.CUSTOMERS_SIGN_IN_AS,
 )
 
 /** Day to day fulfilment work: orders and drafts, stock, read-only everywhere else. */

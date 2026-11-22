@@ -20,7 +20,9 @@ import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { orderReturnsContent, returnDetailContent, returnsContent } from '@/data/returns'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type State = NonNullable<Awaited<ReturnType<typeof api.returns.forOrder>>>
 
@@ -31,9 +33,6 @@ type CreateReturnDialogProps = {
   onClose: () => void
   onDone: () => void
 }
-
-const copy = orderReturnsContent.dialog
-const reasonItems = Object.fromEntries(RETURN_REASONS.map((r) => [r, returnsContent.reasons[r]]))
 
 const isReason = (v: unknown): v is ReturnReason =>
   typeof v === 'string' && (RETURN_REASONS as readonly string[]).includes(v)
@@ -47,10 +46,16 @@ export default function CreateReturnDialog({
   onDone,
 }: CreateReturnDialogProps) {
   // Hooks
+  const returnsCopy = useCopy(returnsContent)
+  const copy = useCopy(orderReturnsContent.dialog)
+  const returnDetailCopy = useCopy(returnDetailContent)
   const [qty, setQty] = useState<Record<string, number>>({})
   const [reason, setReason] = useState<ReturnReason>('damaged')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
+
+  // Derived
+  const reasonItems = Object.fromEntries(RETURN_REASONS.map((r) => [r, returnsCopy.reasons[r]]))
 
   // Event handlers
   const handleQty = (lineId: string, raw: string, max: number) => {
@@ -72,7 +77,7 @@ export default function CreateReturnDialog({
       setNote('')
       onDone()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : returnDetailContent.failed)
+      toast.error(errorText(err, returnDetailCopy.failed))
     } finally {
       setBusy(false)
     }
@@ -135,7 +140,7 @@ export default function CreateReturnDialog({
                 <SelectContent>
                   {RETURN_REASONS.map((r) => (
                     <SelectItem key={r} value={r}>
-                      {returnsContent.reasons[r]}
+                      {returnsCopy.reasons[r]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -154,7 +159,7 @@ export default function CreateReturnDialog({
         )}
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
-            {returnDetailContent.cancel}
+            {returnDetailCopy.cancel}
           </Button>
           <Button
             loading={busy}

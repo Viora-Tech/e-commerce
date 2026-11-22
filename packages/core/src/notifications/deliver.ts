@@ -84,7 +84,7 @@ export type DeliverOptions = {
   /** Links and files installed apps add to this order email (invoice link, invoice PDF). */
   extras?:
     | ((input: { orderId: string; template: TemplateId }) => Promise<{
-        links: { label: string; url: string }[]
+        links: NonNullable<TemplateData['links']>
         attachments: Attachment[]
       }>)
     | undefined

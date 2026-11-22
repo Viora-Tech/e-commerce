@@ -11,7 +11,7 @@ import { Fragment, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import SimpleTable from '@/components/table/simple-table'
-import { growthOverviewContent as copy, SOURCE_LABELS } from '@/data/growth'
+import { growthOverviewContent, SOURCE_LABELS } from '@/data/growth'
 import { growthSplitContent } from '@/data/growth-report'
 import { useCopy } from '@/hooks/use-copy'
 import { formatRate } from '@/lib/analytics-range'
@@ -24,8 +24,6 @@ type SourceTableCardProps = {
   campaigns: CampaignRow[]
 }
 
-const c = copy.sources.columns
-
 /** Width for a row's share-of-sales bar, clamped to a sane range. */
 const shareWidth = (share: number) => `${Math.min(100, Math.round(share * 100))}%`
 
@@ -35,6 +33,8 @@ const shareWidth = (share: number) => `${Math.min(100, Math.round(share * 100))}
  */
 export default function SourceTableCard({ rows, campaigns }: SourceTableCardProps) {
   // Hooks
+  const copy = useCopy(growthOverviewContent)
+  const c = useCopy(growthOverviewContent).sources.columns
   const split = useCopy(growthSplitContent)
   const [expanded, setExpanded] = useState<string | null>(null)
 

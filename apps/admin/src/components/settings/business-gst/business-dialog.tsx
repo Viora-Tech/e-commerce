@@ -16,6 +16,7 @@ import GeneralTextField from '@/components/settings/general-text-field'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type BusinessDialogProps = {
   open: boolean
@@ -72,7 +73,7 @@ export default function BusinessDialog({
       onOpenChange(false)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : all.businessDialog.failed)
+      toast.error(errorText(err, all.businessDialog.failed))
     } finally {
       setSaving(false)
     }

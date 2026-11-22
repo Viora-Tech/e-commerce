@@ -4,24 +4,25 @@ import { RETURN_REASONS, type ReturnPolicy, type ReturnReason } from '@commerce/
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import SwitchRow from '@/components/fields/switch-row'
 import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import ChoiceList from '@/components/returns/choice-list'
 import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-rows'
 import LoadFailed from '@/components/states/load-failed'
-import { returnSettingsContent as copy, returnsContent } from '@/data/returns'
+import { returnSettingsContent, returnsContent } from '@/data/returns'
 import { settingsContent } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import ReturnCustomReasons from './return-custom-reasons'
 import ReturnsRulesCard from './returns-rules-card'
 import SettingsCard from './settings-card'
 import SettingsDrill from './settings-drill'
 import SettingsDrillPanel from './settings-drill-panel'
 import SettingsRow from './settings-row'
-import SettingsToggleRow from './settings-toggle-row'
 
 const clampDays = (raw: string): number => {
   const n = Math.round(Number(raw))
@@ -34,6 +35,9 @@ const clampDays = (raw: string): number => {
  */
 export default function ReturnsSettings() {
   // Hooks
+  const copy = useCopy(returnSettingsContent)
+  const settingsCopy = useCopy(settingsContent)
+  const returnsCopy = useCopy(returnsContent)
   const rowsCopy = useCopy(settingsRowsContent)
   const [form, setForm] = useState<ReturnPolicy | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
@@ -69,7 +73,7 @@ export default function ReturnsSettings() {
       setSaved(JSON.stringify(next))
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -115,9 +119,9 @@ export default function ReturnsSettings() {
     <div className="flex flex-col gap-4">
       <SaveBar
         open={dirty}
-        message={settingsContent.general.unsaved}
+        message={settingsCopy.general.unsaved}
         saveLabel={copy.save}
-        discardLabel={settingsContent.general.discard}
+        discardLabel={settingsCopy.general.discard}
         onSave={handleSave}
         onDiscard={handleDiscard}
         saving={busy}
@@ -137,12 +141,14 @@ export default function ReturnsSettings() {
         >
           <SettingsDrillPanel id="requests">
             <SettingsCard>
-              <SettingsToggleRow
+              <SwitchRow
                 id="returns-enabled"
                 label={copy.enabled}
                 description={copy.enabledHint}
                 checked={form.enabled}
                 onChange={(enabled) => patch({ enabled })}
+                weight="semibold"
+                divided
               />
               <SettingsRow
                 label={copy.window}
@@ -164,12 +170,14 @@ export default function ReturnsSettings() {
                   <span className="text-body text-muted-foreground">{copy.days}</span>
                 </div>
               </SettingsRow>
-              <SettingsToggleRow
+              <SwitchRow
                 id="returns-restock"
                 label={copy.restock}
                 description={copy.restockHint}
                 checked={form.restockAutomatically}
                 onChange={(restockAutomatically) => patch({ restockAutomatically })}
+                weight="semibold"
+                divided
               />
             </SettingsCard>
           </SettingsDrillPanel>
@@ -177,13 +185,15 @@ export default function ReturnsSettings() {
           <SettingsDrillPanel id="reasons">
             <SettingsCard title={copy.reasons} description={copy.reasonsHint}>
               {RETURN_REASONS.map((code) => (
-                <SettingsToggleRow
+                <SwitchRow
                   key={code}
                   id={`reason-${code}`}
-                  label={returnsContent.reasons[code]}
+                  label={returnsCopy.reasons[code]}
                   checked={form.reasons.includes(code)}
                   onChange={(on) => handleReason(code, on)}
                   className="py-3"
+                  weight="semibold"
+                  divided
                 />
               ))}
             </SettingsCard>

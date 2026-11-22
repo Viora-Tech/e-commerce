@@ -15,11 +15,12 @@ import NoticeBar from '@/components/layout/notice-bar'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
-import OrderChip from '@/components/orders/order-chip'
 import DocumentsCard from '@/components/purchase-documents/documents-card'
+import StatusLabel from '@/components/status/status-label'
 import { inboundShipmentFormContent } from '@/data/purchasing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import MarkDeliveredDialog from './mark-delivered-dialog'
 import ShipmentDetailsCard, { type ShipmentDraft } from './shipment-details-card'
@@ -97,7 +98,7 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
       if (shipment) router.refresh()
       else router.replace(routes.stock.inboundShipment(id))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -121,7 +122,7 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
         toast.error(copy.tracking.failed)
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.tracking.failed)
+      toast.error(errorText(err, copy.tracking.failed))
     } finally {
       setTracking(false)
     }
@@ -134,7 +135,7 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
       toast.success(copy.deleted)
       router.push(LIST)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     }
   }
 
@@ -155,7 +156,11 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
               : undefined
           }
           lead={{ kind: 'icon', node: <Truck aria-hidden="true" /> }}
-          badges={shipment ? <OrderChip kind="inboundShipment" value={shipment.status} /> : null}
+          badges={
+            shipment ? (
+              <StatusLabel kind="inboundShipment" value={shipment.status} variant="soft" />
+            ) : null
+          }
           back={{ label: copy.back, href: LIST }}
           actions={
             <>

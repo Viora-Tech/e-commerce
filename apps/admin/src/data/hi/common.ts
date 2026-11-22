@@ -15,6 +15,8 @@ export default [
   translation(copyButtonContent, {
     copy: (what) => `${what} कॉपी करें`,
     copied: (what) => `${what} कॉपी हो गया`,
+    button: 'कॉपी करें',
+    buttonDone: 'कॉपी हो गया',
   }),
   translation(dialogContent, {
     cancel: 'रद्द करें',

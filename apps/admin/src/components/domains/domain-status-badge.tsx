@@ -1,6 +1,6 @@
 import type { DomainView } from '@commerce/core'
 import StatusChip from '@/components/layout/status-chip'
-import { domainsContent as copy, domainCertificateContent, domainEdgeContent } from '@/data/domains'
+import { domainCertificateContent, domainEdgeContent, domainsContent } from '@/data/domains'
 import { useCopy } from '@/hooks/use-copy'
 
 type DomainStatusBadgeProps = {
@@ -12,6 +12,7 @@ type Tone = 'success' | 'attention' | 'danger' | 'info'
 /** One badge for DNS and SSL together, worst state first, as Shopify shows it. */
 export function domainStatus(
   d: DomainStatusBadgeProps['domain'],
+  copy: typeof domainsContent,
   certificate: typeof domainCertificateContent,
   edge: typeof domainEdgeContent,
 ): { label: string; tone: Tone } {
@@ -31,11 +32,12 @@ export function domainStatus(
 /** Status pill for a domain row or header. */
 export default function DomainStatusBadge({ domain }: DomainStatusBadgeProps) {
   // Hooks
+  const copy = useCopy(domainsContent)
   const certificate = useCopy(domainCertificateContent)
   const edge = useCopy(domainEdgeContent)
 
   // Render logic
-  const { label, tone } = domainStatus(domain, certificate, edge)
+  const { label, tone } = domainStatus(domain, copy, certificate, edge)
 
   return <StatusChip tone={tone}>{label}</StatusChip>
 }

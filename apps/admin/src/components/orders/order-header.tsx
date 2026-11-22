@@ -1,19 +1,20 @@
 'use client'
 
 import { ShoppingBag } from '@commerce/ui/icons'
-import { type ReactNode, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
+import StatusLabel from '@/components/status/status-label'
 import { orderDetailContent } from '@/data/order-detail'
 import { orderHoldContent } from '@/data/order-hold'
 import { ordersContent } from '@/data/orders'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { orderChannel } from '@/lib/order-channel'
 import { shownPaymentStatus } from '@/lib/order-next-move'
 import { routes } from '@/lib/routes'
-import OrderChip from './order-chip'
 import {
   importedGatewayLabel,
   methodLabel,
@@ -37,25 +38,13 @@ type OrderHeaderProps = {
  */
 export default function OrderHeader({ order, actions, back }: OrderHeaderProps) {
   // Hooks
+  const salesChannelsCopy = useCopy(salesChannelsContent)
   const copy = useCopy(orderDetailContent)
   const listCopy = useCopy(ordersContent)
   const holdCopy = useCopy(orderHoldContent)
   const fmt = useFormat()
-  const [neighbours, setNeighbours] = useState<Neighbours | null>(null)
-
-  useEffect(() => {
-    let live = true
-    api.orders
-      .neighbours({ id: order.id })
-      .then((n) => {
-        if (live) setNeighbours(n)
-      })
-      // The arrows stay off: the page works without them.
-      .catch(() => undefined)
-    return () => {
-      live = false
-    }
-  }, [order.id])
+  // A failed read leaves the arrows off: the page works without them.
+  const { data: neighbours } = useLoad(() => api.orders.neighbours({ id: order.id }), [order.id])
 
   // Render logic
   // An imported order names Shopify's gateways (its own method reads 'manual'), cleaned (#13).
@@ -82,13 +71,13 @@ export default function OrderHeader({ order, actions, back }: OrderHeaderProps) 
         lead={{ kind: 'tile', node: <ShoppingBag /> }}
         badges={
           <>
-            {closed ? <OrderChip kind="order" value={order.status} /> : null}
-            <OrderChip kind="orderPayment" value={shownPaymentStatus(order)} />
+            {closed ? <StatusLabel kind="order" value={order.status} variant="soft" /> : null}
+            <StatusLabel kind="orderPayment" value={shownPaymentStatus(order)} variant="soft" />
             {/* "Unfulfilled" on a cancelled order is noise: nothing will be shipped (audit #22). */}
             {toShip ? (
               <StatusChip tone="info">{listCopy.toShip}</StatusChip>
             ) : order.status === 'cancelled' && order.fulfillmentStatus === 'unfulfilled' ? null : (
-              <OrderChip kind="fulfilment" value={order.fulfillmentStatus} />
+              <StatusLabel kind="fulfilment" value={order.fulfillmentStatus} variant="soft" />
             )}
             {order.hold ? <StatusChip tone="attention">{holdCopy.chip}</StatusChip> : null}
             {order.isTest ? (
@@ -98,7 +87,7 @@ export default function OrderHeader({ order, actions, back }: OrderHeaderProps) 
             ) : null}
             {soldThrough ? (
               <StatusChip tone="neutral" variant="outline">
-                {salesChannelsContent.orderCard.via(soldThrough.name)}
+                {salesChannelsCopy.orderCard.via(soldThrough.name)}
               </StatusChip>
             ) : null}
           </>

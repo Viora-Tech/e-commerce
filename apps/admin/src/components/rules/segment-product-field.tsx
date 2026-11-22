@@ -1,13 +1,15 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import ResourcePickDialog, {
   type PickPage,
   type PickResult,
   type PickTab,
 } from '@/components/pickers/resource-pick-dialog'
-import { segmentsContent as copy } from '@/data/customers'
+import { segmentsContent } from '@/data/customers'
+import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 
 type SegmentProductFieldProps = {
@@ -21,21 +23,12 @@ const PAGE = 30
 /** "Bought a product": the chosen product's name, and the Browse picker to change it (#1020). */
 export default function SegmentProductField({ value, onChange }: SegmentProductFieldProps) {
   // Hooks
+  const copy = useCopy(segmentsContent)
   const [open, setOpen] = useState(false)
-  const [title, setTitle] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!value) {
-      setTitle(null)
-      return
-    }
-    let live = true
-    api.products.list({ page: 1, perPage: 1, ids: [value] }).then((r) => {
-      if (live) setTitle(r.items[0]?.title ?? null)
-    })
-    return () => {
-      live = false
-    }
+  const { data: title, setData: setTitle } = useLoad(async () => {
+    if (!value) return null
+    const r = await api.products.list({ page: 1, perPage: 1, ids: [value] })
+    return r.items[0]?.title ?? null
   }, [value])
 
   // Event handlers

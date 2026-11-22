@@ -25,6 +25,7 @@ import { QUERY_WRITER_MARKER } from './query-writer'
 import { REVIEW_REPLY_MARKER } from './review-reply'
 import { REVIEW_SUMMARY_MARKER } from './review-summary'
 import { SECTION_WRITER_MARKER } from './section-writer'
+import { SEO_ASSISTANT_MARKER } from './seo-assistant/prompt'
 import { SEO_KEYWORDS_MARKER } from './seo-keywords/prompt'
 import { STORE_KNOWLEDGE_MARKER } from './store-knowledge'
 
@@ -58,6 +59,24 @@ function photoCount(prompt: Prompt): number {
   const message = prompt[lastUserIndex(prompt)]
   if (message?.role !== 'user') return 0
   return message.content.filter((part) => part.type === 'file').length
+}
+
+/** A canned search listing for "Fix with AI", from the title and the first real search. */
+function seoAssistant(prompt: Prompt): string {
+  const text = lastUserText(prompt)
+  const title = titleFrom(text)
+  const query = /^- (.+?): \d+ \/ /m.exec(text)?.[1]
+  const lead = query ? `${query.charAt(0).toUpperCase()}${query.slice(1)}` : title
+  return JSON.stringify({
+    seoTitle: `${lead} | ${title}`,
+    seoDescription: `${title}: a sturdy, comfortable pick for everyday use. See the details, photos and price, and order online today.`,
+    snippet: `Q: What is ${title}?
+A: ${title} is made for everyday use, with a sturdy build and a clean look that fits most setups. It is easy to start with and needs no extra tools.
+Q: Who is it for?
+A: Anyone who wants a dependable option without fuss, at home or at work. It suits beginners and regular users alike, and the details on this page cover what you need to choose.
+Q: How do I pick the right one?
+A: Compare the sizes and options above, read the photos and description, and choose the one that matches how you use it most days.`,
+  })
 }
 
 /** Canned keywords built from the product's title, the first one primary. */
@@ -152,6 +171,7 @@ function generated(prompt: Prompt): string {
   const system = systemText(prompt)
   if (system.includes(DOCUMENT_READ_MARKER)) return documentRead(system)
   if (system.includes(SEO_KEYWORDS_MARKER)) return seoKeywords(prompt)
+  if (system.includes(SEO_ASSISTANT_MARKER)) return seoAssistant(prompt)
   if (system.includes(QUERY_WRITER_MARKER)) return analyticsQuery(prompt)
   if (system.includes(CAMPAIGN_WRITER_MARKER)) {
     return JSON.stringify({

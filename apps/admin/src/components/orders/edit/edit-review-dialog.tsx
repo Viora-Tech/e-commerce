@@ -17,6 +17,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { orderEditContent } from '@/data/order-edit'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import RefundRouteField from '../refund-route-field'
 import EditShippedAlert from './edit-shipped-alert'
 import { lineName } from './edit-state'
@@ -106,7 +107,7 @@ export default function EditReviewDialog({
         setRoute(p.refund.original ? 'original' : 'manual')
         setRequestPayment(p.canEmail)
       })
-      .catch((err) => live && setError(err instanceof Error ? err.message : copy.failed))
+      .catch((err) => live && setError(errorText(err, copy.failed)))
     return () => {
       live = false
     }
@@ -127,7 +128,7 @@ export default function EditReviewDialog({
       toast.success(copy.saved)
       onSaved()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

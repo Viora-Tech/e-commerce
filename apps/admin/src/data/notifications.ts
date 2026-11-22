@@ -291,6 +291,22 @@ export const notificationsSettingsContent = {
       name: 'Monthly report (team)',
       when: 'On the 1st of every month, to each team member who turned it on in Account → Notifications.',
     },
+    staff_chat_waiting: {
+      name: 'Chats waiting for a reply (team)',
+      when: 'When a shopper’s chat has had no answer for 5 minutes, to each team member with Inbox email alerts on. At most once per chat every 30 minutes.',
+    },
+    chat_reply: {
+      name: 'Chat reply while away',
+      when: 'When you reply in the Inbox and the shopper has not seen it for 5 minutes, with the chat and a link back to it. At most once per chat every 30 minutes.',
+    },
+    chat_transcript: {
+      name: 'Chat transcript',
+      when: 'When you close an Inbox chat you answered, a copy of the whole chat to the shopper who left an email.',
+    },
+    staff_seo_weekly: {
+      name: 'Weekly SEO email (owner)',
+      when: 'Every Monday morning, to the store owner, while Google Search Console is connected.',
+    },
     account_deletion_code: {
       name: 'Account deletion code',
       when: 'When a shopper asks to delete their account; the code confirms it is them.',
@@ -333,6 +349,10 @@ export const notificationsSettingsContent = {
     close: 'Close',
     sendTest: 'Send me a test',
     frameTitle: (name: string) => `Email preview of ${name}`,
+    /** The message's own page (owner, 22 Nov 2026, Shopify's email page). */
+    back: 'Notifications',
+    edit: 'Edit',
+    notFound: 'This message does not exist.',
   },
 
   test: {

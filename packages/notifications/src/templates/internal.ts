@@ -18,6 +18,8 @@ export const INTERNAL: ReadonlySet<TemplateId> = new Set<TemplateId>([
   'staff_daily_summary',
   'staff_weekly_report',
   'staff_monthly_report',
+  'staff_seo_weekly',
+  'staff_chat_waiting',
   'contact_message',
   'question_asked',
   'affiliate_application',

@@ -10,11 +10,11 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Switch } from '@commerce/ui/shadcn/switch'
+import SwitchRow from '@/components/fields/switch-row'
 import StatusChip from '@/components/layout/status-chip'
 import { customerAccountsContent, PROVIDER_COPY } from '@/data/customer-accounts'
 import { useCopy } from '@/hooks/use-copy'
 import SettingsCard from './settings-card'
-import SettingsToggleRow from './settings-toggle-row'
 
 type SignInProvidersCardProps = {
   form: Settings
@@ -78,7 +78,7 @@ export default function SignInProvidersCard({
             key={p}
             className="flex flex-col gap-3 border-b border-hairline py-5 first:pt-0 last:border-b-0 last:pb-0"
           >
-            <SettingsToggleRow
+            <SwitchRow
               id={`provider-${p}`}
               label={
                 <>
@@ -92,6 +92,8 @@ export default function SignInProvidersCard({
               checked={s.enabled}
               onChange={(on) => handleToggle(p, on)}
               className="border-b-0 pb-0"
+              weight="semibold"
+              divided
             />
             {s.enabled ? (
               <div className="flex flex-col gap-3 rounded-lg border p-3">

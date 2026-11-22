@@ -1,6 +1,7 @@
 import { THEME_FONTS, type Theme } from '@commerce/core/theme'
 import { cn } from '@commerce/ui/lib/utils'
-import { themesContent as copy } from '@/data/themes'
+import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 
 type ThemeSwatchProps = {
   theme: Theme
@@ -13,6 +14,9 @@ const rem = (px: number) => `${px / 16}rem`
 
 /** A small card drawn in a theme's own light colours, heading face and button shape. */
 export default function ThemeSwatch({ theme, name, className }: ThemeSwatchProps) {
+  // Hooks
+  const copy = useCopy(themesContent)
+
   // Render logic
   const scheme = theme.schemes.find((s) => s.id === theme.lightScheme) ?? theme.schemes[0]
   const background = scheme?.background ?? '#FFFFFF'

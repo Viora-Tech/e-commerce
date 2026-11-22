@@ -118,7 +118,7 @@ export default function DropReveal({
                           {image?.url ? (
                             <Picture
                               image={image}
-                              alt={image.alt ?? product.title}
+                              alt={image.alt || product.title}
                               className="drop-reveal__image"
                               width={400}
                               height={400}

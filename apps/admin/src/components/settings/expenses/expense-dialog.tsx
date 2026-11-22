@@ -23,7 +23,7 @@ import FormDialog from '@/components/layout/form-dialog'
 import { monthlyExpensesContent } from '@/data/monthly-expenses'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { focusField } from '@/lib/api-errors'
+import { errorText, focusField } from '@/lib/api-errors'
 
 type ExpenseDialogProps = {
   /** The version being changed; null adds a new expense. */
@@ -77,7 +77,7 @@ export default function ExpenseDialog({ expense, month, onClose, onSaved }: Expe
       toast.success(copy.saved)
       onSaved()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
       throw err
     }
   }

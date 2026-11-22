@@ -1,6 +1,6 @@
 import { type StockState, stockStateOf } from '@commerce/core/catalog'
-import OrderChip from '@/components/orders/order-chip'
 import ProductThumb from '@/components/products/product-thumb'
+import StatusLabel from '@/components/status/status-label'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { productsListContent } from '@/data/products'
 import type { api } from '@/lib/api-client'
@@ -71,7 +71,7 @@ export const productColumns = (
     title: copy.columns.status,
     sortValue: (p) => p.status,
     align: 'center',
-    render: (p) => <OrderChip kind="product" value={p.status} />,
+    render: (p) => <StatusLabel kind="product" value={p.status} variant="soft" />,
   },
   {
     id: 'inventory',

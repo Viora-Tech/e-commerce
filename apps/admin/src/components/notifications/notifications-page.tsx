@@ -1,11 +1,12 @@
 'use client'
 
-import { PlugConnect } from '@commerce/ui/icons'
+import { Palette, PlugConnect } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useQueryState } from 'nuqs'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import HelpFooter from '@/components/payments/help-footer'
 import HealthLine from '@/components/settings/health-line'
@@ -15,6 +16,7 @@ import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-
 import SettingsTable from '@/components/settings/settings-table'
 import WhatsThisHelp from '@/components/settings/whats-this-help'
 import LoadFailed from '@/components/states/load-failed'
+import { emailBrandingContent } from '@/data/email-branding'
 import { type MessageGroupId, notificationsSettingsContent } from '@/data/notifications'
 import { senderEmailContent } from '@/data/sender-email'
 import { settingsRowsContent } from '@/data/settings-rows'
@@ -23,12 +25,11 @@ import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import AdvancedSection from './advanced-section'
-import DesignEditorDialog from './design/design-editor-dialog'
 import MessageRow from './message-row'
-import PreviewDialog from './preview-dialog'
 import SenderEmailCard from './sender-email-card'
 import SendingCard from './sending-card'
 import type { MessageRowData, NotificationsOverview, SenderEmailOverview } from './types'
+import { useSendTest } from './use-send-test'
 
 type MessageId = Parameters<typeof api.notifications.setMessage>[0]['id']
 
@@ -45,10 +46,6 @@ const GROUPS: MessageGroupId[] = [
 /** Advanced (the developer log) only exists while developing. */
 const DEV = process.env.NODE_ENV !== 'production'
 
-function errorText(err: unknown, fallback: string): string {
-  return err instanceof Error && err.message ? err.message : fallback
-}
-
 /** "3 of 5 on" for a list of messages. */
 function countOn(list: MessageRowData[], label: (on: number, total: number) => string): string {
   return label(list.filter((m) => m.on).length, list.length)
@@ -61,13 +58,12 @@ function countOn(list: MessageRowData[], label: (on: number, total: number) => s
  */
 export default function NotificationsPage() {
   // Hooks
+  const senderEmailCopy = useCopy(senderEmailContent)
   const copy = useCopy(notificationsSettingsContent)
   const rowsCopy = useCopy(settingsRowsContent)
+  const brandingCopy = useCopy(emailBrandingContent)
   const [data, setData] = useState<NotificationsOverview | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
-  const [testing, setTesting] = useState<string | null>(null)
-  const [previewing, setPreviewing] = useState<string | null>(null)
-  const [designing, setDesigning] = useState<string | null>(null)
   const [senderEmail, setSenderEmail] = useState<SenderEmailOverview | null>(null)
   const [openRow] = useQueryState('open')
 
@@ -76,6 +72,7 @@ export default function NotificationsPage() {
     setData(overview)
     return overview
   })
+  const { testing, sendTest } = useSendTest(data)
   // The Sender email row shows the address (#68); reload it on the way back from its detail.
   // biome-ignore lint/correctness/useExhaustiveDependencies: `openRow` re-runs the load
   useEffect(() => {
@@ -115,9 +112,7 @@ export default function NotificationsPage() {
           saving={saving === m.id}
           testing={testing === m.id}
           onToggle={(on) => handleToggle(m, on)}
-          onPreview={() => setPreviewing(m.id)}
-          onTest={() => handleTest(m)}
-          onEditDesign={() => setDesigning(m.id)}
+          onTest={() => void sendTest(m.id)}
         />
       ))}
     </SettingsTable>
@@ -136,34 +131,6 @@ export default function NotificationsPage() {
     } finally {
       setSaving(null)
     }
-  }
-
-  const handleTest = async (m: MessageRowData) => {
-    if (!data?.canSendTest) {
-      toast.info(copy.test.noChannel)
-      return
-    }
-    setTesting(m.id)
-    try {
-      const r = await api.notifications.sendTest({ id: m.id as MessageId })
-      if (!r.ok) toast.error(r.error === 'no_channel' ? copy.test.noChannel : copy.test.failed)
-      else if (data.channels.email.state === 'connected' || data.platformEmail) {
-        toast.success(copy.test.sent(r.to))
-      } else toast.success(copy.test.sentLog)
-    } catch (err) {
-      toast.error(errorText(err, copy.test.failed))
-    } finally {
-      setTesting(null)
-    }
-  }
-
-  const handleClosePreview = () => setPreviewing(null)
-
-  const handleDesignSaved = (id: string, designed: boolean) => patchMessage(id, { designed })
-
-  const handlePreviewTest = () => {
-    const m = data?.messages.find((row) => row.id === previewing)
-    if (m) void handleTest(m)
   }
 
   // Early returns
@@ -195,7 +162,7 @@ export default function NotificationsPage() {
     {
       id: 'sender',
       title: r.sender,
-      help: senderEmailContent.help,
+      help: senderEmailCopy.help,
       value: senderEmail ? (senderEmail.sender?.email ?? r.senderNotSet) : undefined,
     },
     {
@@ -253,6 +220,22 @@ export default function NotificationsPage() {
         }
       >
         <SettingsDrillPanel id="messages">
+          <DataCard
+            title={brandingCopy.title}
+            action={
+              <Button
+                variant="outline"
+                size="sm"
+                nativeButton={false}
+                render={<Link href={routes.settings.emailBranding()} />}
+              >
+                <Palette aria-hidden="true" />
+                {brandingCopy.open}
+              </Button>
+            }
+          >
+            <p className="text-body text-muted-foreground">{brandingCopy.openHelp}</p>
+          </DataCard>
           {GROUPS.map((g) => {
             const list = rows(g)
             if (list.length === 0) return null
@@ -281,19 +264,6 @@ export default function NotificationsPage() {
         ) : null}
       </SettingsDrill>
       <HelpFooter page="notifications" />
-
-      <PreviewDialog
-        messageId={previewing}
-        onClose={handleClosePreview}
-        onTest={handlePreviewTest}
-        testing={previewing !== null && testing === previewing}
-      />
-
-      <DesignEditorDialog
-        messageId={designing}
-        onClose={() => setDesigning(null)}
-        onSaved={handleDesignSaved}
-      />
     </div>
   )
 }

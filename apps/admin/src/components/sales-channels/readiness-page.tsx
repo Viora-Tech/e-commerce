@@ -62,6 +62,7 @@ function byRule(issues: readonly ReadinessIssue[]) {
  */
 export default function ReadinessPage({ report, aiBulk }: ReadinessPageProps) {
   // Hooks
+  const salesChannelsCopy = useCopy(salesChannelsContent)
   const router = useRouter()
   const copy = useCopy(salesChannelsContent.readiness)
   const groupCopy = useCopy(catalogReadinessContent)
@@ -118,7 +119,7 @@ export default function ReadinessPage({ report, aiBulk }: ReadinessPageProps) {
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
-        back={{ label: salesChannelsContent.overview.title, href: routes.salesChannels.agentic() }}
+        back={{ label: salesChannelsCopy.overview.title, href: routes.salesChannels.agentic() }}
         actions={
           <>
             <Button variant="outline" onClick={() => router.refresh()}>
@@ -137,104 +138,104 @@ export default function ReadinessPage({ report, aiBulk }: ReadinessPageProps) {
       <PageColumns
         main={
           <>
-          {groups.length > 1 ? (
-            <DataCard title={groupCopy.heading} flush>
-              <ul className="divide-y divide-border border-t border-border">
-                {groups.map((g) => {
-                  const ids = g.items.filter((i) => i.fix === 'ai').map((i) => i.ref)
-                  const allAi = aiBulk && ids.length === g.items.length
-                  return (
-                    <li key={g.rule} className="flex items-center gap-3 px-5 py-3">
-                      <span className="flex min-w-0 flex-1 flex-col">
-                        <span className="text-body font-medium text-foreground">
-                          {groupCopy.groups[g.rule]}
+            {groups.length > 1 ? (
+              <DataCard title={groupCopy.heading} flush>
+                <ul className="divide-y divide-border border-t border-border">
+                  {groups.map((g) => {
+                    const ids = g.items.filter((i) => i.fix === 'ai').map((i) => i.ref)
+                    const allAi = aiBulk && ids.length === g.items.length
+                    return (
+                      <li key={g.rule} className="flex items-center gap-3 px-5 py-3">
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <span className="text-body font-medium text-foreground">
+                            {groupCopy.groups[g.rule]}
+                          </span>
+                          <span className="text-caption text-muted-foreground">
+                            {groupCopy.products(g.items.length)}
+                          </span>
                         </span>
-                        <span className="text-caption text-muted-foreground">
-                          {groupCopy.products(g.items.length)}
-                        </span>
-                      </span>
-                      {allAi ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleWrite(ids.slice(0, AI_RUN_MAX))}
-                        >
-                          <AiIcon />
-                          {groupCopy.fixAll(Math.min(ids.length, AI_RUN_MAX))}
-                        </Button>
-                      ) : (
-                        <Button variant="outline" size="sm" onClick={() => handleRule(g.rule)}>
-                          {groupCopy.show}
-                        </Button>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
+                        {allAi ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleWrite(ids.slice(0, AI_RUN_MAX))}
+                          >
+                            <AiIcon />
+                            {groupCopy.fixAll(Math.min(ids.length, AI_RUN_MAX))}
+                          </Button>
+                        ) : (
+                          <Button variant="outline" size="sm" onClick={() => handleRule(g.rule)}>
+                            {groupCopy.show}
+                          </Button>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </DataCard>
+            ) : null}
+            <DataCard title={copy.issuesHeading} count={report.issues.length} flush>
+              {rule ? (
+                <div className="flex items-center justify-between gap-3 px-4 pb-3 text-body">
+                  <span className="text-foreground">
+                    {groupCopy.showing(groupCopy.groups[rule])}
+                  </span>
+                  <Button
+                    variant="link"
+                    size="xs"
+                    className="h-auto px-0"
+                    onClick={() => handleRule(null)}
+                  >
+                    {groupCopy.clear}
+                  </Button>
+                </div>
+              ) : null}
+              <PillTabs
+                label={copy.issuesHeading}
+                className="px-4 pb-3"
+                tabs={FILTERS.map((f) => ({
+                  value: f,
+                  label: f === 'all' ? copy.all : copy.severity[f],
+                  count: f === 'all' ? report.issues.length : report.counts[f],
+                }))}
+                value={filter}
+                onChange={handleFilter}
+              />
+              {visible.length === 0 ? (
+                <EmptyState variant="plain" size="sm" body={copy.empty} />
+              ) : (
+                <ul className="divide-y divide-border border-t border-border">
+                  {visible.map((i) => (
+                    <IssueRow
+                      key={i.id}
+                      severity={i.severity}
+                      severityLabel={copy.severity[i.severity]}
+                      title={i.kind === 'policy' ? (copy.policyNames[i.ref] ?? i.title) : i.title}
+                      kind={i.kind === 'policy' ? copy.policy : copy.product}
+                      detail={detail(i)}
+                      action={action(i)}
+                    />
+                  ))}
+                </ul>
+              )}
+              {matching.length > visible.length ? (
+                <div className="flex justify-end border-t border-border px-4 py-3">
+                  <Button
+                    variant="link"
+                    size="xs"
+                    onClick={() => setShown(shown + PAGE)}
+                    className="h-auto px-0"
+                  >
+                    {copy.more(Math.min(PAGE, matching.length - visible.length))}
+                  </Button>
+                </div>
+              ) : null}
+              {!aiBulk && report.aiFixable.length > 0 ? (
+                <p className="border-t border-border px-4 py-3 text-caption text-muted-foreground">
+                  {copy.aiOff}
+                </p>
+              ) : null}
             </DataCard>
-          ) : null}
-          <DataCard title={copy.issuesHeading} count={report.issues.length} flush>
-            {rule ? (
-              <div className="flex items-center justify-between gap-3 px-4 pb-3 text-body">
-                <span className="text-foreground">
-                  {groupCopy.showing(groupCopy.groups[rule])}
-                </span>
-                <Button
-                  variant="link"
-                  size="xs"
-                  className="h-auto px-0"
-                  onClick={() => handleRule(null)}
-                >
-                  {groupCopy.clear}
-                </Button>
-              </div>
-            ) : null}
-            <PillTabs
-              label={copy.issuesHeading}
-              className="px-4 pb-3"
-              tabs={FILTERS.map((f) => ({
-                value: f,
-                label: f === 'all' ? copy.all : copy.severity[f],
-                count: f === 'all' ? report.issues.length : report.counts[f],
-              }))}
-              value={filter}
-              onChange={handleFilter}
-            />
-            {visible.length === 0 ? (
-              <EmptyState variant="plain" size="sm" body={copy.empty} />
-            ) : (
-              <ul className="divide-y divide-border border-t border-border">
-                {visible.map((i) => (
-                  <IssueRow
-                    key={i.id}
-                    severity={i.severity}
-                    severityLabel={copy.severity[i.severity]}
-                    title={i.kind === 'policy' ? (copy.policyNames[i.ref] ?? i.title) : i.title}
-                    kind={i.kind === 'policy' ? copy.policy : copy.product}
-                    detail={detail(i)}
-                    action={action(i)}
-                  />
-                ))}
-              </ul>
-            )}
-            {matching.length > visible.length ? (
-              <div className="flex justify-end border-t border-border px-4 py-3">
-                <Button
-                  variant="link"
-                  size="xs"
-                  onClick={() => setShown(shown + PAGE)}
-                  className="h-auto px-0"
-                >
-                  {copy.more(Math.min(PAGE, matching.length - visible.length))}
-                </Button>
-              </div>
-            ) : null}
-            {!aiBulk && report.aiFixable.length > 0 ? (
-              <p className="border-t border-border px-4 py-3 text-caption text-muted-foreground">
-                {copy.aiOff}
-              </p>
-            ) : null}
-          </DataCard>
           </>
         }
         side={

@@ -17,6 +17,7 @@ import { staffContent } from '@/data/staff'
 import { staffInvitesContent } from '@/data/staff-invites'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 export type InvitableRole = { id: string; name: string; slug: string }
 
@@ -61,7 +62,7 @@ export default function InviteDialog({ open, roles, onOpenChange, onInvited }: I
     } catch (err) {
       const seats = staffLimit(err)
       if (seats) toast.error(copy.invite.limit(seats.limit), { description: copy.invite.limitHelp })
-      else toast.error(err instanceof Error ? err.message : copy.invite.failed)
+      else toast.error(errorText(err, copy.invite.failed))
     } finally {
       setSending(false)
     }

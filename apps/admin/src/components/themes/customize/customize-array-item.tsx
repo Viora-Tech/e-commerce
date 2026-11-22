@@ -12,10 +12,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
-import { AutoField, type Field } from '@puckeditor/core'
+import type { Field } from '@puckeditor/core'
 import Image from 'next/image'
 import type { ReactNode } from 'react'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
+import StableAutoField from './stable-auto-field'
 
 type CustomizeArrayItemProps = {
   item: Record<string, unknown>
@@ -31,8 +33,6 @@ type CustomizeArrayItemProps = {
   onDelete: () => void
 }
 
-const copy = customizeContent.array
-
 /** One card in a Customize array field: a Hero slide, a logo, an FAQ entry. */
 export default function CustomizeArrayItem({
   item,
@@ -47,6 +47,9 @@ export default function CustomizeArrayItem({
   onDuplicate,
   onDelete,
 }: CustomizeArrayItemProps) {
+  // Hooks
+  const copy = useCopy(customizeContent.array)
+
   // Render logic
   const keys = Object.keys(arrayFields)
   const showMenu = canDuplicate || canDelete
@@ -107,7 +110,7 @@ export default function CustomizeArrayItem({
       <CollapsibleContent>
         <div className="flex flex-col gap-3 border-t border-border px-3 py-3">
           {keys.map((key) => (
-            <AutoField
+            <StableAutoField
               key={key}
               field={arrayFields[key] as NonNullable<(typeof arrayFields)[string]>}
               value={item[key]}

@@ -13,6 +13,7 @@ import ProductThumb from '@/components/products/product-thumb'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import DeleteReviewsDialog from './delete-reviews-dialog'
 import ReviewStars from './review-stars'
@@ -40,7 +41,7 @@ export default function ReviewSideCards({ detail, onChanged, onDeleted }: Review
       toast.success(all.detail.saved)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : all.list.failed)
+      toast.error(errorText(err, all.list.failed))
     } finally {
       setBusy(false)
     }

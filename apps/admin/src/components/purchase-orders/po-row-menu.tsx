@@ -9,6 +9,7 @@ import RowMenu from '@/components/table/row-menu'
 import { type PurchaseOrderStatus, purchaseOrderFormContent } from '@/data/inventory'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import EmailPoDialog, { type EmailPoRequest } from './email-po-dialog'
 
 type PoRowMenuProps = {
@@ -45,7 +46,7 @@ export default function PoRowMenu({ po, onChanged }: PoRowMenuProps) {
     try {
       await work()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.saveFailed)
+      toast.error(errorText(err, copy.saveFailed))
     } finally {
       setBusy(false)
     }

@@ -7,6 +7,7 @@ import ActionMenu from '@/components/layout/action-menu'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import DeleteReviewsDialog from './delete-reviews-dialog'
 
@@ -38,7 +39,7 @@ export default function ReviewRowActions({
       toast.success(next === 'published' ? copy.bulk.approved(1) : copy.bulk.hidden(1))
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     }
   }
 
@@ -48,7 +49,7 @@ export default function ReviewRowActions({
       toast.success(next ? copy.row.featured : copy.row.unfeatured)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     }
   }
 

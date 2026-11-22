@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@commerce/ui/shadcn/table'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCard from '@/components/layout/data-card'
@@ -18,7 +18,9 @@ import TableSkeletonRows from '@/components/table/table-skeleton-rows'
 import { appsContent } from '@/data/apps'
 import { gstReturnsContent } from '@/data/gst-invoices'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { monthLabel, recentMonths } from './return-months'
 import { CELL, HEAD } from './table-classes'
 
@@ -38,29 +40,14 @@ export default function PeriodsTable({ gst, selected, onSelect, onChanged }: Per
   // Hooks
   const copy = useCopy(gstReturnsContent)
   const apps = useCopy(appsContent)
-  /** Null until the filed and closed marks are read, so no month shows "Open" by mistake. */
-  const [periods, setPeriods] = useState<Period[] | null>(null)
-  const [failed, setFailed] = useState(false)
-  const [attempt, setAttempt] = useState(0)
+  const {
+    data,
+    failed,
+    loading,
+    retry,
+    setData: setPeriods,
+  } = useLoad(() => api.gstInvoices.periods.list({ gstRegistrationId: gst }), [gst])
   const [busy, setBusy] = useState<string | null>(null)
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is Try again
-  useEffect(() => {
-    let cancelled = false
-    setPeriods(null)
-    setFailed(false)
-    api.gstInvoices.periods.list({ gstRegistrationId: gst }).then(
-      (p) => {
-        if (!cancelled) setPeriods(p)
-      },
-      () => {
-        if (!cancelled) setFailed(true)
-      },
-    )
-    return () => {
-      cancelled = true
-    }
-  }, [gst, attempt])
 
   // Helpers
   const run = async (key: string, fn: () => Promise<unknown>) => {
@@ -70,7 +57,7 @@ export default function PeriodsTable({ gst, selected, onSelect, onChanged }: Per
       setPeriods(await api.gstInvoices.periods.list({ gstRegistrationId: gst }))
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
     }
@@ -87,16 +74,15 @@ export default function PeriodsTable({ gst, selected, onSelect, onChanged }: Per
     )
 
   // Render logic
+  /** Null until the filed and closed marks are read, so no month shows "Open" by mistake. */
+  const periods: Period[] | null = loading ? null : data
   const p = copy.periods
   const byPeriod = new Map((periods ?? []).map((row) => [row.period, row]))
 
   return (
     <DataCard title={p.title} flush>
       {failed ? (
-        <LoadFailedState
-          heading={apps.couldNotLoad.summary}
-          onRetry={() => setAttempt((n) => n + 1)}
-        />
+        <LoadFailedState heading={apps.couldNotLoad.summary} failed={failed} onRetry={retry} />
       ) : (
         <Table>
           <TableHeader>

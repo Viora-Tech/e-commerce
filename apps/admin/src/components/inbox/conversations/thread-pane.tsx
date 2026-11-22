@@ -15,6 +15,7 @@ import { inboxKnowledgeContent } from '@/data/inbox-knowledge'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { conversationName, withDayBreaks, withMessage } from '@/lib/inbox-view'
 import { routes } from '@/lib/routes'
 import AiActiveBanner from './ai-active-banner'
@@ -161,8 +162,7 @@ export default function ThreadPane({
   }, [typingAt])
 
   // Helpers
-  const fail = (err: unknown) =>
-    toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+  const fail = (err: unknown) => toast.error(errorText(err, copy.failed))
   const reload = async () => {
     const t = await api.inbox.get({ id: conversationId })
     setThread(t)

@@ -8,6 +8,7 @@ import RowMenu from '@/components/table/row-menu'
 import { type TransferStatus, transferFormContent } from '@/data/inventory'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type TransferRowMenuProps = {
   transfer: { id: string; status: TransferStatus; units: number }
@@ -28,7 +29,7 @@ export default function TransferRowMenu({ transfer, onChanged }: TransferRowMenu
       toast.success(done)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.saveFailed)
+      toast.error(errorText(err, copy.saveFailed))
     }
   }
 

@@ -50,3 +50,34 @@ export function documentLinkPath(secret: string, input: LinkInput, now?: Date): 
   const { expires, token } = signDocumentLink(secret, input, now)
   return `/documents/${input.documentId}?e=${expires}&t=${token}`
 }
+
+/**
+ * An order's invoice, whichever it turns out to be: the payment email goes out before the invoice
+ * is issued (the app hears `order.paid` after the email is queued), so it links the order and the
+ * download page finds the invoice when the shopper clicks. Signed like a document link, over
+ * `order:<id>` so a document token never opens an order and the other way round.
+ */
+export type OrderLinkInput = { storeId: string; orderId: string }
+
+const orderInput = (input: OrderLinkInput): LinkInput => ({
+  storeId: input.storeId,
+  documentId: `order:${input.orderId}`,
+})
+
+export function verifyOrderInvoiceLink(
+  secret: string,
+  input: OrderLinkInput & { expires: number; token: string },
+  now: Date = new Date(),
+): boolean {
+  return verifyDocumentLink(
+    secret,
+    { ...orderInput(input), expires: input.expires, token: input.token },
+    now,
+  )
+}
+
+/** `/documents/order/<orderId>?e=…&t=…` on the storefront host. */
+export function orderInvoiceLinkPath(secret: string, input: OrderLinkInput, now?: Date): string {
+  const { expires, token } = signDocumentLink(secret, orderInput(input), now)
+  return `/documents/order/${input.orderId}?e=${expires}&t=${token}`
+}

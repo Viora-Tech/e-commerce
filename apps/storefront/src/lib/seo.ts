@@ -58,6 +58,51 @@ type StoreIdentity = {
   description?: string | undefined
   email?: string | null | undefined
   phone?: string | null | undefined
+  /** The store's profiles (Theme settings › Social media), for `sameAs`. */
+  sameAs?: readonly string[] | undefined
+}
+
+/**
+ * Theme settings › Social media as `sameAs` profile URLs. WhatsApp is a chat link, not a
+ * profile page, so it is left out.
+ */
+export function socialProfiles(links: readonly { platform: string; url: string }[]): string[] {
+  return links.flatMap((l) => (l.platform === 'whatsapp' || !l.url ? [] : [l.url]))
+}
+
+/**
+ * A collection's meta description: its own SEO description, else its body text, else one
+ * written from its title, the first few products and the store, never the store-wide one.
+ */
+export function collectionDescription(c: {
+  seoDescription: string | null | undefined
+  plain: string
+  title: string
+  storeName: string
+  products: readonly string[]
+}): string | undefined {
+  return metaDescription(
+    c.seoDescription ||
+      c.plain ||
+      seoContent.autoDescription.collection(c.title, c.storeName, c.products),
+  )
+}
+
+/**
+ * A product's meta description: its own SEO description, else the prose of its body (`prose`,
+ * empty for a bare spec dump), else a sentence from its title, brand and price.
+ */
+export function productDescription(p: {
+  seoDescription: string | null | undefined
+  prose: string
+  title: string
+  vendor: string | null
+  storeName: string
+  price: string | null
+}): string | undefined {
+  if (p.seoDescription || p.prose) return metaDescription(p.seoDescription || p.prose)
+  const vendor = p.vendor && p.vendor.toLowerCase() !== p.storeName.toLowerCase() ? p.vendor : null
+  return metaDescription(seoContent.autoDescription.product(p.title, p.storeName, vendor, p.price))
 }
 
 /** Organization + WebSite with a sitelinks search box, for the home page. */
@@ -83,6 +128,7 @@ export function storeGraph(s: StoreIdentity) {
         name: s.name,
         url: `${s.origin}/`,
         ...(s.logoUrl ? { logo: s.logoUrl } : {}),
+        ...(s.sameAs?.length ? { sameAs: [...s.sameAs] } : {}),
         ...contact,
       },
       {
@@ -133,6 +179,8 @@ type ProductForLd = {
   reviews?: { author: string; rating: number; title: string; body: string }[] | undefined
   /** The store's returns and India shipping (`productOfferPolicies`), for merchant listings. */
   policies?: OfferPolicies | null | undefined
+  /** The breadcrumb's middle step (`breadcrumbCollection`): the brand's or first collection. */
+  collection?: { title: string; url: string } | null | undefined
 }
 
 /**
@@ -333,6 +381,7 @@ export function productGraph(
       },
       breadcrumbList(origin, [
         { name: seoContent.home, path: '/' },
+        ...(p.collection ? [{ name: p.collection.title, path: p.collection.url }] : []),
         { name: p.title, path: `/products/${p.handle}` },
       ]),
     ],

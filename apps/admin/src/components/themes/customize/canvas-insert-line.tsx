@@ -7,6 +7,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { type CustomizeDoc, locateSection } from '@/lib/customize-doc'
 import { type CanvasEdge, edgeNear, type SectionBox, targetForEdge } from '@/lib/customize-insert'
 import { useRequestInsert } from '@/lib/customize-insert-context'
@@ -62,6 +63,7 @@ function visibleSpan(doc: Document, zoom: number): { left: number; right: number
  */
 export default function CanvasInsertLine({ document }: CanvasInsertLineProps) {
   // Hooks
+  const treeCopy = useCopy(customizeContent.tree)
   // Read when the pointer moves, not subscribed: typing would otherwise redraw this and
   // re-bind its listeners on every key.
   const getPuck = useGetPuck()
@@ -149,7 +151,7 @@ export default function CanvasInsertLine({ document }: CanvasInsertLineProps) {
   }
 
   // Render logic
-  const label = customizeContent.tree.insertHere
+  const label = treeCopy.insertHere
 
   return createPortal(
     <AnimatePresence>

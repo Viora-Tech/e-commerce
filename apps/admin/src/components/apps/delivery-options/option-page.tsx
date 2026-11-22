@@ -17,6 +17,7 @@ import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy } from '@/hooks/use-copy'
 import type { LoadFailure } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { isForbidden } from '@/lib/forbidden'
 import { routes } from '@/lib/routes'
 import OptionForm from './option-form'
@@ -74,7 +75,7 @@ export default function DeliveryOptionPage({ params }: AppPageProps) {
         router.replace(routes.apps.page(APP, 'options', next.id))
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -87,7 +88,7 @@ export default function DeliveryOptionPage({ params }: AppPageProps) {
       toast.success(copy.deleted)
       router.push(routes.apps.page(APP, 'options'))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     }
   }
 

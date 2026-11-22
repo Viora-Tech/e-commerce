@@ -4,8 +4,7 @@ import SettingsTable from '@/components/settings/settings-table'
 import SettingsTableCell from '@/components/settings/settings-table-cell'
 import SettingsTableRow from '@/components/settings/settings-table-row'
 import { domainsContent } from '@/data/domains'
-
-const copy = domainsContent.detail.records
+import { useCopy } from '@/hooks/use-copy'
 
 type DnsRecordsCardProps = {
   records: DnsRecord[]
@@ -13,6 +12,7 @@ type DnsRecordsCardProps = {
 
 /** The records to add at the registrar, each value one click from the clipboard. */
 export default function DnsRecordsCard({ records }: DnsRecordsCardProps) {
+  const copy = useCopy(domainsContent.detail.records)
   return (
     <SettingsTable
       heading={copy.heading}

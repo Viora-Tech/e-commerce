@@ -15,6 +15,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { accountContent } from '@/data/account'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type ChangeEmailDialogProps = {
   open: boolean
@@ -74,7 +75,7 @@ export default function ChangeEmailDialog({
       setEmail(sentTo)
       setStep('code')
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.failed)
+      setError(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -90,7 +91,7 @@ export default function ChangeEmailDialog({
       reset()
       onChanged(result.email)
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.failed)
+      setError(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

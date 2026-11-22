@@ -43,6 +43,7 @@ import { inventoryContent, locationsContent, type ManualReasonValue } from '@/da
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { ListQuery } from '@/lib/list-query'
 import { routes } from '@/lib/routes'
 import {
@@ -193,7 +194,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
       await refresh().catch(() => setFailed(true))
       return true
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.cell.failed)
+      toast.error(errorText(err, copy.cell.failed))
       return false
     }
   }
@@ -222,7 +223,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
       setBulk(undefined)
       await refresh().catch(() => setFailed(true))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.bulk.failed)
+      toast.error(errorText(err, copy.bulk.failed))
     } finally {
       setBusy(false)
     }
@@ -251,9 +252,13 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
         toast.error(copy.exporting.empty)
         return
       }
-      downloadInventoryCsv(all, locations.find((l) => l.id === locationId)?.name ?? '')
+      downloadInventoryCsv(
+        all,
+        locations.find((l) => l.id === locationId)?.name ?? '',
+        copy.exporting,
+      )
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.exporting.failed)
+      toast.error(errorText(err, copy.exporting.failed))
     } finally {
       setExporting(false)
     }

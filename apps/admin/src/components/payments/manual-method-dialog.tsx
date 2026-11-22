@@ -16,6 +16,7 @@ import PaymentAdjustmentFields from '@/components/settings/payment-adjustment-fi
 import { paymentRoutingContent } from '@/data/payment-routing'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { PaymentsSetup } from './types'
 
 type ManualMethodDialogProps = {
@@ -76,7 +77,7 @@ export default function ManualMethodDialog({
       onOpenChange(false)
       await onSaved()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : rowCopy.saveFailed)
+      toast.error(errorText(err, rowCopy.saveFailed))
     } finally {
       setSaving(false)
     }

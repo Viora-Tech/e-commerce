@@ -13,12 +13,13 @@ import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import StatusChip from '@/components/layout/status-chip'
 import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-rows'
-import { policiesContent as copy } from '@/data/policies'
+import { policiesContent } from '@/data/policies'
 import { settingsContent } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy } from '@/hooks/use-copy'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatDate } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
 import SettingsCard from './settings-card'
@@ -34,19 +35,14 @@ type PolicyRowProps = {
 
 type Officer = PolicySettings['grievanceOfficer']
 
-const OFFICER_FIELDS: { key: keyof Officer; type: string; placeholder?: string }[] = [
-  { key: 'name', type: 'text' },
-  { key: 'designation', type: 'text', placeholder: copy.grievance.designationPlaceholder },
-  { key: 'email', type: 'email' },
-  { key: 'phone', type: 'tel' },
-]
-
 /**
  * Settings → Policies, Shopify-style (#147): rows for the five policies, the business name every
  * policy prints and the grievance officer, each opening in place (`?open=`).
  */
 export default function PoliciesSettings() {
   // Hooks
+  const copy = useCopy(policiesContent)
+  const settingsCopy = useCopy(settingsContent)
   const rowsCopy = useCopy(settingsRowsContent)
   const announceSetup = useSetupNext()
   const [policies, setPolicies] = useState<StorePolicy[] | null>(null)
@@ -66,6 +62,14 @@ export default function PoliciesSettings() {
       .catch(() => setFailed(true))
   }, [])
 
+  // Derived
+  const officerFields: { key: keyof Officer; type: string; placeholder?: string }[] = [
+    { key: 'name', type: 'text' },
+    { key: 'designation', type: 'text', placeholder: copy.grievance.designationPlaceholder },
+    { key: 'email', type: 'email' },
+    { key: 'phone', type: 'tel' },
+  ]
+
   // Helpers
   const patchOfficer = (key: keyof Officer, value: string) =>
     setForm((f) => (f ? { ...f, grievanceOfficer: { ...f.grievanceOfficer, [key]: value } } : f))
@@ -81,7 +85,7 @@ export default function PoliciesSettings() {
       toast.success(copy.saved)
       void announceSetup('policies')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -137,9 +141,9 @@ export default function PoliciesSettings() {
     <div className="flex flex-col gap-4">
       <SaveBar
         open={dirty}
-        message={settingsContent.general.unsaved}
+        message={settingsCopy.general.unsaved}
         saveLabel={copy.save}
-        discardLabel={settingsContent.general.discard}
+        discardLabel={settingsCopy.general.discard}
         onSave={handleSave}
         onDiscard={handleDiscard}
         saving={busy}
@@ -192,7 +196,7 @@ export default function PoliciesSettings() {
 
           <SettingsDrillPanel id="grievance">
             <SettingsCard id="grievance-officer">
-              {OFFICER_FIELDS.map((f) => (
+              {officerFields.map((f) => (
                 <SettingsTextRow
                   key={f.key}
                   id={`grievance-${f.key}`}
@@ -213,6 +217,7 @@ export default function PoliciesSettings() {
 
 /* One policy: its name, whether shoppers can see it, when it last changed, and the next step. */
 function PolicyRow({ policy }: PolicyRowProps) {
+  const copy = useCopy(policiesContent)
   const created = policy.pageId !== null
   const status = !created ? 'missing' : policy.published ? 'published' : 'draft'
   const variant = status === 'published' ? 'success' : status === 'draft' ? 'neutral' : 'attention'

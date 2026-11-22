@@ -26,6 +26,7 @@ import { orderDetailContent } from '@/data/order-detail'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { useStoreCreditReturn } from '@/hooks/use-store-credit-return'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import type { OrderPayment } from './order-detail-types'
 
 type RefundDialogProps = {
@@ -102,7 +103,7 @@ export default function RefundDialog({
       setExpiresOn('')
       onDone()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.refundDialog.failed)
+      toast.error(errorText(err, copy.refundDialog.failed))
     } finally {
       setBusy(false)
     }

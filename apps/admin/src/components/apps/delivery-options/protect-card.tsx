@@ -16,6 +16,7 @@ import SettingsCard from '@/components/settings/settings-card'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { bpsToPercent, percentToBps, protectCardOf, protectDraftOf } from './protect-draft'
 import ProtectTypeOverrides from './protect-type-overrides'
 
@@ -54,7 +55,7 @@ export default function ProtectCard({ card, onChanged }: ProtectCardProps) {
       toast.success(copy.saved)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

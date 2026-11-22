@@ -11,6 +11,7 @@ import PageHeader from '@/components/layout/page-header'
 import { methodLabel } from '@/components/orders/order-detail-types'
 import { analyticsContent } from '@/data/analytics'
 import { INDIAN_STATES } from '@/data/india'
+import { orderDetailContent } from '@/data/order-detail'
 import { useCopy } from '@/hooks/use-copy'
 import type { LoadFailure } from '@/hooks/use-load'
 import { formatDay, type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
@@ -48,10 +49,13 @@ function toStateRows(overview: AnalyticsOverview): BreakdownRow[] {
   }))
 }
 
-function toMethodRows(overview: AnalyticsOverview): BreakdownRow[] {
+function toMethodRows(
+  overview: AnalyticsOverview,
+  detail: typeof orderDetailContent,
+): BreakdownRow[] {
   return overview.paymentMethods.map((r) => ({
     key: r.method,
-    label: methodLabel(r.method),
+    label: methodLabel(r.method, detail),
     meta: `${r.orders}`,
     revenuePaise: r.revenuePaise,
     share: r.share,
@@ -65,6 +69,7 @@ export default function AnalyticsOverviewPage({
 }: AnalyticsOverviewPageProps) {
   // Hooks
   const copy = useCopy(analyticsContent)
+  const detailCopy = useCopy(orderDetailContent)
   const [range, setRange] = useState(initialRange)
   const [data, setData] = useState(initial)
   const [loading, setLoading] = useState(false)
@@ -189,7 +194,7 @@ export default function AnalyticsOverviewPage({
               />
               <BreakdownCard
                 title={copy.paymentMethods.title}
-                rows={toMethodRows(data)}
+                rows={toMethodRows(data, detailCopy)}
                 empty={copy.paymentMethods.empty}
               />
             </div>

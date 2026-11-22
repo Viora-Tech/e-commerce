@@ -16,6 +16,7 @@ import { reviewToolsContent } from '@/data/review-tools'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import {
   CLEAR_REVIEW_FILTERS,
   REVIEW_FILTER_PARAMS,
@@ -77,7 +78,7 @@ function ReviewsList() {
         ...reviewFilterInput(q),
       })
       .then((r) => !cancelled && setResult(r))
-      .catch((err: unknown) => toast.error(err instanceof Error ? err.message : copy.list.failed))
+      .catch((err: unknown) => toast.error(errorText(err, copy.list.failed)))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
@@ -102,7 +103,7 @@ function ReviewsList() {
       clear()
       reload()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.list.failed)
+      toast.error(errorText(err, copy.list.failed))
     } finally {
       setBusy(false)
     }

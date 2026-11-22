@@ -14,6 +14,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { customerStoreCreditContent } from '@/data/customer-store-credit'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { todayKey } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 
@@ -72,7 +73,7 @@ export default function StoreCreditDialog({
       reset()
       onDone()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : d.failed)
+      toast.error(errorText(err, d.failed))
     } finally {
       setBusy(false)
     }

@@ -1,17 +1,19 @@
 'use client'
 
 import type { LoginProvider } from '@commerce/core/customer-accounts'
-import { Copy, Trash2 } from '@commerce/ui/icons'
+import { Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import CopyField from '@/components/fields/copy-field'
 import FormDialog from '@/components/layout/form-dialog'
 import { customerAccountsContent, PROVIDER_COPY } from '@/data/customer-accounts'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type LoginAppDialogProps = {
   provider: LoginProvider | null
@@ -42,14 +44,8 @@ export default function LoginAppDialog({
   const providers = useCopy(PROVIDER_COPY)
   const [values, setValues] = useState<Record<string, string>>(saved ?? {})
   const [busy, setBusy] = useState(false)
-  const [copied, setCopied] = useState(false)
 
   // Event handlers
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(redirectUrl)
-    setCopied(true)
-  }
-
   const handleSave = async () => {
     if (!provider) return
     setBusy(true)
@@ -59,7 +55,7 @@ export default function LoginAppDialog({
       onSaved()
       onOpenChange(false)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : content.sheet.failed)
+      toast.error(errorText(err, content.sheet.failed))
     } finally {
       setBusy(false)
     }
@@ -112,13 +108,7 @@ export default function LoginAppDialog({
         </ol>
         <Field>
           <FieldLabel htmlFor="login-redirect">{content.sheet.redirectLabel}</FieldLabel>
-          <div className="flex gap-2">
-            <Input id="login-redirect" readOnly value={redirectUrl} className="font-mono" />
-            <Button type="button" variant="outline" onClick={handleCopy}>
-              <Copy aria-hidden="true" />
-              {copied ? content.sheet.copied : content.sheet.copy}
-            </Button>
-          </div>
+          <CopyField id="login-redirect" value={redirectUrl} />
         </Field>
         <FieldGroup>
           {fields[provider].map((f) => {

@@ -2,13 +2,13 @@
 
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { useEffect, useState } from 'react'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogHeader from '@/components/layout/dialog-header'
 import EmptyState from '@/components/layout/empty-state'
 import RelativeTime from '@/components/layout/relative-time'
 import { inventoryContent, REASON_LABELS } from '@/data/inventory'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 
 type Entry = Awaited<ReturnType<typeof api.inventory.history>>[number]
@@ -32,22 +32,14 @@ export default function HistoryDialog({
 }: HistoryDialogProps) {
   // Hooks
   const { history: copy } = useCopy(inventoryContent)
-  const [rows, setRows] = useState<Entry[] | null>(null)
-
-  useEffect(() => {
-    if (!variantId) return
-    let cancelled = false
-    setRows(null)
-    api.inventory
-      .history({ variantId, locationId })
-      .then((r) => !cancelled && setRows(r))
-      .catch(() => !cancelled && setRows([]))
-    return () => {
-      cancelled = true
-    }
-  }, [variantId, locationId])
+  const { data, failed, loading } = useLoad(
+    async () => (variantId ? api.inventory.history({ variantId, locationId }) : []),
+    [variantId, locationId],
+  )
 
   // Render logic
+  // A failed read reads as no history, as before.
+  const rows: Entry[] | null = failed ? [] : loading ? null : data
   return (
     <Dialog open={variantId !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent>

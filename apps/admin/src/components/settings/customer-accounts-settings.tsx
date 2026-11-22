@@ -11,6 +11,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import SwitchRow from '@/components/fields/switch-row'
 import EmptyState from '@/components/layout/empty-state'
 import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
@@ -20,18 +21,15 @@ import LoginAppDialog from '@/components/settings/login-app-dialog'
 import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-rows'
 import SignInExtrasCard from '@/components/settings/sign-in-extras-card'
 import SignInProvidersCard from '@/components/settings/sign-in-providers-card'
-import {
-  customerAccountsContent as copy,
-  LOGIN_METHOD_COPY,
-  PROVIDER_COPY,
-} from '@/data/customer-accounts'
+import { customerAccountsContent, LOGIN_METHOD_COPY, PROVIDER_COPY } from '@/data/customer-accounts'
 import { settingsContent } from '@/data/settings'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import SettingsCard from './settings-card'
 import SettingsDrill from './settings-drill'
 import SettingsDrillPanel from './settings-drill-panel'
-import SettingsToggleRow from './settings-toggle-row'
 
 type Loaded = {
   settings: Settings
@@ -47,6 +45,8 @@ type Loaded = {
 /** Settings → Customer accounts: guest checkout, and every way customers can sign in. */
 export default function CustomerAccountsSettings() {
   // Hooks
+  const copy = useCopy(customerAccountsContent)
+  const settingsCopy = useCopy(settingsContent)
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [form, setForm] = useState<Settings | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
@@ -93,7 +93,7 @@ export default function CustomerAccountsSettings() {
       setSaved(JSON.stringify(settings))
       toast.success(copy.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -145,9 +145,9 @@ export default function CustomerAccountsSettings() {
     <div className="flex flex-col gap-4">
       <SaveBar
         open={dirty && !none}
-        message={settingsContent.general.unsaved}
+        message={settingsCopy.general.unsaved}
         saveLabel={copy.save}
-        discardLabel={settingsContent.general.discard}
+        discardLabel={settingsCopy.general.discard}
         onSave={handleSave}
         onDiscard={() => saved && setForm(JSON.parse(saved) as Settings)}
         saving={busy}
@@ -191,7 +191,7 @@ export default function CustomerAccountsSettings() {
                 const can = loaded.available.includes(m)
                 const text = LOGIN_METHOD_COPY[m]
                 return (
-                  <SettingsToggleRow
+                  <SwitchRow
                     key={m}
                     id={`login-${m}`}
                     label={
@@ -204,6 +204,8 @@ export default function CustomerAccountsSettings() {
                     checked={form.loginMethods.includes(m)}
                     disabled={!can && !form.loginMethods.includes(m)}
                     onChange={(on) => toggle(m, on)}
+                    weight="semibold"
+                    divided
                   />
                 )
               })}

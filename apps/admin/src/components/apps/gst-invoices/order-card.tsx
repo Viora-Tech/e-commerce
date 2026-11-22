@@ -17,6 +17,7 @@ import { gstAlreadyInvoicedContent } from '@/data/gst-already-invoiced'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatDay } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import OrderCardChanges from './order-card-changes'
@@ -25,8 +26,6 @@ import { saveFile } from './save-file'
 type OrderCardProps = { orderId: string }
 
 type Data = Awaited<ReturnType<typeof api.gstInvoices.forOrder>>
-
-const copy = gstInvoicesContent.orderCard
 const APP = '/apps/gst-invoices'
 
 const cleanGstin = (v: string) => (v.trim() ? v.trim().toUpperCase() : null)
@@ -49,6 +48,7 @@ const isWaiting = (d: Data) =>
  */
 export default function OrderCard({ orderId }: OrderCardProps) {
   // Hooks
+  const copy = useCopy(gstInvoicesContent.orderCard)
   const apps = useCopy(appsContent)
   const outsideCopy = useCopy(gstAlreadyInvoicedContent)
   const [data, setData] = useState<Data | null>(null)
@@ -102,7 +102,7 @@ export default function OrderCard({ orderId }: OrderCardProps) {
       await reload()
       if (done) toast.success(done)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
     }

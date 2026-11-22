@@ -16,13 +16,14 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import MoneyInput from '@/components/fields/money-input'
+import SwitchRow from '@/components/fields/switch-row'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
-import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { CARRIERS, toNumber, toRupees } from './format'
 
 export type RouteSettingTarget =
@@ -107,7 +108,7 @@ export default function RouteSettingDialog({
       onSaved()
       onOpenChange(false)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
     }
@@ -230,18 +231,22 @@ export default function RouteSettingDialog({
             </div>
             <FieldDescription>{d.costCardHelp}</FieldDescription>
           </Field>
-          <SettingsToggleRow
+          <SwitchRow
             id="route-enabled"
             label={d.enabled}
             checked={draft.enabled}
             onChange={(enabled) => patch({ enabled })}
+            weight="semibold"
+            divided
           />
-          <SettingsToggleRow
+          <SwitchRow
             id="route-show-name"
             label={d.showName}
             description={d.showNameHelp}
             checked={draft.showName}
             onChange={(showName) => patch({ showName })}
+            weight="semibold"
+            divided
           />
         </FieldGroup>
         <DialogFooter>

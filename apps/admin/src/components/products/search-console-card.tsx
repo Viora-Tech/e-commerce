@@ -2,17 +2,15 @@
 
 import { isAlmostPageOne, isLowCtr, SEARCH_CONSOLE_APP_ID } from '@commerce/core/search-console'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import DeltaChip from '@/components/layout/delta-chip'
 import EmptyState from '@/components/layout/empty-state'
 import { searchConsoleContent } from '@/data/search-console'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { formatRate } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
-
-type SearchCard = Awaited<ReturnType<typeof api.searchConsole.product>>
 
 type SearchConsoleCardProps = { productId: string }
 
@@ -25,21 +23,14 @@ export default function SearchConsoleCard({ productId }: SearchConsoleCardProps)
   // Hooks
   const copy = useCopy(searchConsoleContent)
   const fmt = useFormat()
-  const [card, setCard] = useState<SearchCard | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    api.searchConsole
-      .product({ productId })
-      .then((c) => !cancelled && setCard(c))
-      .catch(() => !cancelled && setCard({ state: 'hidden' }))
-    return () => {
-      cancelled = true
-    }
-  }, [productId])
+  // A read that fails hides the card: the product page works without it.
+  const { data: card, failed } = useLoad(
+    () => api.searchConsole.product({ productId }),
+    [productId],
+  )
 
   // Early returns
-  if (!card || card.state === 'hidden') return null
+  if (!card || failed || card.state === 'hidden') return null
 
   // Render logic
   const p = copy.product

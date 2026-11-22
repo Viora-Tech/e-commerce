@@ -48,7 +48,7 @@ const defaults: Omit<ImageComparisonProps, keyof Frame> = {
 function productPicture(product: CardProduct | null, n: number): Image | null {
   const images = product?.images.filter((i) => i.url) ?? []
   const image = images[Math.max(0, Math.round(n) - 1)] ?? images[0]
-  return image && product ? { ...image, alt: image.alt ?? product.title } : null
+  return image && product ? { ...image, alt: image.alt || product.title } : null
 }
 
 export function imageComparisonSection(loaders: ZeroDriftLoaders): ComponentConfig {

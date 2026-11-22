@@ -3,7 +3,8 @@ import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
 import DeltaChip from '@/components/layout/delta-chip'
 import EmptyState from '@/components/layout/empty-state'
 import SimpleTable, { type SimpleTableColumn } from '@/components/table/simple-table'
-import { analyticsContent as copy } from '@/data/analytics'
+import { analyticsContent } from '@/data/analytics'
+import { useCopy } from '@/hooks/use-copy'
 import { change, formatCell, isNumericKind, LOWER_IS_BETTER } from '@/lib/report-format'
 
 type ReportTableProps = {
@@ -19,6 +20,9 @@ const alignTo = (column: ReportColumn): SimpleTableColumn['align'] =>
 
 /** The rows behind a report in the columns it declares, the metric compared with the period before. */
 export default function ReportTable({ report, data }: ReportTableProps) {
+  // Hooks
+  const copy = useCopy(analyticsContent)
+
   // Early returns
   if (data.rows.length === 0) {
     return <EmptyState variant="inline" body={copy.reports.empty} />

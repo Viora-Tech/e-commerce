@@ -22,6 +22,7 @@ import { shipmentDetailsContent } from '@/data/shipping'
 import { statesContent } from '@/data/states'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { todayKey } from '@/lib/format-date'
 import { pickupRefusal, startingPickupPlan, TIME_24H } from './create-shipment/pickup-plan'
 
@@ -34,8 +35,6 @@ type PickupsTabProps = {
   provider?: string | undefined
 }
 
-const copy = shipmentsContent.pickups
-
 /** Keeps the rows of `provider`, or every row when none is given. */
 const ofProvider = <T extends { provider: string }>(rows: T[], provider: string | undefined) =>
   provider ? rows.filter((r) => r.provider === provider) : rows
@@ -43,6 +42,7 @@ const ofProvider = <T extends { provider: string }>(rows: T[], provider: string 
 /** Book a pickup for shipments waiting on one, then turn a pickup into a printable manifest. */
 export default function PickupsTab({ provider }: PickupsTabProps = {}) {
   // Hooks
+  const copy = useCopy(shipmentsContent.pickups)
   const details = useCopy(shipmentDetailsContent)
   const actions = useCopy(shipmentActionsContent)
   const states = useCopy(statesContent)
@@ -121,7 +121,7 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
       setSelected([])
       toast.success(actions.pickupDone(selected.length))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     } finally {
       setBusy(null)
     }
@@ -133,7 +133,7 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
       await api.shipments.createManifest({ pickupId })
       setReloadKey((k) => k + 1)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toast.error(errorText(err, String(err)))
     } finally {
       setBusy(null)
     }

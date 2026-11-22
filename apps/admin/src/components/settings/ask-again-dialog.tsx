@@ -2,6 +2,7 @@
 
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { customerPrivacyContent, dataRequestDetailContent } from '@/data/customer-privacy'
+import { useCopy } from '@/hooks/use-copy'
 
 type AskAgainDialogProps = {
   open: boolean
@@ -10,8 +11,6 @@ type AskAgainDialogProps = {
   onConfirm: () => void
 }
 
-const copy = customerPrivacyContent.banner
-
 /** Confirms showing the cookie banner to every shopper again. */
 export default function AskAgainDialog({
   open,
@@ -19,6 +18,10 @@ export default function AskAgainDialog({
   onOpenChange,
   onConfirm,
 }: AskAgainDialogProps) {
+  // Hooks
+  const copy = useCopy(customerPrivacyContent.banner)
+  const dataRequestDetailCopy = useCopy(dataRequestDetailContent)
+
   // Render logic
   return (
     <ConfirmDialog
@@ -27,7 +30,7 @@ export default function AskAgainDialog({
       title={copy.askAgainConfirmTitle}
       body={copy.askAgainConfirmBody}
       confirmLabel={copy.askAgainConfirm}
-      cancelLabel={dataRequestDetailContent.cancel}
+      cancelLabel={dataRequestDetailCopy.cancel}
       tone="default"
       busy={busy}
       onConfirm={onConfirm}

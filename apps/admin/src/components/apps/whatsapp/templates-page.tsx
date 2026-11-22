@@ -4,7 +4,7 @@ import { permissions } from '@commerce/core/permissions'
 import { CircleAlert } from '@commerce/ui/icons'
 import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
@@ -14,8 +14,10 @@ import { appsContent } from '@/data/apps'
 import { notificationsSettingsContent } from '@/data/notifications'
 import { whatsappAppContent } from '@/data/whatsapp-app'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import TemplateCard from './template-card'
 
 type Templates = Awaited<ReturnType<typeof api.platformApps.whatsappTemplates>>
@@ -32,24 +34,11 @@ export default function WhatsappTemplatesPage() {
   const apps = useCopy(appsContent)
   const settingsCopy = useCopy(notificationsSettingsContent)
   const { hasPermission } = usePermissions()
-  const [data, setData] = useState<Templates | null>(null)
-  const [busy, setBusy] = useState<string | null>(null)
   /** The templates read failed: Try again instead of bars that never fill. */
-  const [failed, setFailed] = useState(false)
-  const [attempt, setAttempt] = useState(0)
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is Try again
-  useEffect(() => {
-    let live = true
-    setFailed(false)
-    api.platformApps
-      .whatsappTemplates()
-      .then((r) => live && setData(r))
-      .catch(() => live && setFailed(true))
-    return () => {
-      live = false
-    }
-  }, [attempt])
+  const { data, failed, retry, setData } = useLoad<Templates>(() =>
+    api.platformApps.whatsappTemplates(),
+  )
+  const [busy, setBusy] = useState<string | null>(null)
 
   // Helpers
   const labelOf = (id: string) =>
@@ -64,7 +53,7 @@ export default function WhatsappTemplatesPage() {
       for (const r of failed) if (!r.ok) toast.error(copy.submit.failed(labelOf(r.id), r.error))
       setData(await api.platformApps.whatsappTemplates())
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.submit.error)
+      toast.error(errorText(err, copy.submit.error))
     } finally {
       setBusy(null)
     }
@@ -121,11 +110,7 @@ export default function WhatsappTemplatesPage() {
         )
       ) : null}
       {!data && failed ? (
-        <LoadFailedState
-          size="page"
-          heading={apps.couldNotLoad.templates}
-          onRetry={() => setAttempt((n) => n + 1)}
-        />
+        <LoadFailedState size="page" heading={apps.couldNotLoad.templates} onRetry={retry} />
       ) : !data ? (
         // Two template cards (name and status, the body, its parameters).
         <div className="flex flex-col gap-3" role="status" aria-label={words.loading}>

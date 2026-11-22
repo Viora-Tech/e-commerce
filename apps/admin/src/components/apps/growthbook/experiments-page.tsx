@@ -16,6 +16,7 @@ import { appsContent } from '@/data/apps'
 import { growthbookContent } from '@/data/growthbook'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import ExperimentList from './experiment-list'
 
 type View = Awaited<ReturnType<typeof api.growthbook.settings.get>>
@@ -41,9 +42,6 @@ const formOf = (view: View): Form => ({
   appUrl: view.appUrl,
   secretKey: '',
 })
-
-const errorText = (copy: Copy, err: unknown) =>
-  err instanceof Error && err.message ? err.message : copy.failed
 
 function statusOf(copy: Copy, view: View): string {
   if (view.listing) return copy.status.listing
@@ -104,7 +102,7 @@ export default function ExperimentsPage() {
     try {
       await work()
     } catch (err) {
-      toast.error(errorText(copy, err))
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
     }

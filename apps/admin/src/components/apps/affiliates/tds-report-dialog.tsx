@@ -13,6 +13,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type TdsReportDialogProps = {
   open: boolean
@@ -38,7 +39,7 @@ export default function TdsReportDialog({ open, onOpenChange, onDownload }: TdsR
       onDownload(`tds-26q-fy${pick.fy}-q${pick.quarter}.csv`, csv)
       onOpenChange(false)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : failed)
+      toast.error(errorText(err, failed))
     } finally {
       setBusy(false)
     }

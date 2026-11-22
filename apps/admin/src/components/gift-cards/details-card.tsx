@@ -2,6 +2,7 @@ import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import KeyValueList from '@/components/layout/key-value-list'
 import { giftCardDetailContent, giftCardsContent } from '@/data/gift-cards'
+import { useCopy } from '@/hooks/use-copy'
 import { formatPattern } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
 
@@ -16,8 +17,6 @@ type DetailsCardProps = {
     message: string | null
   }
 }
-
-const copy = giftCardDetailContent.details
 const WHEN = {
   day: 'numeric',
   month: 'short',
@@ -28,6 +27,8 @@ const WHEN = {
 
 /** Where the card came from and whether its code has been emailed. */
 export default function DetailsCard({ card }: DetailsCardProps) {
+  const copy = useCopy(giftCardDetailContent.details)
+  const giftCardsCopy = useCopy(giftCardsContent)
   return (
     <DataCard title={copy.heading}>
       <KeyValueList
@@ -43,10 +44,10 @@ export default function DetailsCard({ card }: DetailsCardProps) {
                   href={routes.orders.detail(card.orderId)}
                   className="text-link hover:underline"
                 >
-                  {giftCardsContent.source.purchase(card.orderNumber)}
+                  {giftCardsCopy.source.purchase(card.orderNumber)}
                 </Link>
               ) : (
-                giftCardsContent.source.manual
+                giftCardsCopy.source.manual
               ),
           },
           {

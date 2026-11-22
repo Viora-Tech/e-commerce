@@ -12,6 +12,7 @@ import {
 } from '@commerce/ui/icons'
 import { RichTextMenu, type RichtextField } from '@puckeditor/core'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 
 type Editor = Parameters<NonNullable<RichtextField['renderMenu']>>[0]['editor']
 
@@ -77,8 +78,6 @@ const CONTROLS: Control[] = [
   { key: 'rule', command: 'setHorizontalRule', mark: null, icon: RuleIcon, inline: false },
 ]
 
-const copy = customizeContent.toolbar.formatting
-
 /**
  * The text menus' formatting buttons in Hugeicons glyphs (the editor's icon set), in place of
  * Puck's built-in ones: Puck's `RichTextMenu.Control` with our icon, and only the commands the
@@ -89,6 +88,9 @@ export default function RichtextFormatControls({
   readOnly,
   set,
 }: RichtextFormatControlsProps) {
+  // Hooks
+  const copy = useCopy(customizeContent.toolbar.formatting)
+
   // Render logic
   const commands = (editor?.commands ?? {}) as Record<string, unknown>
   const shown = CONTROLS.filter(

@@ -9,9 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
-import { useEffect, useState } from 'react'
 import { sharedParcelContent } from '@/data/shared-parcel'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 
 type SameBoxFieldProps = {
@@ -30,22 +30,11 @@ const OWN = 'own'
 export default function SameBoxField({ orderId, value, onChange }: SameBoxFieldProps) {
   // Hooks
   const copy = useCopy(sharedParcelContent)
-  const [choices, setChoices] = useState<SameBoxChoice[]>([])
-  useEffect(() => {
-    let live = true
-    api.orders
-      .sameBoxChoices({ orderId })
-      .then((c) => {
-        if (live) setChoices(c)
-      })
-      // Without the list the card still packs into the order's own parcel.
-      .catch(() => undefined)
-    return () => {
-      live = false
-    }
-  }, [orderId])
+  // Without the list the card still packs into the order's own parcel.
+  const { data } = useLoad(() => api.orders.sameBoxChoices({ orderId }), [orderId])
 
   // Early returns
+  const choices: SameBoxChoice[] = data ?? []
   if (choices.length === 0) return null
 
   // Render logic

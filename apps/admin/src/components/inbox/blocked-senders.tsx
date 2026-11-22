@@ -12,6 +12,7 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import InboxTable from './inbox-table'
 
 type Block = Awaited<ReturnType<typeof api.inbox.blocks.list>>[number]
@@ -38,7 +39,7 @@ export default function BlockedSenders() {
       setBlocks((rows) => (rows ?? []).filter((b) => b.id !== id))
       toast.success(copy.blocks.unblocked)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(null)
     }

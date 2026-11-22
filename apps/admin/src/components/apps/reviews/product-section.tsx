@@ -5,7 +5,7 @@ import Link from 'next/link'
 import type { ProductSectionProps } from '@/apps/product-sections'
 import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import EmptyState from '@/components/layout/empty-state'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import { appsContent } from '@/data/apps'
 import { productPageContent } from '@/data/product-page'
 import { reviewToolsContent } from '@/data/review-tools'
@@ -75,7 +75,7 @@ export default function ProductSection({ productId }: ProductSectionProps) {
                     {r.reviewerName || copy.reviews.anonymous}
                   </span>
                 </div>
-                <OrderChip kind="review" value={r.status} />
+                <StatusLabel kind="review" value={r.status} variant="soft" />
               </li>
             ))}
           </ul>

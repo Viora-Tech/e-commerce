@@ -15,6 +15,7 @@ import type { Field } from '@puckeditor/core'
 import { useState } from 'react'
 import { arrayItemSortLabels, customizeContent } from '@/data/customize'
 import { dynamicSourcesContent } from '@/data/dynamic-sources'
+import { useCopy } from '@/hooks/use-copy'
 import { type FieldLike, isImageField } from '@/lib/customize-field-shape'
 import { isLiquidBlocks, liquidItemFields, liquidItemTitle } from '@/lib/customize-liquid-blocks'
 import { itemKinds } from '@/lib/customize-loops'
@@ -46,9 +47,6 @@ type CustomizeArrayFieldProps = {
 
 type Row = { id: string; item: Record<string, unknown>; index: number }
 
-const copy = customizeContent.array
-const loopCopy = dynamicSourcesContent.loops
-
 /** The image sub-field's value, for the card thumbnail — the first image-shaped `arrayFields` entry. */
 function thumbnailOf(item: Record<string, unknown>, arrayFields: Record<string, Field>) {
   const imageKey = Object.entries(arrayFields).find(([, def]) =>
@@ -74,6 +72,8 @@ export default function CustomizeArrayField({
   name,
 }: CustomizeArrayFieldProps) {
   // Hooks
+  const copy = useCopy(customizeContent.array)
+  const loopCopy = useCopy(dynamicSourcesContent.loops)
   const [linking, setLinking] = useState(false)
 
   // Helpers

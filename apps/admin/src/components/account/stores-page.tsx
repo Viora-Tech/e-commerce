@@ -14,6 +14,7 @@ import PageState from '@/components/states/page-state'
 import { accountContent } from '@/data/account'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { authClient } from '@/lib/auth-client'
 import { routes } from '@/lib/routes'
 
@@ -52,7 +53,7 @@ export default function StoresPage() {
       // A full load, so client caches (permissions, lists) start fresh for the new store.
       window.location.assign(routes.home())
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.switchFailed)
+      toast.error(errorText(err, copy.switchFailed))
       setSwitchingId(null)
     }
   }
@@ -75,7 +76,7 @@ export default function StoresPage() {
       setVersion((n) => n + 1)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.leaveDialog.failed)
+      toast.error(errorText(err, copy.leaveDialog.failed))
     } finally {
       setBusy(false)
     }

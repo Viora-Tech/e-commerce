@@ -69,6 +69,8 @@ import { createFxRates, FX_RATES_SCHEDULE } from './fx-rates'
 import { createHomeCardsRefresh, HOME_CARDS_EVERY_MS } from './home-cards'
 import { createImportSnapshotCleanup, SNAPSHOT_CLEANUP_EVERY_MS } from './import-snapshots'
 import { createInboxAiReplyWorker } from './inbox-ai-reply'
+import { createInboxChatEmails, INBOX_CHAT_EMAILS_EVERY_MS } from './inbox-chat-emails'
+import { createIndexNowSweep, INDEXNOW_EVERY_MS } from './indexnow'
 import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from './marketing'
 import { mediaProcessLimits } from './media-limits'
 import { createMediaProcessWorker } from './media-process'
@@ -96,6 +98,7 @@ import { createReviewRequestSweep, REVIEW_REQUESTS_EVERY_MS } from './reviews'
 import { createRolloutsTick } from './rollouts'
 import { createSearchConsoleSweep, SEARCH_CONSOLE_EVERY_MS } from './search-console'
 import { createSenderEmailPoller, SENDER_CHECK_EVERY_MS } from './sender-email'
+import { createSeoWeeklyEmail, SEO_WEEKLY_EVERY_MS } from './seo-weekly'
 import { shipmentWebhooks } from './shipments-webhook'
 import { createShippingTracker, TRACK_EVERY_MS } from './shipping'
 import { createShopifyTokenSweep, SHOPIFY_TOKEN_SWEEP_EVERY_MS } from './shopify-token-sweep'
@@ -219,12 +222,22 @@ const memberDailySummary = createMemberDailySummary(db, {
   settingsSecret: env.SETTINGS_SECRET,
   adminUrl: env.ADMIN_URL,
 })
+const inboxChatEmails = createInboxChatEmails(db, {
+  settingsSecret: env.SETTINGS_SECRET,
+  adminUrl: env.ADMIN_URL,
+  storefrontUrl: env.STOREFRONT_URL,
+})
 const memberReports = createMemberReports(db, {
   settingsSecret: env.SETTINGS_SECRET,
   adminUrl: env.ADMIN_URL,
 })
 const homeCards = createHomeCardsRefresh(db)
 const searchConsole = createSearchConsoleSweep(redis, db)
+const seoWeekly = createSeoWeeklyEmail(db, {
+  settingsSecret: env.SETTINGS_SECRET,
+  adminUrl: env.ADMIN_URL,
+})
+const indexNow = createIndexNowSweep(db, redis)
 const billing = createBillingSweep(db, {
   salesStoreId: env.PLATFORM_SALES_STORE_ID,
   settingsSecret: env.SETTINGS_SECRET,
@@ -379,6 +392,12 @@ const sweepList: Sweep[] = [
     run: memberDailySummary.run,
     legacy: { queue: MEMBER_DAILY_SUMMARY_QUEUE, scheduler: 'member-daily-summary' },
   },
+  // Inbox: a shopper's missed reply or closed chat, and the team's chats waiting for a reply.
+  {
+    name: 'inbox-chat-emails',
+    schedule: every(INBOX_CHAT_EMAILS_EVERY_MS),
+    run: () => inboxChatEmails.run(),
+  },
   // Weekly (Monday) and monthly (the 1st) performance reports from 9:00 IST.
   {
     name: 'member-reports',
@@ -396,6 +415,19 @@ const sweepList: Sweep[] = [
     schedule: every(SEARCH_CONSOLE_EVERY_MS),
     run: searchConsole.run,
     legacy: { queue: SEARCH_CONSOLE_SWEEP_QUEUE, scheduler: 'search-console-sweep' },
+  },
+  // The weekly SEO email to the owner (Search Console connected), Monday from 9:00 IST.
+  {
+    name: 'seo-weekly-email',
+    schedule: every(SEO_WEEKLY_EVERY_MS),
+    run: () => seoWeekly.run(),
+  },
+  // IndexNow: changed product, collection and page URLs to Bing and Yandex; production only.
+  {
+    name: 'indexnow',
+    schedule: every(INDEXNOW_EVERY_MS),
+    run: indexNow.run,
+    enabled: env.NODE_ENV === 'production',
   },
   {
     name: 'billing-sweep',

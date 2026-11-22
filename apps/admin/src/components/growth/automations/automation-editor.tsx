@@ -30,9 +30,11 @@ import PageBody from '@/components/layout/page-body'
 import PillTabs from '@/components/layout/pill-tabs'
 import SaveBar from '@/components/layout/save-bar'
 import StatusChip from '@/components/layout/status-chip'
-import { automationEditorContent as copy } from '@/data/marketing-automations'
+import { automationEditorContent } from '@/data/marketing-automations'
 import { campaignReportContent } from '@/data/marketing-campaigns'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatPaiseWhole } from '@/lib/money'
 import { routes } from '@/lib/routes'
 import AutomationFlow from './automation-flow'
@@ -85,6 +87,8 @@ export default function AutomationEditor({
   storefrontUrl,
 }: AutomationEditorProps) {
   // Hooks
+  const copy = useCopy(automationEditorContent)
+  const campaignReportCopy = useCopy(campaignReportContent)
   const router = useRouter()
   const [start] = useState(() => fromAutomation(automation))
   const [form, setForm] = useState(start)
@@ -123,7 +127,7 @@ export default function AutomationEditor({
       toast.success(copy.saved)
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.failed)
+      setError(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -139,7 +143,7 @@ export default function AutomationEditor({
       toast.success(on ? copy.turnedOn : copy.turnedOff)
     } catch (err) {
       setActive(!on)
-      setError(err instanceof Error ? err.message : copy.failed)
+      setError(errorText(err, copy.failed))
     }
   }
 
@@ -166,7 +170,7 @@ export default function AutomationEditor({
     { label: copy.tiles.runs, value: formatNumber(s.runs) },
     { label: copy.tiles.active, value: formatNumber(s.active) },
     { label: copy.tiles.sent, value: formatNumber(s.sent) },
-    { label: copy.tiles.clicked, value: campaignReportContent.rate(s.clicked, s.sent) },
+    { label: copy.tiles.clicked, value: campaignReportCopy.rate(s.clicked, s.sent) },
     { label: copy.tiles.converted, value: formatNumber(s.converted) },
     { label: copy.tiles.sales, value: formatPaiseWhole(s.revenuePaise) },
   ]

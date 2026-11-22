@@ -1,5 +1,5 @@
-import OrderChip from '@/components/orders/order-chip'
 import ProductThumb from '@/components/products/product-thumb'
+import StatusLabel from '@/components/status/status-label'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { collectionsListContent } from '@/data/collections'
 import type { api } from '@/lib/api-client'
@@ -50,14 +50,14 @@ export function collectionListColumns(
       title: copy.columns.type,
       sortValue: (c) => c.kind,
       align: 'center',
-      render: (c) => <OrderChip kind="collectionType" value={c.kind} />,
+      render: (c) => <StatusLabel kind="collectionType" value={c.kind} variant="soft" />,
     },
     {
       id: 'visibility',
       title: copy.columns.visibility,
       sortValue: (c) => c.status,
       align: 'center',
-      render: (c) => <OrderChip kind="collectionVisibility" value={c.status} />,
+      render: (c) => <StatusLabel kind="collectionVisibility" value={c.status} variant="soft" />,
     },
     {
       id: 'updated',

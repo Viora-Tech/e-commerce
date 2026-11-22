@@ -24,6 +24,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import DemoCourierSection from './demo-courier-section'
 
 type Loaded = Awaited<ReturnType<typeof api.store.getShipping>>
@@ -77,7 +78,7 @@ export default function ShippingPage() {
       toast.success(copy.saved)
       void announceSetup('shipping')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.saveFailed)
+      toast.error(errorText(err, copy.saveFailed))
     } finally {
       setBusy(false)
     }

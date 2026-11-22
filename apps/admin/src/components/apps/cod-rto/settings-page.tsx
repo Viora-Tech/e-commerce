@@ -4,17 +4,18 @@ import type { CodRtoSettings } from '@commerce/core/cod-rto'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import LoadFailedState from '@/components/apps/shared/load-failed-state'
+import SwitchRow from '@/components/fields/switch-row'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import ChoiceList from '@/components/returns/choice-list'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { appsContent } from '@/data/apps'
 import { codRtoContent } from '@/data/cod-rto'
 import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import NumberRow from './number-row'
 
 type Verification = CodRtoSettings['verification']
@@ -63,7 +64,7 @@ export default function SettingsPage() {
       setSaved(JSON.stringify(next))
       toast.success(copy.settings.saved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -117,11 +118,13 @@ export default function SettingsPage() {
       <PageHeader title={s.title} summary={s.subtitle} />
 
       <SettingsCard title={s.verification.title} description={s.verification.description}>
-        <SettingsToggleRow
+        <SwitchRow
           id="cod-verify"
           label={s.verification.enabled}
           checked={v.enabled}
           onChange={(enabled) => setV({ enabled })}
+          weight="semibold"
+          divided
         />
         {v.enabled ? (
           <>
@@ -146,12 +149,14 @@ export default function SettingsPage() {
               max={168}
               onChange={(flagAfterHours) => setV({ flagAfterHours })}
             />
-            <SettingsToggleRow
+            <SwitchRow
               id="cod-auto-cancel"
               label={s.verification.autoCancel}
               description={s.verification.autoCancelHelp}
               checked={v.autoCancel}
               onChange={(autoCancel) => setV({ autoCancel })}
+              weight="semibold"
+              divided
             />
             {v.autoCancel ? (
               <NumberRow
@@ -185,29 +190,35 @@ export default function SettingsPage() {
           error={form.risk.highAt <= form.risk.mediumAt ? s.risk.thresholdError : undefined}
           onChange={(highAt) => setR({ highAt })}
         />
-        <SettingsToggleRow
+        <SwitchRow
           id="risk-tag"
           label={s.risk.tagOrders}
           description={s.risk.tagOrdersHelp}
           checked={form.risk.tagOrders}
           onChange={(tagOrders) => setR({ tagOrders })}
+          weight="semibold"
+          divided
         />
       </SettingsCard>
 
       <SettingsCard title={s.rules.title} description={s.rules.description}>
-        <SettingsToggleRow
+        <SwitchRow
           id="rule-hide-cod"
           label={s.rules.hideCod}
           description={s.rules.hideCodHelp}
           checked={form.rules.hideCodForHighRisk}
           onChange={(hideCodForHighRisk) => setRules({ hideCodForHighRisk })}
+          weight="semibold"
+          divided
         />
-        <SettingsToggleRow
+        <SwitchRow
           id="rule-partial"
           label={s.rules.partial}
           description={s.rules.partialHelp}
           checked={partial.enabled}
           onChange={(enabled) => setPartial({ enabled })}
+          weight="semibold"
+          divided
         />
         {partial.enabled ? (
           <>

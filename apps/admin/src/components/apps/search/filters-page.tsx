@@ -20,6 +20,7 @@ import { appsContent } from '@/data/apps'
 import { searchFiltersContent } from '@/data/search-filters'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import {
   choiceDetail,
   choiceName,
@@ -76,7 +77,7 @@ export default function FiltersPage() {
       setGroups(saved?.groups ?? defaultFilterGroups(loaded.sources))
       toast.success(message)
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setSaving(false)
     }

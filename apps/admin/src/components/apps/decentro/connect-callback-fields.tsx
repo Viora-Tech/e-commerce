@@ -3,7 +3,8 @@
 import { Button } from '@commerce/ui/shadcn/button'
 import { FieldGroup } from '@commerce/ui/shadcn/field'
 import CopyButton from '@/components/fields/copy-button'
-import { decentroAppContent as appCopy } from '@/data/decentro'
+import { decentroAppContent } from '@/data/decentro'
+import { useCopy } from '@/hooks/use-copy'
 
 type ConnectCallbackFieldsProps = {
   webhookSecret: string
@@ -11,13 +12,8 @@ type ConnectCallbackFieldsProps = {
   onNewSecret: () => void
 }
 
-const copy = appCopy.connect.callback
-
 /** Saved secrets come back masked (`••••1234`): nothing left to copy. */
 const isMasked = (v: string) => v.startsWith('••••')
-
-/** The headers box as Decentro takes it: `{ "x-webhook-token": "<secret>" }`. */
-const headersJson = (secret: string) => JSON.stringify({ [copy.headerName]: secret }, null, 2)
 
 /** What Decentro's "Callback configurations" page needs: the address and the headers block. */
 export default function ConnectCallbackFields({
@@ -25,6 +21,13 @@ export default function ConnectCallbackFields({
   webhookUrl,
   onNewSecret,
 }: ConnectCallbackFieldsProps) {
+  // Hooks
+  const copy = useCopy(decentroAppContent.connect.callback)
+
+  // Derived
+  /** The headers box as Decentro takes it: `{ "x-webhook-token": "<secret>" }`. */
+  const headersJson = (secret: string) => JSON.stringify({ [copy.headerName]: secret }, null, 2)
+
   // Render logic
   const masked = isMasked(webhookSecret)
   const headers = headersJson(masked ? `<${copy.secretHidden}>` : webhookSecret)

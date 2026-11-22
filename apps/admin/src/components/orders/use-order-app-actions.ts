@@ -23,6 +23,7 @@ import {
 import type { ActionItem } from '@/components/layout/action-menu'
 import { orderAppActionsContent } from '@/data/order-app-actions'
 import { useCopy, useLocale } from '@/hooks/use-copy'
+import { errorText } from '@/lib/api-errors'
 
 /** The bulk Create shipment dialog's orders, and the courier to start on (none: compare all). */
 export type ShippingWith = { orderIds: string[]; providerId?: string | undefined }
@@ -47,10 +48,7 @@ export function useOrderAppActions(groups: readonly OrderActionGroup[], onDone: 
     label: b.label,
     onClick: () => {
       if (b.href) router.push(b.href)
-      else
-        b.run?.().catch((err: unknown) =>
-          toast.error(err instanceof Error ? err.message : copy.failed),
-        )
+      else b.run?.().catch((err: unknown) => toast.error(errorText(err, copy.failed)))
     },
   })
 
@@ -80,7 +78,7 @@ export function useOrderAppActions(groups: readonly OrderActionGroup[], onDone: 
       })
       onDone()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

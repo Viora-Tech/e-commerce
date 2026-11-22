@@ -13,6 +13,18 @@ import {
 } from './routing'
 
 describe('routeForStore', () => {
+  it("rewrites IndexNow's root key file onto its route, and nothing else ending in .txt", () => {
+    const key = '0123456789abcdef0123456789abcdef'
+    expect(routeForStore('store-a', `/${key}.txt`)).toEqual({
+      kind: 'rewrite',
+      path: `/-s/store-a/indexnow/${key}`,
+    })
+    expect(routeForStore('store-a', '/llms.txt')).toEqual({
+      kind: 'rewrite',
+      path: '/-s/store-a/llms.txt',
+    })
+  })
+
   it("rewrites Shopify's product and collection JSON onto their child routes", () => {
     expect(routeForStore('store-a', '/products/mouse.json')).toEqual({
       kind: 'rewrite',

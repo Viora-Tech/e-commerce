@@ -161,10 +161,10 @@ const ALIGN: Record<CellAlign, string> = {
  * The one table: a hairline card holding the filter bar, the grid and the pager.
  * Paging and search are server-side; sorting and selection act on the loaded page.
  */
-function tableColumns<T extends RowData>(props: ResourceTableProps<T>) {
+function tableColumns<T extends RowData>(props: ResourceTableProps<T>, copy: typeof tableContent) {
   const selectable = props.selectable ?? true
   return [
-    ...(selectable ? [selectionColumn<T>()] : []),
+    ...(selectable ? [selectionColumn<T>(copy)] : []),
     ...defineColumns(props.columns),
     ...(props.rowActions || props.href
       ? [actionsColumn<T>(props.rowActions, props.href, ACTIONS_WIDTH)]
@@ -244,7 +244,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   const table = useTable({
     features: resourceTableFeatures,
     data: props.items,
-    columns: tableColumns(props),
+    columns: tableColumns(props, tableCopy),
     getRowId: (row) => props.getId(row),
     getSubRows: props.tree?.getSubRows,
     // In a tree only the leaves are selected; a parent's box ticks them (see `selectionColumn`).

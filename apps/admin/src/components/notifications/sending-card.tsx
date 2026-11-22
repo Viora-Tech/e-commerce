@@ -6,7 +6,7 @@ import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import { notificationsSettingsContent } from '@/data/notifications'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -63,10 +63,11 @@ export default function SendingCard({ email, whatsapp, platformEmail }: SendingC
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-body font-medium text-foreground">{words.name}</p>
-                    <OrderChip
+                    <StatusLabel
                       kind="app"
                       value={connected || viaPlatform ? 'connected' : 'notConnected'}
                       label={viaPlatform ? copy.state.platform : copy.state[c.state]}
+                      variant="soft"
                     />
                   </div>
                   <p className="text-caption text-muted-foreground">

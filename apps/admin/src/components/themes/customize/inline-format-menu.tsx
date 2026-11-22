@@ -4,6 +4,7 @@ import { CheckIcon, LinkIcon, RotateCcw, X } from '@commerce/ui/icons'
 import { RichTextMenu, type RichtextField } from '@puckeditor/core'
 import { type FormEvent, type KeyboardEvent, useState } from 'react'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { normalisePastedUrl } from '@/lib/customize-links'
 import RichtextFormatControls from './richtext-format-controls'
 
@@ -11,8 +12,6 @@ type InlineFormatMenuProps = Parameters<NonNullable<RichtextField['renderInlineM
   /** `full`: the right panel's menu (lists, quote, rule, headings too); `inline` on the canvas. */
   set?: 'inline' | 'full' | undefined
 }
-
-const copy = customizeContent.toolbar
 
 /**
  * The rich-text menu on the canvas (`renderInlineMenu` on every richtext field, see
@@ -29,6 +28,7 @@ export default function InlineFormatMenu({
   set = 'inline',
 }: InlineFormatMenuProps) {
   // Hooks
+  const copy = useCopy(customizeContent.toolbar)
   const [draft, setDraft] = useState<string | null>(null)
   const [invalid, setInvalid] = useState(false)
 

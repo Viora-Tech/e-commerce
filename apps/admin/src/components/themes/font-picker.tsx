@@ -10,7 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
-import { themesContent as copy } from '@/data/themes'
+import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 
 type FontPickerProps = {
   label: string
@@ -33,6 +34,9 @@ const family = (id: ThemeFontId) => ({ fontFamily: `"${THEME_FONTS[id].label}"` 
 
 /** Font dropdown where each option is set in its own face, with a live sample underneath. */
 export default function FontPicker({ label, value, kind, onChange, compact }: FontPickerProps) {
+  // Hooks
+  const copy = useCopy(themesContent)
+
   // Event handlers
   const handleChange = (next: unknown) => {
     const id = THEME_FONT_IDS.find((f) => f === next)

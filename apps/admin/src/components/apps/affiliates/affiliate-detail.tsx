@@ -30,6 +30,7 @@ import { affiliatesContent } from '@/data/affiliates'
 import { appsContent } from '@/data/apps'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type Detail = Awaited<ReturnType<typeof api.affiliates.get>>
@@ -77,7 +78,7 @@ export default function AffiliateDetail({ params }: AppPageProps) {
       await api.affiliates.saveNote({ id: params.id ?? '', note })
       toast.success(copy.detail.noteSaved)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     }
   }
 

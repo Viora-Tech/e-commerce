@@ -5,7 +5,8 @@ import { CancelCircle, CheckIcon, PackageCheck, PackageOpen, Truck, Undo } from 
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import NextStepBanner from '@/components/layout/next-step-banner'
-import { returnDetailContent as copy } from '@/data/returns'
+import { returnDetailContent } from '@/data/returns'
+import { useCopy } from '@/hooks/use-copy'
 import PickupDialog from './pickup-dialog'
 import ReceiveDialog from './receive-dialog'
 import RejectDialog from './reject-dialog'
@@ -23,6 +24,7 @@ type ReturnDecisionCardProps = {
  */
 export default function ReturnDecisionCard({ detail, can, onChanged }: ReturnDecisionCardProps) {
   // Hooks
+  const copy = useCopy(returnDetailContent)
   const [pickup, setPickup] = useState<'approve' | 'arrange' | null>(null)
   const [rejecting, setRejecting] = useState(false)
   const [receiving, setReceiving] = useState(false)

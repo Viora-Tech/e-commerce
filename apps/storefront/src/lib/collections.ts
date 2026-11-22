@@ -1,6 +1,7 @@
 import 'server-only'
 import type { CardProduct } from '@commerce/blocks'
-import { soldInRequestCatalog } from '@commerce/core'
+import { notSystemTest, soldInRequestCatalog } from '@commerce/core'
+import { bestByHandle, handleCandidates } from '@commerce/core/catalog'
 import type { CollectionSort } from '@commerce/core/collections'
 import type { StoreTx } from '@commerce/db'
 import {
@@ -105,10 +106,12 @@ export async function getCollectionByHandle(
   tx: StoreTx,
   handle: string,
 ): Promise<CollectionDetail | null> {
-  const [row] = await tx
+  const tries = handleCandidates(handle)
+  const rows = await tx
     .select()
     .from(collection)
-    .where(and(eq(collection.handle, handle), eq(collection.status, 'active')))
+    .where(and(inArray(collection.handle, tries), eq(collection.status, 'active')))
+  const row = bestByHandle(rows, tries, (r) => r.handle)
   if (!row) return handle === 'all' ? ALL_PRODUCTS : null
   const [image] = row.imageMediaId
     ? await tx.select({ url: media.url }).from(media).where(eq(media.id, row.imageMediaId))
@@ -281,4 +284,32 @@ export async function collectionCards(
     perPage: limit,
   })
   return items
+}
+
+/**
+ * The first few product titles of a collection in its saved order (every active product for
+ * the built-in `all`), for the description written when the merchant left it empty.
+ */
+export async function collectionLeadTitles(
+  tx: StoreTx,
+  found: Pick<CollectionDetail, 'id' | 'sortOrder'>,
+  limit: number,
+): Promise<string[]> {
+  const live = and(eq(product.status, 'active'), soldInRequestCatalog(product.id))
+  const rows = found.id
+    ? await tx
+        .select({ title: product.title })
+        .from(collectionProduct)
+        .innerJoin(product, eq(product.id, collectionProduct.productId))
+        .where(and(eq(collectionProduct.collectionId, found.id), live))
+        .orderBy(orderFor(found.sortOrder))
+        .limit(limit)
+    : await tx
+        .select({ title: product.title })
+        .from(product)
+        // The payments wizard's ₹1 test product is never named.
+        .where(and(live, notSystemTest))
+        .orderBy(asc(product.title))
+        .limit(limit)
+  return rows.map((r) => r.title)
 }

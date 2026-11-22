@@ -20,6 +20,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import InboxTable from './inbox-table'
 import KnowledgeDialog, { type KnowledgeEntry } from './knowledge-dialog'
@@ -57,8 +58,7 @@ export default function KnowledgePage({ aiOn }: KnowledgePageProps) {
   } = useLoad<KnowledgeView>(() => api.inbox.knowledge.list())
 
   // Helpers
-  const fail = (err: unknown) =>
-    toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+  const fail = (err: unknown) => toast.error(errorText(err, copy.failed))
 
   // Event handlers
   const handleSaved = () => {

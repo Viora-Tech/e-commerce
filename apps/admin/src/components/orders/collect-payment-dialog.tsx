@@ -24,6 +24,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { orderDetailContent } from '@/data/order-detail'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { todayKey } from '@/lib/format-date'
 import type { OrderDetail } from './order-detail-types'
 
@@ -105,7 +106,7 @@ export default function CollectPaymentDialog({
       reset()
       onDone()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.collectDialog.failed)
+      toast.error(errorText(err, copy.collectDialog.failed))
     } finally {
       setBusy(false)
     }

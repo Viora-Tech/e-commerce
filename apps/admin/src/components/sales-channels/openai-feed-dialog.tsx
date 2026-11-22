@@ -9,6 +9,7 @@ import FormDialog from '@/components/layout/form-dialog'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type OpenAiFeedDialogProps = {
   open: boolean
@@ -33,7 +34,7 @@ export default function OpenAiFeedDialog({ open, onOpenChange }: OpenAiFeedDialo
       onOpenChange(false)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

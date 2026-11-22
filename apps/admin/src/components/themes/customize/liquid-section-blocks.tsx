@@ -10,6 +10,7 @@ import {
 } from '@commerce/ui/shadcn/dropdown-menu'
 import { SortableList } from '@commerce/ui/sortable'
 import { arrayItemSortLabels, customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { CHROME_FOCUS, CHROME_ROW_HOVER, CHROME_TRANSITION } from '@/lib/customize-chrome'
 import type { LiquidBlockRow, LiquidBlockType } from '@/lib/customize-liquid-tree'
 
@@ -28,8 +29,6 @@ type LiquidSectionBlocksProps = {
 }
 
 type Item = LiquidBlockRow & { id: string }
-
-const copy = customizeContent.tree
 
 const ADD_ROW = cn(
   'flex h-8 w-full items-center gap-2 rounded-lg pl-2 text-left text-caption font-medium text-link data-[popup-open]:bg-muted/60',
@@ -61,6 +60,9 @@ export default function LiquidSectionBlocks({
   onRemove,
   onReorder,
 }: LiquidSectionBlocksProps) {
+  // Hooks
+  const copy = useCopy(customizeContent.tree)
+
   // Render logic
   const addIcon = (
     <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-current">

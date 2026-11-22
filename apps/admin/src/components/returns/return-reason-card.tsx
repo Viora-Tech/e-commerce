@@ -1,16 +1,22 @@
 import { returnReasonLabel } from '@commerce/core/returns'
 import DataCard from '@/components/layout/data-card'
 import KeyValueList from '@/components/layout/key-value-list'
-import { returnDetailContent as copy, returnRulesContent, returnsContent } from '@/data/returns'
+import { returnDetailContent, returnRulesContent, returnsContent } from '@/data/returns'
+import { useCopy } from '@/hooks/use-copy'
 import type { ReturnDetail } from './return-types'
 
 type ReturnReasonCardProps = { detail: ReturnDetail }
 
 /** The customer's side: reason, note and photos. */
 export default function ReturnReasonCard({ detail: r }: ReturnReasonCardProps) {
+  // Hooks
+  const returnsCopy = useCopy(returnsContent)
+  const returnRulesCopy = useCopy(returnRulesContent)
+  const copy = useCopy(returnDetailContent)
+
   // Render logic
-  const reason = r.reason ? returnReasonLabel(r.reason, returnsContent.reasons) : null
-  const rules = returnRulesContent
+  const reason = r.reason ? returnReasonLabel(r.reason, returnsCopy.reasons) : null
+  const rules = returnRulesCopy
   const wants = r.preferredResolution ? (rules.wants[r.preferredResolution] ?? null) : null
   const swaps = r.exchangeWishes.map((w) =>
     rules.swapTo(

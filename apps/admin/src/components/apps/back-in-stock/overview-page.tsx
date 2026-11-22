@@ -21,35 +21,35 @@ import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 
-const copy = backInStockContent.overview
-
-/** Figma "Back in stock · Overview": one card per channel, the count large, a bar while there is a quota. */
-function usageCard(
-  label: string,
-  usage: { sent: number; quota: number; unlimited: boolean },
-  note: string | null,
-) {
-  const pct =
-    usage.unlimited || usage.quota <= 0 ? 0 : Math.min(100, (usage.sent / usage.quota) * 100)
-  return (
-    <DataCard title={label} bodyClassName="flex flex-col gap-2">
-      <span className="text-stat font-semibold text-ink-strong tabular-nums">
-        {usage.unlimited ? copy.unlimited : copy.ofQuota(usage.sent, usage.quota)}
-      </span>
-      {usage.unlimited ? null : <Progress value={pct} />}
-      {!usage.unlimited && usage.sent >= usage.quota && usage.quota > 0 ? (
-        <p className="text-caption text-destructive">{copy.paused}</p>
-      ) : null}
-      {note ? <p className="text-caption text-muted-foreground">{note}</p> : null}
-    </DataCard>
-  )
-}
-
 /** Usage this month vs quota, and the sold-out variants with the biggest waiting list. */
 export default function OverviewPage() {
   // Hooks
+  const copy = useCopy(backInStockContent).overview
   const apps = useCopy(appsContent)
   const { data, failed, retry } = useLoad(() => api.backInStock.overview())
+
+  // Derived
+  /** Figma "Back in stock · Overview": one card per channel, the count large, a bar while there is a quota. */
+  function usageCard(
+    label: string,
+    usage: { sent: number; quota: number; unlimited: boolean },
+    note: string | null,
+  ) {
+    const pct =
+      usage.unlimited || usage.quota <= 0 ? 0 : Math.min(100, (usage.sent / usage.quota) * 100)
+    return (
+      <DataCard title={label} bodyClassName="flex flex-col gap-2">
+        <span className="text-stat font-semibold text-ink-strong tabular-nums">
+          {usage.unlimited ? copy.unlimited : copy.ofQuota(usage.sent, usage.quota)}
+        </span>
+        {usage.unlimited ? null : <Progress value={pct} />}
+        {!usage.unlimited && usage.sent >= usage.quota && usage.quota > 0 ? (
+          <p className="text-caption text-destructive">{copy.paused}</p>
+        ) : null}
+        {note ? <p className="text-caption text-muted-foreground">{note}</p> : null}
+      </DataCard>
+    )
+  }
 
   // Early returns
   if (!data) {

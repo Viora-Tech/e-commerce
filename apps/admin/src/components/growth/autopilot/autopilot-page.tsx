@@ -11,6 +11,7 @@ import PageHeader from '@/components/layout/page-header'
 import { AUTOPILOT_DOCS_URL, growthAutopilotContent } from '@/data/growth-home'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import AttributedSalesCard from '../overview/attributed-sales-card'
 import AdChannelsCard from './ad-channels-card'
@@ -45,7 +46,7 @@ export default function AutopilotPage({ initial, results }: AutopilotPageProps) 
       setView(await api.marketing.autopilot.saveSettings({ ...view.settings, enabled: on }))
       toast.success(on ? copy.status.turnedOn : copy.status.turnedOff)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setToggling(false)
     }

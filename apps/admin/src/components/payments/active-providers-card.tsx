@@ -22,11 +22,6 @@ type ActiveProvidersCardProps = {
 
 type Row = PaymentsSetup['routing']['gateways'][number]
 
-/** The gateway's own name ("Cashfree"), not its checkout label. */
-const nameOf = (id: string): string => gatewayCatalogue.find((g) => g.id === id)?.name ?? id
-const monogramOf = (id: string): string =>
-  gatewayCatalogue.find((g) => g.id === id)?.monogram ?? id.slice(0, 1).toUpperCase()
-
 /**
  * "Active providers" (audit #148/#150): every connected gateway with an on/off switch, dragged
  * into fallback order. The first one on is the main way to get paid; when a gateway cannot
@@ -34,10 +29,17 @@ const monogramOf = (id: string): string =>
  */
 export default function ActiveProvidersCard({ setup, onReload }: ActiveProvidersCardProps) {
   // Hooks
+  const gatewayCatalogueCopy = useCopy(gatewayCatalogue)
   const { providers: copy } = useCopy(paymentRoutingContent)
   const sortLabels = useCopy(methodSortLabels)
   const [rows, setRows] = useState<Row[]>(setup.routing.gateways)
   const [saving, setSaving] = useState(false)
+
+  // Derived
+  /** The gateway's own name ("Cashfree"), not its checkout label. */
+  const nameOf = (id: string): string => gatewayCatalogueCopy.find((g) => g.id === id)?.name ?? id
+  const monogramOf = (id: string): string =>
+    gatewayCatalogueCopy.find((g) => g.id === id)?.monogram ?? id.slice(0, 1).toUpperCase()
 
   // Event handlers
   const handleToggle = (id: string, active: boolean) =>

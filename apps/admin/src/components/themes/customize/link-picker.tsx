@@ -5,6 +5,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import { useEffect, useState } from 'react'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { LINK_KIND_ICONS } from '@/lib/customize-link-icons'
 import { findLinkTarget } from '@/lib/customize-link-targets'
 import { parseHref } from '@/lib/customize-links'
@@ -19,8 +20,6 @@ type LinkPickerProps = {
   newTab?: boolean | undefined
   onNewTab?: ((value: boolean) => void) | undefined
 }
-
-const copy = customizeContent.link
 
 /**
  * Shopify's link field: the chosen link as a chip (its type's glyph, its
@@ -38,6 +37,7 @@ export default function LinkPicker({
   onNewTab,
 }: LinkPickerProps) {
   // Hooks
+  const copy = useCopy(customizeContent.link)
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState<string | null>(null)
   useEffect(() => {

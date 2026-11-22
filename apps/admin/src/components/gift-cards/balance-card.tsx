@@ -14,7 +14,9 @@ import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { giftCardDetailContent } from '@/data/gift-cards'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { formatPaise } from '@/lib/money'
 
 type BalanceCardProps = {
@@ -28,11 +30,10 @@ type BalanceCardProps = {
   onChanged: () => Promise<void>
 }
 
-const copy = giftCardDetailContent
-
 /** Big balance figure with the adjust dialog (add or remove money, with a reason). */
 export default function BalanceCard({ card, onChanged }: BalanceCardProps) {
   // Hooks
+  const copy = useCopy(giftCardDetailContent)
   const [open, setOpen] = useState(false)
   const [direction, setDirection] = useState<'add' | 'remove'>('add')
   const [amount, setAmount] = useState('')
@@ -55,7 +56,7 @@ export default function BalanceCard({ card, onChanged }: BalanceCardProps) {
       setOpen(false)
       await onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.adjust.failed)
+      toast.error(errorText(err, copy.adjust.failed))
     } finally {
       setBusy(false)
     }

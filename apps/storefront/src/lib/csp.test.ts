@@ -22,7 +22,11 @@ describe('storefront script CSP', () => {
     const a = newNonce()
     const b = newNonce()
     expect(a).not.toBe(b)
-    expect(Buffer.from(a, 'base64')).toHaveLength(16)
+    expect(Buffer.from(a, 'base64url')).toHaveLength(16)
+  })
+
+  it('mints nonces without the slash, plus or padding Googlebot reads as links', () => {
+    for (let i = 0; i < 50; i++) expect(newNonce()).toMatch(/^[A-Za-z0-9_-]{22}$/)
   })
 
   it('enforces a nonce + strict-dynamic policy in production', () => {

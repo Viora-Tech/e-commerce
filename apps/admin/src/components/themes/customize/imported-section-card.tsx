@@ -19,6 +19,7 @@ type ImportedSectionCardProps = {
  */
 export default function ImportedSectionCard({ name, onAdd }: ImportedSectionCardProps) {
   // Hooks
+  const addSectionCopy = useCopy(customizeContent.addSection)
   const copy = useCopy(themeImportContent.addPanel)
 
   // Render logic
@@ -44,7 +45,7 @@ export default function ImportedSectionCard({ name, onAdd }: ImportedSectionCard
         <span className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover/card:opacity-100 group-focus-visible/card:opacity-100 motion-reduce:transition-none">
           <span className="flex h-6 items-center gap-1 rounded-md bg-primary px-2 text-xs font-semibold text-primary-foreground shadow-sm">
             <Plus aria-hidden className="size-3" />
-            {customizeContent.addSection.add}
+            {addSectionCopy.add}
           </span>
         </span>
       </span>

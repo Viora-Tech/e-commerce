@@ -4,7 +4,8 @@ import { SOCIAL_PLATFORMS, type SocialPlatform, type Theme } from '@commerce/cor
 import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
-import { themesContent as copy } from '@/data/themes'
+import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 
 type SocialSettingsProps = {
   theme: Theme
@@ -19,6 +20,7 @@ const isUrl = (v: string) => /^https?:\/\/\S+\.\S+/i.test(v)
  */
 export default function SocialSettings({ theme, onChange }: SocialSettingsProps) {
   // Hooks
+  const copy = useCopy(themesContent)
   const [drafts, setDrafts] = useState<Partial<Record<SocialPlatform, string>>>({})
 
   // Event handlers

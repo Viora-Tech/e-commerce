@@ -9,6 +9,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { segmentsContent } from '@/data/customers'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type DeleteSegmentButtonProps = { id: string }
@@ -25,7 +26,7 @@ export default function DeleteSegmentButton({ id }: DeleteSegmentButtonProps) {
     try {
       await api.customers.deleteSegment({ id })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : content.builder.deleteFailed)
+      toast.error(errorText(err, content.builder.deleteFailed))
       throw err
     }
     toast.success(content.builder.deleted)

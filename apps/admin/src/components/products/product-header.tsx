@@ -5,7 +5,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import ActionMenu, { type ActionItem } from '@/components/layout/action-menu'
 import FallbackImage from '@/components/layout/fallback-image'
 import PageHeader from '@/components/layout/page-header'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import { productFormContent } from '@/data/product-form'
 import { productPageContent } from '@/data/product-page'
 import { useCopy } from '@/hooks/use-copy'
@@ -93,7 +93,7 @@ export default function ProductHeader({
           />
         ),
       }}
-      badges={product ? <OrderChip kind="product" value={form.status} /> : null}
+      badges={product ? <StatusLabel kind="product" value={form.status} variant="soft" /> : null}
       summary={summary}
       actions={
         product ? (

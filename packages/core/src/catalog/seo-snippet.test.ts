@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: seoSnippet tests — WHAT: spec rows skipped, first real sentences kept / WHY: the snippet Google shows */
 import { describe, expect, it } from 'vitest'
-import { seoSnippet } from './seo-snippet'
+import { seoProse, seoSnippet } from './seo-snippet'
 
 describe('seoSnippet', () => {
   it('skips a spec table and uses the real sentences', () => {
@@ -17,5 +17,9 @@ describe('seoSnippet', () => {
 
   it('falls back to everything when nothing reads as prose', () => {
     expect(seoSnippet('Material: Steel\nWeight: 58 g')).toBe('Material: Steel Weight: 58 g')
+  })
+
+  it('seoProse is empty for a bare spec dump, so the storefront writes its own line', () => {
+    expect(seoProse('Specification\nMaterial: Steel\nWeight: 58 g')).toBe('')
   })
 })

@@ -5,7 +5,7 @@ import { Package, Trash2 } from '@commerce/ui/icons'
 import ActionMenu from '@/components/layout/action-menu'
 import FallbackImage from '@/components/layout/fallback-image'
 import PageHeader from '@/components/layout/page-header'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import { variantPageContent } from '@/data/variant-page'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -61,7 +61,7 @@ export default function VariantPageHeader({
           />
         ),
       }}
-      badges={<OrderChip kind="product" value={status} />}
+      badges={<StatusLabel kind="product" value={status} variant="soft" />}
       summary={summary}
       actions={
         <ActionMenu

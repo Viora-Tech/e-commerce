@@ -4,7 +4,7 @@ import { CancelCircle, ExternalLink, Pencil, Printer, Truck } from '@commerce/ui
 import { Button } from '@commerce/ui/shadcn/button'
 import { type ReactNode, useState } from 'react'
 import CopyButton from '@/components/fields/copy-button'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import { shipmentCancelContent } from '@/data/shipments'
 import { editTrackingContent, shipmentDetailsContent } from '@/data/shipping'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -91,7 +91,7 @@ export default function ShipmentDetails({
             <CopyButton value={shipment.waybill} what={copy.awb} visible />
           </p>
         </div>
-        <OrderChip kind="shipment" value={shipment.status} />
+        <StatusLabel kind="shipment" value={shipment.status} variant="soft" />
       </div>
 
       <dl className="grid gap-x-6 gap-y-3 text-body sm:grid-cols-2">

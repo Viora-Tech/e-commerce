@@ -19,6 +19,7 @@ import backInStock from './back-in-stock'
 import backgroundWork from './background-work'
 import billing from './billing'
 import bluedart from './bluedart'
+import brokenLinks from './broken-links'
 import bugReport from './bug-report'
 import bulkActions from './bulk-actions'
 import bulkEdit from './bulk-edit'
@@ -42,6 +43,7 @@ import customData from './custom-data'
 import customerAddresses from './customer-addresses'
 import customerGiftCards from './customer-gift-cards'
 import customerMerge from './customer-merge'
+import customerSignInAs from './customer-sign-in-as'
 import customerStoreCredit from './customer-store-credit'
 import customers from './customers'
 import customersBulkEdit from './customers-bulk-edit'
@@ -65,6 +67,7 @@ import drafts from './drafts'
 import dtdc from './dtdc'
 import dynamicSources from './dynamic-sources'
 import ekart from './ekart'
+import emailBranding from './email-branding'
 import emailBuilder from './email-builder'
 import emailDesign from './email-design'
 import emailSuppression from './email-suppression'
@@ -145,6 +148,8 @@ import searchConsole from './search-console'
 import searchDiscovery from './search-discovery'
 import searchFilters from './search-filters'
 import selectProducts from './select-products'
+import seoAssistant from './seo-assistant'
+import seoHealth from './seo-health'
 import seoKeywords from './seo-keywords'
 import seoReport from './seo-report'
 import settings from './settings'
@@ -202,6 +207,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...abandonedDetail,
   ...customerGiftCards,
   ...customerMerge,
+  ...customerSignInAs,
   ...customerStoreCredit,
   ...storeCreditGiftCards,
   ...storeCreditExpiry,
@@ -213,6 +219,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...backgroundWork,
   ...billing,
   ...bluedart,
+  ...brokenLinks,
   ...mcp,
   ...approvals,
   ...bugReport,
@@ -255,6 +262,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...checkoutDraftEdit,
   ...domains,
   ...emailBuilder,
+  ...emailBranding,
   ...emailDesign,
   ...dtdc,
   ...analytics,
@@ -349,6 +357,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...storeData,
   ...storeHealth,
   ...agentReadiness,
+  ...seoHealth,
   ...storageWarning,
   ...table,
   ...themeCode,
@@ -359,6 +368,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...searchFilters,
   ...searchConsole,
   ...seoReport,
+  ...seoAssistant,
   ...seoKeywords,
   ...umami,
   ...meilisearch,

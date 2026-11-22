@@ -15,12 +15,10 @@ import StatusChip from '@/components/layout/status-chip'
 import { searchConsoleContent } from '@/data/search-console'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 
 type Sitemaps = Awaited<ReturnType<typeof api.searchConsole.sitemaps>>
-
-const errorText = (fallback: string, err: unknown) =>
-  err instanceof Error && err.message ? err.message : fallback
 
 /**
  * The property's sitemaps as Google lists them (read live from Search Console) and a button to
@@ -45,7 +43,7 @@ export default function SitemapsPage() {
         setData(d)
         setError(null)
       })
-      .catch((err) => !cancelled && setError(errorText(copy.sitemaps.loadFailed, err)))
+      .catch((err) => !cancelled && setError(errorText(err, copy.sitemaps.loadFailed)))
     return () => {
       cancelled = true
     }
@@ -59,7 +57,7 @@ export default function SitemapsPage() {
       toast.success(copy.sitemaps.submitted)
       setRevision((n) => n + 1)
     } catch (err) {
-      toast.error(errorText(copy.failed, err))
+      toast.error(errorText(err, copy.failed))
     } finally {
       setSubmitting(false)
     }

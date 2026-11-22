@@ -11,6 +11,8 @@ import {
 import { Input } from '@commerce/ui/shadcn/input'
 import { type FormEvent, useState } from 'react'
 import { invitationContent } from '@/data/invitations'
+import { useCopy } from '@/hooks/use-copy'
+import { errorText } from '@/lib/api-errors'
 import { authClient } from '@/lib/auth-client'
 
 type InvitationSignInProps = {
@@ -20,11 +22,10 @@ type InvitationSignInProps = {
   onSignedIn: () => Promise<void>
 }
 
-const copy = invitationContent
-
 /** Email code sign-in for the invited address, then hands over to accept. */
 export default function InvitationSignIn({ email, onSignedIn }: InvitationSignInProps) {
   // Hooks
+  const copy = useCopy(invitationContent)
   const [otp, setOtp] = useState('')
   const [sent, setSent] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -54,7 +55,7 @@ export default function InvitationSignIn({ email, onSignedIn }: InvitationSignIn
       await onSignedIn()
     } catch (err) {
       setBusy(false)
-      setError(err instanceof Error ? err.message : copy.acceptFailed)
+      setError(errorText(err, copy.acceptFailed))
     }
   }
 

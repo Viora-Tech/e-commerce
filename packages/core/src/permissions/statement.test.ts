@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { isSystemRoleSlug, roleSlug, SYSTEM_ROLES } from './roles'
 import {
   ALL_PERMISSIONS,
+  canNeedApproval,
   isPermission,
   permission,
   permissions,
@@ -52,6 +53,14 @@ describe('system roles', () => {
     expect(admin?.permissions).not.toContain(permissions.BILLING_MANAGE)
     expect(admin?.permissions).not.toContain(permissions.STAFF_MANAGE)
     expect(admin?.permissions).toContain(permissions.SETTINGS_MANAGE)
+  })
+
+  it('gives "Sign in as customer" to the owner only, never as an approval tick', () => {
+    for (const r of SYSTEM_ROLES) {
+      expect(r.permissions.includes(permissions.CUSTOMERS_SIGN_IN_AS)).toBe(r.slug === 'owner')
+    }
+    expect(permissions.CUSTOMERS_SIGN_IN_AS).toBe('customers.sign_in_as')
+    expect(canNeedApproval(permissions.CUSTOMERS_SIGN_IN_AS)).toBe(false)
   })
 
   it('limits staff to fulfilment work', () => {

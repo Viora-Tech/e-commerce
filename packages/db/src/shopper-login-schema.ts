@@ -98,6 +98,7 @@ const LOGIN_TICKET_KINDS = [
   'magic_link',
   'passkey_register',
   'passkey_login',
+  'staff_sign_in',
 ] as const
 const LOGIN_TICKET_STATUSES = [
   'pending',
@@ -115,10 +116,12 @@ const LOGIN_TICKET_STATUSES = [
  * browser that started it; when the number belongs to an existing customer who never
  * used Truecaller here, it waits on a phone code first (`verify_phone`, then
  * `phone_code_sent`; security audit D-03). `magic_link`: a sign-in link emailed to
- * `email`, spent on first use. `passkey_register` / `passkey_login`: the WebAuthn
- * `challenge` for the browser whose cookie hashes to `token_hash` (and `customer_id` when
- * registering), on the rpID kept in `return_url`; spent on first use (D-04). Only the
- * token's hash is stored; rows live minutes.
+ * `email`, spent on first use. `staff_sign_in`: "Sign in as customer" from the admin, for
+ * `customer_id` on behalf of `impersonated_by`, spent on first use (no browser binding: the
+ * staff member's admin tab mints it and a new tab on the store's domain spends it).
+ * `passkey_register` / `passkey_login`: the WebAuthn `challenge` for the browser whose
+ * cookie hashes to `token_hash` (and `customer_id` when registering), on the rpID kept in
+ * `return_url`; spent on first use (D-04). Only the token's hash is stored; rows live minutes.
  */
 export const customerLoginTicket = pgTable(
   'customer_login_ticket',
@@ -143,6 +146,8 @@ export const customerLoginTicket = pgTable(
     name: text('name'),
     /** The WebAuthn challenge a passkey ticket waits for. */
     challenge: text('challenge'),
+    /** `staff_sign_in`: the staff user who asked to sign in as `customer_id`. */
+    impersonatedBy: text('impersonated_by'),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     createdAt: createdAt(),
   },
@@ -151,7 +156,7 @@ export const customerLoginTicket = pgTable(
     index('customer_login_ticket_expires').on(t.storeId, t.expiresAt),
     check(
       'customer_login_ticket_kind_check',
-      sql`${t.kind} in ('handoff', 'truecaller', 'magic_link', 'passkey_register', 'passkey_login')`,
+      sql`${t.kind} in ('handoff', 'truecaller', 'magic_link', 'passkey_register', 'passkey_login', 'staff_sign_in')`,
     ),
     check(
       'customer_login_ticket_status_check',

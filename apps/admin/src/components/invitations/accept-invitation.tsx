@@ -7,7 +7,9 @@ import { FieldError } from '@commerce/ui/shadcn/field'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { invitationContent } from '@/data/invitations'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { authClient } from '@/lib/auth-client'
 import InvitationSignIn from './invitation-sign-in'
 
@@ -21,8 +23,6 @@ type AcceptInvitationProps = {
   signedInEmail: string | null
 }
 
-const copy = invitationContent
-
 const sameEmail = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase()
 
 /** A pending invitation: sign in as the invited address if needed, then join. */
@@ -35,6 +35,7 @@ export default function AcceptInvitation({
   signedInEmail,
 }: AcceptInvitationProps) {
   // Hooks
+  const copy = useCopy(invitationContent)
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -56,7 +57,7 @@ export default function AcceptInvitation({
       await join()
     } catch (err) {
       setBusy(false)
-      setError(err instanceof Error ? err.message : copy.acceptFailed)
+      setError(errorText(err, copy.acceptFailed))
     }
   }
 

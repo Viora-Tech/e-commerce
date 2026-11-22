@@ -12,8 +12,10 @@ import { toast } from 'sonner'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
-import { domainsContent as copy } from '@/data/domains'
+import { domainsContent } from '@/data/domains'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type ChangePrimaryDialogProps = {
   open: boolean
@@ -31,6 +33,7 @@ export default function ChangePrimaryDialog({
   currentId,
 }: ChangePrimaryDialogProps) {
   // Hooks
+  const copy = useCopy(domainsContent)
   const router = useRouter()
   const [selected, setSelected] = useState(currentId ?? '')
   const [saving, setSaving] = useState(false)
@@ -50,7 +53,7 @@ export default function ChangePrimaryDialog({
       onOpenChange(false)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.errors.action)
+      toast.error(errorText(err, copy.errors.action))
     } finally {
       setSaving(false)
     }

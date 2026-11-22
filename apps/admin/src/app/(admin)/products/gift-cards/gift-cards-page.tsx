@@ -21,7 +21,7 @@ import StoreCreditCardsCard from '@/components/gift-cards/store-credit-cards-car
 import EmptyState from '@/components/layout/empty-state'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import RelativeTime from '@/components/layout/relative-time'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { filterPanelContent } from '@/data/filter-panel'
 import { GIFT_CARD_STATES, type GiftCardStateFilter, giftCardsContent } from '@/data/gift-cards'
@@ -139,7 +139,7 @@ const columns: ResourceColumnSpec<Item>[] = [
   {
     id: 'status',
     title: copy.columns.status,
-    render: (g) => <OrderChip kind="giftCard" value={g.state} />,
+    render: (g) => <StatusLabel kind="giftCard" value={g.state} variant="soft" />,
   },
 ]
 

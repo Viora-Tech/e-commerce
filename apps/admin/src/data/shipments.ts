@@ -170,11 +170,14 @@ export const shipmentActionsContent = {
   joinedDone: (n: number) =>
     `Added ${n} ${n === 1 ? 'parcel' : 'parcels'} to the pickup. Its manifest is in Pickups.`,
   pickupDone: (n: number) => `Pickup scheduled for ${n} ${n === 1 ? 'parcel' : 'parcels'}`,
-  createManifest: 'Create manifest',
-  manifestTitle: (n: number) => `Create a manifest for ${n} ${n === 1 ? 'parcel' : 'parcels'}?`,
-  manifestBody:
-    'A manifest groups these parcels into one label sheet to hand to the pickup executive. You find it under Pickups.',
-  manifestDone: 'Manifest created. You find it under Pickups.',
+  /** To be picked up's selection bar: the ticked parcels leave their pickup (owner, 22 Nov 2026). */
+  cancelPickup: 'Cancel pickup',
+  cancelPickupTitle: (n: number) => `Take ${n} ${n === 1 ? 'parcel' : 'parcels'} off the pickup?`,
+  cancelPickupBody:
+    'The labels stay live and the parcels go back to Booked, off their pickup and manifest. Delhivery books a pickup for your warehouse, not for each parcel: its executive may still collect them. Cancel the shipment if a parcel must not go.',
+  cancelPickupDone: (n: number) => `${n} ${n === 1 ? 'parcel is' : 'parcels are'} back in Booked.`,
+  cancelPickupSome: (done: number, failed: number) =>
+    `${done} back in Booked; ${failed} could not leave the pickup (already collected?).`,
   refreshTracking: 'Refresh tracking',
   trackingUpdated: 'Tracking updated',
   failed: 'The courier request did not go through. Try again in a moment.',
@@ -199,7 +202,8 @@ export const shipmentCancelContent = {
   marked: 'Already cancelled on the courier’s app',
   markedHelp:
     'Nothing is sent to the courier. The shipment is marked cancelled here and the order goes back to To ship.',
-  noCourierCancel: 'This courier takes no cancellations from here. Cancel it on the courier’s own site, then pick the last option.',
+  noCourierCancel:
+    'This courier takes no cancellations from here. Cancel it on the courier’s own site, then pick the last option.',
   confirm: 'Confirm',
   keep: 'Keep as it is',
   backDone: 'Pickup cancelled. The parcel is back in Booked.',

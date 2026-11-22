@@ -1,6 +1,6 @@
 import { displayStatus } from '@commerce/core/blog'
-import OrderChip from '@/components/orders/order-chip'
 import ProductThumb from '@/components/products/product-thumb'
+import StatusLabel from '@/components/status/status-label'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { blogListContent } from '@/data/blog'
 import type { api } from '@/lib/api-client'
@@ -46,7 +46,7 @@ export function articleColumns(
       render: (a) => {
         const status = displayStatus(a.status, a.publishedAt)
         return (
-          <OrderChip
+          <StatusLabel
             kind="article"
             value={status}
             label={
@@ -54,6 +54,7 @@ export function articleColumns(
                 ? copy.scheduledFor(fmt.pattern(a.publishedAt, { day: 'numeric', month: 'short' }))
                 : copy.status[status]
             }
+            variant="soft"
           />
         )
       },

@@ -33,6 +33,7 @@ import { shipmentPanelContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import {
   canRemindToPay,
   listCancelsShipment,
@@ -127,7 +128,7 @@ export default function OrderRowMenu({
       toast.success(detail.payment.transfer.sentToast)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : list.bulk.failed)
+      toast.error(errorText(err, list.bulk.failed))
     }
   }
 
@@ -139,7 +140,7 @@ export default function OrderRowMenu({
       toast.success(done)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : list.bulk.failed)
+      toast.error(errorText(err, list.bulk.failed))
     }
   }
 
@@ -158,7 +159,7 @@ export default function OrderRowMenu({
       const full = await api.orders.get({ id: order.id })
       if (full) setCancelling(full)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : list.bulk.failed)
+      toast.error(errorText(err, list.bulk.failed))
     }
   }
 
@@ -176,7 +177,7 @@ export default function OrderRowMenu({
       toast.success(shipping.cancelled)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : list.bulk.failed)
+      toast.error(errorText(err, list.bulk.failed))
     }
   }
 
@@ -204,7 +205,7 @@ export default function OrderRowMenu({
       toast.success(list.row.tagsSaved)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : list.bulk.failed)
+      toast.error(errorText(err, list.bulk.failed))
     }
   }
 

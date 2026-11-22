@@ -25,6 +25,7 @@ import { affiliatesContent } from '@/data/affiliates'
 import { appsContent } from '@/data/apps'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type Candidate = Awaited<ReturnType<typeof api.affiliates.payouts.candidates>>[number]
 type Payout = Awaited<ReturnType<typeof api.affiliates.payouts.list>>[number]
@@ -81,7 +82,7 @@ export default function PayoutsPage() {
       toast.success(await fn())
       setReload((n) => n + 1)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : failed)
+      toast.error(errorText(err, failed))
     } finally {
       setBusy(null)
     }
@@ -100,7 +101,7 @@ export default function PayoutsPage() {
       const { csv } = await api.affiliates.payouts.exportCsv({})
       download(`affiliate-payouts-${new Date().toISOString().slice(0, 10)}.csv`, csv)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : failed)
+      toast.error(errorText(err, failed))
     }
   }
 

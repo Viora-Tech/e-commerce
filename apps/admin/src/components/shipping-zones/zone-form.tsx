@@ -18,6 +18,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import { emptyZone, fromZone, type LoadedZone, toZoneInput, type ZoneFormState } from './form-state'
 import ZoneCountriesCard from './zone-countries-card'
@@ -78,7 +79,7 @@ export default function ZoneForm({ zone, profileId = null }: ZoneFormProps) {
       void announceSetup('shipping')
       router.refresh()
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : copy.toasts.failed)
+      setServerError(errorText(err, copy.toasts.failed))
     } finally {
       setBusy(false)
     }
@@ -99,7 +100,7 @@ export default function ZoneForm({ zone, profileId = null }: ZoneFormProps) {
       router.push(backHref)
       router.refresh()
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : copy.toasts.failed)
+      setServerError(errorText(err, copy.toasts.failed))
       setBusy(false)
       setConfirmDelete(false)
     }

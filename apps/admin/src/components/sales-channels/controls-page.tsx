@@ -7,6 +7,7 @@ import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import MoneyInput from '@/components/fields/money-input'
+import SwitchRow from '@/components/fields/switch-row'
 import TagInput from '@/components/fields/tag-input'
 import ChoiceCard from '@/components/layout/choice-card'
 import DataCard from '@/components/layout/data-card'
@@ -19,7 +20,6 @@ import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
-import SwitchRow from './switch-row'
 
 type ControlsPageProps = {
   view: AgentControlsView
@@ -131,6 +131,7 @@ export default function ControlsPage({ view: initial, collections }: ControlsPag
                   description={copy.hideTaggedBody}
                   checked={form.hideTagged}
                   onChange={(hideTagged) => patch({ hideTagged })}
+                  className="py-3"
                 />
                 {form.hideTagged ? (
                   <Field className="pb-1">
@@ -154,6 +155,7 @@ export default function ControlsPage({ view: initial, collections }: ControlsPag
                   description={copy.storePricesBody}
                   checked={form.storePrices}
                   onChange={(storePrices) => patch({ storePrices })}
+                  className="py-3"
                 />
                 <SwitchRow
                   id="agent-compare-at"
@@ -161,6 +163,7 @@ export default function ControlsPage({ view: initial, collections }: ControlsPag
                   description={copy.compareAtBody}
                   checked={form.showCompareAt}
                   onChange={(showCompareAt) => patch({ showCompareAt })}
+                  className="py-3"
                 />
               </div>
             </DataCard>
@@ -192,6 +195,7 @@ export default function ControlsPage({ view: initial, collections }: ControlsPag
                   description={copy.holdBody}
                   checked={form.holdLarge}
                   onChange={(holdLarge) => patch({ holdLarge })}
+                  className="py-3"
                 />
               </div>
               {form.holdLarge ? (

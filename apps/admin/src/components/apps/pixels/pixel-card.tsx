@@ -18,6 +18,7 @@ import type { ChipTone } from '@/components/status/tone'
 import { pixelsContent } from '@/data/pixels'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 
 type Pixel = Awaited<ReturnType<typeof api.pixels.list>>[number]
 type Trigger = (typeof PURCHASE_TRIGGERS)[number]
@@ -51,7 +52,7 @@ export default function PixelCard({ pixel, onChanged }: PixelCardProps) {
       if (done) toast.success(done)
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }
@@ -76,7 +77,7 @@ export default function PixelCard({ pixel, onChanged }: PixelCardProps) {
       else toast.error(copy.card.testFailed(r.message))
       onChanged()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
+      toast.error(errorText(err, copy.failed))
     } finally {
       setBusy(false)
     }

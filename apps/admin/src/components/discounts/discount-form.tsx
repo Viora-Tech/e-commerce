@@ -16,6 +16,7 @@ import { discountFormContent, discountsContent } from '@/data/discounts'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import BxgyCard from './bxgy-card'
 import CombinationsCard from './combinations-card'
@@ -92,7 +93,7 @@ export default function DiscountForm({ discount, segmentId = null }: DiscountFor
         router.refresh()
       }
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : copy.toasts.failed)
+      setServerError(errorText(err, copy.toasts.failed))
     } finally {
       setPending(null)
     }
@@ -116,7 +117,7 @@ export default function DiscountForm({ discount, segmentId = null }: DiscountFor
       toast.success(status === 'disabled' ? copy.toasts.paused : copy.toasts.resumed)
       router.refresh()
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : copy.toasts.failed)
+      setServerError(errorText(err, copy.toasts.failed))
     } finally {
       setPending(null)
       setConfirmPause(false)
@@ -134,7 +135,7 @@ export default function DiscountForm({ discount, segmentId = null }: DiscountFor
       router.push(routes.discounts.detail(copied.id))
       router.refresh()
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : copy.toasts.failed)
+      setServerError(errorText(err, copy.toasts.failed))
     } finally {
       setPending(null)
     }
@@ -149,7 +150,7 @@ export default function DiscountForm({ discount, segmentId = null }: DiscountFor
       router.push(routes.discounts.list())
       router.refresh()
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : copy.toasts.failed)
+      setServerError(errorText(err, copy.toasts.failed))
       setPending(null)
       setConfirmDelete(false)
     }
