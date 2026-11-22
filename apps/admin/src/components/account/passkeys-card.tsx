@@ -6,6 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
+import NameDialog from '@/components/fields/name-dialog'
 import ActionMenu from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
@@ -15,7 +16,6 @@ import InlineState from '@/components/states/inline-state'
 import { accountContent } from '@/data/account'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { authClient, authErrorCode } from '@/lib/auth-client'
-import PasskeyNameDialog from './passkey-name-dialog'
 
 type Passkey = { id: string; name?: string | null; createdAt: Date | string; backedUp: boolean }
 
@@ -165,8 +165,13 @@ export default function PasskeysCard() {
           <p className="text-caption text-muted-foreground">{copy.unsupported}</p>
         )}
       </div>
-      <PasskeyNameDialog
-        title={nameTitle}
+      <NameDialog
+        open={nameTitle !== null}
+        title={nameTitle ?? ''}
+        label={copy.nameLabel}
+        placeholder={copy.namePlaceholder}
+        cancelLabel={copy.cancel}
+        maxLength={60}
         initialName={initialName}
         submitLabel={naming?.mode === 'rename' ? copy.save : copy.add}
         busy={busy}

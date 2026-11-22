@@ -8,6 +8,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import NameDialog from '@/components/fields/name-dialog'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
@@ -21,7 +22,6 @@ import { routes } from '@/lib/routes'
 import AddThemeDialog, { type ThemeStart } from './add-theme-dialog'
 import AddThemeMenu from './add-theme-menu'
 import CurrentThemeCard from './current-theme-card'
-import RenameThemeDialog from './rename-theme-dialog'
 import type { ThemeAction } from './theme-actions-menu'
 import ThemeLibraryRow from './theme-library-row'
 import ThemePacksCard from './theme-packs-card'
@@ -88,6 +88,7 @@ export default function ThemesLibrary({
   const [adding, setAdding] = useState<'preset' | 'blank' | null>(null)
   const { title } = useCopy(themesContent)
   const copy = useCopy(themesContent.library)
+  const renameCopy = useCopy(themesContent.renameDialog)
   const [renaming, setRenaming] = useState<ThemeItem | null>(null)
   const [deleting, setDeleting] = useState<ThemeItem | null>(null)
   const [versioning, setVersioning] = useState<ThemeItem | null>(null)
@@ -282,12 +283,18 @@ export default function ThemesLibrary({
         onAdd={handleAdd}
       />
       {renaming ? (
-        <RenameThemeDialog
+        <NameDialog
           key={renaming.id}
-          theme={renaming}
+          title={renameCopy.title}
+          label={renameCopy.name}
+          submitLabel={renameCopy.confirm}
+          cancelLabel={renameCopy.cancel}
+          initialName={renaming.name}
+          maxLength={50}
+          isValid={(name) => name !== renaming.name}
           busy={pending === 'rename'}
           onCancel={() => setRenaming(null)}
-          onRename={handleRename}
+          onSubmit={(name) => handleRename(renaming.id, name)}
         />
       ) : null}
       {versioning ? (

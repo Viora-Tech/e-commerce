@@ -6,6 +6,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import NameDialog from '@/components/fields/name-dialog'
 import DataCard from '@/components/layout/data-card'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
@@ -23,7 +24,6 @@ import ProfitInsightsCard from './profit-insights-card'
 import RangeFailed from './range-failed'
 import RangePicker from './range-picker'
 import ReportChart from './report-chart'
-import ReportNameDialog from './report-name-dialog'
 import ReportTable from './report-table'
 
 type ReportViewProps = {
@@ -174,13 +174,16 @@ export default function ReportView({ report, initialRange, initial }: ReportView
         </div>
       )}
       {saving ? (
-        <ReportNameDialog
+        <NameDialog
           title={c.save.title}
           description={c.save.help}
-          confirm={c.save.confirm}
+          label={c.save.name}
+          cancelLabel={c.save.cancel}
+          maxLength={120}
+          submitLabel={c.save.confirm}
           initialName={report.title}
           onCancel={() => setSaving(false)}
-          onConfirm={handleSave}
+          onSubmit={handleSave}
         />
       ) : null}
     </PageBody>

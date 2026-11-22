@@ -7,6 +7,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import NameDialog from '@/components/fields/name-dialog'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import PageBody from '@/components/layout/page-body'
@@ -18,7 +19,6 @@ import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import { useStorageScope } from '@/lib/storage-scope'
 import ReportChart from './report-chart'
-import ReportNameDialog from './report-name-dialog'
 import ReportSkeleton from './report-skeleton'
 import ReportTable from './report-table'
 
@@ -119,13 +119,16 @@ export default function AnswerReportView({ saved: initialSaved }: AnswerReportVi
         <ReportTable report={report} data={result} />
       </DataCard>
       {naming ? (
-        <ReportNameDialog
+        <NameDialog
           title={c.save.title}
           description={c.answer.saveHelp}
-          confirm={c.save.confirm}
+          label={c.save.name}
+          cancelLabel={c.save.cancel}
+          maxLength={120}
+          submitLabel={c.save.confirm}
           initialName={c.answer.title}
           onCancel={() => setNaming(false)}
-          onConfirm={handleSave}
+          onSubmit={handleSave}
         />
       ) : null}
     </PageBody>

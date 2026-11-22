@@ -1,9 +1,10 @@
 'use client'
 
+import { TEMPLATE_SUFFIX } from '@commerce/core/theme'
+import NameDialog from '@/components/fields/name-dialog'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { customizeContent } from '@/data/customize'
 import type { useTemplateManager } from '@/lib/use-template-manager'
-import RenameTemplateDialog from './rename-template-dialog'
 import { usedLabel } from './template-list'
 
 type TemplateManagerDialogsProps = {
@@ -17,14 +18,23 @@ export default function TemplateManagerDialogs({ manager }: TemplateManagerDialo
   // Early returns
   const pending = manager.pending
   if (pending?.action === 'rename') {
+    const renameCopy = copy.renameDialog
+    const used = usedLabel(manager, pending.kind, pending.suffix)
     return (
-      <RenameTemplateDialog
+      <NameDialog
         key={`${pending.kind}.${pending.suffix}`}
-        suffix={pending.suffix}
-        used={usedLabel(manager, pending.kind, pending.suffix)}
+        title={renameCopy.title}
+        label={renameCopy.name}
+        submitLabel={renameCopy.confirm}
+        cancelLabel={renameCopy.cancel}
+        initialName={pending.suffix}
+        maxLength={40}
+        help={`${renameCopy.help}${used ? ` ${renameCopy.moves(used)}` : ''}`}
+        normalise={(typed) => typed.trim().toLowerCase()}
+        isValid={(name) => TEMPLATE_SUFFIX.test(name) && name !== pending.suffix}
         busy={manager.busy}
         onCancel={() => manager.setPending(null)}
-        onRename={manager.rename}
+        onSubmit={manager.rename}
       />
     )
   }
