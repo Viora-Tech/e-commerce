@@ -2,10 +2,10 @@
 
 import type { RouteRule } from '@commerce/core/delivery-options'
 import { Button } from '@commerce/ui/shadcn/button'
-import { useEffect, useState } from 'react'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { deliveryRuleFormContent } from '@/data/delivery-rule-form'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { type CollectionTwin, carrierName } from './format'
 import InlineWarning from './inline-warning'
@@ -27,23 +27,12 @@ export default function RuleOrderCard({ rules, onSort }: RuleOrderCardProps) {
   // Hooks
   const copy = useCopy(deliveryOptionsContent)
   const form = useCopy(deliveryRuleFormContent)
-  const [twins, setTwins] = useState<CollectionTwin[]>([])
-
-  useEffect(() => {
-    if (rules.length === 0) return
-    let live = true
-    api.deliveryOptions
-      .collectionTwins()
-      .then((next) => {
-        if (live) setTwins(next)
-      })
-      .catch(() => {
-        if (live) setTwins([])
-      })
-    return () => {
-      live = false
-    }
-  }, [rules])
+  const { data, failed } = useLoad(
+    async () => (rules.length === 0 ? null : api.deliveryOptions.collectionTwins()),
+    [rules],
+  )
+  // A failed read shows no twins.
+  const twins: CollectionTwin[] = failed ? [] : (data ?? [])
 
   // Helpers
   const named = (r: RouteRule) => form.order.named(r.name, form.order.kinds[r.target.kind])

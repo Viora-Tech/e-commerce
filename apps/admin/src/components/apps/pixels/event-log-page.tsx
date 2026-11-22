@@ -2,7 +2,7 @@
 
 import { siteConfig } from '@commerce/config/site'
 import { PIXEL_EVENTS } from '@commerce/core/pixels'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import EventDialog from '@/components/apps/pixels/event-dialog'
 import { type LogRow, logColumns } from '@/components/apps/pixels/log-columns'
 import PageHeader from '@/components/layout/page-header'
@@ -13,9 +13,9 @@ import { appsContent } from '@/data/apps'
 import { filterPanelContent } from '@/data/filter-panel'
 import { pixelsContent } from '@/data/pixels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 
-type Pixel = Awaited<ReturnType<typeof api.pixels.list>>[number]
 type Status = 'sent' | 'failed' | 'skipped'
 type Origin = 'storefront' | 'order' | 'test'
 type EventName = (typeof PIXEL_EVENTS)[number]
@@ -30,9 +30,7 @@ export default function EventLogPage() {
   const apps = useCopy(appsContent)
   const panelCopy = useCopy(filterPanelContent)
   const f = useFormat()
-  const [pixels, setPixels] = useState<Pixel[]>([])
-  const [rows, setRows] = useState<LogRow[] | null>(null)
-  const [total, setTotal] = useState(0)
+  const { data: pixelList } = useLoad(() => api.pixels.list())
   const [status, setStatus] = useState<Status | null>(null)
   const [connectionId, setConnectionId] = useState<string | null>(null)
   const [eventName, setEventName] = useState<string | null>(null)
@@ -41,47 +39,22 @@ export default function EventLogPage() {
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
   const [open, setOpen] = useState<LogRow | null>(null)
-  /** The log read failed: the table says so with Try again. */
-  const [failed, setFailed] = useState(false)
-  const [attempt, setAttempt] = useState(0)
-
-  useEffect(() => {
-    let cancelled = false
-    api.pixels.list().then((list) => {
-      if (!cancelled) setPixels(list)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is Try again
-  useEffect(() => {
-    let cancelled = false
-    api.pixels.log
-      .list({
+  const {
+    data: log,
+    failed,
+    retry,
+  } = useLoad(
+    () =>
+      api.pixels.log.list({
         ...(status ? { status } : {}),
         ...(connectionId ? { connectionId } : {}),
         ...(eventName ? { eventName: eventName as EventName } : {}),
         ...(origin ? { origin: origin as Origin } : {}),
         limit: perPage,
         offset: (page - 1) * perPage,
-      })
-      .then(
-        (r) => {
-          if (cancelled) return
-          setFailed(false)
-          setRows(r.rows)
-          setTotal(r.total)
-        },
-        () => {
-          if (!cancelled) setFailed(true)
-        },
-      )
-    return () => {
-      cancelled = true
-    }
-  }, [status, connectionId, eventName, origin, page, perPage, attempt])
+      }),
+    [status, connectionId, eventName, origin, page, perPage],
+  )
 
   // Helpers
   const pick = (set: (v: string | null) => void) => (next: string | null) => {
@@ -108,6 +81,9 @@ export default function EventLogPage() {
   }
 
   // Render logic
+  const pixels = pixelList ?? []
+  const rows: LogRow[] | null = log?.rows ?? null
+  const total = log?.total ?? 0
   const l = copy.log
   const names = new Map(pixels.map((p) => [p.id, p.name || p.pixelId]))
   const groups: FilterGroup[] = [
@@ -154,11 +130,7 @@ export default function EventLogPage() {
         getId={(r) => r.id}
         selectable={false}
         loading={rows === null && !failed}
-        error={
-          failed
-            ? { heading: apps.couldNotLoad.events, onRetry: () => setAttempt((n) => n + 1) }
-            : undefined
-        }
+        error={failed ? { heading: apps.couldNotLoad.events, onRetry: retry } : undefined}
         query={query}
         onQueryChange={setQuery}
         onClearAll={handleClearAll}

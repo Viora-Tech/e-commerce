@@ -4,17 +4,16 @@ import { ShoppingCart, UserRound } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
 import RelativeTime from '@/components/layout/relative-time'
 import StatusChip from '@/components/layout/status-chip'
+import LoadFailed from '@/components/states/load-failed'
 import { inboxConversationsContent } from '@/data/inbox-conversations'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import ShopperActivity from './shopper-activity'
-
-type Panel = Awaited<ReturnType<typeof api.inbox.panel>>
 
 type CustomerPanelProps = {
   conversationId: string
@@ -38,20 +37,14 @@ export default function CustomerPanel({
   // Hooks
   const copy = useCopy(inboxConversationsContent)
   const fmt = useFormat()
-  const [panel, setPanel] = useState<Panel | null>(null)
-
-  useEffect(() => {
-    if (refreshKey < 0) return
-    let live = true
-    api.inbox.panel({ id: conversationId }).then((p) => {
-      if (live) setPanel(p)
-    })
-    return () => {
-      live = false
-    }
-  }, [conversationId, refreshKey])
+  const {
+    data: panel,
+    failed,
+    retry,
+  } = useLoad(() => api.inbox.panel({ id: conversationId }), [conversationId, refreshKey])
 
   // Early returns
+  if (failed) return <LoadFailed failed={failed} onRetry={retry} size="inline" className="m-4" />
   if (!panel) {
     return (
       <div className="flex flex-col gap-3 p-4">

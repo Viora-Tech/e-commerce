@@ -2,11 +2,12 @@
 
 import { CalendarIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import BookedDrawer from './booked-drawer'
@@ -38,18 +39,14 @@ export default function BookedSideCard({
   const fmt = useFormat()
   const [bookedOpen, setBookedOpen] = useState(true)
   const [pickupOpen, setPickupOpen] = useState(false)
-  const [walletLeft, setWalletLeft] = useState<number | null>(null)
-  useEffect(() => {
-    if (!liveWalletProvider) return
-    let live = true
-    api.shipments
-      .refreshWallet({ providerId: liveWalletProvider })
-      .then((w) => live && setWalletLeft(w.balancePaise))
-      .catch(() => undefined)
-    return () => {
-      live = false
-    }
-  }, [liveWalletProvider])
+  // A failed wallet read leaves the booked facts as they were.
+  const { data: walletLeft } = useLoad(
+    async () =>
+      liveWalletProvider
+        ? (await api.shipments.refreshWallet({ providerId: liveWalletProvider })).balancePaise
+        : null,
+    [liveWalletProvider],
+  )
 
   // Event handlers
   const handleCreatePickup = () => {

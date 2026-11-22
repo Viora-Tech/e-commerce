@@ -1,7 +1,7 @@
 'use client'
 
 import { ShoppingBag } from '@commerce/ui/icons'
-import { type ReactNode, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import StatusLabel from '@/components/status/status-label'
@@ -10,6 +10,7 @@ import { orderHoldContent } from '@/data/order-hold'
 import { ordersContent } from '@/data/orders'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { orderChannel } from '@/lib/order-channel'
 import { shownPaymentStatus } from '@/lib/order-next-move'
@@ -41,21 +42,8 @@ export default function OrderHeader({ order, actions, back }: OrderHeaderProps) 
   const listCopy = useCopy(ordersContent)
   const holdCopy = useCopy(orderHoldContent)
   const fmt = useFormat()
-  const [neighbours, setNeighbours] = useState<Neighbours | null>(null)
-
-  useEffect(() => {
-    let live = true
-    api.orders
-      .neighbours({ id: order.id })
-      .then((n) => {
-        if (live) setNeighbours(n)
-      })
-      // The arrows stay off: the page works without them.
-      .catch(() => undefined)
-    return () => {
-      live = false
-    }
-  }, [order.id])
+  // A failed read leaves the arrows off: the page works without them.
+  const { data: neighbours } = useLoad(() => api.orders.neighbours({ id: order.id }), [order.id])
 
   // Render logic
   // An imported order names Shopify's gateways (its own method reads 'manual'), cleaned (#13).

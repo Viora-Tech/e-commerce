@@ -5,13 +5,14 @@ import { BugIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
 import PageState from '@/components/states/page-state'
 import { myBugReportsContent } from '@/data/bug-report'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { announceBugReportsSeen, openBugReport } from '@/lib/bug-report-events'
 import BugReportRow from './bug-report-row'
@@ -29,43 +30,25 @@ export default function BugReportsPage() {
   // Hooks
   const copy = useCopy(myBugReportsContent)
   const [scope, setScope] = useState<Scope>('mine')
-  const [reports, setReports] = useState<BugReportView[] | null>(null)
-  const [canSeeStore, setCanSeeStore] = useState(false)
-  const [failed, setFailed] = useState(false)
-  const [version, setVersion] = useState(0)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `version` re-runs the load after Try again
-  useEffect(() => {
-    let live = true
-    setReports(null)
-    api.bugReports
-      .list({ scope })
-      .then(async (r) => {
-        if (!live) return
-        setReports(r.reports)
-        setCanSeeStore(r.canSeeStore)
-        if (r.reports.some((x) => x.unread)) {
-          await api.bugReports.markSeen()
-          announceBugReportsSeen()
-        }
-      })
-      .catch(() => live && setFailed(true))
-    return () => {
-      live = false
+  const { data, failed, loading, retry } = useLoad(async () => {
+    const r = await api.bugReports.list({ scope })
+    if (r.reports.some((x) => x.unread)) {
+      await api.bugReports.markSeen()
+      announceBugReportsSeen()
     }
-  }, [scope, version])
+    return r
+  }, [scope])
 
-  // Event handlers
-  const handleRetry = () => {
-    setFailed(false)
-    setVersion((n) => n + 1)
-  }
+  // Render logic
+  const reports: BugReportView[] | null = loading ? null : (data?.reports ?? null)
+  const canSeeStore = data?.canSeeStore ?? false
 
   // Early returns
   if (failed) {
     return (
       <div className="flex flex-col gap-6">
         <PageHeader title={copy.title} />
-        <PageState kind="error" heading={copy.loadFailed} onRetry={handleRetry} />
+        <PageState kind="error" heading={copy.loadFailed} onRetry={retry} />
       </div>
     )
   }
