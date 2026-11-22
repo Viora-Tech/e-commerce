@@ -14,12 +14,13 @@ import AuditTrail from '@/components/privacy/audit-trail'
 import DataRequestActions from '@/components/privacy/data-request-actions'
 import DataRequestStatusBadge from '@/components/privacy/data-request-status-badge'
 import {
-  dataRequestDetailContent as copy,
+  dataRequestDetailContent,
   dataRequestsContent,
   KIND_LABEL,
   SOURCE_LABEL,
   URGENCY_LABEL,
 } from '@/data/customer-privacy'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { formatDate } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
@@ -43,6 +44,8 @@ type RowProps = { label: string; value: string | null | undefined }
 /** One request: who asked for what, what to do next, and everything done so far. */
 export default function DataRequestDetail({ id }: DataRequestDetailProps) {
   // Hooks
+  const copy = useCopy(dataRequestDetailContent)
+  const dataRequestsCopy = useCopy(dataRequestsContent)
   const [detail, setDetail] = useState<Detail | null>(null)
   const [failed, setFailed] = useState(false)
 
@@ -98,7 +101,7 @@ export default function DataRequestDetail({ id }: DataRequestDetailProps) {
               {cu ? (
                 <div className="flex flex-col gap-2">
                   <p className="text-body">
-                    {cu.anonymisedAt ? dataRequestsContent.erasedCustomer : (cu.name ?? cu.email)}
+                    {cu.anonymisedAt ? dataRequestsCopy.erasedCustomer : (cu.name ?? cu.email)}
                   </p>
                   {cu.anonymisedAt ? (
                     <p className="text-caption text-muted-foreground">{copy.erased}</p>

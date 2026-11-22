@@ -9,7 +9,8 @@ import { type FormEvent, useState } from 'react'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
-import { dataRequestDetailContent as copy } from '@/data/customer-privacy'
+import { dataRequestDetailContent } from '@/data/customer-privacy'
+import { useCopy } from '@/hooks/use-copy'
 
 type DeclineRequestDialogProps = {
   open: boolean
@@ -26,6 +27,7 @@ export default function DeclineRequestDialog({
   onDecline,
 }: DeclineRequestDialogProps) {
   // Hooks
+  const copy = useCopy(dataRequestDetailContent)
   const [reason, setReason] = useState('')
 
   // Event handlers

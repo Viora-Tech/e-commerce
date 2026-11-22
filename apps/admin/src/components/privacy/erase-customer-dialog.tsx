@@ -1,7 +1,8 @@
 'use client'
 
 import ConfirmDialog from '@/components/layout/confirm-dialog'
-import { dataRequestDetailContent as copy } from '@/data/customer-privacy'
+import { dataRequestDetailContent } from '@/data/customer-privacy'
+import { useCopy } from '@/hooks/use-copy'
 
 type EraseCustomerDialogProps = {
   open: boolean
@@ -17,6 +18,9 @@ export default function EraseCustomerDialog({
   onOpenChange,
   onConfirm,
 }: EraseCustomerDialogProps) {
+  // Hooks
+  const copy = useCopy(dataRequestDetailContent)
+
   // Render logic
   return (
     <ConfirmDialog

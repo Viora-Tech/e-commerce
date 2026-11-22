@@ -14,7 +14,8 @@ import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import ChoiceList from '@/components/returns/choice-list'
-import { logRequestContent as copy, SOURCE_LABEL } from '@/data/customer-privacy'
+import { logRequestContent, SOURCE_LABEL } from '@/data/customer-privacy'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
 
@@ -41,6 +42,7 @@ export default function LogRequestDialog({
   customer,
 }: LogRequestDialogProps) {
   // Hooks
+  const copy = useCopy(logRequestContent)
   const [kind, setKind] = useState<DataRequestKind>('export')
   const [source, setSource] = useState<Source>('email')
   const [query, setQuery] = useState('')

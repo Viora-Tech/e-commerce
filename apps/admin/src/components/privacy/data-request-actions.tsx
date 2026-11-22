@@ -10,7 +10,8 @@ import { saveFile } from '@/components/apps/gst-invoices/save-file'
 import DataCard from '@/components/layout/data-card'
 import DeclineRequestDialog from '@/components/privacy/decline-request-dialog'
 import EraseCustomerDialog from '@/components/privacy/erase-customer-dialog'
-import { dataRequestDetailContent as copy } from '@/data/customer-privacy'
+import { dataRequestDetailContent } from '@/data/customer-privacy'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
 
@@ -27,6 +28,7 @@ export default function DataRequestActions({
   onChanged,
 }: DataRequestActionsProps) {
   // Hooks
+  const copy = useCopy(dataRequestDetailContent)
   const [busy, setBusy] = useState(false)
   /** The status being set, so only that button spins while `busy`. */
   const [pending, setPending] = useState<'in_progress' | 'completed' | null>(null)
