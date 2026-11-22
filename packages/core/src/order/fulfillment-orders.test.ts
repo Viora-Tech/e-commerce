@@ -42,7 +42,7 @@ import {
 } from './fulfillment-orders'
 import { linesAvailability } from './parcel-availability'
 import { orderPartShipping } from './parcel-progress'
-import { splitFulfillmentOrder } from './parcel-split'
+import { separateShippedUnits, splitFulfillmentOrder } from './parcel-split'
 import { orderParcelsView } from './parcel-view'
 import { placeOrder } from './place-order'
 import { cancelOrder } from './status'
@@ -590,6 +590,38 @@ describe('splitFulfillmentOrder (partial shipment)', () => {
     expect(
       await owner.select().from(outboxEvent).where(eq(outboxEvent.type, 'order.split')),
     ).toEqual([])
+  })
+})
+
+describe('orderPartShipping after the sent units were separated (#2082)', () => {
+  it('shows the parcel that left without a label as packed, with its items, not To ship', async () => {
+    const t = await seed()
+    // Shipped 1 of 3 before the order came over (no shipment row), then booked the rest.
+    const { orderId, line } = await legacyOrder(t, { fulfilled: 1, committed: 2 })
+    await inStore(t, (ctx) => ensureFulfillmentOrders(ctx, orderId))
+    const first = (await parcelsOf(orderId)).fos[0]
+    if (!first) throw new Error('no parcel')
+    const restId = await inStore(t, (ctx) => separateShippedUnits(ctx, orderId, first.id))
+    if (!restId) throw new Error('nothing separated')
+    await owner.insert(shipment).values({
+      storeId: t.storeId,
+      orderId,
+      fulfillmentOrderId: restId,
+      provider: 'manual',
+      waybill: 'AWB2082',
+    })
+    const view = await inStore(t, (ctx) => orderParcelsView(ctx.tx, orderId))
+    expect(view.map((p) => [p.status, p.lines.map((l) => [l.orderLineId, l.quantity])])).toEqual([
+      ['fulfilled', [[line.id, 1]]],
+      ['open', [[line.id, 2]]],
+    ])
+    const parts = await inStore(t, (ctx) =>
+      orderPartShipping(ctx.tx, orderId, view, builtInShippingRegistry()),
+    )
+    expect(parts?.parcels.map((p) => [p.packed, p.shipment?.waybill ?? null])).toEqual([
+      [true, null],
+      [false, 'AWB2082'],
+    ])
   })
 })
 
