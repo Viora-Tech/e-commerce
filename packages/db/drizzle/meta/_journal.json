@@ -1737,6 +1737,13 @@
       "when": 1795281100000,
       "tag": "0263_broken_links",
       "breakpoints": true
+    },
+    {
+      "idx": 248,
+      "version": "7",
+      "when": 1795281200000,
+      "tag": "0264_seo_weekly_snapshot",
+      "breakpoints": true
     }
   ]
 }

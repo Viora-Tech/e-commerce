@@ -67,6 +67,7 @@ export {
   storesWithPendingManualOrders,
   storesWithRetentionDue,
   storesWithRolloutsDue,
+  storesWithSearchConsoleConnected,
   storesWithSearchConsoleDue,
   storesWithSenderEmailChecks,
   storesWithShopifyConnections,

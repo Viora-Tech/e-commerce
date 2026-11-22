@@ -243,6 +243,7 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   saved_report: ADMIN,
   search_console_row: ADMIN,
   sender_email: ADMIN,
+  seo_weekly_snapshot: ADMIN,
   shipment: SHOPPER,
   shipment_manifest: ADMIN,
   shipment_shared_order: SHOPPER,

@@ -7,6 +7,7 @@ import { marketingComposers } from './marketing'
 import { orderPlaced } from './order-placed'
 import { paymentComposers } from './payments'
 import { returnComposers } from './returns'
+import { seoComposers } from './seo'
 import { teamComposers } from './team'
 import { updateComposers } from './updates'
 
@@ -39,6 +40,7 @@ const COMPOSERS: Partial<Record<TemplateId, Composer>> = {
   ...accountComposers,
   ...marketingComposers,
   ...teamComposers,
+  ...seoComposers,
 }
 
 /** The kicker and blocks for a message, or null when it is not on the blocks yet. */

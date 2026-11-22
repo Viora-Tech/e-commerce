@@ -13,6 +13,7 @@ import {
 } from './content-parts'
 import { payOnlineTemplates } from './content-pay-online'
 import { reportTemplates } from './content-reports'
+import { seoTemplates } from './content-seo'
 import { splitTemplates } from './content-split'
 
 /** A draft invoice's number after the #: "D12" while it is a draft, else the order number. */
@@ -31,6 +32,7 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
   ...splitTemplates,
   ...payOnlineTemplates,
   ...reportTemplates,
+  ...seoTemplates,
   cod_confirm: {
     subject: (d) => `${d.storeName}: please confirm your cash on delivery order #${d.orderNumber}`,
     heading: (d) => `Hi ${d.customerName}, is this order yours?`,
@@ -45,7 +47,8 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
     subject: (d) => `${d.storeName}: order #${d.orderNumber} received`,
     heading: (d) => {
       const name = d.customerName && d.customerName !== 'there' ? d.customerName : ''
-      if (d.paymentState === 'unpaid') return name ? `Thank you, ${name}. One step left.` : 'One step left.'
+      if (d.paymentState === 'unpaid')
+        return name ? `Thank you, ${name}. One step left.` : 'One step left.'
       return name ? `Thank you for your order, ${name}.` : 'Thank you for your order.'
     },
     intro: (d) =>

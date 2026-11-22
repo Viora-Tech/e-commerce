@@ -62,6 +62,14 @@ export async function storesWithSearchConsoleDue(db: Db): Promise<string[]> {
   return rows.map((r) => r.id)
 }
 
+/** Store ids with Google Search Console connected to a property, for the weekly SEO email. SECURITY DEFINER backed. */
+export async function storesWithSearchConsoleConnected(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_search_console_connected() as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
 /** Store ids with affiliate commissions whose hold is over (Affiliates app), for the worker. SECURITY DEFINER backed. */
 export async function storesWithDueAffiliateCommissions(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(

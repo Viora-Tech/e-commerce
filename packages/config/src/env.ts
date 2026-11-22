@@ -386,6 +386,9 @@ export const shape = z.object({
    * Google Cloud project (its own consent screen and verification). The authorised redirect
    * URI is `<ADMIN_URL>/api/apps/google-search-console/oauth/callback`.
    */
+  GOOGLE_SEARCH_CONSOLE_CLIENT_ID: optionalOrBlank(z.string().min(1)),
+  GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET: optionalOrBlank(z.string().min(1)),
+  /** Older names of the two above; the new names win when both are set. */
   GSC_GOOGLE_CLIENT_ID: optionalOrBlank(z.string().min(1)),
   GSC_GOOGLE_CLIENT_SECRET: optionalOrBlank(z.string().min(1)),
   /**

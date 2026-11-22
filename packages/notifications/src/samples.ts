@@ -1,6 +1,11 @@
 import { siteConfig } from '@commerce/config/site'
 import { figmaOrder, figmaProducts } from './samples-order'
-import { sampleDailyReport, sampleMonthlyReport, sampleWeeklyReport } from './samples-reports'
+import {
+  sampleDailyReport,
+  sampleMonthlyReport,
+  sampleSeoWeekly,
+  sampleWeeklyReport,
+} from './samples-reports'
 import type { TemplateData, TemplateId } from './types'
 
 export { sampleEmailBrand } from './samples-order'
@@ -52,7 +57,12 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
     waybill: 'AWB123456789',
     trackingUrl: 'https://waimers.example/track/42',
   },
-  delivered: { ...base, ...figmaOrder, courierLabel: 'Delhivery', orderUrl: 'https://waimers.example/account/orders/42' },
+  delivered: {
+    ...base,
+    ...figmaOrder,
+    courierLabel: 'Delhivery',
+    orderUrl: 'https://waimers.example/account/orders/42',
+  },
   delivery_failed: {
     ...base,
     ...figmaOrder,
@@ -162,7 +172,11 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
     lines: [],
     taxBreakdown: undefined,
     totalLabel: '',
-    welcome: { code: 'WELCOME10', valueLabel: '10%', terms: 'Min. order ₹999 · valid till 30 November' },
+    welcome: {
+      code: 'WELCOME10',
+      valueLabel: '10%',
+      terms: 'Min. order ₹999 · valid till 30 November',
+    },
     products: figmaProducts,
   },
   balance_request: {
@@ -425,6 +439,13 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
   },
   staff_weekly_report: { ...base, lines: [], totalLabel: '', report: sampleWeeklyReport },
   staff_monthly_report: { ...base, lines: [], totalLabel: '', report: sampleMonthlyReport },
+  staff_seo_weekly: {
+    ...base,
+    lines: [],
+    totalLabel: '',
+    seoWeekly: sampleSeoWeekly,
+    actionUrl: sampleSeoWeekly.url,
+  },
   email_change_code: {
     ...base,
     storeName: siteConfig.brand.name,

@@ -95,6 +95,8 @@ export const MESSAGE_CATALOGUE: readonly MessageDef[] = [
   { id: 'staff_daily_summary', group: 'you', trigger: 'auto', channels: BOTH },
   { id: 'staff_weekly_report', group: 'you', trigger: 'auto', channels: EMAIL },
   { id: 'staff_monthly_report', group: 'you', trigger: 'auto', channels: EMAIL },
+  // To the owner while Google Search Console is connected (Online store › SEO).
+  { id: 'staff_seo_weekly', group: 'you', trigger: 'auto', channels: EMAIL },
   { id: 'contact_message', group: 'app', trigger: 'app', channels: EMAIL, appId: 'forms' },
   { id: 'review_request', group: 'app', trigger: 'app', channels: BOTH, appId: 'reviews' },
   { id: 'review_reminder', group: 'app', trigger: 'app', channels: BOTH, appId: 'reviews' },

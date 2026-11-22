@@ -54,6 +54,7 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'staff_daily_summary',
   'staff_weekly_report',
   'staff_monthly_report',
+  'staff_seo_weekly',
   'contact_message',
   'review_request',
   'review_reminder',
@@ -117,6 +118,7 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   staff_daily_summary: 'Daily summary (team member alert)',
   staff_weekly_report: 'Weekly report (team member alert)',
   staff_monthly_report: 'Monthly report (team member alert)',
+  staff_seo_weekly: 'Weekly SEO email (store owner)',
   contact_message: 'New form message (merchant)',
   review_request: 'Review request',
   review_reminder: 'Review reminder',
@@ -186,6 +188,8 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
       return 'Weekly report'
     case 'staff_monthly_report':
       return 'Monthly report'
+    case 'staff_seo_weekly':
+      return 'Weekly SEO'
     case 'email_change_code':
     case 'email_changed':
       return 'Your sign-in email'

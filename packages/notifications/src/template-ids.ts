@@ -121,6 +121,11 @@ export type TemplateId =
   | 'staff_weekly_report'
   | 'staff_monthly_report'
   /**
+   * To the store OWNER while Google Search Console is connected: the week's SEO moves and the
+   * top suggestions (`seoWeekly`). `actionUrl` opens Online store › SEO. Email only.
+   */
+  | 'staff_seo_weekly'
+  /**
    * PLATFORM message: the code that confirms a member's NEW sign-in email (Account → Sign-in &
    * security → Change email). Sent to the new address; `code` is the one-time code. Email only.
    */

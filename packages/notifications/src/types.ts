@@ -1,4 +1,5 @@
 import type { PerformanceReport } from './report-types'
+import type { SeoWeeklyEmail } from './seo-weekly-types'
 import type { TemplateId } from './template-ids'
 import type { ChannelTemplateSpec, ChannelTemplateStatus } from './template-types'
 
@@ -292,6 +293,8 @@ export type TemplateData = {
     | undefined
   /** For the staff daily summary and weekly/monthly reports: the whole report, formatted. */
   report?: PerformanceReport | undefined
+  /** For staff_seo_weekly: the week's Google moves and suggestions. */
+  seoWeekly?: SeoWeeklyEmail | undefined
   /** For staff_daily_summary: the period and its figures, already formatted. */
   dailySummary?:
     | { periodLabel: string; orders: number; salesLabel: string; toShip: number }

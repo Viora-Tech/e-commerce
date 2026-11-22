@@ -59,6 +59,8 @@ export function primaryActionFor(
       return d.actionUrl ? { label: 'Open the order', url: d.actionUrl } : undefined
     case 'staff_daily_summary':
       return d.actionUrl ? { label: 'Open your admin', url: d.actionUrl } : undefined
+    case 'staff_seo_weekly':
+      return d.actionUrl ? { label: 'See search opportunities', url: d.actionUrl } : undefined
     case 'document_copy':
       return d.links?.[0] ? { label: d.links[0].label, url: d.links[0].url } : undefined
     case 'balance_request':

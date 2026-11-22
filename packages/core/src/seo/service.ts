@@ -94,7 +94,8 @@ export async function loadSeoProductItems(tx: StoreTx): Promise<SeoItem[]> {
   }))
 }
 
-async function collectionItems(tx: StoreTx): Promise<SeoItem[]> {
+/** Every active collection with its live product count (also read by the SEO assistant). */
+export async function loadSeoCollectionItems(tx: StoreTx): Promise<SeoItem[]> {
   const members = tx
     .select({
       collectionId: collectionProduct.collectionId,
@@ -135,7 +136,8 @@ async function collectionItems(tx: StoreTx): Promise<SeoItem[]> {
   }))
 }
 
-async function pageItems(tx: StoreTx): Promise<SeoItem[]> {
+/** Every published page (also read by the SEO assistant). */
+export async function loadSeoPageItems(tx: StoreTx): Promise<SeoItem[]> {
   const rows = await tx
     .select({
       id: page.id,
@@ -228,8 +230,8 @@ const SEARCH_PREFIX: Record<SeoItem['resource'], string> = {
 export async function loadSeoReport(tx: StoreTx, storeId?: string): Promise<SeoReport> {
   const items = [
     ...(await loadSeoProductItems(tx)),
-    ...(await collectionItems(tx)),
-    ...(await pageItems(tx)),
+    ...(await loadSeoCollectionItems(tx)),
+    ...(await loadSeoPageItems(tx)),
   ]
   const search = storeId ? await searchStatsByPath(tx, storeId) : null
   const withSearch = search
@@ -248,7 +250,7 @@ export async function loadSeoReport(tx: StoreTx, storeId?: string): Promise<SeoR
 export async function loadSeoHealth(tx: StoreTx): Promise<SeoHealthReport> {
   return seoHealth([
     ...(await loadSeoProductItems(tx)),
-    ...(await collectionItems(tx)),
-    ...(await pageItems(tx)),
+    ...(await loadSeoCollectionItems(tx)),
+    ...(await loadSeoPageItems(tx)),
   ])
 }

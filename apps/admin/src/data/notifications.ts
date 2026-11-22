@@ -291,6 +291,10 @@ export const notificationsSettingsContent = {
       name: 'Monthly report (team)',
       when: 'On the 1st of every month, to each team member who turned it on in Account → Notifications.',
     },
+    staff_seo_weekly: {
+      name: 'Weekly SEO email (owner)',
+      when: 'Every Monday morning, to the store owner, while Google Search Console is connected.',
+    },
     account_deletion_code: {
       name: 'Account deletion code',
       when: 'When a shopper asks to delete their account; the code confirms it is them.',

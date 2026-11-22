@@ -42,6 +42,8 @@
     "./tax-origin": "./src/tax/origin.ts",
     "./segments": "./src/customers/segments.ts",
     "./permissions": "./src/permissions/client.ts",
+    "./seo-assistant": "./src/seo/assistant/index.ts",
+    "./seo-assistant-service": "./src/seo/assistant/server.ts",
     "./collections": "./src/collections/client.ts",
     "./navigation": "./src/navigation/client.ts",
     "./inventory": "./src/inventory/client.ts",
