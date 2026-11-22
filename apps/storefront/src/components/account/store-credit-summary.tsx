@@ -22,7 +22,7 @@ export default function StoreCreditSummary({ balancePaise }: StoreCreditSummaryP
   // Render logic
   return (
     <section
-      className={`${ACCOUNT_CARD} mb-4 flex-row! items-center gap-3! sm:mb-5`}
+      className={`${ACCOUNT_CARD} mb-4! flex-row! items-center gap-3! sm:mb-5!`}
       aria-labelledby="credit-summary"
     >
       <span className="grid size-10 shrink-0 place-items-center rounded-full bg-ck-accent-soft text-ck-accent">
