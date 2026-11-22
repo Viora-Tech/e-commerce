@@ -16,7 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
-import { collectionFormContent as copy, FIELD_LABELS, OP_LABELS } from '@/data/collections'
+import { collectionFormContent, FIELD_LABELS, OP_LABELS } from '@/data/collections'
+import { useCopy } from '@/hooks/use-copy'
 
 type CollectionRuleRowProps = {
   condition: CollectionCondition
@@ -32,6 +33,9 @@ export default function CollectionRuleRow({
   onChange,
   onRemove,
 }: CollectionRuleRowProps) {
+  // Hooks
+  const copy = useCopy(collectionFormContent)
+
   // Event handlers
   const handleField = (value: unknown) => {
     const field = String(value) as CollectionField
