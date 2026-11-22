@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
+import SwitchRow from '@/components/fields/switch-row'
 import { COUNTRIES } from '@/data/countries'
 import { productFormContent } from '@/data/product-form'
 import { productShippingContent } from '@/data/product-shipping'
@@ -17,7 +18,6 @@ import { variantPageContent } from '@/data/variant-page'
 import { useCopy } from '@/hooks/use-copy'
 import type { VariantRow } from '../form-state'
 import type { ProductTax } from '../product-tax'
-import SwitchRow from '../switch-row'
 import VariantBoxField from '../variant-box-field'
 import WeightInput from '../weight-input'
 
@@ -58,9 +58,10 @@ export default function VariantShippingFields({
       <SwitchRow
         id="variant-physical"
         label={physical.physical}
-        help={physical.physicalHelp}
+        description={physical.physicalHelp}
         checked={draft.requiresShipping}
         onChange={(requiresShipping) => onPatch({ requiresShipping })}
+        weight="normal"
       />
       {draft.requiresShipping ? (
         <div className="grid gap-4 md:grid-cols-2">

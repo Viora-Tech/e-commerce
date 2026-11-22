@@ -10,13 +10,13 @@ import {
 } from '@commerce/ui/shadcn/collapsible'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
+import SwitchRow from '@/components/fields/switch-row'
 import { shippingSettingsContent } from '@/data/shipping'
 import { useCopy, useRegion } from '@/hooks/use-copy'
 import { orderWeekdays } from '@/lib/region'
 import SettingsCard from './settings-card'
 import SettingsRow from './settings-row'
 import SettingsTextRow from './settings-text-row'
-import SettingsToggleRow from './settings-toggle-row'
 
 type ShippingPolicyFieldsProps = {
   value: ShippingPolicySettings
@@ -150,18 +150,22 @@ export default function ShippingPolicyFields({ value, onChange }: ShippingPolicy
           }
         />
       </SettingsRow>
-      <SettingsToggleRow
+      <SwitchRow
         id="policy-cod"
         label={p.codAllowed}
         checked={value.codAllowed}
         onChange={(codAllowed) => set('codAllowed', codAllowed)}
+        weight="semibold"
+        divided
       />
-      <SettingsToggleRow
+      <SwitchRow
         id="policy-insure-default"
         label={p.insureByDefault}
         description={p.insureByDefaultHelp}
         checked={value.insureByDefault}
         onChange={(on) => set('insureByDefault', on)}
+        weight="semibold"
+        divided
       />
       <Collapsible>
         <CollapsibleTrigger className="group flex w-fit items-center gap-1.5 text-body font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">

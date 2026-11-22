@@ -3,7 +3,7 @@
 import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
-import SettingsToggleRow from '@/components/settings/settings-toggle-row'
+import SwitchRow from '@/components/fields/switch-row'
 import { deliveryOptionQuestionsContent } from '@/data/delivery-option-questions'
 import { deliveryOptionSectionsContent } from '@/data/delivery-option-sections'
 import { deliveryOptionsContent } from '@/data/delivery-options'
@@ -70,19 +70,23 @@ export default function OptionCouriersFields({ form, onChange }: OptionCouriersF
         />
       </div>
       <div className="flex flex-col">
-        <SettingsToggleRow
+        <SwitchRow
           id="opt-couriers-list"
           label={k.list}
           description={k.listHelp}
           checked={form.couriersList}
           onChange={set('couriersList')}
+          weight="semibold"
+          divided
         />
-        <SettingsToggleRow
+        <SwitchRow
           id="opt-show-names"
           label={k.showNames}
           description={k.showNamesHelp}
           checked={form.showNames}
           onChange={set('showNames')}
+          weight="semibold"
+          divided
         />
       </div>
       {form.couriersList && form.couriersMax !== String(ONE_COURIER) ? (
@@ -97,31 +101,37 @@ export default function OptionCouriersFields({ form, onChange }: OptionCouriersF
             ]}
             onChange={set('couriersMax')}
           />
-          <SettingsToggleRow
+          <SwitchRow
             id="opt-hide-slower"
             label={k.hideSlower}
             description={k.hideSlowerHelp}
             checked={form.hideSlowerDearer}
             onChange={set('hideSlowerDearer')}
+            weight="semibold"
+            divided
           />
-          <SettingsToggleRow
+          <SwitchRow
             id="opt-same-price"
             label={q.more.sameAsFirst}
             description={q.more.sameAsFirstHelp}
             checked={form.couriersExtra === 'none'}
             onChange={(on) => set('couriersExtra')(on ? 'none' : 'difference')}
+            weight="semibold"
+            divided
           />
           {form.strategy === 'fastest' && form.hideSlowerDearer ? (
             <InlineWarning>{k.hideSlowerFastest}</InlineWarning>
           ) : null}
           {/* The old "+₹…9" switch counts only on the ₹10 rounding with the difference. */}
           {form.rounding === 'ten' && form.couriersExtra === 'difference' ? (
-            <SettingsToggleRow
+            <SwitchRow
               id="opt-round-9"
               label={k.roundTo9}
               description={k.roundTo9Help}
               checked={form.roundTo9}
               onChange={set('roundTo9')}
+              weight="semibold"
+              divided
             />
           ) : null}
         </div>

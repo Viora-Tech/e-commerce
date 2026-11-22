@@ -3,8 +3,8 @@
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
+import SwitchRow from '@/components/fields/switch-row'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { deliveryOptionQuestionsContent } from '@/data/delivery-option-questions'
 import { deliveryOptionSectionsContent } from '@/data/delivery-option-sections'
 import { deliveryOptionsContent } from '@/data/delivery-options'
@@ -78,11 +78,13 @@ export default function OptionForm({ form, onChange }: OptionFormProps) {
             onChange={(v) => set('speed')(v === 'express' ? 'express' : 'standard')}
           />
         </div>
-        <SettingsToggleRow
+        <SwitchRow
           id="opt-enabled"
           label={o.availability.enabled}
           checked={form.enabled}
           onChange={set('enabled')}
+          weight="semibold"
+          divided
         />
       </SettingsCard>
 

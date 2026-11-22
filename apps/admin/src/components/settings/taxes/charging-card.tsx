@@ -9,10 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
+import SwitchRow from '@/components/fields/switch-row'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsRow from '@/components/settings/settings-row'
 import SettingsTextRow from '@/components/settings/settings-text-row'
-import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { taxesContent } from '@/data/taxes'
 import type { TaxesErrors, TaxesFormState } from './taxes-form'
 
@@ -48,23 +48,27 @@ export default function ChargingCard({ form, errors, onPatch }: ChargingCardProp
       title={copy.heading}
       description={copy.help}
     >
-      <SettingsToggleRow
+      <SwitchRow
         id="tax-composition"
         label={copy.composition}
         description={copy.compositionHelp}
         checked={form.composition}
         onChange={(composition) => onPatch({ composition })}
+        weight="semibold"
+        divided
       />
       {form.composition ? (
         <Note>{copy.compositionOn}</Note>
       ) : (
         <>
-          <SettingsToggleRow
+          <SwitchRow
             id="tax-prices-include"
             label={copy.pricesInclude}
             description={copy.pricesIncludeHelp}
             checked={form.pricesIncludeGst}
             onChange={(pricesIncludeGst) => onPatch({ pricesIncludeGst })}
+            weight="semibold"
+            divided
           />
           {form.pricesIncludeGst ? null : <Note>{copy.pricesExcludeNote}</Note>}
         </>

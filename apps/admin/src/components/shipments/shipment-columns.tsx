@@ -1,6 +1,6 @@
 import { STUCK_DAYS } from '@commerce/core/shipment-lost-state'
 import StatusChip from '@/components/layout/status-chip'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import { stateName } from '@/data/india'
 import type { shipmentLostContent } from '@/data/shipment-lost'
@@ -202,7 +202,7 @@ export function shipmentColumns(
         ) : r.status === 'lost' && r.lost ? (
           /* Lost: the chip, then the claim (or Reshipped) under it. */
           <span className="flex flex-col items-start gap-0.5">
-            <OrderChip kind="shipment" value={r.status} />
+            <StatusLabel kind="shipment" value={r.status} variant="soft" />
             <span className="text-caption text-muted-foreground">
               {[
                 r.lost.reshippedAt ? lostCopy.reshipped : null,
@@ -221,7 +221,7 @@ export function shipmentColumns(
             {lostCopy.stuck(r.lost?.daysWithoutScan ?? 0)}
           </StatusChip>
         ) : (
-          <OrderChip kind="shipment" value={r.status} />
+          <StatusLabel kind="shipment" value={r.status} variant="soft" />
         ),
     },
   ]

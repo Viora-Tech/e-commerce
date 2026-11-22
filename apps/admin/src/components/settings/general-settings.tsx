@@ -16,6 +16,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import SwitchRow from '@/components/fields/switch-row'
 import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-rows'
@@ -32,7 +33,6 @@ import SettingsDrillPanel from './settings-drill-panel'
 import SettingsPhoneRow from './settings-phone-row'
 import SettingsRow from './settings-row'
 import SettingsTextRow from './settings-text-row'
-import SettingsToggleRow from './settings-toggle-row'
 import StoreDataSection from './store-data-section'
 
 type Loaded = NonNullable<Awaited<ReturnType<typeof api.store.getGeneral>>>
@@ -274,12 +274,14 @@ export default function GeneralSettings() {
                 autoComplete="postal-code"
                 inputMode="numeric"
               />
-              <SettingsToggleRow
+              <SwitchRow
                 id="addr-show-in-emails"
                 label={copy.address.showInEmails}
                 description={copy.address.showInEmailsHelp}
                 checked={form.address.showInEmails !== false}
                 onChange={(showInEmails) => patchAddress({ showInEmails })}
+                weight="semibold"
+                divided
               />
             </SettingsCard>
             <div

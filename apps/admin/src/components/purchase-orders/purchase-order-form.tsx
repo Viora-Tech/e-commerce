@@ -20,8 +20,8 @@ import NoticeBar from '@/components/layout/notice-bar'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
-import OrderChip from '@/components/orders/order-chip'
 import DocumentsCard from '@/components/purchase-documents/documents-card'
+import StatusLabel from '@/components/status/status-label'
 import type { PickedSupplier } from '@/components/suppliers/new-supplier-dialog'
 import {
   type PurchaseOrderStatus,
@@ -289,7 +289,9 @@ export default function PurchaseOrderForm({
             }
             summary={summary}
             lead={{ kind: 'icon', node: <Package aria-hidden="true" /> }}
-            badges={status ? <OrderChip kind="purchaseOrder" value={status} /> : null}
+            badges={
+              status ? <StatusLabel kind="purchaseOrder" value={status} variant="soft" /> : null
+            }
             back={{ label: copy.back, href: LIST }}
             actions={
               <PoActions

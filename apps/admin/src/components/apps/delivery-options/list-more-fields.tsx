@@ -2,7 +2,7 @@
 
 import type { DeliveryOption } from '@commerce/core/delivery-options'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
-import SettingsToggleRow from '@/components/settings/settings-toggle-row'
+import SwitchRow from '@/components/fields/switch-row'
 import { deliveryOptionQuestionsContent } from '@/data/delivery-option-questions'
 import { deliveryOptionSectionsContent } from '@/data/delivery-option-sections'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
@@ -82,21 +82,25 @@ export default function ListMoreFields({ option, onChange }: ListMoreFieldsProps
         </div>
         {many ? (
           <div className="flex flex-col">
-            <SettingsToggleRow
+            <SwitchRow
               id="courier-list-hide"
               label={c.hide}
               description={c.hideHelp}
               checked={option.couriers.hideSlowerDearer}
               onChange={(on) => setCouriers({ hideSlowerDearer: on })}
               className="py-3"
+              weight="semibold"
+              divided
             />
-            <SettingsToggleRow
+            <SwitchRow
               id="courier-list-same"
               label={copy.more.sameAsFirst}
               description={copy.more.sameAsFirstHelp}
               checked={option.couriers.extra === 'none'}
               onChange={(on) => setCouriers({ extra: on ? 'none' : 'difference' })}
               className="py-3"
+              weight="semibold"
+              divided
             />
           </div>
         ) : null}

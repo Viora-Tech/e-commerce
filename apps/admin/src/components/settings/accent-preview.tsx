@@ -4,8 +4,8 @@ import { accentCss } from '@commerce/core/admin-accent'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
+import SwitchRow from '@/components/fields/switch-row'
 import { appearanceContent } from '@/data/appearance'
-import SettingsToggleRow from './settings-toggle-row'
 
 type AccentPreviewProps = {
   /** `#rrggbb` being tried; the preview recolours before anything is saved. */
@@ -61,13 +61,15 @@ export default function AccentPreview({ accent }: AccentPreviewProps) {
           </button>
         ))}
       </div>
-      <SettingsToggleRow
+      <SwitchRow
         id={`${SCOPE}-switch`}
         label={copy.switchLabel}
         description={copy.switchHelp}
         checked={tracked}
         onChange={setTracked}
         className="py-3 first:pt-3 last:pb-3"
+        weight="semibold"
+        divided
       />
     </div>
   )

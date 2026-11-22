@@ -1,10 +1,10 @@
 'use client'
 
 import type { Theme } from '@commerce/core/theme'
+import SwitchRow from '@/components/fields/switch-row'
 import { themesContent as copy } from '@/data/themes'
 import ChoiceField from './choice-field'
 import RangeField from './range-field'
-import SwitchField from './switch-field'
 
 type CardSettingsProps = {
   theme: Theme
@@ -44,36 +44,42 @@ export default function CardSettings({ theme, onChange }: CardSettingsProps) {
         options={RATIOS}
         onChange={(imageRatio) => setCards({ imageRatio })}
       />
-      <SwitchField
+      <SwitchRow
         label={copy.cards.vendor}
         checked={cards.showVendor}
         onChange={(showVendor) => setCards({ showVendor })}
+        weight="normal"
       />
-      <SwitchField
+      <SwitchRow
         label={copy.cards.saleBadge}
         checked={cards.showSaleBadge}
         onChange={(showSaleBadge) => setCards({ showSaleBadge })}
+        weight="normal"
       />
-      <SwitchField
+      <SwitchRow
         label={copy.cards.rating}
-        help={copy.cards.ratingHelp}
+        description={copy.cards.ratingHelp}
         checked={cards.showRating}
         onChange={(showRating) => setCards({ showRating })}
+        weight="normal"
       />
-      <SwitchField
+      <SwitchRow
         label={copy.cards.quickAdd}
         checked={cards.showQuickAdd}
         onChange={(showQuickAdd) => setCards({ showQuickAdd })}
+        weight="normal"
       />
-      <SwitchField
+      <SwitchRow
         label={copy.cards.wishlist}
         checked={cards.showWishlist}
         onChange={(showWishlist) => setCards({ showWishlist })}
+        weight="normal"
       />
-      <SwitchField
+      <SwitchRow
         label={copy.cards.hoverImage}
         checked={cards.hoverImage}
         onChange={(hoverImage) => setCards({ hoverImage })}
+        weight="normal"
       />
       <RangeField
         label={copy.cards.radius}

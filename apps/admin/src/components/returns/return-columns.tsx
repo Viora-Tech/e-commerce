@@ -1,5 +1,5 @@
 import { returnReasonLabel } from '@commerce/core/returns'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { returnsContent } from '@/data/returns'
 import type { api } from '@/lib/api-client'
@@ -72,10 +72,11 @@ export function returnColumns(
       sortValue: (r) => r.status,
       align: 'center',
       render: (r) => (
-        <OrderChip
+        <StatusLabel
           kind="return"
           value={r.status}
           label={r.kind === 'rto' ? copy.rtoStatus[r.status] : undefined}
+          variant="soft"
         />
       ),
     },

@@ -1,6 +1,6 @@
 'use client'
 
-import ToggleRow from '@/components/apps/gst-invoices/toggle-row'
+import SwitchRow from '@/components/fields/switch-row'
 import DataCard from '@/components/layout/data-card'
 import { localDeliveryContent } from '@/data/local-delivery'
 import { useCopy } from '@/hooks/use-copy'
@@ -30,11 +30,12 @@ export default function SplitShippingCard({ maxParcels, onChange }: SplitShippin
     <DataCard title={copy.heading}>
       <div className="flex flex-col gap-3">
         <p className="text-body text-muted-foreground">{copy.help}</p>
-        <ToggleRow
+        <SwitchRow
           id="split-shipping"
           label={copy.toggle}
           checked={on}
           onChange={(next) => onChange(next ? DEFAULT_SPLIT : 1)}
+          weight="normal"
         />
         <p className="text-caption text-muted-foreground">{on ? copy.on(maxParcels) : copy.off}</p>
       </div>

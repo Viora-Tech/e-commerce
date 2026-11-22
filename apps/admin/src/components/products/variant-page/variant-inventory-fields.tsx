@@ -5,12 +5,12 @@ import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import Link from 'next/link'
 import MoneyInput from '@/components/fields/money-input'
+import SwitchRow from '@/components/fields/switch-row'
 import { productFormContent } from '@/data/product-form'
 import { variantPageContent } from '@/data/variant-page'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import type { VariantRow } from '../form-state'
-import SwitchRow from '../switch-row'
 import type { VariantPreorderContext } from '../variant-preorder-limit'
 
 type VariantInventoryFieldsProps = {
@@ -87,9 +87,10 @@ export default function VariantInventoryFields({
       <SwitchRow
         id="variant-track"
         label={copy.track}
-        help={copy.trackHelp}
+        description={copy.trackHelp}
         checked={draft.trackInventory}
         onChange={(trackInventory) => onPatch({ trackInventory })}
+        weight="normal"
       />
       <div className="flex flex-wrap items-end gap-4">
         <Field className="min-w-0 flex-1 md:max-w-[12rem]">
@@ -120,9 +121,10 @@ export default function VariantInventoryFields({
       <SwitchRow
         id="variant-preorder"
         label={copy.preorder}
-        help={copy.preorderHelp}
+        description={copy.preorderHelp}
         checked={draft.preorderAllowed}
         onChange={(preorderAllowed) => onPatch({ preorderAllowed })}
+        weight="normal"
       />
       {preorder.on && draft.preorderAllowed ? (
         <Field>

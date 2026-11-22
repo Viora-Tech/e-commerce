@@ -22,6 +22,7 @@ import {
 } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
+import SwitchRow from '@/components/fields/switch-row'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
@@ -29,7 +30,6 @@ import { fieldDialogContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import FieldRules from './field-rules'
 import FieldTypeSelect from './field-type-select'
-import ToggleField from './toggle-field'
 
 type FieldDialogProps = {
   open: boolean
@@ -187,18 +187,18 @@ export default function FieldDialog({
               onChange={(e) => patch({ description: e.target.value })}
             />
           </Field>
-          <ToggleField
+          <SwitchRow
             id="field-required"
             label={copy.required}
-            help={copy.requiredHelp}
+            description={copy.requiredHelp}
             checked={draft.required}
             onChange={(required) => patch({ required })}
           />
           {listable ? (
-            <ToggleField
+            <SwitchRow
               id="field-list"
               label={copy.list}
-              help={copy.listHelp}
+              description={copy.listHelp}
               checked={draft.list}
               disabled={locked}
               onChange={(list) => patch({ list })}

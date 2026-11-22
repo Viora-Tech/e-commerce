@@ -10,12 +10,12 @@ import { Monitor, Smartphone } from '@commerce/ui/icons'
 import { FieldGroup } from '@commerce/ui/shadcn/field'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { useState } from 'react'
+import SwitchRow from '@/components/fields/switch-row'
 import DataCard from '@/components/layout/data-card'
 import CheckoutBrandingPreview, {
   type PreviewDevice,
 } from '@/components/settings/checkout-branding-preview'
 import CheckoutImageField from '@/components/settings/checkout-image-field'
-import CheckoutToggleRow from '@/components/settings/checkout-toggle-row'
 import ChoiceField from '@/components/themes/choice-field'
 import ColourField from '@/components/themes/colour-field'
 import { checkoutBrandingContent } from '@/data/checkout-settings'
@@ -161,20 +161,24 @@ export default function CheckoutBrandingSettings({
         <SettingsCard id="gstin" title={copy.shown.heading}>
           <FieldGroup>
             {onOrderNotes ? (
-              <CheckoutToggleRow
+              <SwitchRow
                 id="checkout-notes"
                 label={copy.shown.notes}
-                hint={copy.shown.notesHint}
+                description={copy.shown.notesHint}
                 checked={orderNotes}
                 onChange={onOrderNotes}
+                weight="semibold"
+                divided
               />
             ) : null}
-            <CheckoutToggleRow
+            <SwitchRow
               id="checkout-trust"
               label={copy.shown.trust}
-              hint={copy.shown.trustHint}
+              description={copy.shown.trustHint}
               checked={branding.trustBadges}
               onChange={(trustBadges) => onBranding({ trustBadges })}
+              weight="semibold"
+              divided
             />
           </FieldGroup>
         </SettingsCard>

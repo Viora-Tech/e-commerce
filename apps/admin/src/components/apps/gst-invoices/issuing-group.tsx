@@ -3,11 +3,11 @@
 import { ISSUE_ON } from '@commerce/invoices'
 import { Label } from '@commerce/ui/shadcn/label'
 import DateField from '@/components/fields/date-field'
+import SwitchRow from '@/components/fields/switch-row'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import ChoiceField from './choice-field'
 import EditorGroup from './editor-group'
 import TextField from './text-field'
-import ToggleRow from './toggle-row'
 import type { GroupProps } from './types'
 
 const copy = gstInvoicesContent.settings.groups
@@ -33,11 +33,12 @@ export default function IssuingGroup({ settings, onChange, errors }: GroupProps)
           options={ISSUE_OPTIONS}
           onChange={(v) => onChange({ ...settings, issueOn: v as typeof settings.issueOn })}
         />
-        <ToggleRow
+        <SwitchRow
           id="gst-auto-issue"
           label={copy.issuing.autoIssue}
           checked={settings.autoIssue}
           onChange={(autoIssue) => onChange({ ...settings, autoIssue })}
+          weight="normal"
         />
         <TextField
           id="gst-preorder-tag"
@@ -47,13 +48,14 @@ export default function IssuingGroup({ settings, onChange, errors }: GroupProps)
           maxLength={40}
           onChange={(preorderTag) => onChange({ ...settings, preorderTag })}
         />
-        <ToggleRow
+        <SwitchRow
           id="gst-preorder-pay"
           label={copy.issuing.preorderAtPayment}
           checked={settings.preorderInvoiceAtPayment}
           onChange={(preorderInvoiceAtPayment) =>
             onChange({ ...settings, preorderInvoiceAtPayment })
           }
+          weight="normal"
         />
         {settings.preorderInvoiceAtPayment ? (
           <p className="rounded-[0.5rem] bg-secondary px-3 py-2 text-caption text-foreground">
@@ -69,17 +71,19 @@ export default function IssuingGroup({ settings, onChange, errors }: GroupProps)
           />
           <span className="text-caption text-muted-foreground">{copy.issuing.gstr9Help}</span>
         </div>
-        <ToggleRow
+        <SwitchRow
           id="gst-email-link"
           label={copy.issuing.emailLink}
           checked={settings.emailLink}
           onChange={(emailLink) => onChange({ ...settings, emailLink })}
+          weight="normal"
         />
-        <ToggleRow
+        <SwitchRow
           id="gst-store-link"
           label={copy.issuing.storefrontLink}
           checked={settings.storefrontLink}
           onChange={(storefrontLink) => onChange({ ...settings, storefrontLink })}
+          weight="normal"
         />
         <ChoiceField
           id="gst-barcode"

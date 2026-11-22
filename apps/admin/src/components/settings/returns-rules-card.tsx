@@ -3,11 +3,11 @@
 import { RETURN_REASONS, type ReturnPolicy, type ReturnReason } from '@commerce/core/returns'
 import { parseRupees } from '@commerce/money'
 import { Input } from '@commerce/ui/shadcn/input'
+import SwitchRow from '@/components/fields/switch-row'
 import { returnRulesContent, returnsContent } from '@/data/returns'
 import { useCopy } from '@/hooks/use-copy'
 import SettingsCard from './settings-card'
 import SettingsRow from './settings-row'
-import SettingsToggleRow from './settings-toggle-row'
 
 type ReturnsRulesCardProps = {
   policy: ReturnPolicy
@@ -39,21 +39,25 @@ export default function ReturnsRulesCard({ policy, onPatch }: ReturnsRulesCardPr
   return (
     <>
       <SettingsCard title={copy.exchangesTitle}>
-        <SettingsToggleRow
+        <SwitchRow
           id="returns-exchanges"
           label={copy.exchanges}
           description={copy.exchangesHint}
           checked={policy.exchanges}
           onChange={(exchanges) => onPatch({ exchanges })}
+          weight="semibold"
+          divided
         />
       </SettingsCard>
 
       <SettingsCard title={copy.autoTitle} description={copy.autoDescription}>
-        <SettingsToggleRow
+        <SwitchRow
           id="returns-auto"
           label={copy.auto}
           checked={auto.enabled}
           onChange={(enabled) => patchAuto({ enabled })}
+          weight="semibold"
+          divided
         />
         {auto.enabled ? (
           <>
@@ -78,13 +82,15 @@ export default function ReturnsRulesCard({ policy, onPatch }: ReturnsRulesCardPr
             <SettingsRow label={copy.autoReasons}>
               <div className="flex flex-col">
                 {policy.reasons.map((code) => (
-                  <SettingsToggleRow
+                  <SwitchRow
                     key={code}
                     id={`auto-reason-${code}`}
                     label={labels.reasons[code]}
                     checked={auto.reasons.includes(code)}
                     onChange={(on) => handleReason(code, on)}
                     className="py-3"
+                    weight="semibold"
+                    divided
                   />
                 ))}
               </div>

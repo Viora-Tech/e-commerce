@@ -2,8 +2,8 @@
 
 import type { McpSettings } from '@commerce/core/api-access'
 import { ShieldCheck } from '@commerce/ui/icons'
+import SwitchRow from '@/components/fields/switch-row'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { mcpContent } from '@/data/mcp'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -40,19 +40,23 @@ export default function McpPermissionsCard({ settings, onSettings }: McpPermissi
           </li>
         ))}
       </ul>
-      <SettingsToggleRow
+      <SwitchRow
         id="mcp-allow-changes"
         label={copy.switches.allowChanges}
         description={copy.switches.allowChangesHelp}
         checked={settings.allowChanges}
         onChange={(on) => onSettings({ ...settings, allowChanges: on })}
+        weight="semibold"
+        divided
       />
-      <SettingsToggleRow
+      <SwitchRow
         id="mcp-read-customers"
         label={copy.switches.readCustomers}
         description={copy.switches.readCustomersHelp}
         checked={settings.readCustomers}
         onChange={(on) => onSettings({ ...settings, readCustomers: on })}
+        weight="semibold"
+        divided
       />
     </SettingsCard>
   )

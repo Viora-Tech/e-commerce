@@ -1,6 +1,6 @@
 import type { CampaignPerformanceRow } from '@commerce/api'
 import RelativeTime from '@/components/layout/relative-time'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { growthCampaignTabsContent } from '@/data/growth-home'
 import { campaignReportContent, type campaignsContent } from '@/data/marketing-campaigns'
@@ -101,7 +101,7 @@ export function campaignColumns(
       id: 'status',
       title: copy.columns.status,
       align: 'center',
-      render: (c) => <OrderChip kind="campaign" value={c.status} />,
+      render: (c) => <StatusLabel kind="campaign" value={c.status} variant="soft" />,
     },
     {
       id: 'date',

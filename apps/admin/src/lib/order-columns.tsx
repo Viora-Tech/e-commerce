@@ -3,10 +3,10 @@ import Link from 'next/link'
 import type { MouseEvent } from 'react'
 import CustomerAvatar from '@/components/customers/customer-avatar'
 import StatusChip from '@/components/layout/status-chip'
-import OrderChip from '@/components/orders/order-chip'
 import OrderLinesPopover from '@/components/orders/order-lines-popover'
 import { orderStage } from '@/components/orders/order-stage'
 import ProductThumb from '@/components/products/product-thumb'
+import StatusLabel from '@/components/status/status-label'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import { CHANNEL_LABELS } from '@/data/growth'
 import { ordersContent } from '@/data/orders'
@@ -181,7 +181,9 @@ export function orderColumns(
       sortRank: 4,
       align: 'center',
       minWidth: 6.5,
-      render: (o) => <OrderChip kind="orderPayment" value={shownPaymentStatus(o)} />,
+      render: (o) => (
+        <StatusLabel kind="orderPayment" value={shownPaymentStatus(o)} variant="soft" />
+      ),
     },
     {
       id: 'fulfilment',
@@ -191,7 +193,7 @@ export function orderColumns(
       sortRank: 5,
       align: 'center',
       minWidth: 7,
-      render: (o) => <OrderChip kind="fulfilment" value={o.fulfillmentStatus} />,
+      render: (o) => <StatusLabel kind="fulfilment" value={o.fulfillmentStatus} variant="soft" />,
     },
     {
       id: 'status',
@@ -213,7 +215,7 @@ export function orderColumns(
           stage.kind === 'fulfilment' && (stage.value === 'fulfilled' || stage.value === 'shipped')
             ? copy.deliveryStage[stage.value]
             : undefined
-        return <OrderChip kind={stage.kind} value={stage.value} label={label} />
+        return <StatusLabel kind={stage.kind} value={stage.value} label={label} variant="soft" />
       },
     },
     {
@@ -276,10 +278,10 @@ export function orderColumns(
               onClick={stopRowClick}
               className="inline-flex rounded-full hover:opacity-80"
             >
-              <OrderChip kind="shipment" value={o.deliveryStatus} />
+              <StatusLabel kind="shipment" value={o.deliveryStatus} variant="soft" />
             </a>
           ) : (
-            <OrderChip kind="shipment" value={o.deliveryStatus} />
+            <StatusLabel kind="shipment" value={o.deliveryStatus} variant="soft" />
           )
         ) : (
           // Fulfilled by hand (no courier booking) is not "not shipped": it went, untracked.

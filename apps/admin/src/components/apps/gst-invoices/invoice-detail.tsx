@@ -15,7 +15,7 @@ import DataCard from '@/components/layout/data-card'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import PageHeader from '@/components/layout/page-header'
 import PageHeaderSkeleton from '@/components/layout/page-header-skeleton'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import { appsContent } from '@/data/apps'
 import { gstAlreadyInvoicedContent } from '@/data/gst-already-invoiced'
 import { gstInvoiceRefreshContent as refreshCopy } from '@/data/gst-invoice-refresh'
@@ -174,7 +174,7 @@ export default function InvoiceDetail({ params }: AppPageProps) {
       <PageHeader
         title={`${kinds[doc.kind]} ${doc.number ?? ''}`.trim()}
         back={{ label: copy.back, href: routes.apps.page('gst-invoices', 'invoices') }}
-        badges={<OrderChip kind="gstDoc" value={doc.status} />}
+        badges={<StatusLabel kind="gstDoc" value={doc.status} variant="soft" />}
         summary={
           doc.number ? (
             <span className="group/row flex items-center gap-1">

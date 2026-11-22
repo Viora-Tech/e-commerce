@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import { customerGiftCardsContent } from '@/data/customer-gift-cards'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -61,7 +61,7 @@ export default function CustomerGiftCardsCard({ customerId }: CustomerGiftCardsC
                   )}
                 </span>
               </span>
-              <OrderChip kind="giftCard" value={c.state} />
+              <StatusLabel kind="giftCard" value={c.state} variant="soft" />
             </Link>
           </li>
         ))}

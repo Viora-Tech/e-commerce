@@ -1,10 +1,10 @@
 'use client'
 
 import { schemeFor, type Theme } from '@commerce/core/theme'
+import SwitchRow from '@/components/fields/switch-row'
 import { themesContent as copy } from '@/data/themes'
 import ChoiceField from './choice-field'
 import RangeField from './range-field'
-import SwitchField from './switch-field'
 
 type ButtonSettingsProps = {
   theme: Theme
@@ -67,10 +67,11 @@ export default function ButtonSettings({ theme, mode, onChange }: ButtonSettings
         options={COLOURS}
         onChange={(colour) => setButtons({ colour })}
       />
-      <SwitchField
+      <SwitchRow
         label={copy.buttons.uppercase}
         checked={buttons.uppercase}
         onChange={(uppercase) => setButtons({ uppercase })}
+        weight="normal"
       />
       <RangeField
         label={copy.buttons.radius}

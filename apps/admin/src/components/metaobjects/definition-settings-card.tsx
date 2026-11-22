@@ -8,10 +8,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
+import SwitchRow from '@/components/fields/switch-row'
 import DataCard from '@/components/layout/data-card'
 import { definitionFormContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
-import ToggleField from './toggle-field'
 
 type DefinitionSettingsCardProps = {
   fields: FieldDefinition[]
@@ -67,10 +67,10 @@ export default function DefinitionSettingsCard({
         </Select>
       </DataCard>
       <DataCard title={copy.access.heading}>
-        <ToggleField
+        <SwitchRow
           id="definition-storefront"
           label={copy.access.storefront}
-          help={copy.access.storefrontHelp}
+          description={copy.access.storefrontHelp}
           checked={storefrontAccess}
           onChange={(v) => onChange({ storefrontAccess: v })}
         />

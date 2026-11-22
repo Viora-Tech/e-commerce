@@ -4,6 +4,7 @@ import { ShoppingBag } from '@commerce/ui/icons'
 import { type ReactNode, useEffect, useState } from 'react'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
+import StatusLabel from '@/components/status/status-label'
 import { orderDetailContent } from '@/data/order-detail'
 import { orderHoldContent } from '@/data/order-hold'
 import { ordersContent } from '@/data/orders'
@@ -13,7 +14,6 @@ import { api } from '@/lib/api-client'
 import { orderChannel } from '@/lib/order-channel'
 import { shownPaymentStatus } from '@/lib/order-next-move'
 import { routes } from '@/lib/routes'
-import OrderChip from './order-chip'
 import {
   importedGatewayLabel,
   methodLabel,
@@ -82,13 +82,13 @@ export default function OrderHeader({ order, actions, back }: OrderHeaderProps) 
         lead={{ kind: 'tile', node: <ShoppingBag /> }}
         badges={
           <>
-            {closed ? <OrderChip kind="order" value={order.status} /> : null}
-            <OrderChip kind="orderPayment" value={shownPaymentStatus(order)} />
+            {closed ? <StatusLabel kind="order" value={order.status} variant="soft" /> : null}
+            <StatusLabel kind="orderPayment" value={shownPaymentStatus(order)} variant="soft" />
             {/* "Unfulfilled" on a cancelled order is noise: nothing will be shipped (audit #22). */}
             {toShip ? (
               <StatusChip tone="info">{listCopy.toShip}</StatusChip>
             ) : order.status === 'cancelled' && order.fulfillmentStatus === 'unfulfilled' ? null : (
-              <OrderChip kind="fulfilment" value={order.fulfillmentStatus} />
+              <StatusLabel kind="fulfilment" value={order.fulfillmentStatus} variant="soft" />
             )}
             {order.hold ? <StatusChip tone="attention">{holdCopy.chip}</StatusChip> : null}
             {order.isTest ? (

@@ -4,7 +4,7 @@ import type { LocationBillingView } from '@commerce/core'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import ToggleRow from '@/components/apps/gst-invoices/toggle-row'
+import SwitchRow from '@/components/fields/switch-row'
 import SettingsCard from '@/components/settings/settings-card'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
@@ -53,7 +53,13 @@ export default function LocationSellingCard({ location, canManage }: LocationSel
         </p>
       ) : (
         <>
-          <ToggleRow id="location-sells" label={copy.toggle} checked={on} onChange={handleChange} />
+          <SwitchRow
+            id="location-sells"
+            label={copy.toggle}
+            checked={on}
+            onChange={handleChange}
+            weight="normal"
+          />
           <p className="text-caption text-muted-foreground">{on ? copy.on : copy.off}</p>
         </>
       )}

@@ -15,6 +15,7 @@ import { Progress } from '@commerce/ui/shadcn/progress'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import SwitchRow from '@/components/fields/switch-row'
 import DataCard from '@/components/layout/data-card'
 import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
@@ -30,7 +31,6 @@ import SettingsCard from './settings-card'
 import SettingsDrill from './settings-drill'
 import SettingsDrillPanel from './settings-drill-panel'
 import SettingsRow from './settings-row'
-import SettingsToggleRow from './settings-toggle-row'
 
 type Loaded = Awaited<ReturnType<typeof api.ai.settings>>
 
@@ -230,18 +230,20 @@ export default function AiSettings() {
               description={copy.settings.features.help}
             >
               {AI_FEATURES.map((feature) => (
-                <SettingsToggleRow
+                <SwitchRow
                   key={feature}
                   id={`ai-${feature}`}
                   label={copy.settings.features[feature].label}
                   description={copy.settings.features[feature].help}
                   checked={features[feature]}
                   onChange={(on) => setFeatures({ ...features, [feature]: on })}
+                  weight="semibold"
+                  divided
                 >
                   <span className="text-caption text-muted-foreground tabular-nums">
                     {copy.settings.usage.requestCount(usage.byFeature[feature].calls)}
                   </span>
-                </SettingsToggleRow>
+                </SwitchRow>
               ))}
               <SettingsRow
                 label={copy.settings.quality.label}

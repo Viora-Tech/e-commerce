@@ -10,13 +10,13 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { itemTabs } from '@/components/discounts/pick-sources'
+import SwitchRow from '@/components/fields/switch-row'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import NoticeBar from '@/components/layout/notice-bar'
 import ResourcePickDialog from '@/components/pickers/resource-pick-dialog'
-import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { deliveryRuleFormContent } from '@/data/delivery-rule-form'
@@ -211,11 +211,13 @@ export default function RuleDialog({
           </RuleStep>
           <RuleMoreFields draft={draft} options={options} onChange={patch} />
           <RulePreviewLine draft={draft} options={options} />
-          <SettingsToggleRow
+          <SwitchRow
             id="rule-enabled"
             label={d.enabled}
             checked={draft.enabled}
             onChange={(enabled) => patch({ enabled })}
+            weight="semibold"
+            divided
           />
         </FieldGroup>
         <DialogFooter>

@@ -1,10 +1,10 @@
 'use client'
 
 import type { CustomerAccountSettings as Settings } from '@commerce/core'
+import SwitchRow from '@/components/fields/switch-row'
 import { customerAccountsContent } from '@/data/customer-accounts'
 import { useCopy } from '@/hooks/use-copy'
 import SettingsCard from './settings-card'
-import SettingsToggleRow from './settings-toggle-row'
 
 type SignInExtrasCardProps = {
   form: Settings
@@ -28,7 +28,7 @@ export default function SignInExtrasCard({ form, onChange }: SignInExtrasCardPro
       {EXTRAS.map((key) => {
         const blocked = key === 'magicLink' && !emailOn
         return (
-          <SettingsToggleRow
+          <SwitchRow
             key={key}
             id={`extra-${key}`}
             label={copy[key].label}
@@ -36,6 +36,8 @@ export default function SignInExtrasCard({ form, onChange }: SignInExtrasCardPro
             checked={form[key] && !blocked}
             disabled={blocked}
             onChange={(on) => onChange({ ...form, [key]: on })}
+            weight="semibold"
+            divided
           />
         )
       })}

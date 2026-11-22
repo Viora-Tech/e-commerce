@@ -3,8 +3,8 @@
 import { X } from '@commerce/ui/icons'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
-import OrderChip from '@/components/orders/order-chip'
 import ProductThumb from '@/components/products/product-thumb'
+import StatusLabel from '@/components/status/status-label'
 import { collectionDetailContent } from '@/data/collections'
 import { productsListContent } from '@/data/products'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -78,7 +78,7 @@ export default function CollectionProductRow({
         </Link>
       </span>
       <span className="flex justify-center">
-        <OrderChip kind="product" value={product.status} />
+        <StatusLabel kind="product" value={product.status} variant="soft" />
       </span>
       <span className={product.available > 0 ? 'text-body' : 'text-body text-danger'}>
         {product.available > 0 ? copy.inStock(product.available) : copy.outOfStock}

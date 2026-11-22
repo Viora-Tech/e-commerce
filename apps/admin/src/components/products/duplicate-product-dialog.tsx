@@ -3,12 +3,12 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import SwitchRow from '@/components/fields/switch-row'
 import FormDialog from '@/components/layout/form-dialog'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
-import SwitchRow from './switch-row'
 
 type DuplicateProductDialogProps = {
   productId: string
@@ -71,9 +71,10 @@ export default function DuplicateProductDialog({
             key={row.id}
             id={row.id}
             label={row.label}
-            help={row.help}
+            description={row.help}
             checked={row.on}
             onChange={row.set}
+            weight="normal"
           />
         ))}
       </div>

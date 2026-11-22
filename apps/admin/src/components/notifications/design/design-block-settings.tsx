@@ -7,13 +7,13 @@ import {
   type IntroBlock,
 } from '@commerce/notifications/design'
 import { Lock } from '@commerce/ui/icons'
+import SwitchRow from '@/components/fields/switch-row'
 import { emailDesignContent } from '@/data/email-design'
 import { useCopy } from '@/hooks/use-copy'
 import DesignChoiceField from './design-choice-field'
 import DesignImageField from './design-image-field'
 import DesignLinkField from './design-link-field'
 import { blockTitle, isLocked } from './design-state'
-import DesignSwitchField from './design-switch-field'
 import DesignTextField from './design-text-field'
 
 type BlockPatch = Partial<FreeBlock> | Partial<IntroBlock>
@@ -83,7 +83,7 @@ export default function DesignBlockSettings({ block, onChange }: DesignBlockSett
         )
       case 'logo':
         return (
-          <DesignSwitchField
+          <SwitchRow
             id={id('menu')}
             label={f.menu}
             checked={block.menu}
@@ -134,7 +134,7 @@ export default function DesignBlockSettings({ block, onChange }: DesignBlockSett
               ]}
               onChange={(align) => onChange({ align })}
             />
-            <DesignSwitchField
+            <SwitchRow
               id={id('muted')}
               label={f.muted}
               checked={block.muted}
@@ -220,7 +220,7 @@ export default function DesignBlockSettings({ block, onChange }: DesignBlockSett
         return (
           <>
             {note(f.footerNote)}
-            <DesignSwitchField
+            <SwitchRow
               id={id('social')}
               label={f.showSocial}
               checked={block.social}

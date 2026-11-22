@@ -10,13 +10,13 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import RichTextField from '@/components/fields/rich-text-field'
+import SwitchRow from '@/components/fields/switch-row'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsTextRow from '@/components/settings/settings-text-row'
-import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import InlineState from '@/components/states/inline-state'
 import { policyEditorContent as copy, policiesContent } from '@/data/policies'
 import { settingsContent } from '@/data/settings'
@@ -213,12 +213,14 @@ export default function PolicyEditor({
             </Alert>
           ) : null}
           <SettingsCard>
-            <SettingsToggleRow
+            <SwitchRow
               id="policy-visible"
               label={copy.visible}
               description={draft.published ? copy.visibleHint(path) : copy.hiddenHint}
               checked={draft.published}
               onChange={(published) => setDraft({ ...draft, published })}
+              weight="semibold"
+              divided
             />
             <SettingsTextRow
               id="policy-title"

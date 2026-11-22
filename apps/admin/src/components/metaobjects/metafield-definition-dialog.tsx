@@ -25,6 +25,7 @@ import {
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import SwitchRow from '@/components/fields/switch-row'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
@@ -33,7 +34,6 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import FieldRules from './field-rules'
 import FieldTypeSelect from './field-type-select'
-import ToggleField from './toggle-field'
 
 export type MetafieldDefinitionRow = Awaited<
   ReturnType<typeof api.metaobjects.metafieldDefinitions>
@@ -219,10 +219,10 @@ export default function MetafieldDefinitionDialog({
             />
           </Field>
           {listable ? (
-            <ToggleField
+            <SwitchRow
               id="metafield-list"
               label={fieldCopy.list}
-              help={fieldCopy.listHelp}
+              description={fieldCopy.listHelp}
               checked={draft.list}
               disabled={locked}
               onChange={(list) => patch({ list })}
@@ -231,19 +231,19 @@ export default function MetafieldDefinitionDialog({
           {PRIVATE_METAFIELD_OWNERS.includes(ownerType) ? (
             <FieldDescription>{copy.privateNote}</FieldDescription>
           ) : (
-            <ToggleField
+            <SwitchRow
               id="metafield-storefront"
               label={copy.storefront}
-              help={copy.storefrontHelp}
+              description={copy.storefrontHelp}
               checked={draft.storefrontAccess}
               onChange={(storefrontAccess) => patch({ storefrontAccess })}
             />
           )}
           {filterable ? (
-            <ToggleField
+            <SwitchRow
               id="metafield-filterable"
               label={copy.filterable}
-              help={copy.filterableHelp}
+              description={copy.filterableHelp}
               checked={draft.filterable}
               onChange={(next) => patch({ filterable: next })}
             />

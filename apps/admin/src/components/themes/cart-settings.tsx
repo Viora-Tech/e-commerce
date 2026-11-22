@@ -1,9 +1,9 @@
 'use client'
 
 import type { Theme } from '@commerce/core/theme'
+import SwitchRow from '@/components/fields/switch-row'
 import { themesContent as copy } from '@/data/themes'
 import ChoiceField from './choice-field'
-import SwitchField from './switch-field'
 
 type CartSettingsProps = {
   theme: Theme
@@ -31,11 +31,12 @@ export default function CartSettings({ theme, onChange }: CartSettingsProps) {
         onChange={(type) => setCart({ type })}
       />
       <p className="text-period text-muted-foreground">{copy.cart.typeHelp}</p>
-      <SwitchField
+      <SwitchRow
         label={copy.cart.freeShippingBar}
-        help={copy.cart.freeShippingHelp}
+        description={copy.cart.freeShippingHelp}
         checked={theme.cart.freeShippingBar}
         onChange={(freeShippingBar) => setCart({ freeShippingBar })}
+        weight="normal"
       />
     </>
   )

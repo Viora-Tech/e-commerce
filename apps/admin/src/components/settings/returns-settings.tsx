@@ -4,6 +4,7 @@ import { RETURN_REASONS, type ReturnPolicy, type ReturnReason } from '@commerce/
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import SwitchRow from '@/components/fields/switch-row'
 import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import ChoiceList from '@/components/returns/choice-list'
@@ -21,7 +22,6 @@ import SettingsCard from './settings-card'
 import SettingsDrill from './settings-drill'
 import SettingsDrillPanel from './settings-drill-panel'
 import SettingsRow from './settings-row'
-import SettingsToggleRow from './settings-toggle-row'
 
 const clampDays = (raw: string): number => {
   const n = Math.round(Number(raw))
@@ -137,12 +137,14 @@ export default function ReturnsSettings() {
         >
           <SettingsDrillPanel id="requests">
             <SettingsCard>
-              <SettingsToggleRow
+              <SwitchRow
                 id="returns-enabled"
                 label={copy.enabled}
                 description={copy.enabledHint}
                 checked={form.enabled}
                 onChange={(enabled) => patch({ enabled })}
+                weight="semibold"
+                divided
               />
               <SettingsRow
                 label={copy.window}
@@ -164,12 +166,14 @@ export default function ReturnsSettings() {
                   <span className="text-body text-muted-foreground">{copy.days}</span>
                 </div>
               </SettingsRow>
-              <SettingsToggleRow
+              <SwitchRow
                 id="returns-restock"
                 label={copy.restock}
                 description={copy.restockHint}
                 checked={form.restockAutomatically}
                 onChange={(restockAutomatically) => patch({ restockAutomatically })}
+                weight="semibold"
+                divided
               />
             </SettingsCard>
           </SettingsDrillPanel>
@@ -177,13 +181,15 @@ export default function ReturnsSettings() {
           <SettingsDrillPanel id="reasons">
             <SettingsCard title={copy.reasons} description={copy.reasonsHint}>
               {RETURN_REASONS.map((code) => (
-                <SettingsToggleRow
+                <SwitchRow
                   key={code}
                   id={`reason-${code}`}
                   label={returnsContent.reasons[code]}
                   checked={form.reasons.includes(code)}
                   onChange={(on) => handleReason(code, on)}
                   className="py-3"
+                  weight="semibold"
+                  divided
                 />
               ))}
             </SettingsCard>

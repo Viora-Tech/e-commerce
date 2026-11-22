@@ -6,11 +6,11 @@ import {
   type Theme,
   themeContrastWarnings,
 } from '@commerce/core/theme'
+import SwitchRow from '@/components/fields/switch-row'
 import { themesContent as copy } from '@/data/themes'
 import ChoiceField from './choice-field'
 import ColourField from './colour-field'
 import ContrastWarnings from './contrast-warnings'
-import SwitchField from './switch-field'
 
 type ColourSettingsProps = {
   theme: Theme
@@ -100,11 +100,12 @@ export default function ColourSettings({
       </div>
       <ContrastWarnings warnings={warnings} />
       <div className="flex flex-col gap-4 border-t border-border pt-4">
-        <SwitchField
+        <SwitchRow
           label={copy.colours.darkMode}
-          help={copy.colours.darkModeHelp}
+          description={copy.colours.darkModeHelp}
           checked={theme.darkMode.enabled}
           onChange={(enabled) => onChange({ ...theme, darkMode: { ...theme.darkMode, enabled } })}
+          weight="normal"
         />
         {theme.darkMode.enabled ? (
           <ChoiceField

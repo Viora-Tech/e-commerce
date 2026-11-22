@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import RelativeTime from '@/components/layout/relative-time'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { appsContent } from '@/data/apps'
 import { backInStockContent } from '@/data/back-in-stock'
@@ -38,7 +38,7 @@ const columns: ResourceColumnSpec<Row>[] = [
     id: 'status',
     title: copy.columns.status,
     sortValue: (r) => r.status,
-    render: (r) => <OrderChip kind="bisSignup" value={r.status} />,
+    render: (r) => <StatusLabel kind="bisSignup" value={r.status} variant="soft" />,
   },
   {
     id: 'created',

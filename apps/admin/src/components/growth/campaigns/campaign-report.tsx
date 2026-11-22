@@ -15,7 +15,7 @@ import KeyValueList from '@/components/layout/key-value-list'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import StatStrip from '@/components/layout/stat-strip'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import {
   campaignEditorContent,
   campaignsContent,
@@ -152,7 +152,7 @@ export default function CampaignReport({
           kind: 'icon',
           node: email ? <Send aria-hidden="true" /> : <WhatsappLogo aria-hidden="true" />,
         }}
-        badges={<OrderChip kind="campaign" value={campaign.status} />}
+        badges={<StatusLabel kind="campaign" value={campaign.status} variant="soft" />}
         actions={
           <>
             {campaign.status === 'scheduled' || campaign.status === 'sending' ? (

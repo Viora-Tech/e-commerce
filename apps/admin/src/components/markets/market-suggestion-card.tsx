@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
+import SwitchRow from '@/components/fields/switch-row'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { marketsContent } from '@/data/markets'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -44,13 +44,15 @@ export default function MarketSuggestionCard({
 
   return (
     <SettingsCard title={copy.heading} description={copy.body}>
-      <SettingsToggleRow
+      <SwitchRow
         id="markets-suggest"
         label={copy.label}
         description={copy.help}
         checked={on}
         onChange={handleChange}
         disabled={!canManage || saving}
+        weight="semibold"
+        divided
       />
     </SettingsCard>
   )

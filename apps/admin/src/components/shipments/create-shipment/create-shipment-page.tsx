@@ -10,13 +10,13 @@ import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import EditOrderContactDialog from '@/components/orders/edit-order-contact-dialog'
-import OrderChip from '@/components/orders/order-chip'
 import type { OrderDetail } from '@/components/orders/order-detail-types'
 import TrackingFields, {
   EMPTY_TRACKING,
   type TrackingDraft,
   trackingPayload,
 } from '@/components/orders/tracking-fields'
+import StatusLabel from '@/components/status/status-label'
 import { createShipmentContent } from '@/data/create-shipment'
 import { shipmentDetailsContent } from '@/data/shipping'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -357,8 +357,8 @@ export default function CreateShipmentPage({
           size="sm"
           badges={
             <>
-              <OrderChip kind="orderPayment" value={order.paymentStatus} />
-              <OrderChip kind="fulfilment" value={order.fulfillmentStatus} />
+              <StatusLabel kind="orderPayment" value={order.paymentStatus} variant="soft" />
+              <StatusLabel kind="fulfilment" value={order.fulfillmentStatus} variant="soft" />
             </>
           }
           actions={

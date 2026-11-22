@@ -5,7 +5,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { type ReactNode, useEffect, useRef } from 'react'
 import CustomerAvatar from '@/components/customers/customer-avatar'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import { paletteContent } from '@/data/command-palette'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { PaletteRow as Row } from '@/lib/palette-rows'
@@ -151,7 +151,7 @@ function RowBody({ row, query }: { row: Row; query: string }) {
             }
             sub={
               <>
-                <OrderChip kind="order" value={row.hit.status} />
+                <StatusLabel kind="order" value={row.hit.status} variant="soft" />
                 <span className="truncate">{fmt.date(row.hit.placedAt)}</span>
               </>
             }
@@ -174,7 +174,7 @@ function RowBody({ row, query }: { row: Row; query: string }) {
             title={<PaletteHighlight text={hit.title} query={query} />}
             sub={
               <>
-                <OrderChip kind="product" value={hit.status} />
+                <StatusLabel kind="product" value={hit.status} variant="soft" />
                 <span className="truncate">
                   {hit.available > 0
                     ? copy.product.inStock(hit.available)

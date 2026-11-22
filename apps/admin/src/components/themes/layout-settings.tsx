@@ -1,9 +1,9 @@
 'use client'
 
 import type { Theme } from '@commerce/core/theme'
+import SwitchRow from '@/components/fields/switch-row'
 import { themesContent as copy } from '@/data/themes'
 import RangeField from './range-field'
-import SwitchField from './switch-field'
 
 type LayoutSettingsProps = {
   theme: Theme
@@ -38,10 +38,11 @@ export default function LayoutSettings({ theme, onChange }: LayoutSettingsProps)
         format={copy.units.times}
         onChange={(sectionSpacing) => setLayout({ sectionSpacing })}
       />
-      <SwitchField
+      <SwitchRow
         label={copy.layout.roundedSections}
         checked={theme.roundedSections}
         onChange={(roundedSections) => onChange({ ...theme, roundedSections })}
+        weight="normal"
       />
       <RangeField
         label={copy.layout.inputRadius}

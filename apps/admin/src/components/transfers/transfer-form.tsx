@@ -11,7 +11,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import NoticeBar from '@/components/layout/notice-bar'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import { transferFormContent } from '@/data/inventory'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -147,7 +147,7 @@ export default function TransferForm({ transfer, locations }: TransferFormProps)
             title={transfer ? copy.title(transfer.number) : copy.newTitle}
             summary={transfer ? undefined : copy.subtitle}
             lead={{ kind: 'icon', node: <ArrowLeftRight aria-hidden="true" /> }}
-            badges={status ? <OrderChip kind="transfer" value={status} /> : null}
+            badges={status ? <StatusLabel kind="transfer" value={status} variant="soft" /> : null}
             back={{ label: copy.back, href: LIST }}
             actions={
               draft ? (

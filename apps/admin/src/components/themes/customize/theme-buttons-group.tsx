@@ -1,12 +1,12 @@
 'use client'
 
 import { schemeFor, type Theme } from '@commerce/core/theme'
+import SwitchRow from '@/components/fields/switch-row'
 import { customizeContent } from '@/data/customize'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 import { CORNER_RADII, type CornerStyle, cornerStyleOf } from '@/lib/theme-quick-settings'
 import RangeField from '../range-field'
-import SwitchField from '../switch-field'
 import MoreSettings from './more-settings'
 import SettingsSegmented from './settings-segmented'
 
@@ -82,10 +82,11 @@ export default function ThemeButtonsGroup({ theme, mode, onChange }: ThemeButton
         </span>
       </div>
       <MoreSettings label={copy.moreButtons}>
-        <SwitchField
+        <SwitchRow
           label={themesContent.buttons.uppercase}
           checked={theme.buttons.uppercase}
           onChange={(uppercase) => setButtons({ uppercase })}
+          weight="normal"
         />
         <RangeField
           label={themesContent.buttons.radius}

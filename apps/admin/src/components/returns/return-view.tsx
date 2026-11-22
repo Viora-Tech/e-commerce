@@ -4,8 +4,8 @@ import { returnActions } from '@commerce/core/returns'
 import { Undo } from '@commerce/ui/icons'
 import { useRouter } from 'next/navigation'
 import PageHeader from '@/components/layout/page-header'
-import OrderChip from '@/components/orders/order-chip'
 import OrderPageFrame from '@/components/orders/order-page-frame'
+import StatusLabel from '@/components/status/status-label'
 import { returnDetailContent as copy, returnsContent } from '@/data/returns'
 import { formatWhen } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
@@ -41,7 +41,7 @@ export default function ReturnView({ detail: r }: ReturnViewProps) {
         <PageHeader
           title={title}
           back={{ label: copy.back, href: routes.orders.returns() }}
-          badges={<OrderChip kind="return" value={r.status} label={statusLabel} />}
+          badges={<StatusLabel kind="return" value={r.status} label={statusLabel} variant="soft" />}
           subtitle={[
             rto
               ? copy.cameBackOn(formatWhen(r.receivedAt ?? r.requestedAt))

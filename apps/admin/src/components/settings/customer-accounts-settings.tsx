@@ -11,6 +11,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import SwitchRow from '@/components/fields/switch-row'
 import EmptyState from '@/components/layout/empty-state'
 import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
@@ -31,7 +32,6 @@ import { routes } from '@/lib/routes'
 import SettingsCard from './settings-card'
 import SettingsDrill from './settings-drill'
 import SettingsDrillPanel from './settings-drill-panel'
-import SettingsToggleRow from './settings-toggle-row'
 
 type Loaded = {
   settings: Settings
@@ -191,7 +191,7 @@ export default function CustomerAccountsSettings() {
                 const can = loaded.available.includes(m)
                 const text = LOGIN_METHOD_COPY[m]
                 return (
-                  <SettingsToggleRow
+                  <SwitchRow
                     key={m}
                     id={`login-${m}`}
                     label={
@@ -204,6 +204,8 @@ export default function CustomerAccountsSettings() {
                     checked={form.loginMethods.includes(m)}
                     disabled={!can && !form.loginMethods.includes(m)}
                     onChange={(on) => toggle(m, on)}
+                    weight="semibold"
+                    divided
                   />
                 )
               })}

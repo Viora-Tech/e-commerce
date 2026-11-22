@@ -2,7 +2,7 @@
 
 import { permissions } from '@commerce/core/permissions'
 import { REST_OF_WORLD } from '@commerce/core/shipping-rates'
-import { Plus, Truck } from '@commerce/ui/icons'
+import { Pencil, Plus, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -13,6 +13,7 @@ import SettingsCard from '@/components/settings/settings-card'
 import SettingsTable from '@/components/settings/settings-table'
 import SettingsTableCell from '@/components/settings/settings-table-cell'
 import SettingsTableRow from '@/components/settings/settings-table-row'
+import DeleteRowMenu from '@/components/table/delete-row-menu'
 import RowActionsCell from '@/components/table/row-actions-cell'
 import { stateName } from '@/data/india'
 import { shippingRatesContent } from '@/data/shipping-rates'
@@ -21,7 +22,6 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import { describePrice, fromRate, type LoadedZone } from './form-state'
-import RowDeleteMenu from './row-delete-menu'
 
 /** A country's name in the admin's language ("United Arab Emirates"). */
 const regionName = (code: string, tag: string): string =>
@@ -74,6 +74,7 @@ export default function ShippingZonesCard({
 }: ShippingZonesCardProps) {
   // Hooks
   const ratesCopy = useCopy(shippingRatesContent)
+  const rowMenu = ratesCopy.rowMenu
   const fmt = useFormat()
   const { hasPermission } = usePermissions()
   const router = useRouter()
@@ -171,11 +172,14 @@ export default function ShippingZonesCard({
           <SettingsTableCell className="w-16 p-0 last:pr-2 md:last:pr-2">
             <RowActionsCell href={zoneHref(z.id)}>
               {canManage ? (
-                <RowDeleteMenu
-                  name={z.name}
-                  editHref={zoneHref(z.id)}
+                <DeleteRowMenu
+                  menuLabel={rowMenu.label(z.name)}
+                  size="sm"
+                  before={[{ label: rowMenu.edit, icon: Pencil, href: zoneHref(z.id) }]}
+                  label={rowMenu.delete}
+                  failed={rowMenu.failed}
                   onDelete={() => handleDelete(z.id)}
-                  confirm={ratesCopy.zone.delete}
+                  confirm={{ ...ratesCopy.zone.delete, title: ratesCopy.zone.delete.title(z.name) }}
                 />
               ) : null}
             </RowActionsCell>

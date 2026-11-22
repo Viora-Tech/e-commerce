@@ -1,8 +1,8 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
+import SwitchRow from '@/components/fields/switch-row'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { honoProductContent } from '@/data/hono-product'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -32,12 +32,14 @@ export default function HonoProductCard({
 
   return (
     <SettingsCard title={copy.heading} description={copy.body}>
-      <SettingsToggleRow
+      <SwitchRow
         id="delivery-hono-product"
         label={copy.toggle}
         description={copy.toggleHelp}
         checked={checked}
         onChange={onChange}
+        weight="semibold"
+        divided
       />
       <p className="text-body text-muted-foreground">{copy.previewHelp}</p>
       <div className="flex flex-wrap justify-end gap-2">

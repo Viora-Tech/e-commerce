@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import TextField from '@/components/apps/gst-invoices/text-field'
-import ToggleRow from '@/components/apps/gst-invoices/toggle-row'
+import SwitchRow from '@/components/fields/switch-row'
 import SettingsCard from '@/components/settings/settings-card'
 import { localDeliveryContent } from '@/data/local-delivery'
 import { useCopy } from '@/hooks/use-copy'
@@ -95,11 +95,12 @@ export default function LocationLocalDeliveryCard({
 
   return (
     <SettingsCard title={copy.heading} description={copy.help} bodyClassName="flex flex-col gap-4">
-      <ToggleRow
+      <SwitchRow
         id="location-local-delivery"
         label={copy.toggle}
         checked={on}
         onChange={(next) => (disabled ? undefined : setOn(next))}
+        weight="normal"
       />
       {on ? (
         <fieldset disabled={disabled} className="grid gap-4 sm:grid-cols-3">

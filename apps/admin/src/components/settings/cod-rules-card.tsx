@@ -7,13 +7,13 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import Link from 'next/link'
 import { useRef, useState } from 'react'
+import SwitchRow from '@/components/fields/switch-row'
 import PaymentAdjustmentFields from '@/components/settings/payment-adjustment-fields'
 import RupeeInput from '@/components/settings/rupee-input'
 import { checkoutSettingsContent as content } from '@/data/checkout-settings'
 import { routes } from '@/lib/routes'
 import SettingsCard from './settings-card'
 import SettingsRow from './settings-row'
-import SettingsToggleRow from './settings-toggle-row'
 
 type CodRulesCardProps = {
   codEnabled: boolean
@@ -121,12 +121,14 @@ export default function CodRulesCard({
           {copy.upload}
         </Button>
       </SettingsRow>
-      <SettingsToggleRow
+      <SwitchRow
         id="cod-whatsapp"
         label={copy.whatsapp}
         description={copy.whatsappHint}
         checked={rules.confirmOnWhatsApp}
         onChange={(confirmOnWhatsApp) => onRules({ ...rules, confirmOnWhatsApp })}
+        weight="semibold"
+        divided
       />
     </SettingsCard>
   )

@@ -1,7 +1,7 @@
 import type { RolloutHold } from '@commerce/core'
 import { describeDiscountValue } from '@commerce/core/discounts'
-import OrderChip from '@/components/orders/order-chip'
 import RolloutHoldChip from '@/components/rollouts/rollout-hold-chip'
+import StatusLabel from '@/components/status/status-label'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { discountsContent } from '@/data/discounts'
 import type { api } from '@/lib/api-client'
@@ -125,7 +125,7 @@ export function discountColumns(
       id: 'status',
       title: copy.columns.status,
       align: 'center',
-      render: (d) => <OrderChip kind="discount" value={d.lifecycle} />,
+      render: (d) => <StatusLabel kind="discount" value={d.lifecycle} variant="soft" />,
     },
   ]
 }

@@ -7,8 +7,8 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import TextField from '@/components/apps/gst-invoices/text-field'
-import ToggleRow from '@/components/apps/gst-invoices/toggle-row'
 import PhoneField from '@/components/fields/phone-field'
+import SwitchRow from '@/components/fields/switch-row'
 import SettingsCard from '@/components/settings/settings-card'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
@@ -60,11 +60,12 @@ export default function LocationPickupCard({ location, canManage }: LocationPick
   return (
     <SettingsCard title={copy.heading} description={copy.help} bodyClassName="flex flex-col gap-4">
       {addressReady ? (
-        <ToggleRow
+        <SwitchRow
           id="location-pickup"
           label={copy.toggle}
           checked={on}
           onChange={(next) => (disabled ? undefined : setOn(next))}
+          weight="normal"
         />
       ) : (
         <p className="text-body text-muted-foreground">{copy.needsAddress}</p>

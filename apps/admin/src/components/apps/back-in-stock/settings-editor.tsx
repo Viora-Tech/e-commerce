@@ -10,6 +10,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import LoadFailedState from '@/components/apps/shared/load-failed-state'
+import SwitchRow from '@/components/fields/switch-row'
 import LeaveGuard from '@/components/layout/leave-guard'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import { appsContent } from '@/data/apps'
@@ -19,7 +20,6 @@ import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import SelectField from './select-field'
 import SettingsSection from './settings-section'
-import ToggleField from './toggle-field'
 
 type Settings = Awaited<ReturnType<typeof api.backInStock.settings.get>>
 
@@ -127,17 +127,17 @@ export default function SettingsEditor() {
       </header>
       <div className="flex flex-col">
         <SettingsSection title={copy.channels} help={copy.channelsHelp}>
-          <ToggleField
+          <SwitchRow
             id="bis-email"
             label={copy.emailEnabled}
-            help={copy.emailHelp}
+            description={copy.emailHelp}
             checked={form.emailEnabled}
             onChange={(v) => patch({ emailEnabled: v })}
           />
-          <ToggleField
+          <SwitchRow
             id="bis-whatsapp"
             label={copy.whatsappEnabled}
-            help={copy.whatsappHelp}
+            description={copy.whatsappHelp}
             checked={form.whatsappEnabled}
             onChange={(v) => patch({ whatsappEnabled: v })}
           />
@@ -160,10 +160,10 @@ export default function SettingsEditor() {
             options={buttonItems}
             onChange={(v) => patch({ buttonText: v === DEFAULT_KEY ? '' : v })}
           />
-          <ToggleField
+          <SwitchRow
             id="bis-ask-phone"
             label={copy.askPhone}
-            help={copy.askPhoneHelp}
+            description={copy.askPhoneHelp}
             checked={form.askPhone}
             onChange={(v) => patch({ askPhone: v })}
           />

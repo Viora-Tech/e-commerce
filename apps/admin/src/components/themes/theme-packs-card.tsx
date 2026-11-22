@@ -3,11 +3,11 @@
 import type { ThemePackId } from '@commerce/core/theme'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import SwitchRow from '@/components/fields/switch-row'
 import DataCard from '@/components/layout/data-card'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import SwitchField from './switch-field'
 import type { ThemeItem } from './theme-types'
 
 type ThemePacksCardProps = {
@@ -53,11 +53,12 @@ export default function ThemePacksCard({ themes, onSaved }: ThemePacksCardProps)
       <ul className="flex flex-col gap-3" aria-busy={busy !== null || undefined}>
         {themes.map((t) => (
           <li key={t.id}>
-            <SwitchField
+            <SwitchRow
               label={t.role === 'main' ? copy.live(t.name) : t.name}
               checked={t.packs.includes(ZERO_DRIFT)}
               onChange={(on) => handleZeroDrift(t, on)}
               disabled={busy !== null}
+              weight="normal"
             />
           </li>
         ))}

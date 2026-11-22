@@ -30,7 +30,7 @@ import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
 import RelativeTime from '@/components/layout/relative-time'
 import StatusChip from '@/components/layout/status-chip'
-import OrderChip from '@/components/orders/order-chip'
+import StatusLabel from '@/components/status/status-label'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import TableSkeletonRows from '@/components/table/table-skeleton-rows'
 import { appsContent } from '@/data/apps'
@@ -434,7 +434,7 @@ export default function InvoicesList() {
                 <TableCell className={`${CELL} text-center`}>
                   {/* A recorded invoice has no PDF here: say so, so no one waits for a print. */}
                   <span className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap">
-                    <OrderChip kind="gstDoc" value={r.status} />
+                    <StatusLabel kind="gstDoc" value={r.status} variant="soft" />
                     {r.source === 'external' ? (
                       <span title={recordCopy.notPrintedHelp}>
                         <StatusChip tone="neutral">{recordCopy.notPrinted}</StatusChip>

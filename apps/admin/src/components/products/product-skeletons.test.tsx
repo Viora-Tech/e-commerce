@@ -2,11 +2,11 @@
 import { LOW_STOCK_THRESHOLD } from '@commerce/core/catalog'
 import { fireEvent, render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import SwitchRow from '@/components/fields/switch-row'
 import PageHeaderSkeleton from '@/components/layout/page-header-skeleton'
 import { productColumns } from '@/components/products/product-columns'
 import ProductPageSkeleton from '@/components/products/product-page-skeleton'
 import ProductsListSkeleton from '@/components/products/products-list-skeleton'
-import SwitchRow from '@/components/products/switch-row'
 import VariantPageColumns from '@/components/products/variant-page/variant-page-columns'
 import VariantPageSkeleton from '@/components/products/variant-page/variant-page-skeleton'
 import ResourceTable from '@/components/table/resource-table'
@@ -86,21 +86,22 @@ describe('variant page skeleton', () => {
 })
 
 describe('switch row', () => {
-  it('labels the switch through the shared Field parts', () => {
+  it('labels the switch and shows its help and extra line', () => {
     const onChange = vi.fn()
     const { getByRole, getByText } = render(
       <SwitchRow
         id="taxable"
         label="Charge tax"
-        help="Adds GST"
+        description="Adds GST"
         checked={false}
         onChange={onChange}
+        weight="normal"
       >
         <p>18% GST</p>
       </SwitchRow>,
     )
-    expect(getByText('Charge tax').getAttribute('data-slot')).toBe('field-label')
-    expect(getByText('Adds GST').getAttribute('data-slot')).toBe('field-description')
+    expect(getByRole('switch', { name: 'Charge tax' })).toBeTruthy()
+    expect(getByText('Adds GST')).toBeTruthy()
     expect(getByText('18% GST')).toBeTruthy()
     fireEvent.click(getByRole('switch'))
     expect(onChange.mock.calls[0]?.[0]).toBe(true)

@@ -4,10 +4,10 @@ import { TrendingUp } from '@commerce/ui/icons'
 import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import MoneyInput from '@/components/fields/money-input'
+import SwitchRow from '@/components/fields/switch-row'
 import { productFormContent } from '@/data/product-form'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { margin, type VariantRow } from '../form-state'
-import SwitchRow from '../switch-row'
 import ZeroPriceWarning from '../zero-price-warning'
 
 type VariantPricingFieldsProps = {
@@ -69,9 +69,10 @@ export default function VariantPricingFields({ draft, onPatch }: VariantPricingF
       <SwitchRow
         id="variant-taxable"
         label={pricing.taxable}
-        help={pricing.taxableHelp}
+        description={pricing.taxableHelp}
         checked={draft.taxable}
         onChange={(taxable) => onPatch({ taxable })}
+        weight="normal"
       />
     </div>
   )

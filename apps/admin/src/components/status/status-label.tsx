@@ -10,8 +10,11 @@ import { localizeStatusLabel } from '@/lib/status-labels'
 type StatusLabelProps<K extends StatusKind> = {
   kind: K
   value: StatusValue<K> | (string & {})
-  /** `dot`: StatusChip `variant="dot"` (payment cell 5:2620). `glyph`: 1.5rem glyph + coloured label (status cell 5:2624). */
-  variant?: 'dot' | 'glyph'
+  /**
+   * `dot`: StatusChip `variant="dot"` (payment cell 5:2620). `glyph`: 1.5rem glyph + coloured
+   * label (status cell 5:2624). `soft`: the tinted chip (order headers and cards; was OrderChip).
+   */
+  variant?: 'dot' | 'glyph' | 'soft'
   size?: 'sm' | 'md'
   /** Overrides the mapped label (e.g. raw gateway text). */
   label?: string | undefined
@@ -36,6 +39,14 @@ export default function StatusLabel<K extends StatusKind>({
   const entry = statusEntry(kind, value)
   const text = label ?? localizeStatusLabel(entry.label, locale)
   const Glyph = variant === 'glyph' ? entry.glyph : undefined
+
+  if (variant === 'soft') {
+    return (
+      <StatusChip tone={toneFor(entry.tone)} className={className}>
+        {text}
+      </StatusChip>
+    )
+  }
 
   return variant === 'dot' ? (
     <StatusChip tone={toneFor(entry.tone)} variant="dot" className={cn(SIZE[size], className)}>
