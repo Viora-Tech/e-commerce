@@ -98,3 +98,10 @@ the full suites (they run on dev). No migration was needed.
   `insured` and `insurance_paise` on these shipments are only our own record. Whether RapidShyp
   or Blue Dart covers the parcel depends on the RapidShyp account's own settings or contract,
   which the API cannot set or show.
+- RapidShyp Shield (the panel's "Shield Your Shipment" toggle): none of RapidShyp's public API
+  pages (Create, Approve and Update Order, Assign AWB, Wrapper, Get Order Info, serviceability)
+  has a shield, insurance or secure field, and none says whether API bookings get Shield. The
+  help article "Does RapidShyp offer insurance for shipments?" says only that cover goes up to
+  ₹3,000 (they pay the lower of the product value or ₹3,000; above ₹3,500 is "planned"), with
+  no API or default-on wording. So nothing can be sent from here. Ask RapidShyp support whether
+  the panel toggle is an account default that API bookings inherit.
