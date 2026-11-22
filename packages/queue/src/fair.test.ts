@@ -56,7 +56,10 @@ describe('storeSlots', () => {
   it('every queue caps a store below its concurrency, so others always get a slot', () => {
     for (const limits of Object.values(QUEUE_LIMITS)) {
       expect(limits.perStore).toBeGreaterThanOrEqual(1)
-      expect(limits.perStore).toBeLessThan(limits.concurrency)
+      // A one-at-a-time queue (mediaProcess, #1471) has a single slot: the store cap
+      // cannot sit below it, and fairness comes from the retry delay instead.
+      if (limits.concurrency === 1) expect(limits.perStore).toBe(1)
+      else expect(limits.perStore).toBeLessThan(limits.concurrency)
     }
   })
 })

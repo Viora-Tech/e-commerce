@@ -56,8 +56,10 @@ describe('overlay points', () => {
       1,
       0.5,
     )
-    expect(points[3]).toBeCloseTo(0.045 * 1.25, 6)
-    expect(points[STRIDE + 3]).toBeCloseTo(0.09 * 0.5 * 1.25, 6)
+    // Sizes from #1449: old dots stay MARKER_SIZE (0.022); the newest is NEWEST_SIZE (0.034)
+    // at full pulse, times the 0.5 reveal.
+    expect(points[3]).toBeCloseTo(0.022, 6)
+    expect(points[STRIDE + 3]).toBeCloseTo(0.034 * 0.5, 6)
     expect([...points.slice(STRIDE + 4, STRIDE + 7)]).toEqual(palette.newest)
   })
 
