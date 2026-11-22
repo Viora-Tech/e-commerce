@@ -68,6 +68,25 @@ describe('bookedCourier', () => {
     expect(truth.carrier).toMatch(/blue dart/i)
   })
 
+  it('never saves the quote of a courier whose quote is not its bill (RapidShyp, #2088)', () => {
+    const truth = bookedCourier(
+      { ...rapidshyp, quoteIsCharge: false },
+      { serviceId: 'BDS', serviceLabel: 'Blue Dart Surface (RapidShyp)', quotedChargePaise: 14163 },
+      { bookedService: { id: 'BDS', label: 'Blue Dart Surface' } },
+    )
+    expect(truth).toMatchObject({ courierChargePaise: null, swapped: null })
+    // Its own booking answer, were it ever to carry one, is still saved.
+    expect(
+      bookedCourier(
+        { ...rapidshyp, quoteIsCharge: false },
+        { quotedChargePaise: 14163 },
+        {
+          chargePaise: 7447,
+        },
+      ).courierChargePaise,
+    ).toBe(7447)
+  })
+
   it('takes the charge in the courier’s own answer over any quote', () => {
     expect(
       bookedCourier(rapidshyp, { serviceId: 'A', quotedChargePaise: 100 }, { chargePaise: 15000 })

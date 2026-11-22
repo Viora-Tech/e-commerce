@@ -611,6 +611,10 @@ describe('RapidshypProvider booking truth (#2082, 22 Nov 2026)', () => {
     expect(r.bookedService).toEqual({ id: 'BDS', label: 'Blue Dart Surface' })
   })
 
+  it('says its rate quote is not its bill, so the quote is never saved as the charge (#2088)', () => {
+    expect(new RapidshypProvider(config).quoteIsCharge).toBe(false)
+  })
+
   it('sends the box and the weight in grams the merchant saw, not a 10 cm cube', async () => {
     const f = chosenRoutes({ status: 'SUCCESS', awb: 'BD-82' })
     const p = new RapidshypProvider({ ...config, fetchImpl: f.impl })

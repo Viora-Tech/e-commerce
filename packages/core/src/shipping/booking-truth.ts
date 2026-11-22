@@ -41,11 +41,12 @@ const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLow
 /**
  * The service, carrier and charge to record. The courier's answer wins over the pick: another
  * service booked is recorded by its own name (`Blue Dart Surface (RapidShyp)`), and the quote
- * the merchant saw is kept as the courier charge only when the courier booked what was quoted.
- * A charge in the courier's own answer always wins.
+ * the merchant saw is kept as the courier charge only when the courier booked what was quoted
+ * and its quotes are what it bills (`quoteIsCharge`). A charge in the courier's own answer
+ * always wins.
  */
 export function bookedCourier(
-  provider: Pick<ShippingProvider, 'id' | 'label'>,
+  provider: Pick<ShippingProvider, 'id' | 'label' | 'quoteIsCharge'>,
   asked: Asked,
   result: Pick<CreateShipmentResult, 'bookedService' | 'chargePaise'>,
 ): BookedCourier {
@@ -55,8 +56,12 @@ export function bookedCourier(
     asked.serviceId && booked?.id && !same(asked.serviceId, booked.id)
       ? { asked: askedLabel ?? asked.serviceId, booked: booked.label?.trim() || booked.id }
       : null
+  // A courier whose quote is not its bill (RapidShyp, #2088) never has the quote saved.
   const quoted =
-    !swapped && asked.quotedChargePaise != null && asked.quotedChargePaise > 0
+    !swapped &&
+    provider.quoteIsCharge !== false &&
+    asked.quotedChargePaise != null &&
+    asked.quotedChargePaise > 0
       ? Math.round(asked.quotedChargePaise)
       : null
   return {

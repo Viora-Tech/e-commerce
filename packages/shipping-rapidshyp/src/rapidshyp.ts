@@ -217,6 +217,12 @@ type PickupLocation = {
 export class RapidshypProvider implements ShippingProvider {
   readonly id = 'rapidshyp'
   readonly label = 'RapidShyp'
+  /**
+   * `total_freight` is not what the wallet takes for the booking: ₹141.63 quoted, ₹74.47 taken
+   * on order #2088 (22 Nov 2026). Its docs give no breakdown of that figure and no API for a
+   * booked shipment's charge, so the quote is never saved as the courier charge.
+   */
+  readonly quoteIsCharge = false
 
   private readonly baseUrl: string
   private readonly fetchImpl: typeof fetch

@@ -414,6 +414,13 @@ export type ShippingProvider = {
    */
   readonly defaultPickupLocationName?: string | undefined
   /**
+   * False when the courier's rate quote is not what it bills for the booking, so the platform
+   * must not save the quote as the shipment's courier charge (RapidShyp: its `total_freight`
+   * came to ₹141.63 for order #2088, its wallet took ₹74.47, 22 Nov 2026). The merchant types
+   * the real charge in the order's Profit card. Absent: the quote is the charge.
+   */
+  readonly quoteIsCharge?: boolean | undefined
+  /**
    * Optional: what the courier would charge for this parcel, or null when it
    * will not quote. Checkout prices shipping from the merchant's zones and
    * rates (Settings → Shipping → Shipping rates), so a courier without this
