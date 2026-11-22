@@ -15,11 +15,14 @@ export const ORDER_ACTION_CONDITIONS: readonly OrderActionCondition[] = [
 export const DEFAULT_ORDER_ACTION_PERMISSION = 'orders.write'
 
 const ACTION_ID = /^[a-z][a-z0-9-]*$/
+/** An app state an action tests: `invoiced`, or `!invoiced` for its absence. */
+const STATE_TEST = /^!?[a-z][a-z0-9-]*$/
 
 /** The id of the Create shipment action derived for one courier. */
 export const shipmentActionId = (providerId: string) => `ship-${providerId}`
 
 type ManifestShape = Pick<PluginManifest, 'id' | 'admin'> & {
+  orderStates?: PluginManifest['orderStates']
   provides: { shipping?: readonly { id: string; label: string }[] | undefined }
 }
 
@@ -47,6 +50,12 @@ export function validateOrderActions(p: ManifestShape): void {
         throw new Error(`${where}: unknown condition "${c}"`)
       }
     }
+    for (const st of a.whenState ?? []) {
+      if (!STATE_TEST.test(st)) throw new Error(`${where}: bad state test "${st}"`)
+    }
+    if (a.whenState?.length && !p.orderStates) {
+      throw new Error(`${where} tests order states but the plugin has no orderStates read`)
+    }
     const h = a.handler
     if (h.type === 'link' && (!h.path.startsWith('/') || h.path.startsWith('//'))) {
       throw new Error(`${where}: a link must be an admin path starting with "/"`)
@@ -72,6 +81,7 @@ export function orderActionsOf(p: ManifestShape, coreId = 'core'): OrderAction[]
     targets: [...a.targets],
     handler: { ...a.handler },
     ...(a.requires ? { requires: [...a.requires] } : {}),
+    ...(a.whenState ? { whenState: [...a.whenState] } : {}),
   }))
   if (p.id === coreId) return declared
   const couriers = p.provides.shipping ?? []

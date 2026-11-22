@@ -146,9 +146,11 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const hydrated = useRef(false)
   // The Product filter chip names its picks, also ones that came in with the URL.
   const productNames = useProductFilterNames(q)
-  const apps = useOrderAppActions(initial.appActions, () => {
-    reload().catch(() => setFailed(true))
-  })
+  const apps = useOrderAppActions(
+    initial.appActions,
+    () => reload().catch(() => setFailed(true)),
+    items.map((o) => o.id),
+  )
 
   // The panel lists only tags, codes, couriers and collections the store actually uses.
   useEffect(() => {

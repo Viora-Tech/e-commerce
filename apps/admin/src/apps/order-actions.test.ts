@@ -4,6 +4,7 @@ import {
   actionsFor,
   linkPath,
   meets,
+  meetsStates,
   type OrderAction,
   type OrderActionGroup,
   type OrderFacts,
@@ -97,6 +98,70 @@ describe('actionsFor', () => {
     expect(ids(actionsFor(groups, 'detail', paidToPack, onlyShipments))).toEqual([
       ['delhivery', ['ship-delhivery']],
     ])
+  })
+})
+
+describe('app states (whenState)', () => {
+  const gated: OrderActionGroup[] = [
+    {
+      appId: 'gst-invoices',
+      appName: 'GST invoices',
+      icon: 'FileText',
+      actions: [
+        { ...generate, whenState: ['!invoiced'] },
+        { ...queue, whenState: ['!invoiced'] },
+        {
+          id: 'email-invoice',
+          label: { en: 'Email invoice to customer' },
+          targets: ['detail', 'row'],
+          handler: { type: 'procedure', procedure: 'gst-invoices/email' },
+          whenState: ['invoice-pdf'],
+        },
+      ],
+    },
+    { appId: 'delhivery', appName: 'Delhivery', icon: 'Truck', actions: [ship] },
+  ]
+  const detail = (states: Parameters<typeof actionsFor>[4]) =>
+    ids(actionsFor(gated, 'detail', paidToPack, all, states))
+
+  it('meetsStates: a name must be there, !name must not; unknown fails any test', () => {
+    expect(meetsStates(null)).toBe(true)
+    expect(meetsStates(null, ['!invoiced'])).toBe(false)
+    expect(meetsStates([], ['!invoiced'])).toBe(true)
+    expect(meetsStates(['invoiced'], ['!invoiced'])).toBe(false)
+    expect(meetsStates(['invoiced', 'invoice-pdf'], ['invoice-pdf'])).toBe(true)
+  })
+
+  it('not invoiced: Generate and Add to queue, no Email', () => {
+    expect(detail({})).toEqual([
+      ['gst-invoices', ['generate-invoice', 'add-to-queue']],
+      ['delhivery', ['ship-delhivery']],
+    ])
+  })
+
+  it('invoiced here: Email instead of Generate and Add to queue', () => {
+    expect(detail({ 'gst-invoices': ['invoiced', 'invoice-pdf'] })[0]).toEqual([
+      'gst-invoices',
+      ['email-invoice'],
+    ])
+  })
+
+  it('one parcel of two invoiced: both, so the other parcel can still be invoiced', () => {
+    expect(detail({ 'gst-invoices': ['invoice-pdf'] })[0]).toEqual([
+      'gst-invoices',
+      ['generate-invoice', 'add-to-queue', 'email-invoice'],
+    ])
+  })
+
+  it('recorded "Already invoiced" (no PDF): neither Generate nor Email', () => {
+    expect(detail({ 'gst-invoices': ['invoiced', 'invoiced-outside'] })).toEqual([
+      ['delhivery', ['ship-delhivery']],
+    ])
+  })
+
+  it('states not loaded yet hide gated actions; the bulk bar ignores states', () => {
+    expect(detail(null)).toEqual([['delhivery', ['ship-delhivery']]])
+    expect(ids(actionsFor(gated, 'bulk', null, all))[0]).toEqual(['gst-invoices', ['add-to-queue']])
   })
 })
 

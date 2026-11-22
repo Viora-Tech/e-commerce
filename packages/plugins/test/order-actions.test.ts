@@ -105,4 +105,24 @@ describe('order actions on the manifest', () => {
       ),
     ).toThrow(/declared twice/)
   })
+
+  it('state tests need an orderStates read and well-formed names, and reach the summary', () => {
+    const gated: OrderAction = { ...queueAction, whenState: ['!invoiced'] }
+    expect(() => app([gated])).toThrow(/no orderStates read/)
+    const withStates = (actions: OrderAction[]) =>
+      definePlugin({
+        id: 'gst-invoices',
+        name: 'gst',
+        version: '1',
+        kind: 'builtin',
+        access: { resources: [] },
+        provides: {},
+        admin: { orderActions: actions },
+        orderStates: async () => ({}),
+      })
+    expect(() => withStates([{ ...gated, whenState: ['Invoiced'] }])).toThrow(/bad state test/)
+    expect(() => withStates([{ ...gated, whenState: ['!!invoiced'] }])).toThrow(/bad state test/)
+    const loaded = loadPlugins([withStates([gated])])
+    expect(loaded.summaries()[0]?.admin.orderActions[0]?.whenState).toEqual(['!invoiced'])
+  })
 })

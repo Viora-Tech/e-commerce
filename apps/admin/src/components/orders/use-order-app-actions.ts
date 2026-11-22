@@ -24,6 +24,7 @@ import type { ActionItem } from '@/components/layout/action-menu'
 import { orderAppActionsContent } from '@/data/order-app-actions'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { errorText } from '@/lib/api-errors'
+import { useOrderAppStates } from './use-order-app-states'
 
 /** The bulk Create shipment dialog's orders, and the courier to start on (none: compare all). */
 export type ShippingWith = { orderIds: string[]; providerId?: string | undefined }
@@ -33,15 +34,21 @@ export type ShippingWith = { orderIds: string[]; providerId?: string | undefined
  * actions, each with the app's icon. Runs them too: a link opens its admin route, Create
  * shipment opens the order's Create shipment page (several orders: `shipping` opens the bulk
  * dialog), a procedure calls the API and toasts its answer (with its View, Download or Open
- * buttons), then `onDone` reloads.
+ * buttons), then `onDone` reloads. `orderIds` are the orders on screen (the page's one, the
+ * list's rows): their app states are asked for, for actions gated by `whenState`.
  */
-export function useOrderAppActions(groups: readonly OrderActionGroup[], onDone: () => void) {
+export function useOrderAppActions(
+  groups: readonly OrderActionGroup[],
+  onDone: () => void,
+  orderIds: readonly string[] = [],
+) {
   // Hooks
   const copy = useCopy(orderAppActionsContent)
   const locale = useLocale()
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [shipping, setShipping] = useState<ShippingWith | null>(null)
+  const states = useOrderAppStates(groups, orderIds)
 
   // Helpers
   const toastButton = (b: OrderActionButton) => ({
@@ -76,6 +83,7 @@ export function useOrderAppActions(groups: readonly OrderActionGroup[], onDone: 
         // Long enough to reach for View or Download.
         duration: result.action ? 10_000 : undefined,
       })
+      states.forget(orderIds)
       onDone()
     } catch (err) {
       toast.error(errorText(err, copy.failed))
@@ -95,7 +103,14 @@ export function useOrderAppActions(groups: readonly OrderActionGroup[], onDone: 
     order: OrderFacts | null,
     orderIds: string[],
   ): ActionItem[] => {
-    const found = actionsFor(groups, target, order, (a) => isRunnable(a.handler))
+    const [first] = orderIds
+    const found = actionsFor(
+      groups,
+      target,
+      order,
+      (a) => isRunnable(a.handler),
+      first && order ? states.statesOf(first) : null,
+    )
     const anyShipment = found.some((g) => g.actions.some((a) => a.handler.type === 'shipment'))
     const appItems = found.flatMap((g) =>
       g.actions

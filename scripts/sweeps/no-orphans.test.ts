@@ -1429,6 +1429,16 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
+    file: 'packages/plugin-gst-invoices/src/order-states.ts',
+    names: ['invoiceStates'],
+    reason: 'test-only: the invoiced / invoice-pdf rules per order, tested in order-states.test.ts',
+  },
+  {
+    file: 'packages/plugin-gst-invoices/src/email-documents.ts',
+    names: ['emailedNote'],
+    reason: 'test-only: the timeline line after an invoice email, tested in order-states.test.ts',
+  },
+  {
     file: 'packages/plugin-gst-invoices/src/queue-status.ts',
     names: ['nextReset', 'queueStatus'],
     reason:

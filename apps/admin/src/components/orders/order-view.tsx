@@ -88,7 +88,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
      and its "Mark as paid" asks how the money came in. */
   const asked = useSearchParams()
   const { hasPermission } = usePermissions()
-  const apps = useOrderAppActions(appActions, () => router.refresh())
+  const apps = useOrderAppActions(appActions, () => router.refresh(), [order.id])
   const duplicateOrder = useDuplicateOrder()
   const automation = useRunAutomation('order', appCards.includes('automations'))
   const [busy, setBusy] = useState(false)

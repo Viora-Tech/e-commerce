@@ -746,6 +746,14 @@ and the row menu hide an action on an order that fails one; the bulk bar always 
 the handler must skip what it cannot do (the GST app's bulk "Add to invoice queue" passes
 `skipIneligible` and reports how many test or gift-card-only orders it skipped).
 
+**App states** (`whenState`): conditions in the app's own terms. Add an `orderStates(ctx,
+orderIds)` read to the manifest that returns, per order id, the state names that hold (for the
+GST app `invoiced`, `invoice-pdf`, `invoiced-outside`), and gate an action with
+`whenState: ['!invoiced']` (state absent) or `['invoice-pdf']` (state present). The admin asks
+`api.apps.orderStates` for the orders on screen, a page at a time, so the read must cost a
+statement or two for the whole page. Gated actions stay hidden until the answer arrives; the
+bulk bar ignores states like it ignores `requires`.
+
 **Who sees what.** `api.apps.orderActions` (`orders.read`, so staff without settings access get
 them too) returns the groups for the store and member: only apps that are installed and set up
 (a connection needs its account), only actions whose `permission` the member holds (an unknown
