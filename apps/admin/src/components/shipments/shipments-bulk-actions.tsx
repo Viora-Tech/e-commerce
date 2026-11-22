@@ -1,7 +1,7 @@
 'use client'
 
 import type { ShipmentTab } from '@commerce/core/shipment-tabs'
-import { FileText, Printer, Truck } from '@commerce/ui/icons'
+import { Printer, RotateCcw, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -20,17 +20,17 @@ type ShipmentsBulkActionsProps = {
   /** Selected shipment ids (never "To book" orders: that tab books them instead). */
   ids: string[]
   tab: Exclude<ShipmentTab, 'toBook'>
-  /** After a pickup or manifest: clear the selection and read the rows again. */
+  /** After a pickup or a cancelled pickup: clear the selection and read the rows again. */
   onDone: () => void
 }
 
-type Dialog = 'pickup' | 'manifest' | null
+type Dialog = 'pickup' | 'cancelPickup' | null
 
 /**
  * The selection bar on the booked tabs: print the selected labels as one file on the paper
- * picked, and while parcels wait for the courier (Booked), schedule their pickup or group them
- * into a manifest. Both ask first. In To be picked up, Print manifest prints the ticked parcels'
- * manifest for the pickup executive to sign (reused when one holds exactly them).
+ * picked, and while parcels wait for the courier (Booked), schedule their pickup (which also
+ * makes its manifest). In To be picked up, Print manifest prints the ticked parcels' manifest for
+ * the pickup executive to sign, and Cancel pickup sends them back to Booked. Both ask first.
  */
 export default function ShipmentsBulkActions({ ids, tab, onDone }: ShipmentsBulkActionsProps) {
   // Hooks
@@ -90,14 +90,20 @@ export default function ShipmentsBulkActions({ ids, tab, onDone }: ShipmentsBulk
     onDone()
   }
 
-  const handleManifest = async () => {
-    try {
-      await api.shipments.createManifest({ shipmentIds: ids })
-      toast.success(actions.manifestDone)
-      onDone()
-    } catch (err) {
-      fail(err)
+  // One at a time: a parcel the courier already collected is refused, the rest still go back.
+  const handleCancelPickup = async () => {
+    let done = 0
+    for (const shipmentId of ids) {
+      const ok = await api.orders
+        .returnShipmentToBooked({ shipmentId })
+        .then(() => true)
+        .catch(() => false)
+      if (ok) done++
     }
+    const failed = ids.length - done
+    if (failed === 0) toast.success(actions.cancelPickupDone(done))
+    else toast.error(actions.cancelPickupSome(done, failed))
+    onDone()
   }
 
   // Render logic
@@ -132,9 +138,9 @@ export default function ShipmentsBulkActions({ ids, tab, onDone }: ShipmentsBulk
             <Printer aria-hidden />
             {manifestCopy.printSelected}
           </Button>
-          <Button size="sm" variant="outline" onClick={() => setDialog('manifest')}>
-            <FileText aria-hidden />
-            {actions.createManifest}
+          <Button size="sm" variant="outline" onClick={() => setDialog('cancelPickup')}>
+            <RotateCcw aria-hidden />
+            {actions.cancelPickup}
           </Button>
         </>
       ) : null}
@@ -153,13 +159,13 @@ export default function ShipmentsBulkActions({ ids, tab, onDone }: ShipmentsBulk
         ) : null}
       </ConfirmDialog>
       <ConfirmDialog
-        open={dialog === 'manifest'}
+        open={dialog === 'cancelPickup'}
         onOpenChange={(o) => !o && setDialog(null)}
-        title={actions.manifestTitle(ids.length)}
-        body={actions.manifestBody}
-        confirmLabel={actions.createManifest}
+        title={actions.cancelPickupTitle(ids.length)}
+        body={actions.cancelPickupBody}
+        confirmLabel={actions.cancelPickup}
         tone="default"
-        onConfirm={handleManifest}
+        onConfirm={handleCancelPickup}
       />
     </>
   )
