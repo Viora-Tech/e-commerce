@@ -1,13 +1,17 @@
 import 'server-only'
 import { blogSitemapEntries, notSystemTest } from '@commerce/core'
+import { policyPath, policyTypeOfHandle } from '@commerce/core/policies'
+import { normaliseRedirectPath } from '@commerce/core/redirects'
 import type { StoreTx } from '@commerce/db'
-import { collection, page, product, variant } from '@commerce/db'
+import { collection, collectionProduct, page, product, urlRedirect, variant } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
-import { and, asc, eq, isNotNull, isNull, min } from 'drizzle-orm'
+import { and, asc, eq, exists, isNotNull, isNull, min } from 'drizzle-orm'
 import {
   AI_CRAWLERS,
   LLMS_PRODUCT_LIMIT,
+  ROBOTS_ALLOW,
   ROBOTS_DISALLOW,
+  SHADOWED_PAGE_HANDLES,
   type SitemapPart,
   seoContent,
 } from '@/data/seo'
@@ -22,9 +26,41 @@ export type StoreIndex = {
   blog: IndexEntry[]
 }
 
-/** Everything a shopper can reach and a crawler may index: active and published only. */
+/**
+ * Where a published page is really served: the five store policies answer at `/policies/<type>`
+ * (`/pages/<handle>` redirects there), and a page whose handle a fixed route owns
+ * (`/pages/wishlist`) is never reached, so it has no URL of its own.
+ */
+export function pageIndexPath(handle: string): string | null {
+  const policy = policyTypeOfHandle(handle)
+  if (policy) return policyPath(policy)
+  return SHADOWED_PAGE_HANDLES.includes(handle) ? null : `/pages/${handle}`
+}
+
+/**
+ * Leaves out every entry a URL redirect sends elsewhere: the redirect wins over the product or
+ * page (`lib/redirects.ts`), so the listed URL would answer 301 and Search Console files it
+ * under "Page with redirect". `redirected` holds normalised redirect paths.
+ */
+export function withoutRedirected(index: StoreIndex, redirected: ReadonlySet<string>): StoreIndex {
+  if (!redirected.size) return index
+  const keep = <T extends IndexEntry>(list: T[]) =>
+    list.filter((e) => !redirected.has(normaliseRedirectPath(e.path)))
+  return {
+    products: keep(index.products),
+    collections: keep(index.collections),
+    pages: keep(index.pages),
+    blog: keep(index.blog),
+  }
+}
+
+/**
+ * Everything a shopper can reach and a crawler may index: active and published only, each at
+ * the URL that answers 200 itself. Empty collections are left out (Google files a page that
+ * only says "nothing here yet" as a soft 404; the page itself is `noindex`).
+ */
 export async function loadStoreIndex(tx: StoreTx): Promise<StoreIndex> {
-  const [products, collections, pages, blog] = await Promise.all([
+  const [products, collections, pages, blog, redirects] = await Promise.all([
     tx
       .select({
         handle: product.handle,
@@ -52,7 +88,23 @@ export async function loadStoreIndex(tx: StoreTx): Promise<StoreIndex> {
         updatedAt: collection.updatedAt,
       })
       .from(collection)
-      .where(eq(collection.status, 'active'))
+      .where(
+        and(
+          eq(collection.status, 'active'),
+          exists(
+            tx
+              .select({ one: collectionProduct.id })
+              .from(collectionProduct)
+              .innerJoin(product, eq(product.id, collectionProduct.productId))
+              .where(
+                and(
+                  eq(collectionProduct.collectionId, collection.id),
+                  eq(product.status, 'active'),
+                ),
+              ),
+          ),
+        ),
+      )
       .orderBy(asc(collection.title)),
     tx
       .select({ handle: page.handle, title: page.title, updatedAt: page.updatedAt })
@@ -60,8 +112,9 @@ export async function loadStoreIndex(tx: StoreTx): Promise<StoreIndex> {
       .where(isNotNull(page.publishedAt))
       .orderBy(asc(page.title)),
     blogSitemapEntries(tx),
+    tx.select({ path: urlRedirect.path }).from(urlRedirect),
   ])
-  return {
+  const index: StoreIndex = {
     products: products.map((p) => ({
       path: `/products/${p.handle}`,
       title: p.title,
@@ -73,13 +126,13 @@ export async function loadStoreIndex(tx: StoreTx): Promise<StoreIndex> {
       title: c.title,
       updatedAt: c.updatedAt,
     })),
-    pages: pages.map((p) => ({
-      path: `/pages/${p.handle}`,
-      title: p.title,
-      updatedAt: p.updatedAt,
-    })),
+    pages: pages.flatMap((p) => {
+      const path = pageIndexPath(p.handle)
+      return path ? [{ path, title: p.title, updatedAt: p.updatedAt }] : []
+    }),
     blog,
   }
+  return withoutRedirected(index, new Set(redirects.map((r) => r.path)))
 }
 
 const XML_ESCAPES: Record<string, string> = {
@@ -151,6 +204,7 @@ export function robotsTxt(origin: string, access: CrawlerAccess): string {
     ...ai,
     'User-agent: *',
     'Allow: /',
+    ...ROBOTS_ALLOW.map((p) => `Allow: ${p}`),
     ...ROBOTS_DISALLOW.map((p) => `Disallow: ${p}`),
     '',
     `Sitemap: ${origin}/sitemap.xml`,

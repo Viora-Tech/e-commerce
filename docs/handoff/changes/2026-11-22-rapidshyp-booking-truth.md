@@ -61,3 +61,47 @@ Ran: `packages/shipping-rapidshyp` vitest (62 passed), core `booking-truth.test.
 `shipments.test.ts` and `pickup-leave.test.ts`, admin `bulk-ship-state.test.ts` and
 `flow-state.test.ts`, and tsc for shipping-rapidshyp, core, api and admin (all clean). Not run:
 the full suites (they run on dev). No migration was needed.
+
+## Follow-up after order #2088 (22 Nov 2026, 23:11 IST)
+
+- Charge: we saved ₹141.63 (RapidShyp's `total_freight` quote for 1 kg) but the wallet took
+  ₹74.47. RapidShyp's docs list `total_freight` as the only price field, with no breakdown
+  (GST, RTO and so on are not stated), and no API that returns a booked shipment's charge
+  (`get_orders_info` only has the order's own shipping and COD fields). So a RapidShyp quote is
+  no longer saved as the courier charge: the new `ShippingProvider.quoteIsCharge = false`
+  stops that in `bookedCourier`. Profit shows its estimate until the merchant types the
+  wallet figure. Other couriers keep saving the quote.
+- Package: a read-only check of the live database for #2088 found the wrist rest variant at
+  500 g with no package size or box. The store's default box is "All Detchable Cable",
+  20 x 20 x 5 cm and 10 g, so the page opens at 510 g, 20 x 20 x 5. The saved 1000 g and
+  37 x 14 x 4 cm match no product or box. They are what the Create shipment request carried
+  (the same values went to RapidShyp and the quote, hence the 1 kg rate). #2082's first booking
+  on 21 Nov carried 1000 g and 38 x 13 x 4 cm, which looks like a box measured and typed by
+  hand. No code path makes these numbers; ask the owner whether they were typed in the
+  Package card before booking.
+
+## Follow-up 2: the package never reached RapidShyp (#2088)
+
+- RapidShyp's panel showed #2088 as 0.50 kg and 10 x 10 x 10 cm, though we stored and sent
+  1000 g and 37 x 14 x 4. Cause: #2088 had been pushed to RapidShyp earlier as a pending order
+  (order push, `pushRapidshypOrder`) with no box and the order's weight, and booking a pushed
+  order only ran `assign_awb` on that order's shipment. Nothing updated its package, so RapidShyp
+  billed the package it was pushed with. The `create_order` and wrapper paths were fine: they
+  send `packageDetails` (cm and grams, as the docs say).
+- Fix: `bookPushed` now calls Update Order (`/order_update`, `orderId`, `store_name`,
+  `packageDetails`) before `assign_awb` (`updatePushedPackage` in `src/package.ts`). If
+  RapidShyp refuses the update, nothing is booked and staff see RapidShyp's remark, so a parcel
+  is never billed at the wrong size. Shiprocket also has `pushOrder`; I did not check whether
+  its booking has the same gap.
+- Insurance: RapidShyp's Create Order, Wrapper and Assign AWB requests have no insurance,
+  secure-shipment or risk field (the docs list only `isFragile` per item). We send none, so
+  `insured` and `insurance_paise` on these shipments are only our own record. Whether RapidShyp
+  or Blue Dart covers the parcel depends on the RapidShyp account's own settings or contract,
+  which the API cannot set or show.
+- RapidShyp Shield (the panel's "Shield Your Shipment" toggle): none of RapidShyp's public API
+  pages (Create, Approve and Update Order, Assign AWB, Wrapper, Get Order Info, serviceability)
+  has a shield, insurance or secure field, and none says whether API bookings get Shield. The
+  help article "Does RapidShyp offer insurance for shipments?" says only that cover goes up to
+  ₹3,000 (they pay the lower of the product value or ₹3,000; above ₹3,500 is "planned"), with
+  no API or default-on wording. So nothing can be sent from here. Ask RapidShyp support whether
+  the panel toggle is an account default that API bookings inherit.

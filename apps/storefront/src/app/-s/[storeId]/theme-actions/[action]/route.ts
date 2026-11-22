@@ -11,7 +11,7 @@ import { subscribeAction } from '@/lib/newsletter-actions'
 import { recordConsentAction } from '@/lib/privacy-actions'
 import { recommendationsResponse } from '@/lib/recommendations-route'
 import { withEvlog } from '@/lib/request-log'
-import { requestedSections, validSectionId } from '@/lib/section-rendering'
+import { requestedSections, sectionPagePath, validSectionId } from '@/lib/section-rendering'
 import { inStore } from '@/lib/store-context'
 
 type Params = { params: Promise<{ storeId: string; action: string }> }
@@ -139,7 +139,7 @@ export const GET = withEvlog(async (req: Request, { params }: Params) => {
   if (action === 'recommendations') return recommendationsResponse(req, storeId, false)
   if (action === 'section') {
     const url = new URL(req.url)
-    const path = url.searchParams.get('path') ?? '/'
+    const path = sectionPagePath(req)
     const list = url.searchParams.get('sections')
     // `?sections=a,b`: JSON keyed by every section asked for, null for one there is none of.
     if (list !== null && !url.searchParams.has('section_id')) {

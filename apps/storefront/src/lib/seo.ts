@@ -431,6 +431,9 @@ export function canonicalPath(path: string, page = 1): string {
   return page > 1 ? `${path}?page=${page}` : path
 }
 
+/** A `?page=` past the last one (nothing on it): answered 404 rather than as an empty copy. */
+export const pastLastPage = (page: number, shown: number): boolean => page > 1 && shown === 0
+
 /**
  * The canonical path of this request's page in its market: `/ae/products/x` on the UAE
  * subfolder, so each market's copy is indexed as its own page and not as a copy of India's.

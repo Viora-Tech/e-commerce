@@ -486,6 +486,7 @@ describe('RapidshypProvider createShipment (wrapper API)', () => {
 
   it('books an order pushed earlier by assigning the picked courier to its shipment', async () => {
     const f = fakeFetch({
+      '/rapidshyp/apis/v1/order_update': () => json({ status: 'success', remarks: 'success' }),
       '/rapidshyp/apis/v1/assign_awb': () => json({ awb: 'BD-3' }),
       '/rapidshyp/apis/v1/schedule_pickup': () => json({ status: 'SUCCESS' }),
       '/rapidshyp/apis/v1/generate_label': () =>
@@ -512,8 +513,58 @@ describe('RapidshypProvider createShipment (wrapper API)', () => {
     })
   })
 
+  it('updates a pushed order to the package being booked before assigning a courier (#2088)', async () => {
+    const f = fakeFetch({
+      '/rapidshyp/apis/v1/order_update': () => json({ status: 'success', remarks: 'success' }),
+      '/rapidshyp/apis/v1/assign_awb': () => json({ awb: 'BD-88' }),
+      '/rapidshyp/apis/v1/schedule_pickup': () => json({ status: 'SUCCESS' }),
+      '/rapidshyp/apis/v1/generate_label': () => json({ status: true, labelData: [] }),
+    })
+    const p = new RapidshypProvider({ ...config, fetchImpl: f.impl })
+    await p.createShipment({
+      ...sampleShipment,
+      serviceId: 'BDS',
+      weightGrams: 1000,
+      dimensionsCm: { length: 37, width: 14, height: 4 },
+      pushed: { externalOrderId: '2088', externalShipmentId: 'ship-88' },
+    })
+    const paths = f.calls.map((c) => c.url.pathname.split('/').pop())
+    expect(paths.slice(0, 2)).toEqual(['order_update', 'assign_awb'])
+    expect(JSON.parse(f.calls[0]?.init?.body as string)).toEqual({
+      orderId: '2088',
+      store_name: 'DEFAULT',
+      packageDetails: {
+        packageLength: 37,
+        packageBreadth: 14,
+        packageHeight: 4,
+        packageWeight: 1000,
+      },
+    })
+  })
+
+  it('does not book a pushed order whose package RapidShyp would not update', async () => {
+    const f = fakeFetch({
+      '/rapidshyp/apis/v1/order_update': () =>
+        json({ status: 'failed', remarks: 'Order can not be updated' }),
+      '/rapidshyp/apis/v1/assign_awb': () => json({ awb: 'BD-88' }),
+    })
+    const p = new RapidshypProvider({ ...config, fetchImpl: f.impl })
+    await expect(
+      p.createShipment({
+        ...sampleShipment,
+        serviceId: 'BDS',
+        pushed: { externalOrderId: '2088', externalShipmentId: 'ship-88' },
+      }),
+    ).rejects.toMatchObject({
+      kind: 'rejected',
+      message: expect.stringContaining('Order can not be updated'),
+    })
+    expect(f.calls.some((c) => c.url.pathname.endsWith('/assign_awb'))).toBe(false)
+  })
+
   it('leaves a pushed order alone when its courier is refused', async () => {
     const f = fakeFetch({
+      '/rapidshyp/apis/v1/order_update': () => json({ status: 'success', remarks: 'success' }),
       '/rapidshyp/apis/v1/assign_awb': () =>
         json({ status: false, remarks: 'Awb can not assign with this shipment id' }, 400),
     })
@@ -609,6 +660,10 @@ describe('RapidshypProvider booking truth (#2082, 22 Nov 2026)', () => {
       courier_code: 'AMZS',
     })
     expect(r.bookedService).toEqual({ id: 'BDS', label: 'Blue Dart Surface' })
+  })
+
+  it('says its rate quote is not its bill, so the quote is never saved as the charge (#2088)', () => {
+    expect(new RapidshypProvider(config).quoteIsCharge).toBe(false)
   })
 
   it('sends the box and the weight in grams the merchant saw, not a 10 cm cube', async () => {

@@ -20,7 +20,7 @@ import { AUTO_DESCRIPTION_PRODUCTS } from '@/data/seo'
 import { listCardProducts } from '@/lib/catalog'
 import { collectionLeadTitles, getCollectionByHandle } from '@/lib/collections'
 import { digest } from '@/lib/liquid-cache'
-import { collectionDescription, marketCanonical, requestOrigin } from '@/lib/seo'
+import { collectionDescription, marketCanonical, pastLastPage, requestOrigin } from '@/lib/seo'
 import { storeShareImages } from '@/lib/share-image'
 import { storeRead } from '@/lib/store-cache'
 import { renderTemplate } from '@/lib/template-render'
@@ -38,6 +38,36 @@ const DEFAULT_SORT: Record<CollectionSort, BrowseSort> = {
   price_asc: 'price-ascending',
   price_desc: 'price-descending',
   created_desc: 'created-descending',
+}
+
+/**
+ * One collection page (with its filters, sort and page) as shoppers see it. The same for
+ * everyone, so cached per store version; `generateMetadata` and the page share the entry.
+ */
+function loadCollectionView(storeId: string, handle: string, query: SearchParamsInput) {
+  const page = parsePage(query.page)
+  const filters = parseBrowseFilters(query)
+  const view = [handle, page, filters, query.sort_by ?? null, query.sort ?? null]
+  return storeRead(storeId, `collection-page|${digest(view)}`, async (tx) => {
+    const found = await getCollectionByHandle(tx, handle)
+    if (!found) return null
+    const defaultSort = DEFAULT_SORT[found.sortOrder]
+    // `sort` is the old parameter; links shared before sort_by keep working.
+    const legacy =
+      typeof query.sort === 'string' ? DEFAULT_SORT[query.sort as CollectionSort] : undefined
+    const sort = parseBrowseSort(query.sort_by ?? legacy, COLLECTION_SORTS, defaultSort)
+    const result = await browseProducts(tx, {
+      collectionId: found.id || undefined,
+      // Names the store, so its filter settings come with the listing.
+      storeId,
+      filters,
+      sort,
+      page,
+      perPage: COLLECTION_PER_PAGE,
+    })
+    const products = await listCardProducts(tx, COLLECTION_PER_PAGE, undefined, result.handles)
+    return { collection: found, result, products, sort, defaultSort }
+  })
 }
 
 export async function generateMetadata({ params, searchParams }: Params): Promise<Metadata> {
@@ -70,6 +100,9 @@ export async function generateMetadata({ params, searchParams }: Params): Promis
   // page and stay out of the index, as Shopify's do.
   const url = await marketCanonical(`/collections/${found.handle}`, parsePage(query.page))
   const variant = hasActiveFilters(parseBrowseFilters(query)) || query.sort_by !== undefined
+  // An empty collection says only "nothing here yet": Google files it as a soft 404. It stays
+  // up for shoppers and links, out of the index (and the sitemap) until it has products.
+  const empty = !variant && (await loadCollectionView(storeId, handle, query))?.result.total === 0
   const image = found.imageUrl ? [{ url: found.imageUrl, alt: found.title }] : undefined
   return {
     title,
@@ -84,7 +117,7 @@ export async function generateMetadata({ params, searchParams }: Params): Promis
       images: image ?? (await storeShareImages(storeId)),
     },
     twitter: { card: image ? 'summary_large_image' : 'summary', title, description },
-    ...(variant ? { robots: { index: false, follow: true } } : {}),
+    ...(variant || empty ? { robots: { index: false, follow: true } } : {}),
   }
 }
 
@@ -93,32 +126,10 @@ export default async function CollectionPage({ params, searchParams }: Params) {
   const query = await searchParams
   const page = parsePage(query.page)
   const filters = parseBrowseFilters(query)
-
-  // A collection page (with its filters, sort and page) is the same for everyone: cached per
-  // store version.
-  const view = [handle, page, filters, query.sort_by ?? null, query.sort ?? null]
-  const data = await storeRead(storeId, `collection-page|${digest(view)}`, async (tx) => {
-    const found = await getCollectionByHandle(tx, handle)
-    if (!found) return null
-    const defaultSort = DEFAULT_SORT[found.sortOrder]
-    // `sort` is the old parameter; links shared before sort_by keep working.
-    const legacy =
-      typeof query.sort === 'string' ? DEFAULT_SORT[query.sort as CollectionSort] : undefined
-    const sort = parseBrowseSort(query.sort_by ?? legacy, COLLECTION_SORTS, defaultSort)
-    const result = await browseProducts(tx, {
-      collectionId: found.id || undefined,
-      // Names the store, so its filter settings come with the listing.
-      storeId,
-      filters,
-      sort,
-      page,
-      perPage: COLLECTION_PER_PAGE,
-    })
-    const products = await listCardProducts(tx, COLLECTION_PER_PAGE, undefined, result.handles)
-    return { collection: found, result, products, sort, defaultSort }
-  })
-
-  if (!data) notFound()
+  const data = await loadCollectionView(storeId, handle, query)
+  // Past the last page there is nothing to list: a 404, not a copy of the empty page under every
+  // `?page=` Google tries (Search Console filed them as duplicates choosing another canonical).
+  if (!data || pastLastPage(page, data.result.handles.length)) notFound()
   const origin = await requestOrigin()
   return renderTemplate(storeId, 'collection', {
     suffix: data.collection.templateSuffix,

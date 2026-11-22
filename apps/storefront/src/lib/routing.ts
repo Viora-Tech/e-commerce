@@ -89,6 +89,12 @@ export function routeForCheckoutHost(storeId: string, pathname: string): Route {
 }
 
 /** Headers the proxy derives. Stripped from every incoming request so a client cannot forge them. */
+/**
+ * The page path a `?section_id=` page request renders its section on (`lib/section-rendering.ts`).
+ * A header, because a route handler reached by a proxy rewrite sees the original URL's query.
+ */
+export const SECTION_PATH_HEADER = 'x-section-path'
+
 export const DERIVED_HEADERS = [
   'x-store-id',
   'x-visitor-country',
@@ -99,6 +105,7 @@ export const DERIVED_HEADERS = [
   'x-form-posted',
   'x-pathname',
   'x-listing',
+  SECTION_PATH_HEADER,
   // The shared-cache answer the proxy chose for a plain HTML page (`lib/plain-html/route.ts`).
   'x-edge-cache-control',
   // Markets (`lib/markets.ts` MARKET_HEADERS).

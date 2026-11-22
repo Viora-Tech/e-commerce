@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import { DERIVED_HEADERS, SECTION_PATH_HEADER } from './routing'
 import {
   MAX_SECTIONS,
   requestedSections,
+  sectionPagePath,
   sectionRenderingPath,
   toSectionRendering,
   validSectionId,
@@ -57,27 +59,48 @@ describe('sectionRenderingPath', () => {
 })
 
 describe('toSectionRendering', () => {
-  it('rewrites to the section route with the page path and keeps the page query', () => {
-    const url = new URL(
-      'https://shop.test/-s/store-1/collections/all?filter.v.availability=1&section_id=guide-results',
-    )
-    expect(toSectionRendering(url, 'store-1', 'GET', '/collections/all')).toBe(true)
+  const page = (query: string) => new URL(`https://shop.test/-s/store-1/collections/all?${query}`)
+
+  it('rewrites to the section route and hands the page path on in a header', () => {
+    const url = page('filter.v.availability=1&section_id=guide-results')
+    const headers = new Headers()
+    expect(toSectionRendering(url, headers, 'store-1', 'GET', '/collections/all')).toBe(true)
     expect(url.pathname).toBe('/-s/store-1/theme-actions/section')
-    expect(url.searchParams.get('path')).toBe('/collections/all')
     expect(url.searchParams.get('filter.v.availability')).toBe('1')
     expect(url.searchParams.get('section_id')).toBe('guide-results')
-  })
-
-  it('takes the unprefixed page path over a path the visitor sent', () => {
-    const url = new URL('https://shop.test/-s/store-1/collections/mice?path=/admin&section_id=a')
-    toSectionRendering(url, 'store-1', 'GET', '/collections/mice')
-    expect(url.searchParams.getAll('path')).toEqual(['/collections/mice'])
+    expect(headers.get(SECTION_PATH_HEADER)).toBe('/collections/all')
   })
 
   it('leaves a page request without section params unchanged', () => {
-    const url = new URL('https://shop.test/-s/store-1/collections/all?page=2')
-    expect(toSectionRendering(url, 'store-1', 'GET', '/collections/all')).toBe(false)
+    const url = page('page=2')
+    const headers = new Headers()
+    expect(toSectionRendering(url, headers, 'store-1', 'GET', '/collections/all')).toBe(false)
     expect(url.pathname).toBe('/-s/store-1/collections/all')
-    expect(url.searchParams.has('path')).toBe(false)
+    expect(headers.has(SECTION_PATH_HEADER)).toBe(false)
+  })
+})
+
+describe('sectionPagePath', () => {
+  // A route handler reached by the proxy's rewrite sees the URL the visitor asked for, without
+  // any query the rewrite added: the page path has to come from the header (bug on 22 Nov:
+  // `/collections/all?section_id=guide-results` rendered on the home page, count 0).
+  it('reads the proxy header on the URL the visitor asked for', () => {
+    const req = new Request('https://shop.test/collections/all?section_id=guide-results', {
+      headers: { [SECTION_PATH_HEADER]: '/collections/all' },
+    })
+    expect(sectionPagePath(req)).toBe('/collections/all')
+  })
+
+  it("falls back to the shim's ?path=, then the home page", () => {
+    expect(
+      sectionPagePath(
+        new Request('https://shop.test/theme-actions/section?path=/collections/mice'),
+      ),
+    ).toBe('/collections/mice')
+    expect(sectionPagePath(new Request('https://shop.test/theme-actions/section'))).toBe('/')
+  })
+
+  it('never trusts the header from a visitor: the proxy strips it', () => {
+    expect(DERIVED_HEADERS).toContain(SECTION_PATH_HEADER)
   })
 })
