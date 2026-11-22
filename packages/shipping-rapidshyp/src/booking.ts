@@ -38,7 +38,7 @@ import {
   courierOrderRef,
   type PushOrderResult,
 } from '@commerce/shipping'
-import { packageDetails } from './package'
+import { packageDetails, updatePushedPackage } from './package'
 import type { RapidshypConfig } from './rapidshyp'
 import {
   AWB_TAKEN,
@@ -303,6 +303,9 @@ async function bookPushed(
   input: CreateShipmentInput,
   shipmentId: string,
 ): Promise<CreateShipmentResult> {
+  const orderRef = input.pushed?.externalOrderId || courierOrderRef(input)
+  // The pushed order still has the package it was pushed with: it ships, and bills, as this one.
+  await updatePushedPackage(calls.post, calls.provider, calls.config.storeName, orderRef, input)
   let assigned: AssignedAwb
   try {
     assigned = await calls.assignAwb(shipmentId, input.serviceId)
@@ -310,9 +313,7 @@ async function bookPushed(
     // The pending order was there before this booking; it stays on RapidShyp as it was.
     throw courierRefused(calls, input, error, 'The order is still on RapidShyp, not booked.')
   }
-  return finishBooking(calls, shipmentId, assigned, {
-    orderRef: input.pushed?.externalOrderId || courierOrderRef(input),
-  })
+  return finishBooking(calls, shipmentId, assigned, { orderRef })
 }
 
 /** The merchant's courier: create the order with no courier, then assign that one. */
