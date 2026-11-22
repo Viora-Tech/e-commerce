@@ -61,8 +61,10 @@ import {
   routeForAccounts,
   routeForCheckoutHost,
   routeForStore,
+  THEME_VERSION_ID,
+  visitorCountry,
 } from './lib/routing'
-
+import { toSectionRendering } from './lib/section-rendering'
 import { watchResolvers } from './lib/store-changes'
 import { createStoreResolver, hostnameFromHeader } from './lib/store-resolver'
 import {
@@ -87,9 +89,6 @@ let plainKilled: boolean | null = null
 /** `STOREFRONT_PLAIN_HTML=off`, read once per process: no page goes out as plain HTML. */
 const plainHtmlKilled = () => (plainKilled ??= loadEnv(process.env).STOREFRONT_PLAIN_HTML === 'off')
 
-/** A version id from the admin (`?theme-version=`): a uuid, nothing else reaches the header. */
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
 const resolve = createStoreResolver<HostRoute>({
   lookup: (hostname) => resolveHost(db(), hostname),
   // A miss belongs to no store: any store's change drops it (a domain may have been added).
@@ -110,12 +109,6 @@ const marketsOf = createStoreResolver<StoreMarketRoute[]>({
  * through the storefront's cache notifications; their TTL only covers a lost listener.
  */
 const watchRouting = watchResolvers(resolve, marketsOf)
-
-/** Cloudflare's edge country, forwarded for region defaults. Absent when not behind Cloudflare. */
-function visitorCountry(request: NextRequest): string | null {
-  const c = request.headers.get('cf-ipcountry')?.trim().toUpperCase()
-  return c && /^[A-Z]{2}$/.test(c) ? c : null
-}
 
 /**
  * Every answer carries the script Content-Security-Policy with a fresh nonce
@@ -286,7 +279,7 @@ async function routeRequest(
   for (const h of DERIVED_HEADERS) headers.delete(h)
   withNonce(headers)
   headers.set('x-store-id', storeId)
-  const country = visitorCountry(request)
+  const country = visitorCountry(request.headers)
   if (country) headers.set('x-visitor-country', country)
   for (const [name, value] of marketHeaders(pick, markets, hostname, hostRoute.primaryHostname)) {
     headers.set(name, value)
@@ -332,7 +325,8 @@ async function routeRequest(
   // `?theme-version=<batch>` (Versions › Preview in the admin): that version of the previewed
   // theme, for this page only. Only with a valid preview; the renderer checks the theme too.
   const version = request.nextUrl.searchParams.get('theme-version')
-  if (preview && token && version && UUID.test(version)) headers.set('x-theme-version', version)
+  if (preview && token && version && THEME_VERSION_ID.test(version))
+    headers.set('x-theme-version', version)
   // Customize's Theme scripts view (`lib/liquid-design-mode.ts`): a valid preview, in a frame.
   const design = inFrame && request.nextUrl.searchParams.get(THEME_DESIGN_MODE_PARAM) === '1'
   if (preview && token && design) headers.set('x-theme-design-mode', '1')
@@ -403,6 +397,7 @@ async function routeRequest(
       : hono
         ? honoPath(storeId, pick.pathname)
         : route.path
+  if (!locked) toSectionRendering(url, storeId, request.method, pick.pathname)
   const response = NextResponse.rewrite(url, { request: { headers } })
   if (preview && param && request.headers.get('sec-fetch-dest') === 'document') {
     response.cookies.set(PREVIEW_COOKIE, param, {

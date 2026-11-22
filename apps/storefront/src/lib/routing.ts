@@ -112,6 +112,15 @@ export const DERIVED_HEADERS = [
   'x-market-languages',
 ] as const
 
+/** A version id from the admin (`?theme-version=`): a uuid, nothing else reaches the header. */
+export const THEME_VERSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** Cloudflare's edge country, forwarded for region defaults. Absent when not behind Cloudflare. */
+export function visitorCountry(headers: Headers): string | null {
+  const c = headers.get('cf-ipcountry')?.trim().toUpperCase()
+  return c && /^[A-Z]{2}$/.test(c) ? c : null
+}
+
 /** Listing params an imported theme's collection and search pages read; the rest is noise. */
 const LISTING_PARAM = /^(filter\.|q$|sort_by$|page$|options\[unavailable_products\]$)/
 
