@@ -42,6 +42,7 @@ import { getProductByHandle, getProductSeo, type ProductDetail } from '@/lib/cat
 import { storeEmiOffers } from '@/lib/emi-offers'
 import { MARKET_HEADERS } from '@/lib/markets'
 import { storeOffersEmi, storeUpiDiscount } from '@/lib/payments'
+import { productForView } from '@/lib/product-view-props'
 import { policyPanels } from '@/lib/related'
 import { productReviews } from '@/lib/reviews'
 import {
@@ -271,13 +272,15 @@ export default async function ProductPage({ params, searchParams }: Params) {
     },
     renderers: {
       MainProduct: (s) => {
+        const settings = mainProductSettings(s)
         const view = (
           <ProductView
-            product={shown}
+            // Only what the buy box draws reaches the page's RSC payload.
+            product={productForView(shown, settings)}
             onAddToCart={addLineAction}
             settings={{
               // Body copy sanitised here, so the browser never loads the sanitiser.
-              ...mainProductRichtext(mainProductSettings(s)),
+              ...mainProductRichtext(settings),
               ...(abroad ? { showPaymentSignals: false } : {}),
               ratingValue: rated?.rating ?? 0,
               ratingCount: rated?.count ?? 0,

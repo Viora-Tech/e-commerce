@@ -59,6 +59,7 @@ import {
   withNonce,
 } from './liquid-cache'
 import { toLiquidCart } from './liquid-cart'
+import { compactThemeHtml } from './liquid-compact'
 import { revealConsentEarly } from './liquid-consent-reveal'
 import { withCookieSettingsLink } from './liquid-cookie-settings'
 import { cachedLiquidData } from './liquid-data-cache'
@@ -469,7 +470,10 @@ export async function renderLiquidSections(
       const sized = small ? withCompactVideos(html, small) : html
       const parked = revealConsentEarly(deferThemeScripts(sized), NONCE_MARK)
       // Above the fold, a hero video plays without its cover (`./liquid-video-cover.ts`).
-      const placedHtml = p.belowFold ? belowTheFold(parked) : withoutVideoCovers(parked)
+      // Indentation out, once, before the cache keeps it (`./liquid-compact.ts`).
+      const placedHtml = compactThemeHtml(
+        p.belowFold ? belowTheFold(parked) : withoutVideoCovers(parked),
+      )
       done.push({ p, html: placedHtml, trace })
     }
     return done
@@ -540,9 +544,9 @@ export async function liquidLayoutFor(
     if (live.ctx.cache.missing) trace.failed = true
     const layout: LiquidLayout = {
       ...parts,
-      head: deferThemeScripts(parts.head),
-      beforeHeader: deferThemeScripts(parts.beforeHeader),
-      afterFooter: deferThemeScripts(parts.afterFooter),
+      head: compactThemeHtml(deferThemeScripts(parts.head)),
+      beforeHeader: compactThemeHtml(deferThemeScripts(parts.beforeHeader)),
+      afterFooter: compactThemeHtml(deferThemeScripts(parts.afterFooter)),
       fontsHref: googleFontsHref(parts.fonts),
     }
     return { layout, trace }

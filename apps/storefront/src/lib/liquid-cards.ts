@@ -5,6 +5,7 @@ import { headers } from 'next/headers'
 import { currentCustomer } from './customer-session'
 import { type CachedLiquid, keepable, renderTtl, sectionCacheKey, servable } from './liquid-cache'
 import { toLiquidCart } from './liquid-cart'
+import { compactThemeHtml } from './liquid-compact'
 import { deferThemeScripts } from './liquid-defer'
 import {
   cacheScope,
@@ -67,8 +68,8 @@ async function renderLiquidCards(
   // No card (a failed render) is kept too, briefly (renderTtl): the next shopper does not wait.
   const html = cards
     ? JSON.stringify({
-        head: deferThemeScripts(cards.head),
-        cards: cards.cards.map(deferThemeScripts),
+        head: compactThemeHtml(deferThemeScripts(cards.head)),
+        cards: cards.cards.map((c) => compactThemeHtml(deferThemeScripts(c))),
       })
     : ''
   if (key && keepable(trace, cart.itemCount === 0, customer !== null)) {
