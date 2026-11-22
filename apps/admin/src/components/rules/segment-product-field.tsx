@@ -7,7 +7,8 @@ import ResourcePickDialog, {
   type PickResult,
   type PickTab,
 } from '@/components/pickers/resource-pick-dialog'
-import { segmentsContent as copy } from '@/data/customers'
+import { segmentsContent } from '@/data/customers'
+import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 
@@ -22,6 +23,7 @@ const PAGE = 30
 /** "Bought a product": the chosen product's name, and the Browse picker to change it (#1020). */
 export default function SegmentProductField({ value, onChange }: SegmentProductFieldProps) {
   // Hooks
+  const copy = useCopy(segmentsContent)
   const [open, setOpen] = useState(false)
   const { data: title, setData: setTitle } = useLoad(async () => {
     if (!value) return null

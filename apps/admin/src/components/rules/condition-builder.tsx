@@ -17,7 +17,8 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import EmptyState from '@/components/layout/empty-state'
-import { segmentsContent as copy } from '@/data/customers'
+import { segmentsContent } from '@/data/customers'
+import { useCopy } from '@/hooks/use-copy'
 import ConditionRow from './condition-row'
 
 /** Stable per-row key so editing one row does not remount its neighbours. */
@@ -30,13 +31,17 @@ type ConditionBuilderProps = {
   onChange: (rules: SegmentRules) => void
 }
 
-const matchItems = [
-  { value: 'all', label: copy.builder.matchAll },
-  { value: 'any', label: copy.builder.matchAny },
-]
-
 /** Match mode plus a list of condition rows; the rule shape comes straight from core. */
 export default function ConditionBuilder({ rules, onChange }: ConditionBuilderProps) {
+  // Hooks
+  const copy = useCopy(segmentsContent)
+
+  // Derived
+  const matchItems = [
+    { value: 'all', label: copy.builder.matchAll },
+    { value: 'any', label: copy.builder.matchAny },
+  ]
+
   // Event handlers
   const handleMatch = (value: unknown) => {
     onChange({ ...rules, match: (String(value) as SegmentMatch) || 'all' })
