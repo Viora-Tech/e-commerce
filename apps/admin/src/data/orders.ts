@@ -49,6 +49,9 @@ export const ordersContent = {
     cancelShipmentBody:
       'The courier booking is cancelled and the order goes back to waiting to ship. A shipment already picked up cannot be cancelled here.',
     cancelShipmentConfirm: 'Cancel shipment',
+    /** An order with two or more live labels: pick one (owner, 22 Nov 2026). */
+    cancelShipmentWhichBody:
+      'Pick the shipment to cancel. Only its items go back to To ship; the other shipments stay as they are.',
     keepShipment: 'Keep shipment',
     noShipment: 'This order has no booked shipment to cancel.',
     addTags: 'Add tags',

@@ -46,6 +46,7 @@ import PartlyShippedCard from './partly-shipped-card'
 import PaymentCard from './payment-card'
 import RefundDialog from './refund-dialog'
 import SendMessageDialog from './send-message-dialog'
+import type { ShipmentChoice } from './shipment-choice'
 import ShipmentPanel from './shipment-panel'
 import TimelineCard from './timeline-card'
 import UnfulfilledCard from './unfulfilled-card'
@@ -53,6 +54,17 @@ import { useDuplicateOrder } from './use-duplicate-order'
 import { useOrderAppActions } from './use-order-app-actions'
 import { useOrderMessages } from './use-order-messages'
 import { useOrderUndo } from './use-order-undo'
+
+/** Labels that can still be cancelled, newest first: Cancel shipment asks which (two or more). */
+function liveLabels(parts: OrderDetail['partShipping']): ShipmentChoice[] {
+  return (parts?.parcels ?? [])
+    .flatMap((p) => (p.shipment && p.shipment.status === 'created' ? [p.shipment] : []))
+    .sort((a, b) => new Date(b.bookedAt).getTime() - new Date(a.bookedAt).getTime())
+    .map((sh) => ({
+      id: sh.id,
+      label: `${sh.serviceLabel ?? sh.providerLabel} · AWB ${sh.waybill}`,
+    }))
+}
 
 type OrderViewProps = {
   order: OrderDetail
@@ -175,12 +187,14 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       () => api.orders.refreshTracking({ shipmentId }),
       () => 'Tracking updated',
     )
-  const handleCancelShipment = () =>
-    shipmentId &&
+  const handleCancelShipment = (picked?: string) => {
+    const id = picked ?? shipmentId
+    if (!id) return
     handleCourier(
-      () => api.orders.cancelShipment({ shipmentId }),
+      () => api.orders.cancelShipment({ shipmentId: id }),
       () => shippingCopy.cancelled,
     )
+  }
 
   // Render logic
   // #1012: "Ships from" leads only while a parcel waits on a transfer; archive works on imports too.
@@ -281,6 +295,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               /* Offered while a booking is live, as in the orders list; once the courier
                  no longer takes the cancel (picked up, on a manifest), it says why. */
               onCancelShipment={liveShipment ? handleCancelShipment : undefined}
+              shipmentChoices={liveLabels(order.partShipping)}
               cancelShipmentBlocked={
                 liveShipment && order.shipment?.cancelBlock
                   ? detailsCopy.blocked[order.shipment.cancelBlock]

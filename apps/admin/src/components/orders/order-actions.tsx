@@ -42,6 +42,7 @@ import {
 import { useCopy } from '@/hooks/use-copy'
 import { MOVE_ACTION, type MoveFacts, nextOrderMove, orderUndos } from '@/lib/order-next-move'
 import { routes } from '@/lib/routes'
+import ShipmentChoicePicker, { type ShipmentChoice } from './shipment-choice'
 
 type OrderActionsProps = {
   status: OrderStatus
@@ -60,7 +61,9 @@ type OrderActionsProps = {
   /** Present while the order is ready to ship (open, to pack, paid or COD): "Create shipment". */
   onShip?: (() => void) | undefined
   /** Cancels the booked courier shipment (asks first); undefined when there is none to cancel. */
-  onCancelShipment?: (() => void) | undefined
+  onCancelShipment?: ((shipmentId?: string) => void) | undefined
+  /** Two or more live labels: Cancel shipment asks which one (newest first). */
+  shipmentChoices?: readonly ShipmentChoice[] | undefined
   /** Why the booked shipment can no longer be cancelled here; shown instead of asking. */
   cancelShipmentBlocked?: string | undefined
   /** Nudges the customer about an unmatched UPI or bank transfer. */
@@ -116,6 +119,7 @@ export default function OrderActions({
   onRequestBalance,
   onShip,
   onCancelShipment,
+  shipmentChoices = [],
   cancelShipmentBlocked,
   onSendReminder,
   onSendOrderLink,
@@ -145,6 +149,8 @@ export default function OrderActions({
   const editCopy = useCopy(orderEditContent)
   const holdCopy = useCopy(orderHoldContent)
   const [confirm, setConfirm] = useState<'cancelShipment' | null>(null)
+  const [pickedShipment, setPickedShipment] = useState<string | null>(null)
+  const choosing = shipmentChoices.length > 1
 
   // Event handlers
   const handleCopyNumber = async () => {
@@ -357,11 +363,23 @@ export default function OrderActions({
         open={confirm === 'cancelShipment'}
         onOpenChange={(o) => !o && setConfirm(null)}
         title={list.row.cancelShipmentTitle}
-        body={list.row.cancelShipmentBody}
+        body={choosing ? list.row.cancelShipmentWhichBody : list.row.cancelShipmentBody}
         confirmLabel={list.row.cancelShipmentConfirm}
         cancelLabel={list.row.keepShipment}
-        onConfirm={() => onCancelShipment?.()}
-      />
+        onConfirm={() =>
+          onCancelShipment?.(
+            choosing ? (pickedShipment ?? shipmentChoices[0]?.id ?? undefined) : undefined,
+          )
+        }
+      >
+        {choosing ? (
+          <ShipmentChoicePicker
+            choices={shipmentChoices}
+            value={pickedShipment ?? shipmentChoices[0]?.id ?? ''}
+            onChange={setPickedShipment}
+          />
+        ) : null}
+      </ConfirmDialog>
     </div>
   )
 }

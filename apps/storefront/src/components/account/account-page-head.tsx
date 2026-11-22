@@ -12,8 +12,10 @@ type AccountPageHeadProps = {
 /** The top of a signed-in account page: the title, an optional line under it and an action. */
 export default function AccountPageHead({ title, intro, action }: AccountPageHeadProps) {
   // Render logic
+  /* `!`: the blocks reset `* { margin: 0 }` is unlayered and beats Tailwind's margin utilities;
+     without it the store credit card sat on the title (owner, 22 Nov 2026). */
   return (
-    <header className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
+    <header className="mb-5! flex flex-col gap-3 sm:mb-6! sm:flex-row sm:items-end sm:justify-between">
       <div className="flex min-w-0 flex-col gap-1.5">
         <h1 className={ACCOUNT_TITLE}>{title}</h1>
         {intro ? <p className={ACCOUNT_INTRO}>{intro}</p> : null}
