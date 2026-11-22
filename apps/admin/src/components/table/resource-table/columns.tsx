@@ -86,7 +86,7 @@ export function defineColumns<T extends RowData>(
 }
 
 /** The leading checkbox column, after the Saleor Dashboard datagrid (BSD-3): a 16px checkbox in a 40px cell. */
-export function selectionColumn<T extends RowData>(): ResourceColumn<T> {
+export function selectionColumn<T extends RowData>(copy: typeof tableContent): ResourceColumn<T> {
   const helper = createColumnHelper<ResourceTableFeatures, T>()
   return helper.display({
     id: '__select',
@@ -97,7 +97,7 @@ export function selectionColumn<T extends RowData>(): ResourceColumn<T> {
           checked={table.getIsAllPageRowsSelected()}
           indeterminate={table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()}
           onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label={tableContent.selectAll}
+          aria-label={copy.selectAll}
         />
       </span>
     ),
@@ -111,7 +111,7 @@ export function selectionColumn<T extends RowData>(): ResourceColumn<T> {
           indeterminate={row.subRows.length > 0 && row.getIsSomeSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
           onClick={(e) => e.stopPropagation()}
-          aria-label={tableContent.selectRow}
+          aria-label={copy.selectRow}
         />
       </span>
     ),
