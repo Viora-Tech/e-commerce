@@ -120,6 +120,8 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   autopay_mandate: ADMIN,
   back_in_stock_signup: SHOPPER,
   back_in_stock_usage: LOG,
+  // 404 hits the storefront records for the admin's Broken links tab (0263).
+  broken_link: LOG,
   bug_report: ADMIN,
   cart: SHOPPER,
   cart_line: SHOPPER,
