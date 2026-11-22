@@ -12,6 +12,12 @@ wrapper (`<div id="shopify-section-<id>" class="shopify-section">`), JSON `{ id:
 filters, sort and page go along (`x-listing`), and the response takes the page's own edge
 cache-control, since the proxy decides it from the page path.
 
+**Fix (same day):** the first version passed the page path as `?path=` on the rewrite, but a
+route handler reached by a proxy rewrite reads the URL the visitor asked for, so the section
+rendered on the home page (`data-results-count="0"`). The proxy now hands the path on in the
+`x-section-path` request header (a derived header, stripped from visitors), and the route reads it
+before the shim's `?path=` (`sectionPagePath`). `section-rendering-proxy.test.ts` runs the proxy.
+
 Left alone: `/search/suggest`, `/recommendations/*`, `/theme-actions/*`, checkout, account and
 file paths (`.json`, `.js`) still answer themselves. The shim still routes theme fetches straight
 to the section route.

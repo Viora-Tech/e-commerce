@@ -397,7 +397,7 @@ async function routeRequest(
       : hono
         ? honoPath(storeId, pick.pathname)
         : route.path
-  if (!locked) toSectionRendering(url, storeId, request.method, pick.pathname)
+  if (!locked) toSectionRendering(url, headers, storeId, request.method, pick.pathname)
   const response = NextResponse.rewrite(url, { request: { headers } })
   if (preview && param && request.headers.get('sec-fetch-dest') === 'document') {
     response.cookies.set(PREVIEW_COOKIE, param, {

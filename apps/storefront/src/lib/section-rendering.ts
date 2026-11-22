@@ -6,7 +6,7 @@
  * (`sectionRenderingPath`), so a fetch the shim never sees gets the section, not the page.
  */
 
-import { INTERNAL_PREFIX } from './routing'
+import { INTERNAL_PREFIX, SECTION_PATH_HEADER } from './routing'
 
 /** Shopify answers at most this many sections in one `?sections=` request. */
 export const MAX_SECTIONS = 5
@@ -56,17 +56,28 @@ export function sectionRenderingPath(
 
 /**
  * Points a storefront page request (`url`, already rewritten to its page) at the section route
- * when it asks for section rendering, with the page's path as `path`; true when it did.
+ * when it asks for section rendering, with the page's path in `SECTION_PATH_HEADER` on the
+ * forwarded request `headers` (the route never sees a query param the rewrite adds); true when
+ * it did.
  */
 export function toSectionRendering(
   url: URL,
+  headers: Headers,
   storeId: string,
   method: string,
   pathname: string,
 ): boolean {
   const target = sectionRenderingPath(storeId, method, pathname, url.searchParams)
   if (!target) return false
-  url.searchParams.set('path', pathname)
+  headers.set(SECTION_PATH_HEADER, pathname)
   url.pathname = target
   return true
+}
+
+/**
+ * The page path a section request renders on: the proxy's header for a page URL
+ * (`/collections/all?section_id=`), else the shim's `?path=`, else the home page.
+ */
+export function sectionPagePath(req: Request): string {
+  return req.headers.get(SECTION_PATH_HEADER) || new URL(req.url).searchParams.get('path') || '/'
 }
