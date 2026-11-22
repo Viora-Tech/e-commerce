@@ -43,7 +43,8 @@ export const blockCopy = {
     outHeading: 'Arriving today.',
     outLead: (courier: string | undefined) =>
       courier ? `Your ${courier} courier is on the way.` : 'Your courier is on the way.',
-    deliveredHeading: (name: string) => (name ? `Delivered. Enjoy it, ${name}.` : 'Delivered. Enjoy it.'),
+    deliveredHeading: (name: string) =>
+      name ? `Delivered. Enjoy it, ${name}.` : 'Delivered. Enjoy it.',
     failedHeading: 'We could not deliver your parcel.',
     failedLead: 'The courier tried but could not hand it over.',
     updateLead: 'Please use these details from now on.',
@@ -163,6 +164,14 @@ export const blockCopy = {
     notReceivedBody:
       'The items have been released. If you did pay, reply to this email and we will check.',
     orderAgain: 'Order again',
+  },
+  /** Shared by order emails: the WhatsApp button and the order's invoice as a file. */
+  contact: {
+    whatsappUs: 'WhatsApp us',
+    whatsappNote: 'Questions about your order? Message us on WhatsApp.',
+    invoiceName: (n: number | undefined) => (n ? `Invoice for order #${n}` : 'Your invoice'),
+    invoiceMeta: 'PDF, opens without signing in',
+    downloadInvoice: 'Download invoice',
   },
 } as const
 

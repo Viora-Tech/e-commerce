@@ -150,7 +150,11 @@ export function appEmailExtras(db: Db, opts: AppOpts, storeId: string) {
     if (installed.length === 0) return { links: [], attachments: [] as Attachment[] }
     const ctx = await storeAppContext(deps, storeId, `email:${input.template}`)
     const [links, attachments] = await Promise.all([
-      deps.plugins.orderLinks(installed, { ...ctx, surface: 'email' }, input.orderId),
+      deps.plugins.orderLinks(
+        installed,
+        { ...ctx, surface: 'email', template: input.template },
+        input.orderId,
+      ),
       deps.plugins.emailAttachments(installed, ctx, input),
     ])
     return { links, attachments }

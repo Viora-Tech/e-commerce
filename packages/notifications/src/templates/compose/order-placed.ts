@@ -1,7 +1,16 @@
 import type { TemplateData } from '../../types'
 import { sharedContent as shared } from '../content'
+import { invoiceFile, whatsappButton } from './contact'
 import type { Composed } from './index'
-import { instructionRows, itemCount, orderColumns, orderItems, parcelsList, present, routeTicket } from './order'
+import {
+  instructionRows,
+  itemCount,
+  orderColumns,
+  orderItems,
+  parcelsList,
+  present,
+  routeTicket,
+} from './order'
 
 /**
  * Order placed (Figma batch 1): the ticket from the warehouse to the shopper, the button, the
@@ -36,6 +45,7 @@ export function orderPlaced(d: TemplateData, action?: { label: string; url: stri
       ticket,
       parcelsList(d),
       action ? { kind: 'button', label: action.label, url: action.url } : null,
+      invoiceFile(d),
       orderItems(d),
       orderColumns(d),
       instructions
@@ -44,6 +54,7 @@ export function orderPlaced(d: TemplateData, action?: { label: string; url: stri
             rows: instructionRows(d.paymentInstructions ?? []),
           }
         : null,
+      whatsappButton(d, { note: true }),
     ]),
   }
 }

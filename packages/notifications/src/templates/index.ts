@@ -368,7 +368,13 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
   const primaryAction = primaryActionFor(template, d)
   // Messages already built from the shared blocks (emails/blocks), batch by batch.
   const composed = composeEmail(template, d, primaryAction)
-  const extraLinks = (d.links ?? []).filter((l) => l.url !== primaryAction?.url)
+  // A link a block already shows as a file (the invoice's Download) is not listed again.
+  const shown = new Set(
+    composed?.blocks.flatMap((b) => (b.kind === 'attachment' && b.link ? [b.link.url] : [])),
+  )
+  const extraLinks = (d.links ?? []).filter(
+    (l) => l.url !== primaryAction?.url && !shown.has(l.url),
+  )
 
   if (design) {
     try {

@@ -150,8 +150,11 @@ export type EmailAttachments = (
   input: { orderId: string; template: TemplateId },
 ) => Promise<Attachment[]>
 
-/** A link an app adds to the shopper's order page and order emails. */
-export type OrderLink = { label: string; url: string }
+/**
+ * A link an app adds to the shopper's order page and order emails. `kind: 'invoice'` marks the
+ * order's invoice, which the order emails show as a file with a Download button.
+ */
+export type OrderLink = { label: string; url: string; kind?: 'invoice' | undefined }
 
 export type OrderLinkContext = Pick<
   AppHookContext,
@@ -159,6 +162,8 @@ export type OrderLinkContext = Pick<
 > & {
   /** Where the links show: apps can offer them in emails, on the order page, or both. */
   surface: 'email' | 'storefront'
+  /** For emails: the message the links go into (`payment_received`), so an app can pick. */
+  template?: TemplateId | undefined
 }
 
 /**

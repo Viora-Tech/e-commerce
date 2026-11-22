@@ -154,8 +154,8 @@ export type TemplateData = {
   actionUrl?: string | undefined
   /** For document_copy: what is attached, e.g. "tax invoice INV/25-26/0007". */
   documentLabel?: string | undefined
-  /** Extra links installed apps add, e.g. "Download invoice". */
-  links?: { label: string; url: string }[] | undefined
+  /** Extra links installed apps add, e.g. "Download invoice" (`kind: 'invoice'`, drawn as a file). */
+  links?: { label: string; url: string; kind?: 'invoice' | undefined }[] | undefined
   /** For delivery_failed: what the courier's latest scan said went wrong, if known. */
   deliveryIssue?: { reasonLabel?: string | undefined } | undefined
   /** For refund_issued: how much went back, by what method, and roughly when it lands. */

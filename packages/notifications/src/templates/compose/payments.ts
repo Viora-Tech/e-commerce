@@ -2,6 +2,7 @@ import type { EmailBlock } from '../../emails/blocks'
 import type { TemplateData, TemplateId } from '../../types'
 import { sharedContent as shared } from '../content'
 import { blockCopy } from '../content-blocks'
+import { invoiceFile, whatsappButton } from './contact'
 import type { Composer } from './index'
 import {
   button,
@@ -43,7 +44,9 @@ const received: Composer = (d, action) => ({
         : undefined,
     },
     button(action),
+    invoiceFile(d),
     orderItems(d, { title: c().yourOrder }),
+    whatsappButton(d, { note: true }),
   ]),
 })
 
