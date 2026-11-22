@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { inboundShipmentFormContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
 
@@ -29,23 +30,17 @@ export default function MarkDeliveredDialog({
 }: MarkDeliveredDialogProps) {
   // Hooks
   const { deliver: copy } = useCopy(inboundShipmentFormContent)
-  const [outstanding, setOutstanding] = useState<Outstanding | null>(null)
+  const { data, loading } = useLoad(
+    async () =>
+      shipmentId
+        ? api.inboundShipments
+            .outstanding({ id: shipmentId })
+            .catch(() => ({ orders: [], units: 0 }))
+        : null,
+    [shipmentId],
+  )
+  const outstanding: Outstanding | null = loading ? null : data
   const [busy, setBusy] = useState(false)
-
-  useEffect(() => {
-    setOutstanding(null)
-    if (!shipmentId) return
-    let cancelled = false
-    api.inboundShipments
-      .outstanding({ id: shipmentId })
-      .catch(() => ({ orders: [], units: 0 }))
-      .then((found) => {
-        if (!cancelled) setOutstanding(found)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [shipmentId])
 
   // Event handlers
   const handleConfirm = async () => {

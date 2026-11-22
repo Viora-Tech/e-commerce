@@ -1,9 +1,9 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
-import { useEffect, useState } from 'react'
 import { deliveryRuleFormContent } from '@/data/delivery-rule-form'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import type { RuleSuggestion } from './format'
 
@@ -22,23 +22,9 @@ export default function RuleSuggestionsCard({ version, onAdd }: RuleSuggestionsC
   // Hooks
   const form = useCopy(deliveryRuleFormContent)
   const fmt = useFormat()
-  const [items, setItems] = useState<RuleSuggestion[]>([])
-
-  useEffect(() => {
-    if (version < 0) return
-    let live = true
-    api.deliveryOptions
-      .ruleSuggestions()
-      .then((next) => {
-        if (live) setItems(next)
-      })
-      .catch(() => {
-        if (live) setItems([])
-      })
-    return () => {
-      live = false
-    }
-  }, [version])
+  const { data, failed } = useLoad(() => api.deliveryOptions.ruleSuggestions(), [version])
+  // A failed read shows no suggestions.
+  const items: RuleSuggestion[] = failed ? [] : (data ?? [])
 
   // Helpers
   const priceLabel = (s: RuleSuggestion) => {
@@ -50,7 +36,9 @@ export default function RuleSuggestionsCard({ version, onAdd }: RuleSuggestionsC
           ? p.fixed(fmt.money(s.price.fixedPaise ?? 0))
           : p.option
     const above = s.price.freeAbovePaise
-    return above != null && s.price.mode !== 'free' ? `${main}, ${p.freeAbove(fmt.money(above))}` : main
+    return above != null && s.price.mode !== 'free'
+      ? `${main}, ${p.freeAbove(fmt.money(above))}`
+      : main
   }
 
   // Early returns

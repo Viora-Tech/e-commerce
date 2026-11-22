@@ -1,11 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import StatusLabel from '@/components/status/status-label'
 import { customerGiftCardsContent } from '@/data/customer-gift-cards'
 import { useCopy, useLocale } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
@@ -22,21 +22,11 @@ export default function CustomerGiftCardsCard({ customerId }: CustomerGiftCardsC
   // Hooks
   const copy = useCopy(customerGiftCardsContent)
   const locale = useLocale()
-  const [cards, setCards] = useState<CardRow[]>([])
-  useEffect(() => {
-    let live = true
-    api.giftCards
-      .forCustomer({ customerId })
-      .then((rows) => {
-        if (live) setCards(rows)
-      })
-      .catch(() => undefined)
-    return () => {
-      live = false
-    }
-  }, [customerId])
+  // A failed read shows no card, like a customer with none.
+  const { data } = useLoad(() => api.giftCards.forCustomer({ customerId }), [customerId])
 
   // Early returns
+  const cards: CardRow[] = data ?? []
   // No cards: no empty card on the page.
   if (cards.length === 0) return null
 

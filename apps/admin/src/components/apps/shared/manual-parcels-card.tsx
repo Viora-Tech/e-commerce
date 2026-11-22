@@ -1,9 +1,9 @@
 'use client'
 
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import LoadFailedState from './load-failed-state'
 import ManualParcelRow, { type ManualParcelsCopy, type Parcel } from './manual-parcel-row'
@@ -26,27 +26,21 @@ export default function ManualParcelsCard({
   trackingPage,
 }: ManualParcelsCardProps) {
   // Hooks
-  const [parcels, setParcels] = useState<Parcel[] | null>(null)
-  const [failed, setFailed] = useState(false)
-  const [revision, setRevision] = useState(0)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reload on each saved status
-  useEffect(() => {
-    let live = true
-    setFailed(false)
-    api.shipments
-      .list({ provider: providerId, status: OPEN, perPage: 50 })
-      .then((r) => live && setParcels(r.items))
-      .catch(() => live && setFailed(true))
-    return () => {
-      live = false
-    }
-  }, [revision, providerId])
+  const {
+    data: parcels,
+    failed,
+    retry,
+  } = useLoad<Parcel[]>(
+    async () =>
+      (await api.shipments.list({ provider: providerId, status: OPEN, perPage: 50 })).items,
+    [providerId],
+  )
 
   // Early returns
   if (failed) {
     return (
       <DataCard title={copy.heading}>
-        <LoadFailedState heading={copy.loadFailed} onRetry={() => setRevision((n) => n + 1)} />
+        <LoadFailedState heading={copy.loadFailed} onRetry={retry} />
       </DataCard>
     )
   }
@@ -75,7 +69,7 @@ export default function ManualParcelsCard({
           parcel={p}
           copy={copy}
           trackingPage={trackingPage}
-          onSaved={() => setRevision((n) => n + 1)}
+          onSaved={retry}
         />
       ))}
     </ul>

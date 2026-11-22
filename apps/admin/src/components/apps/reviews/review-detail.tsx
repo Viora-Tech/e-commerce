@@ -5,7 +5,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import type { AppPageProps } from '@/apps/registry'
 import EmptyState from '@/components/layout/empty-state'
@@ -15,6 +15,7 @@ import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import StatusLabel from '@/components/status/status-label'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
@@ -31,23 +32,15 @@ export default function ReviewDetail({ params }: AppPageProps) {
   const reviewsCopy = useCopy(reviewsContent)
   const { detail: copy } = useCopy(reviewsContent)
   const router = useRouter()
-  const [detail, setDetail] = useState<Detail | null>(null)
-  const [missing, setMissing] = useState(false)
+  const [version, setVersion] = useState(0)
+  // A failed read reads as a review that is gone.
+  const { data: detail, failed: missing } = useLoad<Detail>(
+    () => api.reviews.get({ id: params.id ?? '' }),
+    [params.id, version],
+  )
   const [busy, setBusy] = useState(false)
   /** The status being set, so only that button spins while `busy`. */
   const [pending, setPending] = useState<'published' | 'hidden' | null>(null)
-  const [version, setVersion] = useState(0)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `version` re-runs the load after a change
-  useEffect(() => {
-    let cancelled = false
-    api.reviews
-      .get({ id: params.id ?? '' })
-      .then((d) => !cancelled && setDetail(d))
-      .catch(() => !cancelled && setMissing(true))
-    return () => {
-      cancelled = true
-    }
-  }, [params.id, version])
 
   // Helpers
   const reload = () => setVersion((v) => v + 1)

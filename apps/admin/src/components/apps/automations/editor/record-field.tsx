@@ -1,9 +1,10 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { automationEditorContent } from '@/data/automations'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { type RecordKind, recordLabel } from '@/lib/automation-records'
 import RecordPickerDialog from '../record-picker-dialog'
 
@@ -21,18 +22,11 @@ export default function RecordField({ id, kind, label, value, onChange }: Record
   // Hooks
   const { fields: copy } = useCopy(automationEditorContent)
   const [picking, setPicking] = useState(false)
-  const [name, setName] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!value) return
-    let live = true
-    recordLabel(kind, value)
-      .then((n) => live && setName(n))
-      .catch(() => undefined)
-    return () => {
-      live = false
-    }
-  }, [kind, value])
+  // A failed lookup keeps the "…" placeholder.
+  const { data: name, setData: setName } = useLoad(
+    async () => (value ? recordLabel(kind, value) : null),
+    [kind, value],
+  )
 
   // Render logic
   return (

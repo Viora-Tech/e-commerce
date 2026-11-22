@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import type { AppPageProps } from '@/apps/registry'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import { reviewToolsContent } from '@/data/review-tools'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import ReviewQrCard from './review-qr-card'
@@ -20,18 +20,10 @@ type Cards = Awaited<ReturnType<typeof api.reviews.qrLinks>>
 export default function QrPage({ params }: AppPageProps) {
   // Hooks
   const { qr: copy } = useCopy(reviewToolsContent)
-  const [cards, setCards] = useState<Cards | null>(null)
-  const [failed, setFailed] = useState(false)
-  useEffect(() => {
-    let live = true
-    api.reviews
-      .qrLinks({ target: params.target ?? '' })
-      .then((c) => live && setCards(c))
-      .catch(() => live && setFailed(true))
-    return () => {
-      live = false
-    }
-  }, [params.target])
+  const { data: cards, failed } = useLoad<Cards>(
+    () => api.reviews.qrLinks({ target: params.target ?? '' }),
+    [params.target],
+  )
 
   // Render logic
   const empty = failed || (cards !== null && cards.links.length === 0)

@@ -3,12 +3,12 @@
 import type { RecordHistoryItem } from '@commerce/core/automations'
 import { Workflow } from '@commerce/ui/icons'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
 import RunStatusChip from '@/components/apps/automations/run-status-chip'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import { type AutomationRecordType, automationRecordsContent } from '@/data/automation-records'
 import { useCopy, useLocale } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { automationRoutes } from '@/lib/automation-routes'
 import { formatAgo } from '@/lib/format-date'
@@ -30,23 +30,10 @@ export default function AutomationHistoryCard({ type, id }: AutomationHistoryCar
   // Hooks
   const copy = useCopy(automationRecordsContent)
   const locale = useLocale()
-  const [items, setItems] = useState<RecordHistoryItem[] | null>(null)
-  const [failed, setFailed] = useState(false)
-
-  useEffect(() => {
-    let live = true
-    api.automations
-      .history({ type, id, limit: LIMIT })
-      .then((rows) => {
-        if (live) setItems(rows)
-      })
-      .catch(() => {
-        if (live) setFailed(true)
-      })
-    return () => {
-      live = false
-    }
-  }, [type, id])
+  const { data: items, failed } = useLoad<RecordHistoryItem[]>(
+    () => api.automations.history({ type, id, limit: LIMIT }),
+    [type, id],
+  )
 
   // Early returns
   if (!items && !failed) return null

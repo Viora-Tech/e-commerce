@@ -6,11 +6,11 @@ import { cn } from '@commerce/ui/lib/utils'
 import { buttonVariants } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
 import SettingsCard from '@/components/settings/settings-card'
 import HealthIssueRow from '@/components/store-health/health-issue-row'
 import { storeHealthContent } from '@/data/store-health'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 
@@ -26,20 +26,11 @@ const SHOWN = 5
 export default function RunHealthCard() {
   // Hooks
   const copy = useCopy(storeHealthContent)
-  const [report, setReport] = useState<StoreHealthReport | null | undefined>(undefined)
-
-  useEffect(() => {
-    let live = true
-    api.store
-      .health()
-      .then((r) => live && setReport(r))
-      .catch(() => live && setReport(null))
-    return () => {
-      live = false
-    }
-  }, [])
+  const { data, failed } = useLoad<StoreHealthReport>(() => api.store.health())
 
   // Early returns
+  // Undefined while loading; null when the read failed (the card stays off).
+  const report: StoreHealthReport | null | undefined = failed ? null : (data ?? undefined)
   if (report === null) return null
 
   // Render logic
