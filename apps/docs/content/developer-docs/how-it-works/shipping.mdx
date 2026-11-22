@@ -67,7 +67,7 @@ refused (`order/waybill-owner.ts`) so a shipment can never move silently between
 - **Webhooks**: `POST /webhooks/shipments/:provider/:storeId` (or the neutral
   `/webhooks/shipments/c/:code/:storeId`, `webhook-path.ts`) on the worker. Each notice is stored
   once in `shipment_webhook_event` and applied.
-- **Poller**: `{shipping}-track` every 30 minutes asks each store's courier for every open
+- **Poller**: `{shipping}-track` every hour asks each store's courier for every open
   shipment (`apps/worker/src/shipping.ts`), for couriers without webhooks and for missed ones.
 - `applyTracking` (`apply-tracking.ts`) moves the shipment through its states
   (`shipment-state.ts`) and writes outbox events: out for delivery, delivered, NDR raised or

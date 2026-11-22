@@ -81,7 +81,7 @@ See [Shipping](/developer-docs/how-it-works/shipping).
 
 ## 7. Tracking, delivery, NDR and RTO
 
-Tracking arrives by courier webhook and by the `{shipping}-track` poller every 30 minutes.
+Tracking arrives by courier webhook and by the `{shipping}-track` poller every hour.
 `applyTracking` moves the shipment along; **delivered** completes the parcel (outbox
 `order.delivered`). A failed attempt raises an **NDR** (`shipment.ndr_raised`) that staff answer
 with reattempt or return; a parcel that comes back is **RTO** (`order.rto`), which opens an RTO

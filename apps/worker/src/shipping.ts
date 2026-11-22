@@ -9,8 +9,8 @@ import { type Db, store, storesWithOpenShipments, withStore } from '@commerce/db
 import { logger } from '@commerce/observability/logging'
 import { eq } from 'drizzle-orm'
 
-/** How often open shipments are polled. Couriers update scans a few times a day. */
-export const TRACK_EVERY_MS = 30 * 60_000
+/** How often open shipments are polled: hourly (owner, 22 Nov 2026). Couriers update scans a few times a day. */
+export const TRACK_EVERY_MS = 60 * 60_000
 
 /**
  * One repeat job walks every store with open shipments, asks each store's
