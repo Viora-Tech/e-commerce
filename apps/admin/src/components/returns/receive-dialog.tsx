@@ -12,6 +12,7 @@ import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { returnDetailContent } from '@/data/returns'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
 import ChoiceList from './choice-list'
@@ -27,8 +28,6 @@ type ReceiveDialogProps = {
   onDone: () => void
 }
 
-const copy = returnDetailContent.receive
-
 const isCondition = (v: string): v is Condition => v === 'good' || v === 'used' || v === 'damaged'
 
 /** The parcel arrived: check the condition and choose whether it goes back in stock. */
@@ -40,6 +39,8 @@ export default function ReceiveDialog({
   onDone,
 }: ReceiveDialogProps) {
   // Hooks
+  const copy = useCopy(returnDetailContent.receive)
+  const returnDetailCopy = useCopy(returnDetailContent)
   const [condition, setCondition] = useState<Condition>('good')
   const [restock, setRestock] = useState(restockByDefault)
   const [note, setNote] = useState('')
@@ -65,7 +66,7 @@ export default function ReceiveDialog({
       toast.success(copy.done)
       onDone()
     } catch (err) {
-      toast.error(errorText(err, returnDetailContent.failed))
+      toast.error(errorText(err, returnDetailCopy.failed))
     } finally {
       setBusy(false)
     }
@@ -110,7 +111,7 @@ export default function ReceiveDialog({
         </Field>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
-            {returnDetailContent.cancel}
+            {returnDetailCopy.cancel}
           </Button>
           <Button loading={busy} type="button" onClick={handleConfirm} disabled={busy}>
             <PackageCheck aria-hidden="true" />

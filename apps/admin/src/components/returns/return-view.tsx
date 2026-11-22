@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation'
 import PageHeader from '@/components/layout/page-header'
 import OrderPageFrame from '@/components/orders/order-page-frame'
 import StatusLabel from '@/components/status/status-label'
-import { returnDetailContent as copy, returnsContent } from '@/data/returns'
+import { returnDetailContent, returnsContent } from '@/data/returns'
+import { useCopy } from '@/hooks/use-copy'
 import { formatWhen } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
 import ReturnCustomerCard from './return-customer-card'
@@ -24,6 +25,8 @@ type ReturnViewProps = { detail: ReturnDetail }
 /** Orders → Returns → one return (or RTO task): what came back and the one next step. */
 export default function ReturnView({ detail: r }: ReturnViewProps) {
   // Hooks
+  const copy = useCopy(returnDetailContent)
+  const returnsCopy = useCopy(returnsContent)
   const router = useRouter()
 
   // Helpers
@@ -33,7 +36,7 @@ export default function ReturnView({ detail: r }: ReturnViewProps) {
   const rto = r.kind === 'rto'
   const can = returnActions(r)
   const title = rto ? copy.rtoHeading(r.label) : copy.heading(r.label)
-  const statusLabel = rto ? returnsContent.rtoStatus[r.status] : undefined
+  const statusLabel = rto ? returnsCopy.rtoStatus[r.status] : undefined
 
   return (
     <OrderPageFrame

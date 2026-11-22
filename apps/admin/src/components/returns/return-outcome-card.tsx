@@ -2,16 +2,18 @@ import { orderRef } from '@commerce/core/draft-number'
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import { returnDetailContent } from '@/data/returns'
+import { useCopy } from '@/hooks/use-copy'
 import { formatPaise } from '@/lib/money'
 import RestockButton from './restock-button'
 import type { ReturnDetail } from './return-types'
 
 type ReturnOutcomeCardProps = { detail: ReturnDetail; onChanged: () => void }
 
-const copy = returnDetailContent.outcome
-
 /** How a settled return ended, in one sentence, with a link to the exchange draft. */
 export default function ReturnOutcomeCard({ detail: r, onChanged }: ReturnOutcomeCardProps) {
+  // Hooks
+  const copy = useCopy(returnDetailContent.outcome)
+
   // Render logic
   const amount = formatPaise(r.refundAmountPaise ?? 0)
   const text =

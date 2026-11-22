@@ -1,6 +1,7 @@
 import DataCard from '@/components/layout/data-card'
 import LineItemRow from '@/components/layout/line-item-row'
-import { returnDetailContent as copy } from '@/data/returns'
+import { returnDetailContent } from '@/data/returns'
+import { useCopy } from '@/hooks/use-copy'
 import { formatPaise } from '@/lib/money'
 import type { ReturnDetail } from './return-types'
 
@@ -8,6 +9,9 @@ type ReturnItemsCardProps = { detail: ReturnDetail }
 
 /** The lines going back: picture, name, quantity, value, and how many are back in stock. */
 export default function ReturnItemsCard({ detail: r }: ReturnItemsCardProps) {
+  // Hooks
+  const copy = useCopy(returnDetailContent)
+
   // Render logic
   const title = r.kind === 'rto' ? copy.rtoItems : copy.items
 

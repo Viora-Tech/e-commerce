@@ -6,7 +6,8 @@ import KeyValueList from '@/components/layout/key-value-list'
 import LabeledGroup from '@/components/layout/labeled-group'
 import { stateName } from '@/data/india'
 import { orderDetailContent } from '@/data/order-detail'
-import { returnDetailContent as copy, returnsContent } from '@/data/returns'
+import { returnDetailContent, returnsContent } from '@/data/returns'
+import { useCopy } from '@/hooks/use-copy'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
 import type { ReturnDetail } from './return-types'
@@ -15,11 +16,16 @@ type ReturnCustomerCardProps = { detail: ReturnDetail }
 
 /** The order and the customer behind the return, plus how the parcel travels. */
 export default function ReturnCustomerCard({ detail: r }: ReturnCustomerCardProps) {
+  // Hooks
+  const orderDetailCopy = useCopy(orderDetailContent)
+  const returnsCopy = useCopy(returnsContent)
+  const copy = useCopy(returnDetailContent)
+
   // Render logic
   const o = r.order
   const a = o.address
-  const field = orderDetailContent.customer
-  const who = o.customerName ?? o.email ?? returnsContent.guest
+  const field = orderDetailCopy.customer
+  const who = o.customerName ?? o.email ?? returnsCopy.guest
   const courierLabel =
     r.pickupCouriers.find((c) => c.id === r.pickupProvider)?.label ?? r.pickupProvider ?? ''
 

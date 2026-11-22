@@ -11,6 +11,7 @@ import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { returnDetailContent } from '@/data/returns'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
 
@@ -21,11 +22,11 @@ type RejectDialogProps = {
   onDone: () => void
 }
 
-const copy = returnDetailContent.rejectDialog
-
 /** Decline with a reason the customer reads. */
 export default function RejectDialog({ returnId, open, onClose, onDone }: RejectDialogProps) {
   // Hooks
+  const copy = useCopy(returnDetailContent.rejectDialog)
+  const returnDetailCopy = useCopy(returnDetailContent)
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -40,7 +41,7 @@ export default function RejectDialog({ returnId, open, onClose, onDone }: Reject
       setNote('')
       onDone()
     } catch (err) {
-      toast.error(errorText(err, returnDetailContent.failed))
+      toast.error(errorText(err, returnDetailCopy.failed))
     } finally {
       setBusy(false)
     }
@@ -67,7 +68,7 @@ export default function RejectDialog({ returnId, open, onClose, onDone }: Reject
           </Field>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
-              {returnDetailContent.cancel}
+              {returnDetailCopy.cancel}
             </Button>
             <Button
               loading={busy}
