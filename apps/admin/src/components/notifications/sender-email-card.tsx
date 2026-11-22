@@ -9,7 +9,8 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import StatusChip from '@/components/layout/status-chip'
 import LoadFailed from '@/components/states/load-failed'
-import { senderEmailContent as copy } from '@/data/sender-email'
+import { senderEmailContent } from '@/data/sender-email'
+import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
@@ -26,15 +27,6 @@ const POLL_MS = 30_000
 
 const TONE = { pending: 'attention', verified: 'success', failed: 'danger' } as const
 
-/** The server's refusal code (`data.reason`) in plain words. */
-function refusalText(err: unknown): string {
-  const reason = (err as { data?: { reason?: unknown } } | null)?.data?.reason
-  if (typeof reason === 'string' && reason in copy.errors) {
-    return copy.errors[reason as keyof typeof copy.errors]
-  }
-  return errorText(err, copy.errors.generic)
-}
-
 const when = (iso: Date | string) =>
   new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
 
@@ -46,6 +38,7 @@ const when = (iso: Date | string) =>
  */
 export default function SenderEmailCard() {
   // Hooks
+  const copy = useCopy(senderEmailContent)
   const announceSetup = useSetupNext()
   const [data, setData] = useState<SenderEmailOverview | null>(null)
   const [editing, setEditing] = useState(false)
@@ -68,7 +61,17 @@ export default function SenderEmailCard() {
       if (next.sender?.status === 'verified') toast.success(copy.verifiedToast)
     }, POLL_MS)
     return () => clearInterval(timer)
-  }, [data?.sender?.status])
+  }, [data?.sender?.status, copy])
+
+  // Derived
+  /** The server's refusal code (`data.reason`) in plain words. */
+  function refusalText(err: unknown): string {
+    const reason = (err as { data?: { reason?: unknown } } | null)?.data?.reason
+    if (typeof reason === 'string' && reason in copy.errors) {
+      return copy.errors[reason as keyof typeof senderEmailContent.errors]
+    }
+    return errorText(err, copy.errors.generic)
+  }
 
   // Event handlers
   const handleSave = async (input: { email: string; displayName: string }) => {

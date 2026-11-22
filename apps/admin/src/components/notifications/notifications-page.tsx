@@ -58,6 +58,7 @@ function countOn(list: MessageRowData[], label: (on: number, total: number) => s
  */
 export default function NotificationsPage() {
   // Hooks
+  const senderEmailCopy = useCopy(senderEmailContent)
   const copy = useCopy(notificationsSettingsContent)
   const rowsCopy = useCopy(settingsRowsContent)
   const brandingCopy = useCopy(emailBrandingContent)
@@ -161,7 +162,7 @@ export default function NotificationsPage() {
     {
       id: 'sender',
       title: r.sender,
-      help: senderEmailContent.help,
+      help: senderEmailCopy.help,
       value: senderEmail ? (senderEmail.sender?.email ?? r.senderNotSet) : undefined,
     },
     {

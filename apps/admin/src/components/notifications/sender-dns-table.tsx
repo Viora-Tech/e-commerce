@@ -10,16 +10,18 @@ import {
 import CopyButton from '@/components/fields/copy-button'
 import StatusChip from '@/components/layout/status-chip'
 import { senderEmailContent } from '@/data/sender-email'
+import { useCopy } from '@/hooks/use-copy'
 import DnsProviderHelp from './dns-provider-help'
 
 type SenderDnsTableProps = {
   records: SenderDnsRecord[]
 }
 
-const copy = senderEmailContent.records
-
 /** Type / Name / Value, each Name and Value one click from the clipboard, required rows first. */
 export default function SenderDnsTable({ records }: SenderDnsTableProps) {
+  // Hooks
+  const copy = useCopy(senderEmailContent.records)
+
   // Render logic
   return (
     <div className="flex flex-col gap-2">

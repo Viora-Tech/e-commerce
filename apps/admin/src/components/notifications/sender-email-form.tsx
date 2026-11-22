@@ -5,7 +5,8 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { type FormEvent, useState } from 'react'
-import { senderEmailContent as setupCopy } from '@/data/sender-email'
+import { senderEmailContent } from '@/data/sender-email'
+import { useCopy } from '@/hooks/use-copy'
 
 type SenderEmailFormProps = {
   initialEmail: string
@@ -20,8 +21,6 @@ type SenderEmailFormProps = {
   onCancel?: (() => void) | undefined
 }
 
-const copy = setupCopy.form
-
 /** The address and sender name, one Save. Checking the address is left to the server. */
 export default function SenderEmailForm({
   initialEmail,
@@ -34,6 +33,7 @@ export default function SenderEmailForm({
   onCancel,
 }: SenderEmailFormProps) {
   // Hooks
+  const copy = useCopy(senderEmailContent.form)
   const [email, setEmail] = useState(initialEmail)
   const [name, setName] = useState(initialName)
 
