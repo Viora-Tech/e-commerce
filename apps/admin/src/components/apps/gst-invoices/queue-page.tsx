@@ -11,11 +11,13 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import SetupChecklist from '@/components/apps/setup-checklist'
 import LoadFailedState from '@/components/apps/shared/load-failed-state'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
 import TableSkeletonRows from '@/components/table/table-skeleton-rows'
 import { appsContent } from '@/data/apps'
+import { gstAlreadyInvoicedContent } from '@/data/gst-already-invoiced'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { gstQueuePageContent } from '@/data/gst-queue-page'
 import { statesContent } from '@/data/states'
@@ -55,6 +57,7 @@ export default function QueuePage() {
   const fmt = useFormat()
   const states = useCopy(statesContent)
   const apps = useCopy(appsContent)
+  const recordCopy = useCopy(gstAlreadyInvoicedContent)
   const [rows, setRows] = useState<QueueRow[] | null>(null)
   /** The queue did not load: say so rather than show an empty queue. */
   const [failed, setFailed] = useState(false)
@@ -65,6 +68,8 @@ export default function QueuePage() {
   const [reviewing, setReviewing] = useState<QueueRow[] | null>(null)
   /** The row whose "Already invoiced" dialog is open. */
   const [recording, setRecording] = useState<QueueRow | null>(null)
+  /** The bulk "Mark as already invoiced" confirm is open. */
+  const [marking, setMarking] = useState(false)
   const [busy, setBusy] = useState(false)
   const [gstin, setGstin] = useState<string | null | undefined>(undefined)
   const [gst, setGst] = useState<string | undefined>(undefined)
@@ -129,6 +134,19 @@ export default function QueuePage() {
       setBusy(false)
     }
   }
+  const handleMarkInvoiced = async () => {
+    try {
+      const r = await api.gstInvoices.queue.recordExternalMany({ ids: [...picked] })
+      if (r?.recorded) toast.success(recordCopy.bulkDone(r.recorded))
+      const [first] = r?.skipped ?? []
+      if (first) toast.error(recordCopy.bulkSkipped(r?.skipped.length ?? 0, first.reason))
+      setMarking(false)
+      reload()
+    } catch (err) {
+      toast.error(errorText(err, recordCopy.bulkFailed))
+      throw err
+    }
+  }
   const handleGst = (id: string | undefined) => {
     setGst(id)
     setPicked(new Set())
@@ -178,6 +196,7 @@ export default function QueuePage() {
               onRange={setRange}
               pickedCount={picked.size}
               onRemove={handleRemove}
+              onMarkInvoiced={() => setMarking(true)}
               onAdded={reload}
               busy={busy}
             />
@@ -301,6 +320,15 @@ export default function QueuePage() {
         row={recording}
         onClose={() => setRecording(null)}
         onRecorded={handleRecorded}
+      />
+      <ConfirmDialog
+        open={marking}
+        onOpenChange={setMarking}
+        title={recordCopy.bulkTitle(picked.size)}
+        body={recordCopy.bulkBody}
+        confirmLabel={recordCopy.bulkSubmit}
+        tone="default"
+        onConfirm={handleMarkInvoiced}
       />
     </div>
   )

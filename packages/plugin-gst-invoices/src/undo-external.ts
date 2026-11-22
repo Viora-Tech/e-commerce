@@ -23,8 +23,9 @@ import { orderIssuer } from './registration'
 import { invoice } from './schema'
 
 /**
- * Undo "Already invoiced" on one recorded invoice (`source` external): it becomes the queued
- * draft it was, with its tax worked out from the order again, and leaves GSTR-1 and GSTR-3B.
+ * Undo "Already invoiced" on one recorded invoice (`source` external), with or without its
+ * number and date (`recordWithoutDetails`): it becomes the queued draft it was, with its tax
+ * worked out from the order again, and leaves GSTR-1 and GSTR-3B.
  *
  * Refused: anything not recorded from outside Koomerce, an invoice reported in a filed GSTR-1
  * (or dated in a month marked filed or closed), one with a live credit note on its order, and
@@ -68,7 +69,7 @@ export async function undoExternalInvoice(
   if ((await liveDocuments(tx, row.orderId, 'credit_note')).length) {
     throw new InvoiceError(
       'locked',
-      `${row.number} has credit notes against its order, so it cannot be undone`,
+      `${row.number ?? 'This order'} has credit notes against its order, so it cannot be undone`,
     )
   }
   if (await isCancelledOrder(tx, row.orderId)) {
@@ -117,11 +118,12 @@ export async function undoExternalInvoice(
   if (!updated) throw new InvoiceError('not_found', 'Invoice not found')
   await writeLines(tx, storeId, row.id, draft)
   const dated = row.invoiceDate ? ` dated ${timelineDay(row.invoiceDate)}` : ''
+  const what = row.number ? `invoice ${row.number}${dated}` : 'this order (no invoice details)'
   await noteOnOrder(
     tx,
     storeId,
     row.orderId,
-    `Undid "Already invoiced" for invoice ${row.number}${dated}; the order is back in the GST invoices queue`,
+    `Undid "Already invoiced" for ${what}; the order is back in the GST invoices queue`,
     opts.author ?? null,
   )
   return updated

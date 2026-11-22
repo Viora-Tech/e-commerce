@@ -433,14 +433,18 @@ export default function InvoicesList() {
                   </span>
                 </TableCell>
                 <TableCell className={CELL}>
-                  <RelativeTime value={r.invoiceDate ?? r.issuedAt} />
+                  {r.source === 'external' && !r.number ? (
+                    <span className="text-muted-foreground">{recordCopy.noDate}</span>
+                  ) : (
+                    <RelativeTime value={r.invoiceDate ?? r.issuedAt} />
+                  )}
                 </TableCell>
                 <TableCell className={`${CELL} text-center`}>
                   {/* A recorded invoice has no PDF here: say so, so no one waits for a print. */}
                   <span className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap">
                     <StatusLabel kind="gstDoc" value={r.status} variant="soft" />
                     {r.source === 'external' ? (
-                      <span title={recordCopy.notPrintedHelp}>
+                      <span title={r.number ? recordCopy.notPrintedHelp : recordCopy.noDetailsBody}>
                         <StatusChip tone="neutral">{recordCopy.notPrinted}</StatusChip>
                       </span>
                     ) : r.status === 'issued' && !r.printedAt ? (

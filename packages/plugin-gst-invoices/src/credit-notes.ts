@@ -12,6 +12,7 @@ import {
 } from './issue'
 import { takeNumber } from './numbers'
 import { assertPeriodOpen } from './periods'
+import { detailsMissing } from './record-without-details'
 import { allocateRefund, refundReturnedUnits, refundWeights } from './refund-allocation'
 import { documentIssuer } from './registration'
 import { invoice } from './schema'
@@ -34,7 +35,8 @@ export function creditNoteCutoff(invoiceDate: Date, gstr9FiledOn: string | null)
  * The credit notes for a refund (rule 53(1A)), idempotent on the refund. One invoice: one credit
  * note against it, as always. An order billed in parcels under several GSTINs: one credit note
  * per GSTIN whose supply the refund reduces (REFUND_ALLOCATION, refund-allocation.ts), each from
- * the GSTIN of the invoice it corrects, in that GSTIN's series. Empty when nothing was invoiced.
+ * the GSTIN of the invoice it corrects, in that GSTIN's series. Empty when nothing was invoiced,
+ * or only outside Koomerce without details.
  */
 export async function issueCreditNotes(
   tx: StoreTx,
@@ -47,8 +49,9 @@ export async function issueCreditNotes(
   if (prior.length) return prior.map((row) => ({ row, created: false }))
   const [r] = await tx.select().from(refund).where(eq(refund.id, refundId))
   if (!r || r.status === 'failed') return []
+  // One recorded without details was reported in the previous system: no credit note here.
   const invoices = (await liveDocuments(tx, r.orderId, 'tax_invoice')).filter(
-    (d) => d.status === 'issued',
+    (d) => d.status === 'issued' && !detailsMissing(d),
   )
   if (invoices.length === 0) return []
   const settings = await loadSettings(tx, storeId)

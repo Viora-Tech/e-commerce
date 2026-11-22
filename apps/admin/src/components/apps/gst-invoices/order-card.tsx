@@ -197,18 +197,28 @@ export default function OrderCard({ orderId }: OrderCardProps) {
                   {d.number ?? copy.kinds[d.kind]}
                 </Link>
                 <span className="text-caption text-muted-foreground">
-                  {copy.kinds[d.kind]}, {formatDay(d.invoiceDate ?? d.issuedAt)},{' '}
+                  {copy.kinds[d.kind]},{' '}
+                  {d.source === 'external' && !d.number
+                    ? ''
+                    : `${formatDay(d.invoiceDate ?? d.issuedAt)}, `}
                   {formatPaise(d.totalPaise)}
                   {d.status === 'cancelled' ? `, ${copy.statuses.cancelled}` : ''}
                   {d.pdfStatus === 'failed' ? `, ${copy.pdfFailed}` : ''}
                 </span>
-                {d.source === 'external' ? (
+                {d.source === 'external' && !d.number ? (
+                  <span className="text-caption text-muted-foreground">
+                    {outsideCopy.noDetails}. {outsideCopy.noDetailsBody}
+                  </span>
+                ) : d.source === 'external' ? (
                   <span className="text-caption text-muted-foreground">{outsideCopy.outside}</span>
                 ) : null}
               </div>
             </div>
             <div className="flex items-center justify-end gap-2">
-              {d.kind === 'tax_invoice' && d.status === 'issued' && !d.reportedPeriod ? (
+              {d.kind === 'tax_invoice' &&
+              d.status === 'issued' &&
+              !d.reportedPeriod &&
+              !(d.source === 'external' && !d.number) ? (
                 <Button
                   variant="ghost"
                   size="icon-sm"
