@@ -69,6 +69,8 @@ export type OutboxRelayDeps = {
   pixelOrders?: PixelOrderQueue | undefined
   /** Staff browser push (`push/`). Absent: no push is queued (tests, a worker without VAPID keys). */
   push?: PushQueue | undefined
+  /** IndexNow's list of deleted paths per store (`seo.paths_removed`). Absent: those rows are just marked dispatched. */
+  indexNowRemoved?: ((storeId: string, paths: string[]) => Promise<void>) | undefined
   log?: ((message: string) => void) | undefined
   /** The platform's own sales store (`PLATFORM_SALES_STORE_ID`): paid plan orders there grant a signup invite. */
   salesStoreId?: string | undefined
@@ -316,6 +318,9 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
         backoff: { type: 'exponential', delay: ROUTE_JOB_BACKOFF_MS },
       },
     )
+  }
+  if (type === 'seo.paths_removed' && payload.paths?.length && deps.indexNowRemoved) {
+    await deps.indexNowRemoved(row.storeId, payload.paths)
   }
   if (type === 'catalog.products_changed' && payload.productIds?.length && deps.appJobs) {
     const installed = await installedApps(deps.db, row.storeId)

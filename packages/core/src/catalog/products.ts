@@ -21,6 +21,7 @@ import { CommerceError } from '../errors'
 import { adjustStock, setStock } from '../inventory/levels'
 import { setProductMedia } from '../media/service'
 import { onHandleChange } from '../redirects/handle-change'
+import { noteIndexNowRemoved } from '../seo/indexnow-service'
 import { mediaInStore, variantMediaIds, withKnownMedia } from '../store-scope'
 import { noteProductEvent, noteProductsChanged } from './changes'
 import { preorderErrors, productRow, variantRow } from './product-rows'
@@ -489,8 +490,17 @@ export async function deleteProduct(
     await tx.delete(productOption).where(eq(productOption.productId, productId))
   }
   await tx.delete(productMedia).where(eq(productMedia.productId, productId))
-  await tx.delete(product).where(eq(product.id, productId))
+  const [gone] = await tx
+    .delete(product)
+    .where(eq(product.id, productId))
+    .returning({ handle: product.handle, status: product.status, test: product.isSystemTest })
   await noteProductsChanged(tx, [productId])
+  if (gone) {
+    await noteIndexNowRemoved(tx, 'product', {
+      handle: gone.handle,
+      live: gone.status !== 'draft' && !gone.test,
+    })
+  }
   return 'deleted'
 }
 

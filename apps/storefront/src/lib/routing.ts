@@ -1,3 +1,4 @@
+import { indexNowKeyFromPath } from '@commerce/core/indexnow'
 import { CHAT_FRAME_PATH } from './inbox-frame'
 import { shopifyJsonPath } from './shopify-json/paths'
 
@@ -42,6 +43,11 @@ export function routeForStore(storeId: string, pathname: string): Route {
   }
   if (pathname === CHAT_FRAME_PATH)
     return { kind: 'rewrite', path: `${CHAT_FRAME_PREFIX}/${storeId}` }
+  // IndexNow's key file, `/<key>.txt` at the site root (`app/-s/[storeId]/indexnow/[key]`).
+  const indexNowKey = indexNowKeyFromPath(pathname)
+  if (indexNowKey) {
+    return { kind: 'rewrite', path: `${INTERNAL_PREFIX}/${storeId}/indexnow/${indexNowKey}` }
+  }
   // Shopify's `/products/<h>.json` / `.js` and `/collections/<h>.json` (`lib/shopify-json`).
   const rest = shopifyJsonPath(pathname) ?? (pathname === '/' ? '' : pathname)
   return { kind: 'rewrite', path: `${INTERNAL_PREFIX}/${storeId}${rest}` }

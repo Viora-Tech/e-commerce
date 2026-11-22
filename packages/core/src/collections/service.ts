@@ -10,6 +10,7 @@ import {
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { slugify } from '../catalog/products'
 import { onHandleChange } from '../redirects/handle-change'
+import { noteIndexNowRemoved } from '../seo/indexnow-service'
 import { type CollectionRules, type RuleProduct, selectMembers } from './rules'
 import { type CollectionPatch, type CollectionWrite, InvalidCollection } from './schemas'
 
@@ -255,7 +256,16 @@ export async function updateCollection(
 
 export async function deleteCollection(tx: StoreTx, id: string): Promise<void> {
   await tx.delete(collectionProduct).where(eq(collectionProduct.collectionId, id))
-  await tx.delete(collection).where(eq(collection.id, id))
+  const [gone] = await tx
+    .delete(collection)
+    .where(eq(collection.id, id))
+    .returning({ handle: collection.handle, status: collection.status })
+  if (gone) {
+    await noteIndexNowRemoved(tx, 'collection', {
+      handle: gone.handle,
+      live: gone.status === 'active',
+    })
+  }
 }
 
 /** Manual reorder from the product picker. */

@@ -69,6 +69,7 @@ import { createFxRates, FX_RATES_SCHEDULE } from './fx-rates'
 import { createHomeCardsRefresh, HOME_CARDS_EVERY_MS } from './home-cards'
 import { createImportSnapshotCleanup, SNAPSHOT_CLEANUP_EVERY_MS } from './import-snapshots'
 import { createInboxAiReplyWorker } from './inbox-ai-reply'
+import { createIndexNowSweep, INDEXNOW_EVERY_MS } from './indexnow'
 import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from './marketing'
 import { mediaProcessLimits } from './media-limits'
 import { createMediaProcessWorker } from './media-process'
@@ -225,6 +226,7 @@ const memberReports = createMemberReports(db, {
 })
 const homeCards = createHomeCardsRefresh(db)
 const searchConsole = createSearchConsoleSweep(redis, db)
+const indexNow = createIndexNowSweep(db, redis)
 const billing = createBillingSweep(db, {
   salesStoreId: env.PLATFORM_SALES_STORE_ID,
   settingsSecret: env.SETTINGS_SECRET,
@@ -396,6 +398,13 @@ const sweepList: Sweep[] = [
     schedule: every(SEARCH_CONSOLE_EVERY_MS),
     run: searchConsole.run,
     legacy: { queue: SEARCH_CONSOLE_SWEEP_QUEUE, scheduler: 'search-console-sweep' },
+  },
+  // IndexNow: changed product, collection and page URLs to Bing and Yandex; production only.
+  {
+    name: 'indexnow',
+    schedule: every(INDEXNOW_EVERY_MS),
+    run: indexNow.run,
+    enabled: env.NODE_ENV === 'production',
   },
   {
     name: 'billing-sweep',

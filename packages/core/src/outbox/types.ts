@@ -85,6 +85,8 @@ export type OutboxEventType =
    * Meilisearch app's search index) get their `PRODUCTS_CHANGED_JOB` with the ids.
    */
   | 'catalog.products_changed'
+  /** A product, collection or page was deleted: IndexNow tells search engines its URL is gone (`seo/indexnow`). */
+  | 'seo.paths_removed'
   /** A customer was created (sign-up, first checkout, provider sign-in); apps such as Chatwoot sync it. */
   | 'customer.created'
   /** A customer's profile changed (checkout details, account page, admin edit). */
@@ -210,6 +212,8 @@ export type OutboxPayload = {
   hostname?: string | undefined
   /** For `catalog.products_changed`: the products, which may no longer exist. */
   productIds?: string[] | undefined
+  /** For `seo.paths_removed`: the store paths that no longer exist (`/products/<handle>`). */
+  paths?: string[] | undefined
   /** The customer a `customer.created` / `customer.updated` event is about. */
   customerId?: string | undefined
   /** The affiliate an `affiliate.*` event is about (Affiliates app). */
@@ -348,6 +352,8 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'domain.route_removed': null,
   // Apps only: the relay queues `PRODUCTS_CHANGED_JOB` for apps that have it (`dispatchRow`).
   'catalog.products_changed': null,
+  // Platform work, no message: the relay hands the paths to IndexNow (`dispatchRow`).
+  'seo.paths_removed': null,
   // App hooks only (`OUTBOX_APP_EVENT`): nobody is emailed about their own profile.
   'customer.created': null,
   'customer.updated': null,
@@ -462,6 +468,7 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'domain.route_requested': null,
   'domain.route_removed': null,
   'catalog.products_changed': null,
+  'seo.paths_removed': null,
   'customer.created': 'customer.created',
   'customer.updated': 'customer.updated',
   'affiliate.approved': null,

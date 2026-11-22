@@ -69,6 +69,7 @@ const BULK = new Set([
   'review-requests',
   'home-cards',
   'search-console-sweep',
+  'indexnow',
   'member-daily-summary',
   'member-reports',
   'affiliate-commissions',
