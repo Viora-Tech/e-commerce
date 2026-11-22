@@ -1,3 +1,4 @@
+import type { ChatEmail, ChatWaitingEmail } from './chat-types'
 import type { PerformanceReport } from './report-types'
 import type { SeoWeeklyEmail } from './seo-weekly-types'
 import type { TemplateId } from './template-ids'
@@ -293,6 +294,10 @@ export type TemplateData = {
     | undefined
   /** For the staff daily summary and weekly/monthly reports: the whole report, formatted. */
   report?: PerformanceReport | undefined
+  /** For chat_reply and chat_transcript: the shopper's chat with the store. */
+  chat?: ChatEmail | undefined
+  /** For staff_chat_waiting: the chats nobody has answered yet. */
+  chatWaiting?: ChatWaitingEmail | undefined
   /** For staff_seo_weekly: the week's Google moves and suggestions. */
   seoWeekly?: SeoWeeklyEmail | undefined
   /** For staff_daily_summary: the period and its figures, already formatted. */

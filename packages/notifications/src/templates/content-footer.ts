@@ -52,6 +52,9 @@ const REASONS: Partial<Record<TemplateId, Reason>> = {
   staff_seo_weekly: (s) =>
     `You get this because you own ${s} and Google Search Console is connected. Turn it off in Settings → Notifications.`,
   contact_message: team,
+  staff_chat_waiting: team,
+  chat_reply: (s) => `You get this email because you chatted with ${s} and left this address.`,
+  chat_transcript: (s) => `You get this email because you chatted with ${s} and left this address.`,
   question_asked: team,
   affiliate_application: team,
   unpaid_cancel_notice: team,

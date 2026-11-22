@@ -69,6 +69,7 @@ import { createFxRates, FX_RATES_SCHEDULE } from './fx-rates'
 import { createHomeCardsRefresh, HOME_CARDS_EVERY_MS } from './home-cards'
 import { createImportSnapshotCleanup, SNAPSHOT_CLEANUP_EVERY_MS } from './import-snapshots'
 import { createInboxAiReplyWorker } from './inbox-ai-reply'
+import { createInboxChatEmails, INBOX_CHAT_EMAILS_EVERY_MS } from './inbox-chat-emails'
 import { createIndexNowSweep, INDEXNOW_EVERY_MS } from './indexnow'
 import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from './marketing'
 import { mediaProcessLimits } from './media-limits'
@@ -220,6 +221,11 @@ const affiliateCommissions = createAffiliateCommissionSweep(db)
 const memberDailySummary = createMemberDailySummary(db, {
   settingsSecret: env.SETTINGS_SECRET,
   adminUrl: env.ADMIN_URL,
+})
+const inboxChatEmails = createInboxChatEmails(db, {
+  settingsSecret: env.SETTINGS_SECRET,
+  adminUrl: env.ADMIN_URL,
+  storefrontUrl: env.STOREFRONT_URL,
 })
 const memberReports = createMemberReports(db, {
   settingsSecret: env.SETTINGS_SECRET,
@@ -385,6 +391,12 @@ const sweepList: Sweep[] = [
     schedule: every(DAILY_SUMMARY_EVERY_MS),
     run: memberDailySummary.run,
     legacy: { queue: MEMBER_DAILY_SUMMARY_QUEUE, scheduler: 'member-daily-summary' },
+  },
+  // Inbox: a shopper's missed reply or closed chat, and the team's chats waiting for a reply.
+  {
+    name: 'inbox-chat-emails',
+    schedule: every(INBOX_CHAT_EMAILS_EVERY_MS),
+    run: () => inboxChatEmails.run(),
   },
   // Weekly (Monday) and monthly (the 1st) performance reports from 9:00 IST.
   {

@@ -1,4 +1,5 @@
 import { siteConfig } from '@commerce/config/site'
+import { chatSamples } from './samples-chat'
 import { figmaOrder, figmaProducts } from './samples-order'
 import {
   sampleDailyReport,
@@ -437,6 +438,7 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
     dailySummary: { periodLabel: 'Today so far', orders: 14, salesLabel: '₹28,640', toShip: 6 },
     report: sampleDailyReport,
   },
+  ...chatSamples(base),
   staff_weekly_report: { ...base, lines: [], totalLabel: '', report: sampleWeeklyReport },
   staff_monthly_report: { ...base, lines: [], totalLabel: '', report: sampleMonthlyReport },
   staff_seo_weekly: {

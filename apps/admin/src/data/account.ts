@@ -131,7 +131,7 @@ export const accountContent = {
       newOrder: { label: 'New order', help: 'Each order as it comes in.' },
       inboxMessage: {
         label: 'New Inbox message',
-        help: 'When a shopper writes. Only you, once a conversation is assigned to you.',
+        help: 'When a shopper writes. Only you, once a conversation is assigned to you. Email waits 5 minutes and skips chats someone already opened.',
       },
       approvalWaiting: {
         label: 'Approval waiting',

@@ -1,3 +1,4 @@
+export type * from './chat-types'
 export * from './design'
 export { withFallback } from './fallback'
 export { NotificationRegistry } from './registry'

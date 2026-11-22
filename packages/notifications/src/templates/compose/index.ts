@@ -1,6 +1,7 @@
 import type { EmailBlock } from '../../emails/blocks'
 import type { TemplateData, TemplateId } from '../../types'
 import { accountComposers } from './account'
+import { chatComposers } from './chat'
 import { codeComposers } from './codes'
 import { deliveryComposers } from './delivery'
 import { marketingComposers } from './marketing'
@@ -41,6 +42,7 @@ const COMPOSERS: Partial<Record<TemplateId, Composer>> = {
   ...marketingComposers,
   ...teamComposers,
   ...seoComposers,
+  ...chatComposers,
 }
 
 /** The kicker and blocks for a message, or null when it is not on the blocks yet. */

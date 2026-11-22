@@ -1,5 +1,6 @@
 import { siteConfig } from '@commerce/config/site'
 import type { TemplateData, TemplateId } from '../types'
+import { chatTemplates } from './content-chat'
 import {
   backInStockTemplates,
   balanceTemplates,
@@ -33,6 +34,7 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
   ...payOnlineTemplates,
   ...reportTemplates,
   ...seoTemplates,
+  ...chatTemplates,
   cod_confirm: {
     subject: (d) => `${d.storeName}: please confirm your cash on delivery order #${d.orderNumber}`,
     heading: (d) => `Hi ${d.customerName}, is this order yours?`,

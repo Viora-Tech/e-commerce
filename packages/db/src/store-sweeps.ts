@@ -100,6 +100,12 @@ export async function storesWithMemberDailySummaries(db: Db): Promise<string[]> 
   return rows.map((r) => r.id)
 }
 
+/** Store ids with an Inbox chat touched in the last day that may need an email (a missed reply, a transcript, the team's waiting list). SECURITY DEFINER backed (0265). */
+export async function storesWithInboxChatEmails(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(sql`select stores_with_inbox_chat_emails() as id`)
+  return rows.map((r) => r.id)
+}
+
 /** Store ids where a member turned on the weekly or monthly report (Account → Notifications). SECURITY DEFINER backed. */
 export async function storesWithMemberReports(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(sql`select stores_with_member_reports() as id`)

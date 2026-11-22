@@ -6,7 +6,8 @@ describe('parseMemberAlertPrefs', () => {
   it('starts every push alert on and the owner on email for orders and problems', () => {
     const p = parseMemberAlertPrefs(null, true)
     expect(p.newOrder).toEqual({ email: true, whatsapp: false, push: true })
-    expect(p.inboxMessage).toEqual({ email: false, whatsapp: false, push: true })
+    expect(p.inboxMessage).toEqual({ email: true, whatsapp: false, push: true })
+    expect(parseMemberAlertPrefs(null, false).inboxMessage.email).toBe(false)
     expect(p.dailySummary.push).toBe(false)
     expect(p.bugReports.push).toBe(false)
     expect(parseMemberAlertPrefs(null, false).newOrder.email).toBe(false)

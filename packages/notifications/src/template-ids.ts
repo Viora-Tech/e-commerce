@@ -117,6 +117,15 @@ export type TemplateId =
    * to be shipped (`dailySummary`). `actionUrl` opens the admin. Email or WhatsApp.
    */
   | 'staff_daily_summary'
+  /**
+   * To a TEAM MEMBER with Inbox alerts on (Account → Notifications): chats a shopper started or
+   * wrote in that nobody has answered for a few minutes (`chatWaiting`). Email only.
+   */
+  | 'staff_chat_waiting'
+  /** To the SHOPPER: the store replied in the chat while they were away (`chat`). Email only. */
+  | 'chat_reply'
+  /** To the SHOPPER: their chat was closed; a copy of the whole conversation (`chat`). Email only. */
+  | 'chat_transcript'
   /** To a TEAM MEMBER who turned on the weekly or monthly report: the period's `report`. Email only. */
   | 'staff_weekly_report'
   | 'staff_monthly_report'

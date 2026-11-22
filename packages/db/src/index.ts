@@ -50,6 +50,7 @@ export {
   storesWithDueReviewRequests,
   storesWithExpiredDraftHolds,
   storesWithHomeCardsDue,
+  storesWithInboxChatEmails,
   storesWithMarketingWork,
   storesWithMemberDailySummaries,
   storesWithMemberReports,

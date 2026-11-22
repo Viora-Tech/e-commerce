@@ -104,6 +104,8 @@ export const inboxConversation = pgTable(
     ipHash: text('ip_hash'),
     /** When the unanswered-message email digest last mentioned this thread. */
     unansweredAlertedAt: at('unanswered_alerted_at'),
+    /** When the shopper was last emailed about this thread: a reply they missed, or the transcript. */
+    shopperEmailedAt: at('shopper_emailed_at'),
     /** Reserved for v2 channels (WhatsApp wa_id, Instagram IGSID) and their 24 h window. */
     externalThreadId: text('external_thread_id'),
     sessionExpiresAt: at('session_expires_at'),
