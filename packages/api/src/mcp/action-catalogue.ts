@@ -246,6 +246,7 @@ const EXCLUDED_PATHS: Record<string, string> = {
   'honoPreview.token': 'a browser preview hand-off for the owner (people only)',
   'media.presign': 'a browser upload hand-off',
   'media.confirm': 'a browser upload hand-off',
+  'customers.signInAs': 'a browser sign-in hand-off to the storefront as a shopper (people only)',
 }
 
 /** Namespaces where every change is sensitive: money, keys, people, the store itself. */

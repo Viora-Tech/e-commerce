@@ -42,6 +42,7 @@ import customData from './custom-data'
 import customerAddresses from './customer-addresses'
 import customerGiftCards from './customer-gift-cards'
 import customerMerge from './customer-merge'
+import customerSignInAs from './customer-sign-in-as'
 import customerStoreCredit from './customer-store-credit'
 import customers from './customers'
 import customersBulkEdit from './customers-bulk-edit'
@@ -203,6 +204,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...abandonedDetail,
   ...customerGiftCards,
   ...customerMerge,
+  ...customerSignInAs,
   ...customerStoreCredit,
   ...storeCreditGiftCards,
   ...storeCreditExpiry,

@@ -1723,6 +1723,13 @@
       "when": 1795280900000,
       "tag": "0261_email_template_design",
       "breakpoints": true
+    },
+    {
+      "idx": 246,
+      "version": "7",
+      "when": 1795281000000,
+      "tag": "0262_customer_sign_in_as",
+      "breakpoints": true
     }
   ]
 }

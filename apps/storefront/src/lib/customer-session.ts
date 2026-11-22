@@ -39,8 +39,32 @@ export async function writeCustomerToken(
   })
 }
 
+/**
+ * Set beside the session cookie by "Sign in as customer" (admin), so the layout knows to look
+ * up the session and draw the "Signed in as … by staff" bar. Only a hint: the bar shows only
+ * when the session itself records a staff member; ordinary shoppers never pay for the lookup.
+ */
+export const STAFF_MARKER_COOKIE = 'wc_staff_as'
+
+export async function writeStaffMarker(expiresAt: Date): Promise<void> {
+  const proto = (await headers()).get('x-forwarded-proto')
+  ;(await cookies()).set(STAFF_MARKER_COOKIE, '1', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: proto === 'https' || process.env.NODE_ENV === 'production',
+    path: '/',
+    expires: expiresAt,
+  })
+}
+
+export async function hasStaffMarker(): Promise<boolean> {
+  return (await cookies()).get(STAFF_MARKER_COOKIE)?.value === '1'
+}
+
 export async function clearCustomerToken(): Promise<void> {
-  ;(await cookies()).delete(CUSTOMER_COOKIE)
+  const jar = await cookies()
+  jar.delete(CUSTOMER_COOKIE)
+  jar.delete(STAFF_MARKER_COOKIE)
 }
 
 /** The signed-in shopper for this request, or null. Deduplicated per render. */

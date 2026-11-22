@@ -25,6 +25,8 @@ import type { CustomerDetail } from './customer-detail-types'
 import { day } from './customer-detail-types'
 import CustomerEmailDialog from './customer-email-dialog'
 import MergeCustomerDialog from './merge-customer-dialog'
+import SignInAsCustomerDialog from './sign-in-as-customer-dialog'
+import { useSignInAsCustomer } from './use-sign-in-as-customer'
 
 type CustomerHeaderProps = {
   customer: CustomerDetail
@@ -47,6 +49,7 @@ export default function CustomerHeader({
   const locale = useLocale()
   const router = useRouter()
   const automation = useRunAutomation('customer', automations)
+  const signInAs = useSignInAsCustomer()
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
   const [emailing, setEmailing] = useState(false)
@@ -132,6 +135,7 @@ export default function CustomerHeader({
               items={[
                 { label: copy.actions.edit, icon: Pencil, onSelect: onEdit },
                 { label: mergeCopy.menu, icon: Users, onSelect: () => setMerging(true) },
+                ...signInAs.items,
                 ...automation.items([customer.id], { runsLink: true }),
                 {
                   label: copy.actions.delete,
@@ -169,6 +173,13 @@ export default function CustomerHeader({
         open={merging}
         onClose={() => setMerging(false)}
         onMerged={() => router.refresh()}
+      />
+      <SignInAsCustomerDialog
+        customerId={customer.id}
+        name={customer.name ?? customer.email}
+        open={signInAs.open}
+        onOpenChange={signInAs.setOpen}
+        onSignedIn={() => router.refresh()}
       />
       <RunAutomationDialog
         subjectType="customer"

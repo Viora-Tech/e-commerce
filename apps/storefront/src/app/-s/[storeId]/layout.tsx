@@ -36,6 +36,7 @@ import type { Metadata, Viewport } from 'next'
 import { cookies, headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { createElement, type ReactNode, Suspense } from 'react'
+import StaffSignInBar from '@/components/account/staff-sign-in-bar'
 import ExperimentBeacon from '@/components/analytics/experiment-beacon'
 import CartDrawer from '@/components/cart/cart-drawer'
 import StoreChrome from '@/components/checkout/store-chrome'
@@ -416,6 +417,7 @@ export default async function StoreLayout({ children, params }: Props) {
             html={`<script${nonce ? ` nonce="${nonce}"` : ''}>${liquidShim({ askConsent: currentConsent(consent.initial, consent.bannerVersion) === null, prefix: (await headers()).get(MARKET_HEADERS.prefix) ?? '', designMode })}</script>${liquid.head}`}
           />
           {previewName && !preview?.inFrame ? <PreviewBar themeName={previewName} /> : null}
+          {preview ? null : <StaffSignInBar storeId={storeId} />}
           <LiquidHtml html={liquid.beforeHeader} />
           {/* React sections inside the theme (cards, product, search) read the store's price format. */}
           <MoneyFormatProvider format={current.moneyFormat} pricing={pricing}>
@@ -473,6 +475,7 @@ export default async function StoreLayout({ children, params }: Props) {
         {/* Prices in blocks (cards, product, search) read the store's format. */}
         <MoneyFormatProvider format={current.moneyFormat} pricing={pricing}>
           {previewName && !preview?.inFrame ? <PreviewBar themeName={previewName} /> : null}
+          {preview ? null : <StaffSignInBar storeId={storeId} />}
           <StoreChrome>{header}</StoreChrome>
           <main id="MainContent">
             <StoreActionsProvider addToCart={addLineAction}>{page}</StoreActionsProvider>
