@@ -30,9 +30,20 @@ export type PartShippingParcel = {
     /** `YYYY-MM-DD`: the courier's promised date, else the window the shopper was told. */
     deliveryBy: string | null
   } | null
+  /**
+   * Every unit already left without a live label here: marked shipped by hand, shipped before
+   * the order came over from Shopify, or the sent half `separateShippedUnits` kept behind
+   * (#2082, 22 Nov 2026). The card shows it as Fulfilled with its items, not To ship.
+   */
+  packed: boolean
   /** Each unsent line's availability (lines packed already are left out). */
   lines: Array<{ orderLineId: string; availability: LineAvailability }>
 }
+
+/** A parcel with every unit packed (its status, or its lines when the status lags). */
+export const parcelPacked = (p: Pick<ParcelView, 'status' | 'lines'>): boolean =>
+  p.status === 'fulfilled' ||
+  (p.lines.length > 0 && p.lines.every((l) => l.fulfilledQuantity >= l.quantity))
 
 export type PartShipping = {
   /** The latest time the customer was told the order ships in parts; null when never. */
@@ -111,6 +122,7 @@ export async function orderPartShipping(
               deliveryBy: expectedDateOf(label.tracking) ?? p.deliveryEstimate?.latest ?? null,
             }
           : null,
+        packed: !label && parcelPacked(p),
         lines: waiting.flatMap((w, i) =>
           w.parcelId === p.id
             ? [{ orderLineId: w.orderLineId, availability: availability[i] as LineAvailability }]

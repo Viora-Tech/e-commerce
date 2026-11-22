@@ -96,6 +96,8 @@ export const partlyShippedContent = {
   chip: (shipped: number, of: number) => `Partly shipped · ${shipped} of ${of} parcels`,
   parcel: (n: number) => `Parcel ${n}`,
   toShip: 'To ship',
+  fulfilled: 'Fulfilled',
+  noLabel: 'Shipped without a label here (marked as shipped, or before the order came over).',
   track: 'Track',
   createShipment: 'Create shipment',
   label: (courier: string, awb: string, shipped: string, deliveryBy: string | null) =>
