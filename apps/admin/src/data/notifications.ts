@@ -255,6 +255,10 @@ export const notificationsSettingsContent = {
       name: 'Photo review thanks',
       when: 'When a review with photos is published, with a one-time discount code (Reviews app settings).',
     },
+    points_expiring: {
+      name: 'Points expiring soon',
+      when: 'Before a shopper’s loyalty points run out, once per batch of points (Loyalty points app settings).',
+    },
     question_answered: {
       name: 'Question answered',
       when: "Once, when you publish your answer to a shopper's product question (Reviews app).",

@@ -71,6 +71,7 @@ import { createImportSnapshotCleanup, SNAPSHOT_CLEANUP_EVERY_MS } from './import
 import { createInboxAiReplyWorker } from './inbox-ai-reply'
 import { createInboxChatEmails, INBOX_CHAT_EMAILS_EVERY_MS } from './inbox-chat-emails'
 import { createIndexNowSweep, INDEXNOW_EVERY_MS } from './indexnow'
+import { createLoyaltySweep, LOYALTY_POINTS_EVERY_MS } from './loyalty'
 import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from './marketing'
 import { mediaProcessLimits } from './media-limits'
 import { createMediaProcessWorker } from './media-process'
@@ -218,6 +219,10 @@ const importSnapshots = createImportSnapshotCleanup(db, {
 const reviewRequests = createReviewRequestSweep(db)
 const reviewSummaries = createReviewSummarySweep(db)
 const affiliateCommissions = createAffiliateCommissionSweep(db)
+const loyaltyPoints = createLoyaltySweep(db, {
+  settingsSecret: env.SETTINGS_SECRET,
+  storefrontUrl: env.STOREFRONT_URL,
+})
 const memberDailySummary = createMemberDailySummary(db, {
   settingsSecret: env.SETTINGS_SECRET,
   adminUrl: env.ADMIN_URL,
@@ -385,6 +390,12 @@ const sweepList: Sweep[] = [
     schedule: every(AFFILIATE_COMMISSIONS_EVERY_MS),
     run: affiliateCommissions.run,
     legacy: { queue: AFFILIATE_COMMISSIONS_QUEUE, scheduler: 'approve-affiliate-commissions' },
+  },
+  // Loyalty points app: review and birthday points, points past the return window, reminders.
+  {
+    name: 'loyalty-points',
+    schedule: every(LOYALTY_POINTS_EVERY_MS),
+    run: loyaltyPoints.run,
   },
   {
     name: 'member-daily-summary',

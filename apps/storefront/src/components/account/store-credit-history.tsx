@@ -27,6 +27,7 @@ export function describeStoreCredit(e: ShopperStoreCreditEntry): string {
   if (e.kind === 'refund') return copy.refund(e.orderNumber)
   if (e.kind === 'release') return copy.returned(e.orderNumber)
   if (e.kind === 'expiry') return copy.expired
+  if (e.kind === 'loyalty') return copy.loyalty(e.amountPaise)
   return e.amountPaise > 0 ? copy.added : copy.removed
 }
 

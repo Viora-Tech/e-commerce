@@ -15,6 +15,7 @@ export const customerStoreCreditContent = {
     refund: 'Refund',
     release: 'Returned (order not paid)',
     expiry: 'Expired',
+    loyalty: 'Loyalty points',
   } as Record<string, string>,
   expires: (day: string) => `Can be spent until ${day}`,
   dialog: {

@@ -18,6 +18,7 @@ export default [
       refund: 'रिफ़ंड',
       release: 'वापस आया (ऑर्डर का पेमेंट नहीं हुआ)',
       expiry: 'एक्सपायर हुआ',
+      loyalty: 'लॉयल्टी पॉइंट्स',
     },
     expires: (day: string) => `${day} तक खर्च कर सकते हैं`,
     dialog: {

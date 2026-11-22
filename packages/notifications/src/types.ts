@@ -265,6 +265,17 @@ export type TemplateData = {
       }
     | undefined
   /**
+   * For points_expiring (Loyalty points app): the points running out, their last day ("30
+   * November 2026") and the points held now. One point is ₹1 off at checkout.
+   */
+  points?:
+    | {
+        expiringPoints: number
+        lastDay: string
+        balancePoints: number
+      }
+    | undefined
+  /**
    * For affiliate_update: which news it is, already formatted. `kind` picks the wording:
    * approved (with the link and code), sale (a pending commission) or payout (money sent).
    */

@@ -2065,4 +2065,71 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     themeBlocks: [],
     credits: [],
   },
+  {
+    id: 'loyalty',
+    name: 'Loyalty points',
+    kind: 'builtin',
+    category: 'marketing',
+    company: null,
+    description:
+      'Reward repeat shoppers: points on every delivered order, for reviews and on birthdays, spent at checkout as store credit.',
+    tagline: 'Points on every order, spent at checkout like store credit.',
+    highlights: [
+      '1 point per ₹100 spent by default, credited after the return window',
+      'Points are store credit: 1 point is ₹1 off a later order',
+      'Extra points for a review and on the shopper’s birthday',
+      'Refunds, cancels and RTO take the points back',
+      'Points run out after 12 months, with a reminder email first',
+    ],
+    guide: null,
+    worksWith: ['Store credit at checkout', 'The Reviews app', 'Returns (the return window)'],
+    screenshots: [],
+    keywords: ['loyalty', 'points', 'rewards', 'cashback', 'store credit', 'birthday'],
+    faq: [
+      {
+        question: 'When do shoppers get their points?',
+        answer:
+          'Once the order is delivered and your return window is over, so points never land for goods that come back.',
+      },
+      {
+        question: 'How do shoppers spend points?',
+        answer:
+          'Points sit in their store credit balance. At checkout the store credit box takes them off the order.',
+      },
+    ],
+    icon: 'Gift',
+    access: {
+      resources: [
+        {
+          resource: 'orders',
+          level: 'read',
+          why: 'Works out the points a delivered order earns',
+        },
+        {
+          resource: 'refunds',
+          level: 'read',
+          why: 'Takes points back when an order is refunded',
+        },
+        {
+          resource: 'customers',
+          level: 'read-write',
+          why: 'Adds and takes points on the store credit balance; saves birthdays',
+        },
+        {
+          resource: 'reviews',
+          level: 'read',
+          why: 'Gives points for a review of a delivered product',
+        },
+        {
+          resource: 'order-events',
+          level: 'read',
+          why: 'Reacts when an order is delivered, refunded, cancelled or returned',
+        },
+      ],
+      shares: [],
+    },
+    adminPages: ['Overview', 'Settings'],
+    themeBlocks: [],
+    credits: [],
+  },
 ]

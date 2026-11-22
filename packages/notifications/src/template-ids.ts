@@ -69,6 +69,8 @@ export type TemplateId =
   | 'review_reply'
   /** Thanks for a published photo review, with a one-time discount code (Reviews app). Email only. */
   | 'review_reward'
+  /** Loyalty points are running out soon: how many, the last day, and the balance (Loyalty points app). Email only. */
+  | 'points_expiring'
   /** To the ASKER: the store answered their product question and it is live (Reviews app). Email only. */
   | 'question_answered'
   /** To the MERCHANT: a shopper asked a product question (Reviews app); `actionUrl` opens Questions. Email only. */

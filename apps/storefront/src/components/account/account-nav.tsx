@@ -4,12 +4,15 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import CheckoutIcon, { type CheckoutIconName } from '@/components/checkout/checkout-icon'
 import { accountContent } from '@/data/account'
+import { loyaltyAccountContent } from '@/data/loyalty'
 import { signOutAction } from '@/lib/account-actions'
 
 type AccountNavProps = {
   /** Email, or the mobile number for a phone-only account: which account this is. */
   email: string
   name: string | null
+  /** The store has the Loyalty points app: show the Points section after Store credit. */
+  showPoints?: boolean | undefined
 }
 
 const copy = accountContent.nav
@@ -47,6 +50,12 @@ const LINKS: NavLink[] = [
     match: (p) => p.startsWith('/account/store-credit'),
   },
   {
+    href: '/account/points',
+    label: loyaltyAccountContent.nav,
+    icon: 'tag',
+    match: (p) => p.startsWith('/account/points'),
+  },
+  {
     href: '/account/privacy',
     label: copy.privacy,
     icon: 'shield',
@@ -70,13 +79,15 @@ const ACTIVE = `${LINK} border-ck-button bg-ck-button text-ck-button-ink! lg:bg-
 
 /**
  * The account's sections (Figma Pages · Account, 705:114056): who is signed in, then Orders,
- * Addresses, Profile, Store credit, Your data and Sign out.
+ * Addresses, Profile, Store credit, Points (Loyalty points app), Your data and Sign out.
  */
-export default function AccountNav({ email, name }: AccountNavProps) {
+export default function AccountNav({ email, name, showPoints = false }: AccountNavProps) {
   // Hooks
   const pathname = usePathname()
 
   // Render logic
+  const links = showPoints ? LINKS : LINKS.filter((l) => l.href !== '/account/points')
+
   return (
     <aside className="flex min-w-0 flex-col gap-3 lg:sticky lg:top-6 lg:gap-5">
       <div className="flex min-w-0 flex-col gap-0.5">
@@ -88,7 +99,7 @@ export default function AccountNav({ email, name }: AccountNavProps) {
         className="-mb-1 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] lg:mb-0 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:pb-0"
         aria-label={accountContent.title}
       >
-        {LINKS.map((l) => {
+        {links.map((l) => {
           const active = l.match(pathname)
           return (
             <Link

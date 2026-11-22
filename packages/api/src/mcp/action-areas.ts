@@ -15,6 +15,7 @@ export const NAMESPACE_AREA: Record<string, ApiArea> = {
   customers: 'customers',
   customerPrivacy: 'customers',
   storeCredit: 'customers',
+  loyalty: 'customers',
   inbox: 'customers',
   forms: 'customers',
   inventory: 'inventory',

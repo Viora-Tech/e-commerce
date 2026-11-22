@@ -1751,6 +1751,13 @@
       "when": 1795281300000,
       "tag": "0265_inbox_chat_emails",
       "breakpoints": true
+    },
+    {
+      "idx": 250,
+      "version": "7",
+      "when": 1795281400000,
+      "tag": "0266_loyalty_points",
+      "breakpoints": true
     }
   ]
 }

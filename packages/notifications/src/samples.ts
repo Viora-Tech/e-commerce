@@ -296,6 +296,14 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
       rewardUntil: '30 November 2026',
     },
   },
+  points_expiring: {
+    ...base,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    actionUrl: 'https://waimers.example/',
+    points: { expiringPoints: 120, lastDay: '30 November 2026', balancePoints: 245 },
+  },
   question_answered: {
     ...base,
     orderNumber: undefined,

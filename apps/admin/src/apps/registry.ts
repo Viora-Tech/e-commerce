@@ -66,6 +66,9 @@ import GstSettingsEditor from '@/components/apps/gst-invoices/settings-editor'
 import IndiaPostConnectPage from '@/components/apps/india-post/connect-page'
 import IndiaPostLabelPage from '@/components/apps/india-post/label-page'
 import IndiaPostOverviewPage from '@/components/apps/india-post/overview-page'
+import LoyaltyCustomerCard from '@/components/apps/loyalty/customer-card'
+import LoyaltyOverviewPage from '@/components/apps/loyalty/overview-page'
+import LoyaltySettingsPage from '@/components/apps/loyalty/settings-page'
 import MeilisearchPage from '@/components/apps/meilisearch/settings-page'
 import SesConnectPage from '@/components/apps/messages/ses-connect-page'
 import WhatsappConnectPage from '@/components/apps/messages/whatsapp-connect-page'
@@ -224,6 +227,13 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       connect: DecentroConnectPage,
     },
     fullPages: ['connect'],
+  },
+  loyalty: {
+    pages: {
+      '': LoyaltyOverviewPage,
+      settings: LoyaltySettingsPage,
+    },
+    CustomerCard: LoyaltyCustomerCard,
   },
   snapmint: {
     pages: {

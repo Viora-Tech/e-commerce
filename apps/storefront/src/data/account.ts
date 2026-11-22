@@ -140,6 +140,8 @@ export const accountContent = {
     returned: (n: number | null) =>
       n ? `Returned: order #${n} was not paid` : 'Returned from an unpaid order',
     expired: 'Expired',
+    loyalty: (amountPaise: number) =>
+      amountPaise > 0 ? 'Loyalty points' : 'Loyalty points taken back',
     expiresOn: (day: string) => `use by ${day}`,
     /** The card on the Orders page when there is a balance to spend. */
     summaryTitle: 'Store credit to spend',
