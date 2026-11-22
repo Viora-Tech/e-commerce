@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import FormDialog from '@/components/layout/form-dialog'
-import { domainsContent as copy, domainEdgeContent } from '@/data/domains'
+import { domainEdgeContent, domainsContent } from '@/data/domains'
 import { useCopy } from '@/hooks/use-copy'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
@@ -30,6 +30,7 @@ export default function ConnectDomainDialog({
   apexRedirectOnly,
 }: ConnectDomainDialogProps) {
   // Hooks
+  const copy = useCopy(domainsContent)
   const announceSetup = useSetupNext()
   const edge = useCopy(domainEdgeContent)
   const router = useRouter()

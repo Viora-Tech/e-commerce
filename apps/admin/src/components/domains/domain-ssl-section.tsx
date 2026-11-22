@@ -10,8 +10,6 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
 
-const copy = domainsContent.detail
-
 type DomainSslSectionProps = {
   domain: DomainView
   canManage: boolean
@@ -21,6 +19,7 @@ type DomainSslSectionProps = {
 /** The certificate state of one domain, what to do about it, and "Retry certificate". */
 export default function DomainSslSection({ domain, canManage, onChange }: DomainSslSectionProps) {
   // Hooks
+  const copy = useCopy(domainsContent.detail)
   const certificate = useCopy(domainCertificateContent)
   const edge = useCopy(domainEdgeContent)
   const [retrying, setRetrying] = useState(false)
