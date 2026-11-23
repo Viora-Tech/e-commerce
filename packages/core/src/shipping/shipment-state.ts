@@ -62,8 +62,32 @@ const KEYED_LABEL = /^https:\/\/[^/]*delhivery\.com\/api\/p\/packing_slip/i
 export const isKeyedLabelUrl = (labelUrl: string | null | undefined): boolean =>
   typeof labelUrl === 'string' && KEYED_LABEL.test(labelUrl)
 
-/** The label link the admin may open: the stored one, or the admin's route for a keyed link. */
-export function shipmentLabelUrl(shipment: { id: string; labelUrl: string | null }): string | null {
+/**
+ * Couriers whose label is asked for fresh when printed (`getLabel`). RapidShyp's booking answer
+ * often has no link (every RapidShyp parcel booked before 23 Nov 2026 was saved with `labelUrl`
+ * null, so Print label skipped it as "not sent yet"), and the wrapper's link is not one to
+ * trust (its documented sample is `https://rapidshyp_labels/...`). Read-time, so no row needs
+ * rewriting; the saved link stays as the fallback (`labelOnDemand`).
+ */
+const LABEL_ON_DEMAND = new Set(['rapidshyp'])
+
+/** True when this courier's label is fetched when printed, through the admin's route. */
+export const labelOnDemand = (provider: string | undefined): boolean =>
+  provider !== undefined && LABEL_ON_DEMAND.has(provider)
+
+/**
+ * The label link the admin may open: the admin's route for a keyed link or for a courier that
+ * hands the label over on demand (not once cancelled), else the stored one.
+ */
+export function shipmentLabelUrl(shipment: {
+  id: string
+  labelUrl: string | null
+  provider?: string | undefined
+  status?: string | undefined
+}): string | null {
+  if (labelOnDemand(shipment.provider) && shipment.status !== 'cancelled') {
+    return storedLabelUrl(shipment.id)
+  }
   if (!shipment.labelUrl) return null
   return isKeyedLabelUrl(shipment.labelUrl) ? storedLabelUrl(shipment.id) : shipment.labelUrl
 }

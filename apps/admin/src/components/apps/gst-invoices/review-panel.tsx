@@ -14,7 +14,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
 import { formatPaise } from '@/lib/money'
-import type { QueueRow } from './queue-page'
+import type { QueueRow } from './queue-columns'
 
 type ReviewPanelProps = {
   rows: QueueRow[]

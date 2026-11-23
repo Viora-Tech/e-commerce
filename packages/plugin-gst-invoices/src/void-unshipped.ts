@@ -3,6 +3,18 @@ import { order, refund, type StoreTx, shipment } from '@commerce/db'
 import { and, eq, inArray, ne, sql } from 'drizzle-orm'
 import { invoice } from './schema'
 
+/**
+ * The documents a cancel may touch: an invoice recorded outside Koomerce ("Already invoiced",
+ * `source: 'external'`) was made and filed by the merchant's own tool, so it is never cancelled
+ * here (23 Nov 2026: a cancel and full refund cancelled one).
+ */
+export const voidable = <T extends { source: string }>(docs: T[]) =>
+  docs.filter((d) => d.source !== 'external')
+
+/** How a cancelled document is named in the activity line: its number, never its id. */
+export const docLabel = (d: { number: string | null; source: string }) =>
+  d.number ?? (d.source === 'external' ? 'an invoice recorded outside' : 'an unnumbered invoice')
+
 /** A shipment in one of these has left the shop: the supply happened. */
 const LEFT = ['picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'rto'] as const
 
@@ -21,16 +33,18 @@ export async function voidUnshippedSale(tx: StoreTx, orderId: string): Promise<s
     .where(and(eq(shipment.orderId, orderId), inArray(shipment.status, [...LEFT])))
     .limit(1)
   if (left) return null
-  const docs = await tx
-    .select()
-    .from(invoice)
-    .where(
-      and(
-        eq(invoice.orderId, orderId),
-        inArray(invoice.kind, ['tax_invoice', 'credit_note']),
-        eq(invoice.status, 'issued'),
+  const docs = voidable(
+    await tx
+      .select()
+      .from(invoice)
+      .where(
+        and(
+          eq(invoice.orderId, orderId),
+          inArray(invoice.kind, ['tax_invoice', 'credit_note']),
+          eq(invoice.status, 'issued'),
+        ),
       ),
-    )
+  )
   const invoices = docs.filter((d) => d.kind === 'tax_invoice')
   if (invoices.length === 0 || docs.some((d) => d.reportedPeriod)) return null
   const [paid] = await tx
@@ -55,5 +69,5 @@ export async function voidUnshippedSale(tx: StoreTx, orderId: string): Promise<s
       })
       .where(eq(invoice.id, d.id))
   }
-  return ordered.map((d) => d.number ?? d.id)
+  return ordered.map(docLabel)
 }

@@ -298,7 +298,7 @@ export default [
       today: 'आज',
       placed: 'ऑर्डर आया',
       paymentCaptured: 'पेमेंट मिल गया',
-      paymentEvent: (type) => `गेटवे: ${type}`,
+      paymentEvent: (gateway, type) => `${gateway}: ${type.replace(/[._]/g, ' ')}`,
       refund: (amount) => `${amount} का रिफ़ंड`,
       markedPaid: (amount, method) => `पेमेंट हो गया मार्क किया: ${amount}, ${method} से`,
       markedPaidDetail: (parts) =>

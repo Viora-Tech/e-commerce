@@ -22,4 +22,7 @@ export const SHIPROCKET_CAPABILITIES: ShippingCapability[] = [
   'ndr',
   'wallet',
   'reverse_pickup',
+  // The pickup is asked right after the AWB (`./pickup`); refused, Create pickup asks again.
+  'pickup_at_booking',
+  'pickup',
 ]

@@ -1,78 +1,91 @@
 'use client'
 
+import { siteConfig } from '@commerce/config/site'
 import type { IssueOn } from '@commerce/invoices'
-import { X } from '@commerce/ui/icons'
+import { CircleCheck, ReceiptIcon, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
-import { Checkbox } from '@commerce/ui/shadcn/checkbox'
-import { Table, TableBody, TableHead, TableHeader, TableRow } from '@commerce/ui/shadcn/table'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useQueryStates } from 'nuqs'
+import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import SetupChecklist from '@/components/apps/setup-checklist'
-import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
-import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
-import PillTabs from '@/components/layout/pill-tabs'
-import TableSkeletonRows from '@/components/table/table-skeleton-rows'
+import { hasFilter } from '@/components/table/filter-panel'
+import ResourceTable from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
 import { appsContent } from '@/data/apps'
+import { filterPanelContent } from '@/data/filter-panel'
 import { gstAlreadyInvoicedContent } from '@/data/gst-already-invoiced'
 import { gstInvoicesContent } from '@/data/gst-invoices'
+import { gstListFiltersContent } from '@/data/gst-list-filters'
 import { gstQueuePageContent } from '@/data/gst-queue-page'
-import { statesContent } from '@/data/states'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
+import {
+  CLEAR_QUEUE_FILTERS,
+  parseQueueSort,
+  QUEUE_DEFAULT_SORT,
+  QUEUE_PARAMS,
+  queueFilterGroups,
+  queueInput,
+  sortParam,
+} from '@/lib/gst-list-filters'
 import { routes } from '@/lib/routes'
 import AlreadyInvoicedDialog from './already-invoiced-dialog'
-import GstNumberPicker from './gst-number-picker'
+import { isReadyRow, type QueueRow, queueColumns } from './queue-columns'
 import QueueEmpty from './queue-empty'
-import QueueMoreMenu, { type DateRange } from './queue-more-menu'
-import QueueRowView from './queue-row'
+import QueueMoreMenu from './queue-more-menu'
 import QueueStats from './queue-stats'
 import ReviewPanel from './review-panel'
-import { HEAD } from './table-classes'
+import { useGstNumbers } from './use-gst-numbers'
 
-export type QueueRow = Awaited<ReturnType<typeof api.gstInvoices.queue.list>>[number]
+type Result = Awaited<ReturnType<typeof api.gstInvoices.queue.list>>
 
-type Chip = 'all' | 'ready' | 'fix'
-
-const istStart = (day: string) => (day ? new Date(`${day}T00:00:00+05:30`) : undefined)
-const istEnd = (day: string) =>
-  day ? new Date(new Date(`${day}T00:00:00+05:30`).getTime() + 86_400_000) : undefined
-
-const isReady = (r: QueueRow) => r.status.startsWith('ready')
+/** One issue batch at most (the API's limit): "Issue all" reviews the first 200 ready rows. */
+const BATCH = 200
 
 /**
  * The GST invoices Queue (Figma 928:10728): this month's figures, then every order waiting for
- * a tax invoice with its taxable value, GST and status. Ready rows issue (all at once from the
- * header, or one by one); the rest link to where the problem is fixed. Issuing goes through the
- * review step, which confirms each invoice date before numbers are given.
+ * a tax invoice with its taxable value, GST and status, in the shared table (search, Filter,
+ * sortable headers, views, rows per page; all on the server and kept in the URL). Ready rows
+ * issue (the ticked ones, or every ready one from the header); the rest link to where the
+ * problem is fixed. Issuing goes through the review step, which confirms each invoice date.
  */
 export default function QueuePage() {
+  return (
+    <Suspense>
+      <QueueList />
+    </Suspense>
+  )
+}
+
+function QueueList() {
   // Hooks
   const gstInvoicesCopy = useCopy(gstInvoicesContent)
   const copy = useCopy(gstQueuePageContent)
-  const fmt = useFormat()
-  const states = useCopy(statesContent)
+  const lists = useCopy(gstListFiltersContent)
+  const panel = useCopy(filterPanelContent)
   const apps = useCopy(appsContent)
   const recordCopy = useCopy(gstAlreadyInvoicedContent)
-  const [rows, setRows] = useState<QueueRow[] | null>(null)
+  const fmt = useFormat()
+  const router = useRouter()
+  const numbers = useGstNumbers()
+  const [q, setQ] = useQueryStates(QUEUE_PARAMS, { shallow: true })
+  const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
+  const [result, setResult] = useState<Result | null>(null)
   /** The queue did not load: say so rather than show an empty queue. */
   const [failed, setFailed] = useState(false)
-  const router = useRouter()
-  const [range, setRange] = useState<DateRange>({ from: '', to: '' })
-  const [chip, setChip] = useState<Chip>('all')
-  const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [loading, setLoading] = useState(true)
+  const [picked, setPicked] = useState<string[]>([])
   const [reviewing, setReviewing] = useState<QueueRow[] | null>(null)
   /** The row whose "Already invoiced" dialog is open. */
   const [recording, setRecording] = useState<QueueRow | null>(null)
-  /** The bulk "Mark as already invoiced" confirm is open. */
-  const [marking, setMarking] = useState(false)
+  /** The ticked rows the bulk "Mark as already invoiced" confirm is open for. */
+  const [marking, setMarking] = useState<string[] | null>(null)
   const [busy, setBusy] = useState(false)
   const [gstin, setGstin] = useState<string | null | undefined>(undefined)
-  const [gst, setGst] = useState<string | undefined>(undefined)
   const [issueOn, setIssueOn] = useState<IssueOn | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
 
@@ -90,43 +103,41 @@ export default function QueuePage() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: `reloadKey` refetches after a change
   useEffect(() => {
     let cancelled = false
+    setLoading(true)
     api.gstInvoices.queue
-      .list({ from: istStart(range.from), to: istEnd(range.to), gstRegistrationId: gst })
+      .list(queueInput(q, perPage))
       .then(
         (r) => {
           if (cancelled) return
-          setRows(r)
+          setResult(r)
           setFailed(false)
         },
         () => {
           if (!cancelled) setFailed(true)
         },
       )
+      .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
     }
-  }, [range, gst, reloadKey])
+  }, [q, perPage, reloadKey])
 
   // Helpers
   const reload = () => {
-    setPicked(new Set())
+    setPicked([])
     setReloadKey((k) => k + 1)
     // The sidebar's Queue count comes from the server layout: read it again too.
     router.refresh()
   }
+  /** The ready rows among these ids on the page shown. */
+  const readyAmong = (ids: string[]) =>
+    (result?.rows ?? []).filter((r) => ids.includes(r.id) && isReadyRow(r))
 
   // Event handlers
-  const handleToggle = (id: string, on: boolean) =>
-    setPicked((p) => {
-      const next = new Set(p)
-      if (on) next.add(id)
-      else next.delete(id)
-      return next
-    })
-  const handleRemove = async () => {
+  const handleRemove = async (ids: string[]) => {
     setBusy(true)
     try {
-      await api.gstInvoices.queue.remove({ ids: [...picked] })
+      await api.gstInvoices.queue.remove({ ids })
       reload()
     } catch (err) {
       toast.error(errorText(err, gstInvoicesCopy.queue.failed))
@@ -136,20 +147,39 @@ export default function QueuePage() {
   }
   const handleMarkInvoiced = async () => {
     try {
-      const r = await api.gstInvoices.queue.recordExternalMany({ ids: [...picked] })
+      const r = await api.gstInvoices.queue.recordExternalMany({ ids: marking ?? [] })
       if (r?.recorded) toast.success(recordCopy.bulkDone(r.recorded))
       const [first] = r?.skipped ?? []
       if (first) toast.error(recordCopy.bulkSkipped(r?.skipped.length ?? 0, first.reason))
-      setMarking(false)
+      setMarking(null)
       reload()
     } catch (err) {
       toast.error(errorText(err, recordCopy.bulkFailed))
       throw err
     }
   }
-  const handleGst = (id: string | undefined) => {
-    setGst(id)
-    setPicked(new Set())
+  /** The header's Issue: the ticked ready rows, else every ready row (up to one batch). */
+  const handleIssueAll = async () => {
+    const ticked = readyAmong(picked)
+    if (ticked.length) return setReviewing(ticked)
+    setBusy(true)
+    try {
+      const ready = await api.gstInvoices.queue.list({
+        ...queueInput(q, BATCH),
+        view: 'ready',
+        page: 1,
+      })
+      setReviewing(ready.rows)
+    } catch (err) {
+      toast.error(errorText(err, gstInvoicesCopy.queue.failed))
+    } finally {
+      setBusy(false)
+    }
+  }
+  const handleIssueSelected = (ids: string[]) => {
+    const ready = readyAmong(ids)
+    if (ready.length) setReviewing(ready)
+    else toast.error(lists.noneReadySelected)
   }
   const handleRecorded = () => {
     setRecording(null)
@@ -169,19 +199,14 @@ export default function QueuePage() {
   }
 
   // Render logic
-  const list = rows ?? []
-  const ready = list.filter(isReady)
-  const toFix = list.filter((r) => !isReady(r))
-  const shown = chip === 'ready' ? ready : chip === 'fix' ? toFix : list
-  const filtered = Boolean(range.from || range.to)
-  const empty = rows !== null && list.length === 0
-  // The header issues the ticked ready rows, else every ready row.
-  const pickedReady = ready.filter((r) => picked.has(r.id))
-  const toIssue = pickedReady.length ? pickedReady : ready
-  const pickable = shown
-  const allOn = pickable.length > 0 && pickable.every((r) => picked.has(r.id))
-  const fromLabel = range.from ? fmt.date(`${range.from}T12:00:00+05:30`) : ''
-  const toLabel = range.to ? fmt.date(`${range.to}T12:00:00+05:30`) : ''
+  const rows = result?.rows ?? []
+  const counts = result?.counts ?? { all: 0, ready: 0, fix: 0, hsnMissing: 0 }
+  const pickedReady = readyAmong(picked)
+  const groups = queueFilterGroups(q, lists, panel, numbers, (patch) => setQ({ ...patch, page: 1 }))
+  const narrowed = q.query !== '' || q.view !== null || groups.some(hasFilter)
+  const toIssue = pickedReady.length || Math.min(counts.ready, BATCH)
+  /* Nothing waits at all: say how orders get here, in place of the table. */
+  const queueEmpty = result !== null && !failed && counts.all === 0 && !narrowed
 
   return (
     <div className="flex flex-col gap-4">
@@ -190,18 +215,9 @@ export default function QueuePage() {
         summary={copy.subtitle[issueOn ?? 'payment']}
         actions={
           <span className="flex flex-wrap items-center gap-2">
-            <GstNumberPicker value={gst} onChange={handleGst} allowAll />
-            <QueueMoreMenu
-              range={range}
-              onRange={setRange}
-              pickedCount={picked.size}
-              onRemove={handleRemove}
-              onMarkInvoiced={() => setMarking(true)}
-              onAdded={reload}
-              busy={busy}
-            />
-            <Button disabled={busy || toIssue.length === 0} onClick={() => setReviewing(toIssue)}>
-              {copy.issueMany(toIssue.length)}
+            <QueueMoreMenu onAdded={reload} busy={busy} />
+            <Button disabled={busy || toIssue === 0} onClick={handleIssueAll}>
+              {copy.issueMany(toIssue)}
             </Button>
           </span>
         }
@@ -221,100 +237,79 @@ export default function QueuePage() {
         />
       ) : null}
       <QueueStats
-        gst={gst}
-        waiting={rows === null ? null : list.length}
-        needHsn={list.filter((r) => r.status === 'hsn_missing').length}
-        needFix={toFix.length}
+        gst={q.gst ?? undefined}
+        waiting={result === null ? null : counts.all}
+        needHsn={counts.hsnMissing}
+        needFix={counts.fix}
         reloadKey={reloadKey}
       />
-      <Card gap="none" inset="y-none" className="overflow-hidden">
-        <div className="flex flex-wrap items-center gap-2 p-4">
-          <PillTabs<Chip>
-            variant="pill"
-            value={chip}
-            onChange={setChip}
-            tabs={[
-              { value: 'all', label: copy.chips.all, count: list.length },
-              { value: 'ready', label: copy.chips.ready, count: ready.length },
-              { value: 'fix', label: copy.chips.fix, count: toFix.length },
-            ]}
-          />
-          {filtered ? (
-            <Button
-              size="sm"
-              variant="outline"
-              aria-label={copy.clearDates}
-              onClick={() => setRange({ from: '', to: '' })}
-            >
-              {copy.dateRange(fromLabel, toLabel)}
-              <X aria-hidden="true" />
-            </Button>
-          ) : null}
-          {picked.size ? (
-            <span className="ml-auto text-caption text-muted-foreground">
-              {copy.selected(picked.size)}
-            </span>
-          ) : null}
-        </div>
-        {failed ? (
-          <LoadFailedState
-            heading={apps.couldNotLoad.queue}
-            className="border-line border-t"
-            onRetry={reload}
-          />
-        ) : empty ? (
-          <QueueEmpty issueOn={issueOn} filtered={filtered} />
-        ) : shown.length === 0 && rows !== null ? (
-          <EmptyState
-            variant="plain"
-            className="border-line border-t"
-            body={chip === 'ready' ? copy.noneReady : copy.noneToFix}
-          />
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className={`${HEAD} w-10`}>
-                  <Checkbox
-                    checked={allOn}
-                    disabled={pickable.length === 0}
-                    aria-label={copy.selectAll}
-                    onCheckedChange={(v) =>
-                      setPicked(v ? new Set(pickable.map((r) => r.id)) : new Set())
-                    }
-                  />
-                </TableHead>
-                <TableHead className={HEAD}>{copy.columns.order}</TableHead>
-                <TableHead className={HEAD}>{copy.columns.products}</TableHead>
-                <TableHead className={HEAD}>{copy.columns.customer}</TableHead>
-                <TableHead className={HEAD}>{copy.columns.gstin}</TableHead>
-                <TableHead className={`${HEAD} text-right`}>{copy.columns.taxable}</TableHead>
-                <TableHead className={`${HEAD} text-right`}>{copy.columns.gst}</TableHead>
-                <TableHead className={HEAD}>{copy.columns.status}</TableHead>
-                <TableHead className={HEAD}>
-                  <span className="sr-only">{copy.columns.action}</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows === null ? (
-                <TableSkeletonRows columns={9} rows={4} label={states.loading} />
-              ) : null}
-              {shown.map((r) => (
-                <QueueRowView
-                  key={r.id}
-                  row={r}
-                  picked={picked.has(r.id)}
-                  busy={busy}
-                  onPick={(on) => handleToggle(r.id, on)}
-                  onIssue={() => setReviewing([r])}
-                  onRecord={() => setRecording(r)}
-                />
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </Card>
+      {queueEmpty ? (
+        <QueueEmpty issueOn={issueOn} filtered={false} />
+      ) : (
+        <ResourceTable
+          resourceName={lists.queueResource}
+          columns={queueColumns({ queue: copy, lists, record: recordCopy }, fmt, {
+            busy,
+            onIssue: (r) => setReviewing([r]),
+            onRecord: setRecording,
+          })}
+          items={rows}
+          getId={(r) => r.id}
+          loading={loading && result === null}
+          query={q.query}
+          onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
+          onClearAll={() => setQ({ ...CLEAR_QUEUE_FILTERS, view: null, page: 1 })}
+          views={
+            <ViewSelect
+              value={q.view}
+              onChange={(view) => setQ({ view, page: 1 })}
+              pending={result === null}
+              options={[
+                { value: null, label: copy.chips.all, count: counts.all },
+                { value: 'ready', label: copy.chips.ready, count: counts.ready },
+                { value: 'fix', label: copy.chips.fix, count: counts.fix },
+              ]}
+            />
+          }
+          filterGroups={groups}
+          defaultSort={QUEUE_DEFAULT_SORT}
+          sort={parseQueueSort(q.sort)}
+          onSortChange={(s) => setQ({ sort: sortParam(s, QUEUE_DEFAULT_SORT), page: 1 })}
+          page={q.page}
+          perPage={perPage}
+          onPerPageChange={(next) => {
+            setPerPage(next)
+            setQ({ page: 1 })
+          }}
+          total={result?.total ?? 0}
+          onPageChange={(page) => setQ({ page })}
+          selection={{ ids: picked, onChange: setPicked }}
+          bulkActions={(ids) => (
+            <>
+              <Button size="sm" disabled={busy} onClick={() => handleIssueSelected(ids)}>
+                <ReceiptIcon />
+                {lists.issueSelected(readyAmong(ids).length)}
+              </Button>
+              <Button size="sm" variant="outline" disabled={busy} onClick={() => setMarking(ids)}>
+                <CircleCheck />
+                {recordCopy.bulkAction}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive"
+                disabled={busy}
+                onClick={() => handleRemove(ids)}
+              >
+                <Trash2 />
+                {copy.removeSelected}
+              </Button>
+            </>
+          )}
+          empty={{ heading: q.view === 'ready' ? copy.noneReady : copy.noneToFix }}
+          error={failed ? { heading: apps.couldNotLoad.queue, onRetry: () => reload() } : undefined}
+        />
+      )}
       <AlreadyInvoicedDialog
         key={recording?.id ?? 'closed'}
         row={recording}
@@ -322,9 +317,9 @@ export default function QueuePage() {
         onRecorded={handleRecorded}
       />
       <ConfirmDialog
-        open={marking}
-        onOpenChange={setMarking}
-        title={recordCopy.bulkTitle(picked.size)}
+        open={marking !== null}
+        onOpenChange={(open) => !open && setMarking(null)}
+        title={recordCopy.bulkTitle(marking?.length ?? 0)}
         body={recordCopy.bulkBody}
         confirmLabel={recordCopy.bulkSubmit}
         tone="default"

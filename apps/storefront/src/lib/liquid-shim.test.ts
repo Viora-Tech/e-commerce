@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { liquidShim } from './liquid-shim'
+import { type LiquidShimConfig, liquidShim, shimPreview } from './liquid-shim'
 
 /** Just enough of a DOM node for the shim's patch: children in order, a parent, the DOM's errors. */
 class FakeNode {
@@ -28,7 +28,7 @@ class FakeNode {
 const names = (node: FakeNode) => node.children.map((c) => c.name)
 
 /** Runs the shim against a fake window; returns the URLs its fetch handed to the network. */
-function boot() {
+function boot(config: Partial<LiquidShimConfig> = {}) {
   const fetched: string[] = []
   const win = {
     Node: FakeNode,
@@ -38,7 +38,7 @@ function boot() {
     },
   } as unknown as Window & { Node: typeof FakeNode }
   const location = new URL('https://shop.example/collections/all')
-  new Function('window', 'location', liquidShim({ askConsent: false }))(win, location)
+  new Function('window', 'location', liquidShim({ askConsent: false, ...config }))(win, location)
   return { win, fetched }
 }
 
@@ -141,5 +141,50 @@ describe("Customize's design mode", () => {
     expect(shimmed(true)?.designMode).toBe(true)
     expect(shimmed(false)?.designMode).toBeUndefined()
     expect(shimmed()?.designMode).toBeUndefined()
+  })
+})
+
+describe('a previewed page in a frame (Customize, the Themes page)', () => {
+  const VERSION = '01a1ad79-1023-7366-85dd-d8da62b44369'
+
+  it('sends section rendering with the preview and its version', async () => {
+    const { win, fetched } = boot({ preview: { token: 'tok.en', version: VERSION } })
+    await win.fetch('/collections/all?filter.v.availability=1&section_id=guide-results')
+    const url = new URL(fetched[0] ?? '', 'https://shop.example')
+    expect(url.pathname).toBe('/theme-actions/section')
+    expect(url.searchParams.get('section_id')).toBe('guide-results')
+    expect(url.searchParams.get('filter.v.availability')).toBe('1')
+    expect(url.searchParams.get('theme-preview')).toBe('tok.en')
+    expect(url.searchParams.get('theme-version')).toBe(VERSION)
+  })
+
+  it('sends predictive search and recommendations with the preview', async () => {
+    const { win, fetched } = boot({ preview: { token: 'tok.en' } })
+    await win.fetch('/search/suggest?q=mat&section_id=predictive-search')
+    await win.fetch('/recommendations/products?product_id=1&section_id=related')
+    for (const href of fetched) {
+      const url = new URL(href, 'https://shop.example')
+      expect(url.searchParams.get('theme-preview')).toBe('tok.en')
+      expect(url.searchParams.has('theme-version')).toBe(false)
+    }
+    expect(fetched[0]?.startsWith('/search/suggest?')).toBe(true)
+  })
+
+  it('leaves the live store and other calls without it', async () => {
+    const live = boot()
+    await live.win.fetch('/collections/all?section_id=guide-results')
+    expect(live.fetched[0]).not.toContain('theme-preview')
+    const previewed = boot({ preview: { token: 'tok.en' } })
+    await previewed.win.fetch('/cart.js')
+    await previewed.win.fetch('https://cdn.example/x.js?section_id=a')
+    expect(previewed.fetched.join(' ')).not.toContain('theme-preview')
+  })
+
+  it('reads the preview from the proxy headers only when there is one', () => {
+    expect(shimPreview(null)).toBeUndefined()
+    expect(shimPreview(new Headers())).toBeUndefined()
+    expect(shimPreview(new Headers({ 'x-theme-preview': 't' }))).toEqual({ token: 't' })
+    const both = new Headers({ 'x-theme-preview': 't', 'x-theme-version': VERSION })
+    expect(shimPreview(both)).toEqual({ token: 't', version: VERSION })
   })
 })

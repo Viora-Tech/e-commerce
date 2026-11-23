@@ -1,3 +1,4 @@
+import { signThemePreviewToken } from '@commerce/core'
 import { NextRequest } from 'next/server'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { SECTION_PATH_HEADER } from './routing'
@@ -75,5 +76,43 @@ describe('proxy: section rendering on a page URL', () => {
       `/-s/${STORE}/theme-actions/section`,
     )
     expect(forwarded(shim, SECTION_PATH_HEADER)).toBeNull()
+  }, 60_000)
+})
+
+describe('proxy: a previewed page in a frame asks for a section', () => {
+  // 23 Nov: Customize's Theme scripts frame (and the Themes page preview) has no preview cookie,
+  // so the theme's section fetch rendered the live theme. The shim now sends the token along.
+  const THEME = '01a1ad79-1023-7366-85dd-d8da62b44369'
+  const VERSION = '11111111-2222-4333-8444-555555555555'
+  const token = () =>
+    signThemePreviewToken({
+      secret: 'test-only-production-secret-0123456789',
+      storeId: STORE,
+      themeId: THEME,
+    })
+
+  it("renders the previewed theme and version for the shim's fetch, and sets no cookie", async () => {
+    const t = token()
+    const q = new URLSearchParams({
+      path: '/collections/all',
+      'filter.v.availability': '1',
+      section_id: 'guide-results',
+      'theme-preview': t,
+      'theme-version': VERSION,
+    })
+    const res = await get(`/theme-actions/section?${q}`, { 'sec-fetch-dest': 'empty' })
+    expect(new URL(res.headers.get('x-middleware-rewrite') ?? '').pathname).toBe(
+      `/-s/${STORE}/theme-actions/section`,
+    )
+    expect(forwarded(res, 'x-theme-preview')).toBe(t)
+    expect(forwarded(res, 'x-theme-version')).toBe(VERSION)
+    expect(res.headers.get('set-cookie')).toBeNull()
+  }, 60_000)
+
+  it('renders the live theme without it', async () => {
+    const res = await get('/theme-actions/section?path=/&section_id=guide-results', {
+      'sec-fetch-dest': 'empty',
+    })
+    expect(forwarded(res, 'x-theme-preview')).toBeNull()
   }, 60_000)
 })

@@ -148,6 +148,11 @@ export default function CourierDrawer({
                   )}
                 </p>
               ) : null}
+              {picked?.providerId === 'rapidshyp' ? (
+                <p role="status" className="text-caption text-muted-foreground">
+                  {copy.shieldFollowsSettings}
+                </p>
+              ) : null}
               {notes?.usedNotCovered && picked ? (
                 <p role="status" className="text-caption text-warning">
                   {copy.usedNotCovered(picked.providerName)}

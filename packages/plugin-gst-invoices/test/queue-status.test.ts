@@ -16,7 +16,7 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { issueCreditNote } from '../src/credit-notes'
 import { cancelInvoice, enqueueOrder, issueDrafts } from '../src/queue'
-import { buyerPlace, nextReset, queueRows, queueStats, queueStatus } from '../src/queue-status'
+import { buyerPlace, nextReset, queuePage, queueStats, queueStatus } from '../src/queue-status'
 import { invoice } from '../src/schema'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
@@ -165,14 +165,18 @@ describe('queue rows and stats', () => {
     const { storeId, productId, variantId } = await seed()
     const orderId = await seedOrder(storeId, variantId, 1049)
     await inStore(storeId, (tx) => enqueueOrder(tx, storeId, orderId, 'manual'))
-    const [before] = await inStore(storeId, (tx) => queueRows(tx, storeId, {}))
+    const [before] = (
+      await inStore(storeId, (tx) => queuePage(tx, storeId, { page: 1, perPage: 50 }))
+    ).rows
     expect(before?.status).toBe('hsn_missing')
     expect(before?.fix).toEqual({ kind: 'product', productId })
     expect(before?.row.taxablePaise).toBeGreaterThan(0)
     expect(before && buyerPlace(before.doc)).toBe('Mumbai, Maharashtra')
 
     await owner.update(product).set({ hsCode: '620520' }).where(eq(product.id, productId))
-    const [after] = await inStore(storeId, (tx) => queueRows(tx, storeId, {}))
+    const [after] = (
+      await inStore(storeId, (tx) => queuePage(tx, storeId, { page: 1, perPage: 50 }))
+    ).rows
     expect(after?.status).toBe('ready')
   })
 
@@ -181,7 +185,8 @@ describe('queue rows and stats', () => {
     await owner.update(product).set({ hsCode: '620520' }).where(eq(product.id, productId))
     const orderId = await seedOrder(storeId, variantId, 1044, '27AAPFU0939F1ZV')
     await inStore(storeId, (tx) => enqueueOrder(tx, storeId, orderId, 'manual'))
-    const [row] = await inStore(storeId, (tx) => queueRows(tx, storeId, {}))
+    const [row] = (await inStore(storeId, (tx) => queuePage(tx, storeId, { page: 1, perPage: 50 })))
+      .rows
     expect(row?.status).toBe('ready_b2b')
   })
 

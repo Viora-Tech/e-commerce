@@ -86,4 +86,16 @@ export const paymentsSettingsContent = {
     labelLabel: 'Label shown to shoppers',
     labelPlaceholder: { fixed: 'COD handling', percent: 'UPI discount' },
   },
+  /** A payment app's own "Extra charge" card (Snapmint, Razorpay, Cashfree). */
+  gatewayFee: {
+    heading: (name: string) => `Extra charge for ${name}`,
+    intro:
+      'Shoppers see this beside the payment method at checkout, and it is added to the order total. A negative amount is a discount.',
+    defaultLabel: (name: string, discount: boolean) =>
+      discount ? `${name} discount` : `${name} convenience fee`,
+    save: 'Save',
+    discard: 'Discard',
+    saved: 'Extra charge saved',
+    saveFailed: 'Could not save the extra charge',
+  },
 } as const

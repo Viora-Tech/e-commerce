@@ -325,7 +325,8 @@ export const orderDetailContent = {
     today: 'Today',
     placed: 'Order placed',
     paymentCaptured: 'Payment captured',
-    paymentEvent: (type: string) => `Gateway: ${type}`,
+    /** "Razorpay: payment captured": which gateway sent the update, and what it said. */
+    paymentEvent: (gateway: string, type: string) => `${gateway}: ${type.replace(/[._]/g, ' ')}`,
     refund: (amount: string) => `Refund of ${amount}`,
     markedPaid: (amount: string, method: string) => `Marked as paid: ${amount} by ${method}`,
     markedPaidDetail: (parts: { reference?: string; receivedOn?: string; by?: string }) =>

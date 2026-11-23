@@ -128,6 +128,11 @@ export default function BulkEditShipping({
           onCheckedChange={(insured) => onChange({ ...form, insured })}
         />
       </label>
+      {picked?.providerId === 'rapidshyp' ? (
+        <p role="status" className="text-caption text-muted-foreground">
+          {copy.shieldFollowsSettings}
+        </p>
+      ) : null}
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-body text-muted-foreground">{copy.charge}</span>
         <span className="font-semibold text-ink-strong tabular-nums">

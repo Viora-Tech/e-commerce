@@ -292,6 +292,8 @@ export const checkoutContent = {
     /** Snapmint's cardless EMI (its own app, not inside a gateway's window). */
     snapmint: 'Snapmint',
     snapmintHint: 'EMI on UPI & cards, no credit card needed',
+    /** The highlighted pill beside Snapmint (owner, 23 Nov 2026). */
+    snapmintBadge: 'No-cost EMI on UPI',
   },
   /** What opens under the picked way to pay. */
   methodPanel: {

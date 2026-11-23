@@ -1,7 +1,8 @@
 /**
  * A courier that schedules its own pickup at booking (capability `pickup_at_booking`, RapidShyp):
- * its parcels are never offered for Create pickup, and "Move back to Booked" is refused, because
- * the courier's pickup can't be undone over its API (owner, 23 Nov 2026). Other couriers keep both.
+ * a parcel on its pickup is never offered for Create pickup, and "Move back to Booked" is refused,
+ * because the courier's pickup can't be undone over its API (owner, 23 Nov 2026). One whose pickup
+ * the courier refused at booking has none, and Create pickup offers it. Other couriers keep both.
  */
 import { dayKey } from '@commerce/dates'
 import { address, createDb, order, shipment, shipmentPickup, store, withStore } from '@commerce/db'
@@ -9,7 +10,7 @@ import { resetDb } from '@commerce/db/test'
 import { fakeShippingFactory, ShippingRegistry } from '@commerce/shipping'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { pickupByCourier } from '../src/services/courier-pickup'
+import { pickupByCourier, pickupHeldByCourier } from '../src/services/courier-pickup'
 import {
   listPickupOptionsForStore,
   listUnpickedForStore,
@@ -114,11 +115,25 @@ describe('pickupByCourier', () => {
     expect(pickupByCourier(selfPickup, 'gone')).toBeNull()
     expect(pickupByCourier(undefined, 'fake')).toBeNull()
   })
+
+  it('holds Create pickup back only once the parcel is on a pickup', () => {
+    expect(pickupHeldByCourier(selfPickup, 'fake', 'pickup-1')).toBe('RapidShyp')
+    expect(pickupHeldByCourier(selfPickup, 'fake', null)).toBeNull()
+    expect(pickupHeldByCourier(plain, 'fake', 'pickup-1')).toBeNull()
+  })
 })
 
-describe('Create pickup never offers a courier-scheduled parcel', () => {
-  it('leaves it out of the Pickups picker and the Create pickup drawer, and refuses the request', async () => {
+describe('Create pickup never offers a parcel already on its courier-scheduled pickup', () => {
+  it('offers one whose pickup the courier refused at booking (no pickup yet)', async () => {
     const t = await seed(false)
+    const unpicked = await withStore(app, t.storeId, (tx) =>
+      listUnpickedForStore(tx, t.storeId, selfPickup),
+    )
+    expect(unpicked.map((u) => u.id)).toEqual([t.shipmentId])
+  })
+
+  it('leaves it out of the Pickups picker and the Create pickup drawer, and refuses the request', async () => {
+    const t = await seed(true)
     const unpicked = await withStore(app, t.storeId, (tx) =>
       listUnpickedForStore(tx, t.storeId, selfPickup),
     )
@@ -138,7 +153,7 @@ describe('Create pickup never offers a courier-scheduled parcel', () => {
     ).rejects.toMatchObject({ code: 'PRECONDITION_FAILED', message: /RapidShyp schedules/ })
     expect(
       (await owner.select().from(shipment).where(eq(shipment.id, t.shipmentId)))[0]?.pickupId,
-    ).toBeNull()
+    ).toBe(t.pickupId)
   })
 
   it('still offers the same parcel for a courier that takes pickup requests', async () => {

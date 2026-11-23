@@ -172,6 +172,9 @@ export const bulkShipContent = {
       'No courier takes cash here? Ask the shopper to pay online, then switch this to Prepaid.',
     insurance: 'Insurance for this order',
     insuranceCovers: (value: string) => `Covers ${value} if lost or damaged`,
+    /** RapidShyp Shield is one account setting; its API has no per-parcel switch. */
+    shieldFollowsSettings:
+      'RapidShyp Shield insures every parcel above the value set in your RapidShield settings on RapidShyp. This switch does not turn it on or off.',
     charge: 'Charge',
     chargeValue: (amount: string, insured: boolean) =>
       insured ? `${amount} incl. GST + insurance` : `${amount} incl. GST`,

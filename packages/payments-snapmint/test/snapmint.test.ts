@@ -165,7 +165,7 @@ describe('createPayment', () => {
   it('posts the cart to the sandbox pay host without the token and redirects', async () => {
     const m = mockFetch(json(200, { url: 'https://pay.sandbox.snapmint.com?id=x&token=y' }))
     const r = await new SnapmintProvider(config, m.fetch).createPayment(payInput)
-    expect(m.calls[0]?.url).toBe('https://pay.sandbox.snapmint.com/api/pub/carts')
+    expect(m.calls[0]?.url).toBe('https://apis.sandbox.snapmint.com/api/pub/carts')
     expect(m.calls[0]?.init.method).toBe('POST')
     const headers = (m.calls[0]?.init.headers ?? {}) as Record<string, string>
     expect(headers.authorization).toBeUndefined()

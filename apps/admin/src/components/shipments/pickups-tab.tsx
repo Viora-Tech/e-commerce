@@ -256,9 +256,14 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
               <TableCell>
                 <span className="capitalize">{p.status}</span>
                 {p.status === 'failed' && p.error ? (
-                  <span className="block max-w-80 text-caption whitespace-normal text-destructive">
-                    {p.error}
-                  </span>
+                  <>
+                    <span className="block max-w-80 text-caption whitespace-normal text-destructive">
+                      {p.error}
+                    </span>
+                    <span className="block max-w-80 text-caption whitespace-normal text-muted-foreground">
+                      {actions.pickupStaysBooked}
+                    </span>
+                  </>
                 ) : null}
               </TableCell>
               <TableCell className="font-mono text-caption">{p.providerRef ?? '–'}</TableCell>

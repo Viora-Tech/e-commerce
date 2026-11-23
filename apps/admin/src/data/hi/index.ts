@@ -81,6 +81,7 @@ import growthReport from './growth-report'
 import growthbook from './growthbook'
 import gstAlreadyInvoiced from './gst-already-invoiced'
 import gstInvoices from './gst-invoices'
+import gstListFilters from './gst-list-filters'
 import gstQueuePage from './gst-queue-page'
 import home from './home'
 import homeSections from './home-sections'
@@ -136,6 +137,7 @@ import profitCosts from './profit-costs'
 import profitReport from './profit-report'
 import purchaseDocuments from './purchase-documents'
 import purchasing from './purchasing'
+import rapidshyp from './rapidshyp'
 import razorpayWebsites from './razorpay-websites'
 import resourcePicker from './resource-picker'
 import returns from './returns'
@@ -162,6 +164,7 @@ import shipmentLost from './shipment-lost'
 import shipments from './shipments'
 import shipping from './shipping'
 import shippingRates from './shipping-rates'
+import shiprocket from './shiprocket'
 import shopifyAppInstall from './shopify-app-install'
 import shopifyImport from './shopify-import'
 import shopifyImportFiles from './shopify-import-files'
@@ -277,6 +280,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...growthReport,
   ...gstAlreadyInvoiced,
   ...gstInvoices,
+  ...gstListFilters,
   ...gstQueuePage,
   ...home,
   ...homeSections,
@@ -377,6 +381,8 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...chatwoot,
   ...xpressbees,
   ...ekart,
+  ...rapidshyp,
+  ...shiprocket,
   ...emailSuppression,
   ...shadowfax,
   ...snapmint,
