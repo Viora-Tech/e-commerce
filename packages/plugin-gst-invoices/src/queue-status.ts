@@ -3,7 +3,7 @@
  * (Ready, Ready · B2B, HSN missing, …) and its four figures / WHY the page (Figma 928:10728)
  * shows what blocks each invoice before the merchant presses Issue, and the month at a glance.
  */
-import { orderLine, product, type StoreTx, variant } from '@commerce/db'
+import { order, orderLine, product, type StoreTx, variant } from '@commerce/db'
 import {
   counterYear,
   type DocumentSnapshot,
@@ -18,7 +18,9 @@ import { and, eq, gte, inArray, lt, type SQL, sql } from 'drizzle-orm'
 import { loadSettings } from './issue'
 import { peekNext } from './next-number'
 import { periodOf, periodRange } from './periods'
-import { listQueue, type QueueFilter, rule46Missing } from './queue'
+import { rule46Missing } from './queue'
+import { arrangeQueue, type QueueSort, type QueueView } from './queue-arrange'
+import { listQueue, type QueueFilter } from './queue-list'
 import { documentIssuer, gstToken, sameRegistration } from './registration'
 import { invoice } from './schema'
 
@@ -104,10 +106,21 @@ async function currentLineHsn(tx: StoreTx, orderIds: readonly string[]): Promise
 }
 
 /** The queue with each draft's taxable value, GST and status (Figma 928:10728). */
-export async function queueRows(tx: StoreTx, storeId: string, filter: QueueFilter) {
+async function queueRows(tx: StoreTx, storeId: string, filter: QueueFilter) {
   const rows = await listQueue(tx, filter)
   const settings = await loadSettings(tx, storeId)
-  const lines = await currentLineHsn(tx, [...new Set(rows.map((r) => r.orderId))])
+  const orderIds = [...new Set(rows.map((r) => r.orderId))]
+  const lines = await currentLineHsn(tx, orderIds)
+  const numbers = new Map(
+    orderIds.length
+      ? (
+          await tx
+            .select({ id: order.id, number: order.number })
+            .from(order)
+            .where(inArray(order.id, orderIds))
+        ).map((o) => [o.id, o.number])
+      : [],
+  )
   const byOrder = new Map<string, LineHsn[]>()
   for (const l of lines) byOrder.set(l.orderId, [...(byOrder.get(l.orderId) ?? []), l])
   return rows.map((r) => {
@@ -125,8 +138,36 @@ export async function queueRows(tx: StoreTx, storeId: string, filter: QueueFilte
       exported: doc.exportSupply !== null && doc.exportSupply !== undefined,
       buyerMissing: rule46Missing(doc),
     })
-    return { row: r, doc, status, fix }
+    return { row: r, doc, status, fix, orderNumber: numbers.get(r.orderId) ?? 0 }
   })
+}
+
+/**
+ * One page of the Queue: the filtered drafts sorted, cut to a view (Ready / Needs fixing) and a
+ * page (`./queue-arrange`), with the counts of every view for the tabs and the figures.
+ */
+export async function queuePage(
+  tx: StoreTx,
+  storeId: string,
+  filter: QueueFilter & {
+    sort?: QueueSort | undefined
+    view?: QueueView | undefined
+    page: number
+    perPage: number
+  },
+) {
+  const all = await queueRows(tx, storeId, filter)
+  return arrangeQueue(
+    all,
+    (r) => ({
+      status: r.status,
+      orderNumber: r.orderNumber,
+      dueAt: r.row.eligibleAt,
+      taxablePaise: r.row.taxablePaise,
+      gstPaise: r.row.cgstPaise + r.row.sgstPaise + r.row.igstPaise,
+    }),
+    filter,
+  )
 }
 
 /** One GSTIN when picked (null: a store without one); every GSTIN when undefined. */

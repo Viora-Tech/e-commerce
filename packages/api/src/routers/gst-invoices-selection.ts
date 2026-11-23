@@ -4,7 +4,7 @@
  * `./gst-invoices.ts` and the bulk "Recalculate GST" in `./gst-invoices-order-actions.ts`.
  */
 import { DOCUMENT_KINDS } from '@commerce/invoices'
-import { documentIds } from '@commerce/plugin-gst-invoices/server'
+import { DOCUMENT_SOURCES, documentIds } from '@commerce/plugin-gst-invoices/server'
 import { z } from 'zod'
 import { BULK_MAX } from '../procedures'
 import { type Ctx, Gst } from './gst-invoices-context'
@@ -19,6 +19,8 @@ export const Filter = z.object({
   gstRegistrationId: Gst,
   /** The Exports tab: export invoices and their credit notes and vouchers only. */
   exportsOnly: z.boolean().optional(),
+  /** Issued here (`koomerce`) or recorded as invoiced outside (`external`). */
+  source: z.enum(DOCUMENT_SOURCES).optional(),
 })
 
 /** Rows or "everything matching the filter", capped so one click cannot render the year. */

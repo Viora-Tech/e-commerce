@@ -1,30 +1,19 @@
 'use client'
 
-import { CalendarIcon, CircleCheck, Plus, Trash2 } from '@commerce/ui/icons'
+import { Plus } from '@commerce/ui/icons'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import DateField from '@/components/fields/date-field'
 import ActionMenu from '@/components/layout/action-menu'
 import FormDialog from '@/components/layout/form-dialog'
-import { gstAlreadyInvoicedContent } from '@/data/gst-already-invoiced'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { gstQueuePageContent } from '@/data/gst-queue-page'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
 
-export type DateRange = { from: string; to: string }
-
 type QueueMoreMenuProps = {
-  range: DateRange
-  onRange: (range: DateRange) => void
-  /** How many rows are ticked; Remove works on them. */
-  pickedCount: number
-  onRemove: () => void
-  /** Mark the ticked rows as already invoiced, without details (asks first). */
-  onMarkInvoiced: () => void
   /** Orders were added by number: reload the queue. */
   onAdded: () => void
   busy: boolean
@@ -35,26 +24,15 @@ const parseNumbers = (text: string) =>
   [...new Set(text.split(/[\s,#]+/).map(Number))].filter((n) => Number.isInteger(n) && n > 0)
 
 /**
- * The Queue's "…" menu: what the old page showed inline and the frame leaves out. Add orders
- * by number, filter by the day they became due, mark ticked rows as already invoiced (old
- * orders invoiced in a previous system) and take ticked rows out of the queue.
+ * The Queue's "…" menu: add orders by number. Dates are in the table's Filter menu, and the
+ * ticked rows' actions (already invoiced, remove) in its bulk bar (23 Nov 2026).
  */
-export default function QueueMoreMenu({
-  range,
-  onRange,
-  pickedCount,
-  onRemove,
-  onMarkInvoiced,
-  onAdded,
-  busy,
-}: QueueMoreMenuProps) {
+export default function QueueMoreMenu({ onAdded, busy }: QueueMoreMenuProps) {
   // Hooks
   const gstInvoicesCopy = useCopy(gstInvoicesContent)
   const copy = useCopy(gstQueuePageContent)
-  const recordCopy = useCopy(gstAlreadyInvoicedContent)
-  const [dialog, setDialog] = useState<'add' | 'dates' | null>(null)
+  const [dialog, setDialog] = useState<'add' | null>(null)
   const [numbers, setNumbers] = useState('')
-  const [draft, setDraft] = useState<DateRange>(range)
 
   // Event handlers
   const handleAdd = async () => {
@@ -71,18 +49,8 @@ export default function QueueMoreMenu({
       toast.error(errorText(err, gstInvoicesCopy.queue.failed))
     }
   }
-  const handleDates = () => {
-    onRange(draft)
-    setDialog(null)
-  }
-  const handleOpenDates = () => {
-    setDraft(range)
-    setDialog('dates')
-  }
 
   // Render logic
-  const filtered = Boolean(range.from || range.to)
-
   return (
     <>
       <ActionMenu
@@ -90,28 +58,7 @@ export default function QueueMoreMenu({
         variant="outline"
         size="md"
         disabled={busy}
-        items={[
-          { label: copy.addByNumber, icon: Plus, onSelect: () => setDialog('add') },
-          { label: copy.filterDates, icon: CalendarIcon, onSelect: handleOpenDates },
-          {
-            label: copy.clearDates,
-            onSelect: () => onRange({ from: '', to: '' }),
-            hidden: !filtered,
-          },
-          {
-            label: recordCopy.bulkAction,
-            icon: CircleCheck,
-            onSelect: onMarkInvoiced,
-            hidden: pickedCount === 0,
-          },
-          {
-            label: copy.removeSelected,
-            icon: Trash2,
-            onSelect: onRemove,
-            hidden: pickedCount === 0,
-            destructive: true,
-          },
-        ]}
+        items={[{ label: copy.addByNumber, icon: Plus, onSelect: () => setDialog('add') }]}
       />
       <FormDialog
         open={dialog === 'add'}
@@ -132,32 +79,6 @@ export default function QueueMoreMenu({
             value={numbers}
             onChange={(e) => setNumbers(e.target.value)}
           />
-        </div>
-      </FormDialog>
-      <FormDialog
-        open={dialog === 'dates'}
-        onOpenChange={(open) => setDialog(open ? 'dates' : null)}
-        title={copy.datesTitle}
-        submitLabel={copy.apply}
-        onSubmit={handleDates}
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <Label>{gstInvoicesCopy.queue.from}</Label>
-            <DateField
-              value={draft.from}
-              clearable
-              onChange={(v) => setDraft((d) => ({ ...d, from: v }))}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label>{gstInvoicesCopy.queue.to}</Label>
-            <DateField
-              value={draft.to}
-              clearable
-              onChange={(v) => setDraft((d) => ({ ...d, to: v }))}
-            />
-          </div>
         </div>
       </FormDialog>
     </>
