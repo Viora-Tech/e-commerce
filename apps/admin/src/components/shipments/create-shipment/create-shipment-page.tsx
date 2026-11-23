@@ -99,8 +99,6 @@ export default function CreateShipmentPage({
   const [busy, setBusy] = useState(false)
   /** The Select courier drawer (Figma 898:7790). */
   const [drawer, setDrawer] = useState(false)
-  /** The merchant chose the courier in the drawer; until then Book shipment opens it. */
-  const [chosenByHand, setChosenByHand] = useState(false)
   /** Shipping insurance (the drawer's toggle); null follows what the shopper chose at checkout. */
   const [insuredChoice, setInsuredChoice] = useState<boolean | null>(null)
   /** The courier whose Ship now is booking. */
@@ -158,15 +156,10 @@ export default function CreateShipmentPage({
     const next = o?.parcels.find((p) => p.id === id)
     if (!draft || !o || !next) return
     setParcelId(next.id)
-    handlePackage(packageFor(o, partial.start(next), draft))
-  }
-  /* A changed package re-prices the couriers: Book shipment opens the list again (owner). */
-  const handlePackage = (next: PackageForm) => {
-    setForm(next)
-    setChosenByHand(false)
+    setForm(packageFor(o, partial.start(next), draft))
   }
   const handlePickupPlace = (pickupLocationId: string | null) =>
-    form && handlePackage({ ...form, pickupLocationId })
+    form && setForm({ ...form, pickupLocationId })
   /* Split, but booking failed: reload the parcel so a retry does not split twice. */
   const handleSplitKept = () => {
     toast.info(content.partial.splitKept)
@@ -209,11 +202,9 @@ export default function CreateShipmentPage({
     if (!order || !parcel || !form || !parsed) return
     const key = optionKey ?? pick
     const chosen = quote?.options.find((o) => o.optionKey === key) ?? null
-    /* Book shipment opens the courier list (Figma 898:7790) until a courier is picked there. */
-    if (
-      key !== MANUAL &&
-      (!chosen || chosen.problem || !pricesCurrent || (!optionKey && !chosenByHand))
-    ) {
+    /* A courier is only booked by its Ship now in the list (Figma 898:7790): Book shipment opens
+       the list, and a row picked then closed with × is not a choice (owner, 24 Nov 2026). */
+    if (key !== MANUAL && (!optionKey || !chosen || chosen.problem || !pricesCurrent)) {
       setDrawer(true)
       return
     }
@@ -415,7 +406,7 @@ export default function CreateShipmentPage({
               order={order}
               parcel={parcel}
               form={form}
-              onChange={handlePackage}
+              onChange={setForm}
               onParcelChange={handleParcel}
               partial={partial}
               chargedGrams={quote?.chargedWeightGrams}
@@ -426,10 +417,7 @@ export default function CreateShipmentPage({
               summary={drawerSummary}
               rows={options}
               pick={pick}
-              onPick={(key) => {
-                setPick(key)
-                setChosenByHand(true)
-              }}
+              onPick={setPick}
               onShipNow={pricesCurrent ? handleShipNow : undefined}
               shippingKey={shipping}
               insured={insured}
