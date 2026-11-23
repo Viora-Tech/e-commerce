@@ -38,6 +38,7 @@ import {
   courierOrderRef,
   type PushOrderResult,
 } from '@commerce/shipping'
+import { orderAmounts } from './amounts'
 import { packageDetails, updatePushedPackage } from './package'
 import type { RapidshypConfig } from './rapidshyp'
 import {
@@ -235,6 +236,8 @@ function buildOrderPayload(
       tax: 0,
     })),
     paymentMethod: input.paymentMode === 'cod' ? 'COD' : 'PREPAID',
+    // Shipping, discount and the part paid, so RapidShyp collects the amount the admin shows.
+    ...orderAmounts(input),
     packageDetails: packageDetails(input),
   }
 }
@@ -435,7 +438,8 @@ async function finishBooking(
   assigned: AssignedAwb,
   done: { orderRef: string; labelUrl?: string | undefined; pickupScheduled?: boolean },
 ): Promise<CreateShipmentResult> {
-  // A refused pickup can be asked again from Shipments › Booked (Create pickup).
+  // Refused, the parcel stays in Booked with no pickup, and Create pickup asks RapidShyp again
+  // (`./pickup`; it was hidden for every RapidShyp parcel until 23 Nov 2026).
   const pickupScheduled =
     done.pickupScheduled === true ||
     pickupTaken(await calls.schedulePickup(shipmentId, assigned.awb).catch(() => undefined))

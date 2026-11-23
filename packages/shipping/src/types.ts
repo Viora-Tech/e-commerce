@@ -309,9 +309,11 @@ export type ShippingCapability =
   /** Book a courier to collect a customer return from the shopper (a reverse pickup). */
   | 'reverse_pickup'
   /**
-   * The courier schedules its own pickup as part of every booking (RapidShyp). That pickup can't
-   * be taken back over its API, so the admin never offers "Move back to Booked" or Create pickup
-   * for its parcels; only cancelling the shipment stops the pickup (owner, 23 Nov 2026).
+   * The courier schedules its own pickup as part of every booking (RapidShyp, Shiprocket). That
+   * pickup can't be taken back over its API, so the admin never offers "Move back to Booked" for
+   * its parcels, nor Create pickup once one is on a pickup; only cancelling the shipment stops it
+   * (owner, 23 Nov 2026). A parcel whose pickup the courier refused at booking has none, and
+   * Create pickup asks again (with `pickup` and `pickupPerParcel`).
    */
   | 'pickup_at_booking'
   /** Carry parcels abroad, with the customs lines and commercial invoice that needs. */
@@ -340,6 +342,8 @@ export type ReturnPickupInput = {
   lines: ShipmentLine[]
   valuePaise: number
   weightGrams: number
+  /** The box it goes back in (the store's main box), when known. Couriers may ignore it. */
+  dimensionsCm?: { length: number; width: number; height: number } | undefined
 }
 
 export type SchedulePickupInput = {
@@ -350,6 +354,12 @@ export type SchedulePickupInput = {
   timeFrom: string
   timeTo?: string | undefined
   expectedPackageCount: number
+  /**
+   * The parcels, for a courier that books a pickup per parcel (`pickupPerParcel`: RapidShyp's
+   * schedule_pickup, Shiprocket's generate/pickup): each one's AWB and the `providerRef` booking
+   * saved. Couriers that book by place and day ignore it.
+   */
+  parcels?: Array<{ waybill: string; providerRef: string | null }> | undefined
 }
 
 export type SchedulePickupResult = {
@@ -426,6 +436,11 @@ export type ShippingProvider = {
    * the real charge in the order's Profit card. Absent: the quote is the charge.
    */
   readonly quoteIsCharge?: boolean | undefined
+  /**
+   * True when `schedulePickup` books the pickup of the given `parcels` only (RapidShyp, Shiprocket):
+   * a parcel then never joins a pickup already booked for the day without the courier being asked.
+   */
+  readonly pickupPerParcel?: boolean | undefined
   /**
    * Optional: what the courier would charge for this parcel, or null when it
    * will not quote. Checkout prices shipping from the merchant's zones and

@@ -36,7 +36,7 @@ import { logger } from '@commerce/observability/logging'
 import { CourierError, describeCourierFailureForStaff, isValidPincode } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
 import { and, eq } from 'drizzle-orm'
-import { pickupByCourier } from './courier-pickup'
+import { pickupByCourier, pickupHeldByCourier } from './courier-pickup'
 
 export async function updateStoreShipping(tx: StoreTx, storeId: string, shipping: unknown) {
   const [s] = await tx.update(store).set({ shipping }).where(eq(store.id, storeId)).returning()
@@ -493,13 +493,14 @@ export async function describeShipment(
     pickup: pickup ?? null,
     /* Still at the store, not on a pickup yet or its pickup was missed, and the courier takes requests. */
     pickupMissed: missed,
+    /* A courier that books its own pickup (RapidShyp) is asked again only while the parcel has
+       none, the courier having refused it at booking; once on one, never (owner, 23 Nov 2026). */
     canRequestPickup:
-      (!row.pickupId || missed) &&
+      (!row.pickupId || (missed && !pickupByCourier(registry, row.provider))) &&
       row.status === 'created' &&
-      !pickupByCourier(registry, row.provider) &&
       (registry.get(row.provider)?.capabilities.includes('pickup') ?? false),
-    /* The courier's name when it scheduled its own pickup at booking: only Cancel shipment stops it. */
-    pickupByCourier: pickupByCourier(registry, row.provider),
+    /* The courier's name when it scheduled the parcel's pickup at booking: only Cancel shipment stops it. */
+    pickupByCourier: pickupHeldByCourier(registry, row.provider, row.pickupId),
     cancelBlock: cancelBlock(row, { courierCancels: courierCancels(registry, row.provider) }),
   }
 }

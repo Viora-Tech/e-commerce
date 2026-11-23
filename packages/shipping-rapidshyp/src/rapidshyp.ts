@@ -81,6 +81,8 @@ import {
   type RateQuery,
   type RateQuote,
   type ReturnPickupInput,
+  type SchedulePickupInput,
+  type SchedulePickupResult,
   type Serviceability,
   type ServiceabilityQuery,
   type ShippingProvider,
@@ -92,6 +94,7 @@ import { type BookingCalls, bookRapidshypShipment, pushRapidshypOrder } from './
 import { RAPIDSHYP_CAPABILITIES } from './client'
 import { eddDaysFromToday } from './edd'
 import { packageDetails } from './package'
+import { scheduleRapidshypPickups } from './pickup'
 import { explainRapidshypRemark, rapidshypRefusal } from './remarks'
 import { mapRapidshypStatus } from './status'
 
@@ -223,6 +226,8 @@ export class RapidshypProvider implements ShippingProvider {
    * booked shipment's charge, so the quote is never saved as the courier charge.
    */
   readonly quoteIsCharge = false
+  /** Its pickups go per shipment (`./pickup`): never joined to one already booked. */
+  readonly pickupPerParcel = true
 
   private readonly baseUrl: string
   private readonly fetchImpl: typeof fetch
@@ -461,6 +466,26 @@ export class RapidshypProvider implements ShippingProvider {
       shipment_id: shipmentId,
       awb,
     })
+  }
+
+  /** Create pickup for parcels whose pickup RapidShyp refused at booking (`./pickup`). */
+  async schedulePickup(input: SchedulePickupInput): Promise<SchedulePickupResult> {
+    return scheduleRapidshypPickups(
+      {
+        provider: this.id,
+        shipmentIdOf: async (awb) => {
+          const data = await this.postJson<TrackOrderResponse>('/rapidshyp/apis/v1/track_order', {
+            awb,
+          })
+          const hit = data.records
+            ?.flatMap((r) => r.shipment_details ?? [])
+            .find((d) => d.shipment_id && (!d.awb || d.awb === awb))
+          return hit?.shipment_id ? String(hit.shipment_id) : undefined
+        },
+        schedulePickup: (shipmentId, awb) => this.schedulePickupForShipment(shipmentId, awb),
+      },
+      input,
+    )
   }
 
   /** Label PDF API - explicit fallback for when a create call did not come back with a label. */

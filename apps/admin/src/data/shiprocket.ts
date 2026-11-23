@@ -74,6 +74,8 @@ export const shiprocketAppContent = {
       serviceability: 'Check if a PIN code is deliverable, with an estimated delivery date',
       rates: 'Compare prices and delivery times across Shiprocket’s courier network',
       create_shipment: 'Book a shipment with the best available courier and get an AWB',
+      pickup_at_booking: 'Ask Shiprocket for the pickup as soon as the parcel is booked',
+      pickup: 'Ask for the pickup again from Create pickup if Shiprocket refused it at booking',
       label: 'Print the shipping label',
       tracking: 'Track scans automatically, a few times a day',
       webhook: 'Get near-instant tracking updates if you turn on the webhook',

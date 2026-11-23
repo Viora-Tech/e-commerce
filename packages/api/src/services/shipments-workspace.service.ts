@@ -31,7 +31,7 @@ import {
   or,
   sql,
 } from 'drizzle-orm'
-import { pickupByCourier } from './courier-pickup'
+import { pickupHeldByCourier } from './courier-pickup'
 import { bookSavedRoute, parcelsToBook, ruleAllowedRows } from './delivery-booking.service'
 import { countReadyToShip, orderNumberIn } from './ready-to-ship.service'
 import { bookingFor, type OrderBookingOverride } from './shipment-choices'
@@ -184,8 +184,9 @@ export async function listShipments(
     daysWithoutScan: daysWithoutScan({ ...r, tracking }, now),
     labelUrl: shipmentLabelUrl(r),
     courierCancels: registry?.get(r.provider)?.capabilities.includes('cancel') ?? true,
-    /* The courier scheduled its own pickup at booking: no Move back to Booked, no Create pickup. */
-    pickupByCourier: pickupByCourier(registry, r.provider),
+    /* The courier scheduled the parcel's pickup at booking: no Move back to Booked, no Create
+       pickup. Null while it has no pickup (refused at booking), so Create pickup can ask again. */
+    pickupByCourier: pickupHeldByCourier(registry, r.provider, r.pickupId),
   }))
   return { items, total: countRow?.total ?? 0 }
 }

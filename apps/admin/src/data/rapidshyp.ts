@@ -74,6 +74,8 @@ export const rapidshypAppContent = {
       cancel: 'Cancel a booked order',
       ndr: 'Reattempt, change address or send back a delivery attempt that failed',
       reverse_pickup: 'Book a courier pickup for a customer return',
+      pickup_at_booking: 'RapidShyp schedules the pickup when the parcel is booked',
+      pickup: 'Ask for the pickup again from Create pickup if RapidShyp refused it at booking',
     } as Record<string, string>,
     notYetSupported: 'Not yet available for RapidShyp',
     notYetSupportedItems: [

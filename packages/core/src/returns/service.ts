@@ -484,7 +484,8 @@ export async function arrangeReturnPickup(
     .leftJoin(variant, eq(variant.id, orderLine.variantId))
     .where(eq(returnRequestLine.returnRequestId, id))
   // A return goes back in the store's main box: its packing is added to the products.
-  const packingGrams = defaultBoxPreset(settings)?.weightGrams ?? 0
+  const mainBox = defaultBoxPreset(settings)
+  const packingGrams = mainBox?.weightGrams ?? 0
   const result = await provider.createReturnPickup({
     returnId: r.id,
     reference: `${returnLabel(r.number)}-${o.number}`,
@@ -509,6 +510,15 @@ export async function arrangeReturnPickup(
     })),
     valuePaise: lines.reduce((sum, l) => sum + l.quantity * l.unitPricePaise, 0),
     weightGrams: resolveParcelWeightGrams(lines, packingGrams),
+    ...(mainBox
+      ? {
+          dimensionsCm: {
+            length: mainBox.lengthCm,
+            width: mainBox.widthCm,
+            height: mainBox.heightCm,
+          },
+        }
+      : {}),
   })
   const row = await setReturn(ctx, id, {
     status: 'in_transit',
