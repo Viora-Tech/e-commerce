@@ -1,5 +1,6 @@
 'use client'
 
+import type { DesignStyles } from '@commerce/notifications/design'
 import { ImagePlus, RotateCcw, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
@@ -23,8 +24,16 @@ import BrandingPreview from './branding-preview'
 
 type Loaded = Awaited<ReturnType<typeof api.notifications.branding>>
 
-/** What the page edits: the logo, its width and the accent colour. */
-type Draft = { logoUrl: string | null; logoWidth: number; colour: string }
+/**
+ * What the page edits: the logo, its width and the accent colour. The email styles saved from
+ * Edit design ("Use for all emails") ride along unchanged, so saving here never drops them.
+ */
+type Draft = {
+  logoUrl: string | null
+  logoWidth: number
+  colour: string
+  styles?: DesignStyles | undefined
+}
 
 /** The saved branding, else the theme's look, else the neutral look: what the page starts from. */
 function startFrom(o: Loaded): Draft {
@@ -33,6 +42,7 @@ function startFrom(o: Loaded): Draft {
     logoUrl: s?.logoUrl !== undefined ? s.logoUrl : o.theme.logoUrl,
     logoWidth: s?.logoWidth ?? o.theme.logoWidth ?? 160,
     colour: s?.colour ?? o.theme.colour ?? '#111111',
+    ...(s?.styles ? { styles: s.styles } : {}),
   }
 }
 

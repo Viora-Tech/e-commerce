@@ -43,6 +43,30 @@ packages. A typecheck of the changed files was done the same way. Only API-typed
 were left untyped, because `@orpc/server` cannot be resolved from outside the repo.
 Run `bun install` in the branch and then the usual checks before merging.
 
+## Full editor (version 2 designs, same day)
+
+The owner then asked for a full editor: every block's words and look editable, order details
+still filled from the real order. Decision and details: `docs/design/email-dnd-editor.md`,
+"Version 2". No editor core was adopted (React Email 6 editor, Easy Email, Templatical, Maily
+all make their own document the truth and cannot keep server-filled order blocks).
+
+- **Schema** (`packages/notifications/src/design/`): `DESIGN_VERSION` 2, every new field
+  optional. Old rows read as version 2 and send the same HTML. `checkEmailDesign` is the strict
+  reader core's `EmailTemplateDesignSchema` now uses. No database migration: the column is JSON.
+- **Order blocks**: words, hidden parts, colours and button style per kind (`SLOT_EDITS`).
+- **Layout**: a box on every block; Columns (1 to 3, stack on phones); email styles (safe font,
+  size, colours, width, buttons). Email branding can hold the same styles for every email.
+- **Blocks**: hero, products, discount code, video, sanitised HTML; rich text; help box and
+  footer words, address toggle and links.
+- **Admin**: Block and Email styles tabs, slot fields, columns editor, rich text toolbar,
+  product picker, "Use for all emails". Copy in `data/email-design-fields.ts` + Hindi.
+- **Tests**: `packages/notifications/test/design-v2.test.ts` (migration, strict check,
+  sanitiser, rich text, styles, slot edits, every new block), admin
+  `design/design-v2.test.ts` (new blocks round-trip, columns, slot updates, styles undo,
+  toolbar marks), two new cases in core `email-template-design.test.ts` (needs the test
+  database; not run on the branch). Notifications 146 and admin editor tests pass; notifications,
+  core, api and admin typecheck clean.
+
 ## Later
 
 - Click a block in the preview to select it (needs block ids in the server HTML and a
