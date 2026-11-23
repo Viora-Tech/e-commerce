@@ -7,28 +7,39 @@ import { theme, whatsappLink } from './theme'
 export function HelpBox({
   brand,
   labels,
+  title,
+  body,
+  whatsapp = true,
+  background,
 }: {
   brand?: EmailBrandInfo | undefined
   labels: LayoutLabels
+  /** A saved design's own words (Edit design); left out, the built-in ones. */
+  title?: string | undefined
+  body?: string | undefined
+  whatsapp?: boolean | undefined
+  background?: string | undefined
 }) {
-  const wa = whatsappLink(brand?.supportPhone)
+  const wa = whatsapp ? whatsappLink(brand?.supportPhone) : null
   return (
     <Section className="k-pad" style={{ padding: '36px 48px 0' }}>
       <Row
         style={{
-          backgroundColor: theme.soft,
+          backgroundColor: background ?? theme.soft,
           borderRadius: '8px',
         }}
       >
         <Column className="k-stack" style={{ padding: '18px 0 18px 22px' }}>
           <Text style={{ margin: 0, fontSize: '16px', lineHeight: '22px', color: theme.ink }}>
-            {labels.helpTitle}
+            {title ?? labels.helpTitle}
           </Text>
           <Text
             style={{ margin: '2px 0 0', fontSize: '13px', lineHeight: '18px', color: theme.body }}
           >
-            {labels.helpBody}
-            {brand?.supportPhone ? labels.helpWhatsapp(brand.supportPhone) : ''}
+            {body ?? labels.helpBody}
+            {body === undefined && brand?.supportPhone
+              ? labels.helpWhatsapp(brand.supportPhone)
+              : ''}
           </Text>
         </Column>
         {wa ? (

@@ -4,51 +4,40 @@ import { Body, DividerLabel, PrimaryButton } from '../emails/components'
 import { EmailFooter, SocialRow } from '../emails/footer'
 import { EmailHeader } from '../emails/header'
 import { HelpBox } from '../emails/help-box'
-import type { LayoutLabels } from '../emails/layout'
 import { theme } from '../emails/theme'
-import type { EmailBrandInfo, TemplateData } from '../types'
-import { isSafeImage } from './parse'
+import { MoreBlockView } from './free-blocks-more'
+import {
+  contentWidth,
+  type FreeBlockContext,
+  filledLink,
+  imageSrc,
+  paragraphStyle,
+  RichTextView,
+} from './free-parts'
+import { buttonLook } from './slot-edit'
 import type { FreeBlock } from './types'
 import { fillVariables } from './variables'
 
-export type FreeBlockContext = {
-  data: TemplateData
-  brand?: EmailBrandInfo | undefined
-  storeAddress?: string | undefined
-  footerNote: string
-  labels: LayoutLabels
-}
+export type { FreeBlockContext } from './free-parts'
 
 const SPACER = { small: '12px', medium: '28px', large: '48px' } as const
-
-/** A link after its variables are filled: only http(s) and mailto, never an empty `{{order_url}}`. */
-function filledLink(url: string | undefined, d: TemplateData): string | undefined {
-  if (!url) return undefined
-  const u = fillVariables(url, d).trim()
-  return /^(https?:\/\/[^\s"'<>]+|mailto:[^\s"'<>]+)$/i.test(u) ? u : undefined
-}
-
-/** A store media path (`/media/...`) needs the shop's address to load in an inbox. */
-function imageSrc(src: string, brand: EmailBrandInfo | undefined): string | undefined {
-  if (!isSafeImage(src)) return undefined
-  if (src.startsWith('https://')) return src
-  return brand?.shopUrl ? `${brand.shopUrl.replace(/\/$/, '')}${src}` : undefined
-}
 
 /** One block a merchant placed in their design, drawn with the built-in email's styles. */
 export function FreeBlockView({ block: b, ctx }: { block: FreeBlock; ctx: FreeBlockContext }) {
   const d = ctx.data
+  const align = b.box?.align
+  const fill = (t: string | undefined) => (t ? fillVariables(t, d).trim() : '')
   switch (b.type) {
     case 'logo':
       return (
         <EmailHeader storeName={d.storeName} brand={ctx.brand} menu={b.menu} labels={ctx.labels} />
       )
     case 'heading': {
-      const text = fillVariables(b.text, d).trim()
+      const text = fill(b.text)
       if (!text) return null
       const large = b.size === 'large'
       return (
-        <Section className="k-pad" style={{ ...BLOCK_PAD, textAlign: 'center' }}>
+        <Section className="k-pad" style={{ ...BLOCK_PAD, textAlign: align ?? 'center' }}>
           <Text
             className={large ? 'k-title' : undefined}
             style={{
@@ -56,7 +45,7 @@ export function FreeBlockView({ block: b, ctx }: { block: FreeBlock; ctx: FreeBl
               fontSize: large ? '34px' : '22px',
               lineHeight: large ? '40px' : '28px',
               fontWeight: 400,
-              color: theme.ink,
+              color: b.colour ?? theme.ink,
             }}
           >
             {text}
@@ -65,35 +54,39 @@ export function FreeBlockView({ block: b, ctx }: { block: FreeBlock; ctx: FreeBl
       )
     }
     case 'text': {
-      const paragraphs = fillVariables(b.text, d)
+      const filled = fillVariables(b.text, d)
+      const at = align ?? b.align
+      if (b.rich) {
+        if (!filled.trim()) return null
+        return (
+          <Section className="k-pad" style={BLOCK_PAD}>
+            <RichTextView
+              text={filled}
+              style={paragraphStyle(b.muted, at, b.colour)}
+              link={ctx.styles?.link ?? ctx.accent}
+            />
+          </Section>
+        )
+      }
+      const paragraphs = filled
         .split(/\n{2,}/)
         .map((p) => p.trim())
         .filter(Boolean)
       if (paragraphs.length === 0) return null
+      const plain = !b.muted && !b.colour && at !== 'right'
       return (
         <Section className="k-pad" style={BLOCK_PAD}>
           {paragraphs.map((p, i) =>
-            b.muted ? (
-              <Text
-                // biome-ignore lint/suspicious/noArrayIndexKey: paragraphs of one fixed text
-                key={i}
-                style={{
-                  margin: 0,
-                  fontSize: '13.5px',
-                  lineHeight: '20px',
-                  fontStyle: 'italic',
-                  color: theme.muted,
-                  textAlign: b.align,
-                  whiteSpace: 'pre-line',
-                }}
-              >
-                {p}
-              </Text>
-            ) : (
+            plain ? (
               // biome-ignore lint/suspicious/noArrayIndexKey: paragraphs of one fixed text
-              <Body key={i} align={b.align}>
+              <Body key={i} align={at === 'left' ? 'left' : 'center'}>
                 {p}
               </Body>
+            ) : (
+              // biome-ignore lint/suspicious/noArrayIndexKey: paragraphs of one fixed text
+              <Text key={i} style={paragraphStyle(b.muted, at, b.colour)}>
+                {p}
+              </Text>
             ),
           )}
         </Section>
@@ -107,28 +100,42 @@ export function FreeBlockView({ block: b, ctx }: { block: FreeBlock; ctx: FreeBl
         <Img
           src={src}
           alt={fillVariables(b.alt, d)}
-          width={Math.round((524 * b.width) / 100)}
-          style={{ margin: '0 auto', maxWidth: '100%', height: 'auto', display: 'block' }}
+          width={Math.round((contentWidth(ctx.styles) * b.width) / 100)}
+          style={{
+            margin: align === 'left' ? '0' : align === 'right' ? '0 0 0 auto' : '0 auto',
+            maxWidth: '100%',
+            height: 'auto',
+            display: 'block',
+          }}
         />
       )
       return (
-        <Section className="k-pad" style={{ ...BLOCK_PAD, textAlign: 'center' }}>
+        <Section className="k-pad" style={{ ...BLOCK_PAD, textAlign: align ?? 'center' }}>
           {href ? <Link href={href}>{img}</Link> : img}
         </Section>
       )
     }
     case 'button': {
       const href = filledLink(b.url, d)
-      const label = fillVariables(b.label, d).trim()
-      return href && label ? <PrimaryButton href={href}>{label}</PrimaryButton> : null
+      const label = fill(b.label)
+      if (!href || !label) return null
+      return (
+        <PrimaryButton href={href} look={buttonLook(ctx.styles?.button, b.style, align)}>
+          {label}
+        </PrimaryButton>
+      )
     }
     case 'divider': {
-      const label = fillVariables(b.label, d).trim()
+      const label = fill(b.label)
       if (label) return <DividerLabel>{label}</DividerLabel>
       return (
         <Section className="k-pad" style={{ padding: '28px 48px 0' }}>
           <div
-            style={{ borderTop: `1px solid ${theme.border}`, fontSize: '1px', lineHeight: '1px' }}
+            style={{
+              borderTop: `1px solid ${b.colour ?? theme.border}`,
+              fontSize: '1px',
+              lineHeight: '1px',
+            }}
           >
             &nbsp;
           </div>
@@ -143,21 +150,39 @@ export function FreeBlockView({ block: b, ctx }: { block: FreeBlock; ctx: FreeBl
       )
     case 'social':
       return (
-        <Section className="k-pad" style={{ ...BLOCK_PAD, textAlign: 'center' }}>
+        <Section className="k-pad" style={{ ...BLOCK_PAD, textAlign: align ?? 'center' }}>
           <SocialRow brand={ctx.brand} />
         </Section>
       )
     case 'help':
-      return <HelpBox brand={ctx.brand} labels={ctx.labels} />
-    case 'footer':
+      return (
+        <HelpBox
+          brand={ctx.brand}
+          labels={ctx.labels}
+          title={fill(b.title) || undefined}
+          body={fill(b.body) || undefined}
+          whatsapp={b.whatsapp !== false}
+        />
+      )
+    case 'footer': {
+      const links = (b.links ?? []).flatMap((l) => {
+        const url = filledLink(l.url, d)
+        const label = fill(l.label)
+        return url && label ? [{ label, url }] : []
+      })
       return (
         <EmailFooter
           brand={ctx.brand}
           storeAddress={ctx.storeAddress}
-          footerNote={ctx.footerNote}
+          footerNote={fill(b.note) || ctx.footerNote}
           showSocial={b.social}
           labels={ctx.labels}
+          links={links}
+          showAddress={b.address !== false}
         />
       )
+    }
+    default:
+      return <MoreBlockView block={b} ctx={ctx} />
   }
 }

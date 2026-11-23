@@ -1,12 +1,20 @@
 import type { EmailBlock } from '../emails/blocks'
 import { type KeyedBlock, keyBlocks, slotLocked } from './slots'
+import type { BlockBox, SlotEdit } from './style-types'
 import type { EmailTemplateDesign, FreeBlock, IntroBlock } from './types'
 
 /** One thing to draw, in order: a merchant block, the intro, or one of the template's blocks. */
 export type ResolvedBlock =
   | { kind: 'free'; block: FreeBlock }
   | { kind: 'intro'; block: IntroBlock }
-  | { kind: 'slot'; key: string; block: EmailBlock }
+  | {
+      kind: 'slot'
+      key: string
+      block: EmailBlock
+      /** The merchant's words and colours over it, and its box. */
+      edit?: SlotEdit | undefined
+      box?: BlockBox | undefined
+    }
 
 const DEFAULT_INTRO: IntroBlock = { id: 'intro', type: 'intro' }
 
@@ -30,7 +38,7 @@ export function resolveDesign(
       const block = byKey.get(b.slot)
       if (block && !used.has(b.slot)) {
         used.add(b.slot)
-        out.push({ kind: 'slot', key: b.slot, block })
+        out.push({ kind: 'slot', key: b.slot, block, edit: b.edit, box: b.box })
       }
     } else if (b.type === 'intro') {
       if (!out.some((r) => r.kind === 'intro')) out.push({ kind: 'intro', block: b })

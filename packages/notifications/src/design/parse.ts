@@ -1,117 +1,25 @@
-import { SLOT_KEY } from './slots'
+import { parseBlock } from './parse-blocks'
+import { isObj, parseStyles, str } from './parse-style'
+import { SLOT_KEY, slotLocked } from './slots'
 import {
   DESIGN_VERSION,
+  DESIGN_VERSIONS,
   type DesignBlock,
   type EmailTemplateDesign,
   DESIGN_LIMITS as L,
 } from './types'
-import { fillForCheck } from './variable-syntax'
+
+export { isSafeImage, isSafeLink } from './parse-blocks'
 
 /**
- * The send-time reading of a stored design. The API validates on save (core
- * `EmailTemplateDesignSchema`); this runs again on every send because a stored row can be old,
- * hand-edited or broken. Null for anything that is not a design; a single bad block is dropped.
+ * The send-time reading of a stored design. The API checks on save (`checkEmailDesign`, used by
+ * core's `EmailTemplateDesignSchema`); this runs again on every send because a stored row can be
+ * old, hand-edited or broken. Null for anything that is not a design; a single bad block is
+ * dropped. A version 1 design comes back as version 2: every field it lacks is optional.
  */
-
-type Raw = Record<string, unknown>
-
-const isObj = (v: unknown): v is Raw => typeof v === 'object' && v !== null && !Array.isArray(v)
-
-/** Control characters other than tab and newline never belong in an email's words. */
-// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping them is the point
-const CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g
-
-function str(v: unknown, max: number): string | undefined {
-  if (typeof v !== 'string') return undefined
-  return v.replace(CONTROL, '').slice(0, max)
-}
-
-/** A link a shopper may click: http(s) or mailto, variables allowed (`{{order_url}}`). */
-export function isSafeLink(url: string): boolean {
-  const u = fillForCheck(url.trim())
-  return /^(https?:\/\/[^\s"'<>]+|mailto:[^\s"'<>]+)$/i.test(u)
-}
-
-/** An image address: https, or the store's own media path (`/media/...`). */
-export function isSafeImage(src: string): boolean {
-  return /^https:\/\/[^\s"'<>]+$/i.test(src) || /^\/[a-z0-9][^\s"'<>]*$/i.test(src)
-}
-
-function parseBlock(b: unknown): DesignBlock | null {
-  if (!isObj(b)) return null
-  const id = str(b.id, L.id)
-  if (!id) return null
-  const text = (k: string, max: number = L.text) => str(b[k], max) ?? ''
-  switch (b.type) {
-    case 'intro':
-      return {
-        id,
-        type: 'intro',
-        eyebrow: str(b.eyebrow, L.label),
-        heading: str(b.heading, L.label),
-        lead: str(b.lead, L.text),
-      }
-    case 'slot': {
-      const slot = str(b.slot, 30)
-      return slot && SLOT_KEY.test(slot) ? { id, type: 'slot', slot } : null
-    }
-    case 'logo':
-      return { id, type: 'logo', menu: b.menu !== false }
-    case 'heading':
-      return {
-        id,
-        type: 'heading',
-        text: text('text', L.label),
-        size: b.size === 'small' ? 'small' : 'large',
-      }
-    case 'text':
-      return {
-        id,
-        type: 'text',
-        text: text('text'),
-        align: b.align === 'left' ? 'left' : 'center',
-        muted: b.muted === true,
-      }
-    case 'image': {
-      const src = text('src', L.url)
-      if (!isSafeImage(src)) return null
-      const href = str(b.href, L.url)
-      const width = typeof b.width === 'number' && Number.isFinite(b.width) ? b.width : 100
-      return {
-        id,
-        type: 'image',
-        src,
-        alt: text('alt', L.label),
-        href: href && isSafeLink(href) ? href : undefined,
-        width: Math.min(100, Math.max(20, Math.round(width))),
-      }
-    }
-    case 'button': {
-      const url = text('url', L.url)
-      const label = text('label', L.label)
-      return label && isSafeLink(url) ? { id, type: 'button', label, url } : null
-    }
-    case 'divider':
-      return { id, type: 'divider', label: text('label', L.label) }
-    case 'spacer':
-      return {
-        id,
-        type: 'spacer',
-        size: b.size === 'small' || b.size === 'large' ? b.size : 'medium',
-      }
-    case 'social':
-      return { id, type: 'social' }
-    case 'help':
-      return { id, type: 'help' }
-    case 'footer':
-      return { id, type: 'footer', social: b.social !== false }
-    default:
-      return null
-  }
-}
-
 export function parseEmailDesign(raw: unknown): EmailTemplateDesign | null {
-  if (!isObj(raw) || raw.version !== DESIGN_VERSION || !Array.isArray(raw.blocks)) return null
+  if (!isObj(raw) || !DESIGN_VERSIONS.includes(raw.version as number)) return null
+  if (!Array.isArray(raw.blocks)) return null
   try {
     if (JSON.stringify(raw).length > L.bytes) return null
   } catch {
@@ -133,10 +41,89 @@ export function parseEmailDesign(raw: unknown): EmailTemplateDesign | null {
         .filter((k): k is string => typeof k === 'string' && SLOT_KEY.test(k))
         .slice(0, L.blocks)
     : []
+  const styles = parseStyles(raw.styles)
   return {
     version: DESIGN_VERSION,
     subject: str(raw.subject, L.subject)?.trim() || undefined,
+    ...(styles ? { styles } : {}),
     blocks: cleaned,
     removed,
   }
+}
+
+export type DesignCheck =
+  | { ok: true; design: EmailTemplateDesign }
+  | { ok: false; issues: string[] }
+
+const rawBlocks = (raw: unknown): unknown[] =>
+  isObj(raw) && Array.isArray(raw.blocks) ? raw.blocks : []
+
+/** What a block lost when it was read: a link or picture that was not safe, a dropped cell. */
+function lost(raw: unknown, block: DesignBlock): string | null {
+  if (!isObj(raw)) return null
+  const has = (k: string) => typeof raw[k] === 'string' && (raw[k] as string).trim() !== ''
+  const b = block as Record<string, unknown>
+  for (const [k, v] of Object.entries(raw)) {
+    const kept = b[k]
+    if (k === 'html' || typeof v !== 'string' || typeof kept !== 'string') continue
+    if (kept.length < v.trim().length) return `${k} is too long`
+  }
+  if (has('href') && !b.href) return 'Links must start with https://, http:// or mailto:'
+  if (block.type === 'hero' && has('buttonUrl') && !block.buttonUrl) {
+    return 'Links must start with https://, http:// or mailto:'
+  }
+  if (block.type === 'footer' && Array.isArray(raw.links)) {
+    if (raw.links.length !== (block.links?.length ?? 0)) return 'A footer link is not valid'
+  }
+  if (block.type === 'columns' && Array.isArray(raw.cells)) {
+    const want = raw.cells
+      .slice(0, 3)
+      .reduce<number>((n, c) => n + (Array.isArray(c) ? c.length : 0), 0)
+    const got = block.cells.reduce((n, c) => n + c.length, 0)
+    if (want !== got || raw.cells.length > 3) return 'A block inside the columns is not valid'
+  }
+  return null
+}
+
+/**
+ * What Save accepts: the same reading as a send, but strict. Anything a send would drop or
+ * change (an unknown block, an unsafe link or picture, a duplicate id, a second intro, a locked
+ * block listed as removed, a design too large) is an issue instead.
+ */
+export function checkEmailDesign(raw: unknown): DesignCheck {
+  if (!isObj(raw) || !DESIGN_VERSIONS.includes(raw.version as number)) {
+    return { ok: false, issues: ['Not an email design'] }
+  }
+  const issues: string[] = []
+  const list = rawBlocks(raw)
+  if (list.length > L.blocks) issues.push(`At most ${L.blocks} blocks`)
+  const ids = new Set<string>()
+  for (const b of list) {
+    const id = isObj(b) && typeof b.id === 'string' ? b.id : '?'
+    const block = parseBlock(b)
+    if (!block || !/^[A-Za-z0-9_#-]+$/.test(block.id)) {
+      issues.push(`Block ${id} is not valid: check its words, links and pictures`)
+      continue
+    }
+    const problem = lost(b, block)
+    if (problem) issues.push(`${id}: ${problem}`)
+    const inner = block.type === 'columns' ? block.cells.flat().map((c) => c.id) : []
+    for (const k of [block.id, ...inner]) {
+      if (ids.has(k)) issues.push(`Duplicate block id ${k}`)
+      ids.add(k)
+    }
+  }
+  if (list.filter((b) => isObj(b) && b.type === 'intro').length > 1)
+    issues.push('Only one intro block')
+  const removed = Array.isArray(raw.removed) ? raw.removed : []
+  for (const key of removed) {
+    if (typeof key !== 'string' || !SLOT_KEY.test(key)) issues.push('A removed block is not valid')
+    else if (slotLocked(key)) issues.push(`${key} cannot be removed`)
+  }
+  if (typeof raw.subject === 'string' && raw.subject.length > L.subject)
+    issues.push('The subject is too long')
+  if (JSON.stringify(raw).length > L.bytes) issues.push('The design is too large')
+  if (issues.length > 0) return { ok: false, issues }
+  const design = parseEmailDesign(raw)
+  return design ? { ok: true, design } : { ok: false, issues: ['Not an email design'] }
 }

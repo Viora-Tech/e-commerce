@@ -1,107 +1,32 @@
 /** SOURCE OF TRUTH: saved email designs — WHAT: validating, storing and loading a store's own block layout per transactional email, and attaching it to every email a store sends / WHY: one schema for the API and one loader for every send path, so a design never breaks an order email */
 import { emailTemplateDesign, type StoreTx } from '@commerce/db'
 import {
-  DESIGN_VERSION,
+  checkEmailDesign,
   designableTemplate,
   type EmailTemplateDesign,
-  isSafeImage,
-  isSafeLink,
-  DESIGN_LIMITS as L,
   type NotificationChannel,
   parseEmailDesign,
-  SLOT_KEY,
-  slotLocked,
   type TemplateId,
 } from '@commerce/notifications'
 import { logger } from '@commerce/observability/logging'
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
-const id = z
-  .string()
-  .min(1)
-  .max(L.id)
-  .regex(/^[A-Za-z0-9_#-]+$/)
-const words = (max: number) => z.string().max(max)
-const link = z
-  .string()
-  .trim()
-  .min(1)
-  .max(L.url)
-  .refine(isSafeLink, 'Links must start with https://, http:// or mailto:')
-const slot = z.string().regex(SLOT_KEY)
-
-const BlockSchema = z.discriminatedUnion('type', [
-  z.object({
-    id,
-    type: z.literal('intro'),
-    eyebrow: words(L.label).optional(),
-    heading: words(L.label).optional(),
-    lead: words(L.text).optional(),
-  }),
-  z.object({ id, type: z.literal('slot'), slot }),
-  z.object({ id, type: z.literal('logo'), menu: z.boolean() }),
-  z.object({
-    id,
-    type: z.literal('heading'),
-    text: words(L.label),
-    size: z.enum(['large', 'small']),
-  }),
-  z.object({
-    id,
-    type: z.literal('text'),
-    text: words(L.text),
-    align: z.enum(['left', 'center']),
-    muted: z.boolean(),
-  }),
-  z.object({
-    id,
-    type: z.literal('image'),
-    src: z
-      .string()
-      .trim()
-      .max(L.url)
-      .refine(isSafeImage, 'Images must be https or from your media library'),
-    alt: words(L.label),
-    href: link.optional(),
-    width: z.number().int().min(20).max(100),
-  }),
-  z.object({ id, type: z.literal('button'), label: words(L.label).min(1), url: link }),
-  z.object({ id, type: z.literal('divider'), label: words(L.label) }),
-  z.object({ id, type: z.literal('spacer'), size: z.enum(['small', 'medium', 'large']) }),
-  z.object({ id, type: z.literal('social') }),
-  z.object({ id, type: z.literal('help') }),
-  z.object({ id, type: z.literal('footer'), social: z.boolean() }),
-])
-
 /**
- * What Save accepts: the block types the editor offers, bounded sizes, safe links and images.
- * Text is stored as typed and escaped when the email is drawn, so HTML in it shows as text.
- * Locked built-in blocks may not be listed as removed.
+ * What Save accepts: exactly what a send would draw, nothing dropped or changed on the way
+ * (`checkEmailDesign` in `@commerce/notifications`: the block types the editor offers, bounded
+ * sizes, safe links and images, cleaned HTML, locked built-in blocks never listed as removed).
+ * Text is stored as typed and escaped when the email is drawn. A version 1 design from an older
+ * editor is accepted and stored as version 2.
  */
-export const EmailTemplateDesignSchema = z
-  .object({
-    version: z.literal(DESIGN_VERSION),
-    subject: words(L.subject).optional(),
-    blocks: z.array(BlockSchema).max(L.blocks),
-    removed: z.array(slot).max(L.blocks).default([]),
-  })
-  .superRefine((d, ctx) => {
-    const ids = new Set<string>()
-    for (const b of d.blocks) {
-      if (ids.has(b.id)) ctx.addIssue({ code: 'custom', message: `Duplicate block id ${b.id}` })
-      ids.add(b.id)
-    }
-    if (d.blocks.filter((b) => b.type === 'intro').length > 1) {
-      ctx.addIssue({ code: 'custom', message: 'Only one intro block' })
-    }
-    for (const key of d.removed) {
-      if (slotLocked(key)) ctx.addIssue({ code: 'custom', message: `${key} cannot be removed` })
-    }
-    if (JSON.stringify(d).length > L.bytes) {
-      ctx.addIssue({ code: 'custom', message: 'The design is too large' })
-    }
-  })
+export const EmailTemplateDesignSchema = z.unknown().transform((raw, ctx): EmailTemplateDesign => {
+  const r = checkEmailDesign(raw)
+  if (!r.ok) {
+    for (const message of r.issues) ctx.addIssue({ code: 'custom', message })
+    return z.NEVER
+  }
+  return r.design
+})
 
 /** The store's saved design for one email, parsed; null for none or a broken row. */
 export async function savedTemplateDesign(

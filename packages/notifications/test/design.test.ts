@@ -177,7 +177,7 @@ describe('parseEmailDesign', () => {
       blocks: [
         { id: 'a', type: 'text', text: 'x' },
         { id: 'a', type: 'text', text: 'again' },
-        { id: 'b', type: 'html', html: '<b>' },
+        { id: 'b', type: 'iframe', src: 'https://example.com' },
         { id: 'c', type: 'slot', slot: 'items; drop' },
         { id: 'd', type: 'slot', slot: 'items#0' },
       ],

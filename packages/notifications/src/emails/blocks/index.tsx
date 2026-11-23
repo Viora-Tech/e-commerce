@@ -1,6 +1,6 @@
 import { Link, Section, Text } from '@react-email/components'
 import type { ComponentProps, ReactNode } from 'react'
-import { Body, DividerLabel, LinkLine, PrimaryButton } from '../components'
+import { Body, type ButtonLook, DividerLabel, LinkLine, PrimaryButton } from '../components'
 import { ItemsPanel } from '../items-panel'
 import { theme } from '../theme'
 import {
@@ -57,6 +57,8 @@ export type ButtonBlock = {
   label: string
   url: string
   secondary?: { label: string; url: string } | undefined
+  /** A saved design's button look (Edit design). */
+  look?: ButtonLook | undefined
 }
 /** A caps label between two hairlines. */
 export type DividerBlock = { kind: 'divider'; label: string }
@@ -194,7 +196,9 @@ function Block({ block: b, accent }: { block: EmailBlock; accent: string }) {
     case 'button':
       return (
         <>
-          <PrimaryButton href={b.url}>{b.label}</PrimaryButton>
+          <PrimaryButton href={b.url} look={b.look}>
+            {b.label}
+          </PrimaryButton>
           {b.secondary ? (
             <Section style={{ padding: '12px 24px 0', textAlign: 'center' }}>
               <Link

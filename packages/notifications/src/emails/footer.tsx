@@ -12,6 +12,11 @@ type EmailFooterProps = {
   /** Draw the socials row; defaults to every customer email (not team alerts). */
   showSocial?: boolean | undefined
   labels: LayoutLabels
+  /** A saved design's own footer links, one row under the note (Edit design). */
+  links?: { label: string; url: string }[] | undefined
+  /** False hides the store's address. */
+  showAddress?: boolean | undefined
+  background?: string | undefined
 }
 
 /** Socials drawn as the Figma icons; any other platform gets a lettered circle. */
@@ -55,15 +60,18 @@ export function EmailFooter({
   internal,
   showSocial = !internal,
   labels,
+  links,
+  showAddress = true,
+  background,
 }: EmailFooterProps) {
   const social = showSocial ? socialLinks(brand) : []
-  const address = brand?.address ?? storeAddress
+  const address = showAddress ? (brand?.address ?? storeAddress) : undefined
   return (
     <Section
       className="k-pad"
       style={{
         marginTop: '36px',
-        backgroundColor: theme.soft,
+        backgroundColor: background ?? theme.soft,
         borderTop: `1px solid ${theme.hairline}`,
         padding: '28px 48px 30px',
         textAlign: 'center',
@@ -73,6 +81,18 @@ export function EmailFooter({
       <Text style={{ margin: '0 0 6px', fontSize: '13px', lineHeight: '19px', color: theme.body }}>
         {footerNote}
       </Text>
+      {links && links.length > 0 ? (
+        <Text style={{ margin: '0 0 6px', fontSize: '13px', lineHeight: '19px' }}>
+          {links.map((l, i) => (
+            <span key={l.url}>
+              {i > 0 ? <span style={{ color: theme.faint }}>&nbsp;&nbsp;·&nbsp;&nbsp;</span> : null}
+              <Link href={l.url} style={{ color: theme.body, textDecoration: 'underline' }}>
+                {l.label}
+              </Link>
+            </span>
+          ))}
+        </Text>
+      ) : null}
       {address ? (
         <Text
           style={{ margin: '0 0 4px', fontSize: '12px', lineHeight: '18px', color: theme.muted }}

@@ -67,9 +67,12 @@ export function Intro({
   heading,
   lead,
   accent = theme.accent,
+  align = 'center',
   children,
 }: {
   eyebrow?: string | undefined
+  /** A saved design may set the intro left or right (Edit design). */
+  align?: 'left' | 'center' | 'right' | undefined
   heading: string
   /** The italic line under the heading. */
   lead?: string | undefined
@@ -77,7 +80,7 @@ export function Intro({
   children?: ReactNode
 }) {
   return (
-    <Section className="k-pad" style={{ padding: '32px 48px 0', textAlign: 'center' }}>
+    <Section className="k-pad" style={{ padding: '32px 48px 0', textAlign: align }}>
       {eyebrow ? (
         <Text
           style={{
@@ -149,27 +152,44 @@ export function Body({
 }
 
 /** The one button style every email uses: ink with an arrow, always centred (owner rule). */
+/** A saved design's button look (Edit design); left out, the built-in ink button. */
+export type ButtonLook = {
+  background?: string | undefined
+  text?: string | undefined
+  radius?: string | undefined
+  full?: boolean | undefined
+  align?: 'left' | 'center' | 'right' | undefined
+}
+
 export function PrimaryButton({
   href,
   children,
+  look,
 }: {
   href: string
   children: string
   /** Kept for callers that still pass the store colours; buttons are ink everywhere now. */
   colours?: Colours | undefined
+  look?: ButtonLook | undefined
 }) {
   return (
-    <Section style={{ padding: '28px 24px 0', textAlign: 'center' }}>
+    <Section
+      className={look?.full ? 'k-pad' : undefined}
+      style={{
+        padding: look?.full ? '28px 48px 0' : '28px 24px 0',
+        textAlign: look?.align ?? 'center',
+      }}
+    >
       <Button
         href={href}
         style={{
-          backgroundColor: theme.button,
-          color: theme.onButton,
+          backgroundColor: look?.background ?? theme.button,
+          color: look?.text ?? theme.onButton,
           fontSize: '16px',
           padding: '13px 28px',
-          borderRadius: '4px',
+          borderRadius: look?.radius ?? '4px',
           textDecoration: 'none',
-          display: 'inline-block',
+          display: look?.full ? 'block' : 'inline-block',
           textAlign: 'center',
         }}
       >

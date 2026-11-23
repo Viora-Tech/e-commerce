@@ -22,6 +22,10 @@ type EmailLayoutProps = {
    * (`design/`), so the shell keeps only the card.
    */
   bare?: boolean | undefined
+  /** A saved design's page colour, card colour and card width (px). */
+  look?:
+    | { background?: string | undefined; card?: string | undefined; width?: number | undefined }
+    | undefined
   children: ReactNode
 }
 
@@ -62,6 +66,7 @@ export function EmailLayout({
   internal,
   labels,
   bare,
+  look,
   children,
 }: EmailLayoutProps) {
   return (
@@ -72,7 +77,7 @@ export function EmailLayout({
       <Preview>{previewText}</Preview>
       <Body
         style={{
-          backgroundColor: theme.panel,
+          backgroundColor: look?.background ?? theme.panel,
           margin: 0,
           padding: '32px 12px',
           fontFamily: theme.fontFamily,
@@ -81,11 +86,11 @@ export function EmailLayout({
       >
         <Container
           style={{
-            maxWidth: '620px',
+            maxWidth: `${look?.width ?? 620}px`,
             width: '100%',
             tableLayout: 'fixed',
             margin: '0 auto',
-            backgroundColor: theme.page,
+            backgroundColor: look?.card ?? theme.page,
             borderRadius: '10px',
             overflow: 'hidden',
           }}

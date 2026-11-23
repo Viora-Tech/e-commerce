@@ -1,6 +1,7 @@
 import { render } from '@react-email/render'
 import { createElement } from 'react'
 import { designFor } from '../design/design-for'
+import { applyDesignLook } from '../design/design-look'
 import { DesignedEmail } from '../design/designed-email'
 import { designTextLines, introOverride } from '../design/plain-text'
 import { fillVariables } from '../design/variables'
@@ -400,10 +401,11 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
             ...((composed?.ownsNote ? undefined : note)?.split(/\n+/).filter(Boolean) ?? []),
           ].filter((t): t is string => Boolean(t)),
           blocks: design.blocks,
+          styles: design.styles,
           internal: INTERNAL.has(template),
         }),
       )
-      return { subject, text, html }
+      return { subject, text, html: applyDesignLook(html, design.styles) }
     } catch (err) {
       // An order email never fails over a design: send the built-in one instead.
       console.warn('email design failed to render; sending the built-in email', {

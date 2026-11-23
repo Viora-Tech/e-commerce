@@ -38,8 +38,8 @@ describe('EmailTemplateDesignSchema', () => {
     expect(r.success).toBe(true)
   })
 
-  it('refuses unknown block types, script links, plain-http images and HTML blocks', () => {
-    expect(parse([{ id: 'a', type: 'html', html: '<script>' }]).success).toBe(false)
+  it('refuses unknown block types, script links and plain-http images', () => {
+    expect(parse([{ id: 'a', type: 'iframe', src: 'https://a.example' }]).success).toBe(false)
     expect(
       parse([{ id: 'a', type: 'button', label: 'x', url: 'javascript:alert(1)' }]).success,
     ).toBe(false)
@@ -77,6 +77,26 @@ describe('EmailTemplateDesignSchema', () => {
     expect(
       parse(Array.from({ length: 61 }, (_, i) => ({ id: `s${i}`, type: 'social' }))).success,
     ).toBe(false)
+  })
+})
+
+describe('EmailTemplateDesignSchema, version 2', () => {
+  it('accepts an old version 1 design and stores it as version 2', () => {
+    const r = EmailTemplateDesignSchema.safeParse({ ...defaultEmailDesign('delivered'), version: 1 })
+    expect(r.success && r.data.version).toBe(2)
+  })
+
+  it('accepts styles, boxes, slot edits and the new blocks; cleans HTML', () => {
+    const r = parse(
+      [
+        { id: 'items#0', type: 'slot', slot: 'items#0', edit: { hide: ['image'] }, box: { top: 'small' } },
+        { id: 'h', type: 'html', html: '<p onclick="x">Hi</p><script>x</script>' },
+        { id: 'c', type: 'coupon', code: 'SAVE', label: '', note: '', value: '', valueNote: '' },
+      ],
+      { version: 2, styles: { font: 'arial', button: { shape: 'pill' } } },
+    )
+    expect(r.success).toBe(true)
+    expect(r.success && r.data.blocks[1]).toMatchObject({ html: '<p>Hi</p>' })
   })
 })
 
