@@ -9,9 +9,13 @@
  * WHERE: SnapmintProvider (snapmint.ts).
  */
 
-/** Section 5.1: the checkout (carts) host. Only callable from the merchant's whitelisted server IP. */
+/**
+ * Section 5.1: the checkout (carts) host. Snapmint confirmed (23 Nov 2026) carts need no IP
+ * allow-listing. The documented sandbox host pay.sandbox.snapmint.com answers every request with
+ * a CloudFront 403, so sandbox uses apis.sandbox.snapmint.com, which serves the same /api/pub/carts.
+ */
 const PAY_HOSTS = {
-  test: 'https://pay.sandbox.snapmint.com',
+  test: 'https://apis.sandbox.snapmint.com',
   live: 'https://pay.snapmint.com',
 } as const
 
