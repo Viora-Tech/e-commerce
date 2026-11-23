@@ -21,6 +21,8 @@ import SettingsTextRow from './settings-text-row'
 type ShippingPolicyFieldsProps = {
   value: ShippingPolicySettings
   onChange: (next: ShippingPolicySettings) => void
+  /** Open More options and bring the ship-from address into view (Create shipment's Edit). */
+  focusAddress?: boolean | undefined
 }
 
 type Warehouse = ShippingPolicySettings['warehouse']
@@ -102,7 +104,11 @@ function TextField({ id, label, value, onChange, help, type = 'text' }: TextFiel
 }
 
 /** "When orders go out" on Settings › Shipping: the everyday dispatch fields, the rest under More options. */
-export default function ShippingPolicyFields({ value, onChange }: ShippingPolicyFieldsProps) {
+export default function ShippingPolicyFields({
+  value,
+  onChange,
+  focusAddress = false,
+}: ShippingPolicyFieldsProps) {
   // Hooks
   const { policy: p } = useCopy(shippingSettingsContent)
 
@@ -167,7 +173,7 @@ export default function ShippingPolicyFields({ value, onChange }: ShippingPolicy
         weight="semibold"
         divided
       />
-      <Collapsible>
+      <Collapsible defaultOpen={focusAddress}>
         <CollapsibleTrigger className="group flex w-fit items-center gap-1.5 text-body font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <ChevronDown aria-hidden="true" className="hidden size-4 group-data-[panel-open]:block" />
           <ChevronRight aria-hidden="true" className="size-4 group-data-[panel-open]:hidden" />
@@ -202,7 +208,14 @@ export default function ShippingPolicyFields({ value, onChange }: ShippingPolicy
               }
               help={p.transitHelp}
             />
-            <h3 className="text-body font-bold text-ink-strong">{p.warehouse}</h3>
+            <h3
+              ref={(el) => {
+                if (focusAddress) el?.scrollIntoView({ block: 'center' })
+              }}
+              className="text-body font-bold text-ink-strong"
+            >
+              {p.warehouse}
+            </h3>
             <TextField
               id="wh-name"
               label={p.warehouseName}
