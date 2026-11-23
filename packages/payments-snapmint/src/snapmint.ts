@@ -3,8 +3,10 @@
  * Integration Document" with checkout 3.0, version 20250722 (shared privately by Snapmint):
  * - 5.1 create checkout `POST /api/pub/carts` on the pay host, from a whitelisted server IP;
  *   the answer's `url` is where the shopper goes.
- * - 6.2 order status, 6.3 refund and partial refund, 6.4 refund status, 8 visibility: the API
- *   host with `Authorization: Bearer <merchant token>`.
+ * - 6.2 order status, 6.3 refund and partial refund, 6.4 refund status: the API host with
+ *   `Authorization: Bearer <merchant token>`.
+ * - Visibility: Snapmint's separate "Visibility V2 Documentation", `POST /ext/v1/visibility`
+ *   on apis(.sandbox).snapmint.com with `Authorization: Basic base64(mid:merchant key)`.
  * - 7 webhook (S2S, JSON, three tries, answer 200 at once) and the return post, both with
  *   `checksum_hash` (checksum.ts).
  * Snapmint's EMI offered inside Razorpay Checkout (payments-razorpay SNAPMINT_PROVIDER) is a
@@ -23,13 +25,7 @@ import type {
   WebhookEvent,
   WebhookVerification,
 } from '@commerce/payments'
-import {
-  buildSnapmintCart,
-  paiseToRupees,
-  rupeesToPaise,
-  snapmintMobile,
-  VISIBILITY_ORDER_VALUE_CAP,
-} from './cart'
+import { buildSnapmintCart, paiseToRupees, rupeesToPaise } from './cart'
 import { verifySnapmintChecksum } from './checksum'
 import { SnapmintApiError, snapmintRequest } from './http'
 import {
@@ -39,11 +35,12 @@ import {
   snapmintEventId,
   snapmintPaymentStatus,
 } from './status'
+import { buildSnapmintVisibility, readSnapmintVisibility } from './visibility'
 
 export type SnapmintConfig = {
   /** Snapmint's merchant id (MID). */
   merchantId: string
-  /** Merchant key: only ever used inside the checksum. */
+  /** Merchant key: the checksum, and the secret in Visibility V2's Basic auth. */
   merchantKey: string
   /** Merchant token: the API's bearer token and part of the checksum. */
   merchantToken: string
@@ -258,36 +255,25 @@ export class SnapmintProvider implements PaymentProvider {
   }
 
   /**
-   * Section 8: whether Snapmint would offer this shopper EMI at all. Built for order values up
-   * to ₹10,000 (more is sent as 10,000). Any error or a slow answer shows Snapmint (fail open):
-   * the lender still decides on its own page.
+   * Visibility V2: whether Snapmint would offer this shopper EMI at all (order value capped at
+   * ₹10,000 as before). Any error, a slow answer or a shape we do not know shows Snapmint (fail
+   * open): the lender still decides on its own page, and until Snapmint allow-lists our server
+   * IPs this call is refused.
    */
   async checkAvailability(input: AvailabilityInput): Promise<boolean> {
-    const mobile = snapmintMobile(input.customer.phone)
-    if (!mobile) return false
-    const ship = input.shipping
-    const body: Record<string, unknown> = {
-      mobile: Number(mobile),
-      order_value: Math.min(Math.round(input.amountPaise / 100), VISIBILITY_ORDER_VALUE_CAP),
-      full_name: input.customer.name ?? ship?.name ?? '',
-      email: input.customer.email ?? '',
-    }
-    if (ship) {
-      body.shipping_zip = Number(ship.postalCode.replace(/\D/g, ''))
-      body.shipping_address_line1 = ship.line1
-      if (ship.line2) body.shipping_address_line2 = ship.line2
-      body.shipping_city = ship.city
-      body.shipping_state = ship.stateName ?? ship.state
-    }
+    const req = buildSnapmintVisibility(input)
+    if (!req) return false
     try {
-      const r = await this.call<{ visible?: unknown }>({
-        host: 'api',
+      const r = await this.call<unknown>({
+        host: 'ext',
         method: 'POST',
-        path: '/v1/merchants/orders/check_visibility',
-        body,
+        path: '/ext/v1/visibility',
+        body: req.body,
+        auth: 'basic',
+        headers: req.ip ? { 'x-forwarded-for': req.ip } : undefined,
         timeoutMs: SNAPMINT_VISIBILITY_TIMEOUT_MS,
       })
-      return r.visible !== false
+      return readSnapmintVisibility(r) !== false
     } catch {
       return true
     }
