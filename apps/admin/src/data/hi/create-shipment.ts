@@ -134,7 +134,7 @@ export default [
       usedNotCovered: (courier) => `ओपन-बॉक्स / इस्तेमाल किया सामान ${courier} के बीमे में कवर नहीं है।`,
       insuranceEstimateHint: 'RapidShyp का अपना आंकड़ा थोड़ा अलग हो सकता है',
       shieldFollowsSettings:
-        'RapidShyp Shield आपकी RapidShyp सेटिंग से चलता है। यह स्विच इसे चालू या बंद नहीं करता।',
+        'RapidShyp Shield हर उस पार्सल का बीमा करता है जिसकी कीमत RapidShyp पर आपकी RapidShield सेटिंग वाली रकम से ज़्यादा है। यह स्विच इसे चालू या बंद नहीं करता।',
       breakdown: 'कीमत का हिसाब',
       freightWeight: (kg) => `भाड़ा (${kg})`,
       courierWeight: (kg) => `कूरियर, GST सहित (${kg})`,
