@@ -14,6 +14,7 @@ import SwitchRow from '@/components/fields/switch-row'
 import { shippingSettingsContent } from '@/data/shipping'
 import { useCopy, useRegion } from '@/hooks/use-copy'
 import { orderWeekdays } from '@/lib/region'
+import ReturnAddressFields from './return-address-fields'
 import SettingsCard from './settings-card'
 import SettingsRow from './settings-row'
 import SettingsTextRow from './settings-text-row'
@@ -24,8 +25,6 @@ type ShippingPolicyFieldsProps = {
   /** Open More options and bring the ship-from address into view (Create shipment's Edit). */
   focusAddress?: boolean | undefined
 }
-
-type Warehouse = ShippingPolicySettings['warehouse']
 
 const toDays = (selected: number[]) =>
   [...new Set(selected)].filter((n) => n >= 1 && n <= 7).sort((a, b) => a - b)
@@ -115,8 +114,6 @@ export default function ShippingPolicyFields({
   // Helpers
   const set = <K extends keyof ShippingPolicySettings>(k: K, v: ShippingPolicySettings[K]) =>
     onChange({ ...value, [k]: v })
-  const setWarehouse = (k: keyof Warehouse, v: string) =>
-    onChange({ ...value, warehouse: { ...value.warehouse, [k]: v } })
 
   return (
     <SettingsCard title={p.heading} description={p.intro}>
@@ -208,49 +205,10 @@ export default function ShippingPolicyFields({
               }
               help={p.transitHelp}
             />
-            <h3
-              ref={(el) => {
-                if (focusAddress) el?.scrollIntoView({ block: 'center' })
-              }}
-              className="text-body font-bold text-ink-strong"
-            >
-              {p.warehouse}
-            </h3>
-            <TextField
-              id="wh-name"
-              label={p.warehouseName}
-              value={value.warehouse.name}
-              onChange={(v) => setWarehouse('name', v)}
-            />
-            <TextField
-              id="wh-line1"
-              label={p.line1}
-              value={value.warehouse.line1}
-              onChange={(v) => setWarehouse('line1', v)}
-            />
-            <TextField
-              id="wh-line2"
-              label={p.line2}
-              value={value.warehouse.line2}
-              onChange={(v) => setWarehouse('line2', v)}
-            />
-            <TextField
-              id="wh-city"
-              label={p.city}
-              value={value.warehouse.city}
-              onChange={(v) => setWarehouse('city', v)}
-            />
-            <TextField
-              id="wh-state"
-              label={p.state}
-              value={value.warehouse.state}
-              onChange={(v) => setWarehouse('state', v)}
-            />
-            <TextField
-              id="wh-phone"
-              label={p.phone}
-              value={value.warehouse.phone}
-              onChange={(v) => setWarehouse('phone', v)}
+            <ReturnAddressFields
+              value={value.warehouse}
+              onChange={(warehouse) => set('warehouse', warehouse)}
+              focus={focusAddress}
             />
             <TextField
               id="policy-insurance"
