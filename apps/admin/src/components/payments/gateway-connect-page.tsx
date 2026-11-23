@@ -16,6 +16,7 @@ import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import GatewayConnectForm from './gateway-connect-form'
+import GatewayFeeCard from './gateway-fee-card'
 import TestModeBar from './test-mode-bar'
 import type { GatewayId, PaymentsSetup } from './types'
 
@@ -23,7 +24,10 @@ type GatewayConnectPageProps = {
   providerId: GatewayId
 }
 
-/** A payment app's Connect page (`/apps/<id>/connect`): the guided connect, then back to Payments. */
+/**
+ * A payment app's Connect page (`/apps/<id>/connect`): the guided connect, then back to
+ * Payments, and the extra charge (or discount) for paying with that gateway.
+ */
 export default function GatewayConnectPage({ providerId }: GatewayConnectPageProps) {
   // Hooks
   const copy = useCopy(paymentsSetupContent)
@@ -76,6 +80,7 @@ export default function GatewayConnectPage({ providerId }: GatewayConnectPagePro
       ) : (
         <SectionPageSkeleton header={false} cards={1} />
       )}
+      {setup ? <GatewayFeeCard providerId={providerId} name={guide.name} /> : null}
     </div>
   )
 }

@@ -9,6 +9,7 @@ import ProviderConnectPage, {
   type TestOutcome,
 } from '@/components/apps/shared/provider-connect-page'
 import type { FieldValues } from '@/components/apps/shared/provider-settings'
+import GatewayFeeCard from '@/components/payments/gateway-fee-card'
 import { snapmintAppContent } from '@/data/snapmint'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -17,7 +18,7 @@ import ConnectSetupFields from './connect-setup-fields'
 
 type Ctx = ConnectContext<TestOutcome>
 
-const PROVIDER_ID = 'snapmint'
+const PROVIDER_ID = 'snapmint' as const
 
 const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL ?? 'http://localhost:4100'
 
@@ -42,7 +43,8 @@ const testConnection = (values: FieldValues) =>
   })
 
 /** The Snapmint app's details screen: a 3-step guide, Sandbox/Live, a read-only "Test
- *  connection", and what Snapmint must set up (the payment updates URL, our server IPs). */
+ *  connection", what Snapmint must set up (the payment updates URL, our server IPs), and the
+ *  extra charge (or discount) shoppers pay for choosing Snapmint at checkout. */
 export default function ConnectPage() {
   // Hooks
   const { connect: copy } = useCopy(snapmintAppContent)
@@ -98,6 +100,14 @@ export default function ConnectPage() {
       guide={renderGuide}
       fields={renderFields}
       extras={renderExtras}
+      below={
+        <GatewayFeeCard
+          providerId={PROVIDER_ID}
+          name={copy.feeName}
+          feeLabel={copy.feeLabel}
+          intro={copy.feeIntro}
+        />
+      }
     />
   )
 }

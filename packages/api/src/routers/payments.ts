@@ -22,6 +22,7 @@ import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can } from '../procedures'
 import { getStoreApps, storeRegistries } from '../services/apps.service'
+import { savePaymentAdjustment } from '../services/payments-adjustment.service'
 import { saveManualPaymentMethod } from '../services/payments-manual.service'
 import {
   completeRazorpayOAuth,
@@ -52,6 +53,9 @@ const KEY_GATEWAYS = ['razorpay', 'cashfree'] as const
 
 /** Apps whose Connect page "Test connection" runs here: the key gateways and Snapmint. */
 const TESTABLE_GATEWAYS = [...KEY_GATEWAYS, 'snapmint'] as const
+
+/** Apps whose own page sets their extra charge or discount at checkout. */
+const ADJUSTABLE_GATEWAYS = [...KEY_GATEWAYS, 'snapmint'] as const
 
 const ModeSchema = z.enum(['test', 'live'])
 
@@ -190,6 +194,27 @@ export const paymentsRouter = {
         adjustment: input.adjustment,
       })
       return { ok: true }
+    }),
+
+  /** A payment app's "Extra charge" card: its fee or discount at checkout; null removes it. */
+  saveAdjustment: can(permissions.PAYMENTS_MANAGE)
+    .input(
+      z.object({
+        providerId: z.enum(ADJUSTABLE_GATEWAYS),
+        adjustment: PaymentAdjustmentSchema.nullable(),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const { payments } = await storeRegistries(context.tx, context.scope.storeId)
+      const saved = await savePaymentAdjustment(
+        context.tx,
+        context.scope.storeId,
+        payments,
+        paymentsEnv(),
+        input.providerId,
+        input.adjustment,
+      )
+      return { adjustment: saved.adjustments[input.providerId] ?? null }
     }),
 
   /** Save pasted keys and make that gateway the main way to get paid. */

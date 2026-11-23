@@ -86,5 +86,16 @@ export default [
       labelLabel: 'ग्राहक को दिखने वाला नाम',
       labelPlaceholder: { fixed: 'COD चार्ज', percent: 'UPI डिस्काउंट' },
     },
+    gatewayFee: {
+      heading: (name: string) => `${name} पर अतिरिक्त चार्ज`,
+      intro:
+        'चेकआउट पर ग्राहक को यह पेमेंट तरीके के साथ दिखता है, और यह ऑर्डर की कुल रकम में जुड़ता है। माइनस रकम डिस्काउंट होती है।',
+      defaultLabel: (name: string, discount: boolean) =>
+        discount ? `${name} डिस्काउंट` : `${name} सुविधा शुल्क`,
+      save: 'सेव करें',
+      discard: 'रद्द करें',
+      saved: 'अतिरिक्त चार्ज सेव हो गया',
+      saveFailed: 'अतिरिक्त चार्ज सेव नहीं हो पाया',
+    },
   }),
 ]

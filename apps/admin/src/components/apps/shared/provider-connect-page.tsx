@@ -109,6 +109,8 @@ type ProviderConnectPageProps<R extends TestOutcome> = {
   guide: (ctx: ConnectContext<R>) => ReactNode
   fields: (ctx: ConnectContext<R>) => ReactNode
   extras: (ctx: ConnectContext<R>) => ReactNode
+  /** Cards under the form that save on their own (a payment app's extra charge). */
+  below?: ReactNode
   /** Side cards beside the guide and form (Figma "Delhivery · Connect"): the connection, what it links, help. */
   aside?: ((ctx: ConnectContext<R>) => ReactNode) | undefined
 }
@@ -130,6 +132,7 @@ export default function ProviderConnectPage<R extends TestOutcome>({
   guide,
   fields,
   extras,
+  below,
   aside,
 }: ProviderConnectPageProps<R>) {
   // Hooks
@@ -222,12 +225,15 @@ export default function ProviderConnectPage<R extends TestOutcome>({
     setError(null)
     try {
       const editing = values.mode === 'live' ? 'live' : 'test'
+      // The whole blob is sent back, so start from what is saved now: a card on this page that
+      // saves on its own (a payment app's extra charge) is not undone by the stale copy.
+      const base = (await loadProviderSettings(kind)).settings
       const next: SettingsBlob = mode?.keySets
-        ? withEditedKeySet(blob, providerId, editing, values)
+        ? withEditedKeySet(base, providerId, editing, values)
         : {
-            ...blob,
-            enabled: [...new Set([...blob.enabled, providerId])],
-            providers: { ...blob.providers, [providerId]: values },
+            ...base,
+            enabled: [...new Set([...base.enabled, providerId])],
+            providers: { ...base.providers, [providerId]: values },
           }
       const result = await saveProviderSettings(kind, next)
       const saved =
@@ -395,6 +401,7 @@ export default function ProviderConnectPage<R extends TestOutcome>({
                 {extras(ctx)}
               </CardContent>
             </Card>
+            {below}
           </div>
           {aside ? aside(ctx) : null}
         </div>

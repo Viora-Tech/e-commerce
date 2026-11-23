@@ -666,6 +666,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'payments.razorpayOAuthComplete':
     "The OAuth callback route hands the code here; the state must be this store's, and fresh.",
   'payments.razorpayOAuthStart': 'Where "Connect Razorpay" sends the merchant.',
+  'payments.saveAdjustment':
+    'A payment app\'s "Extra charge" card: its fee or discount at checkout; null removes it.',
   'payments.saveCapture':
     '"Payment capture" (#150): automatic, or authorise now and capture from the order page.',
   'payments.saveManual':

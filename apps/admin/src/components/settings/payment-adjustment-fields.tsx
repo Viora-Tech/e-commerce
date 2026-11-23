@@ -18,6 +18,8 @@ type PaymentAdjustmentFieldsProps = {
   providerId: string
   value: PaymentAdjustment | undefined
   onChange: (next: PaymentAdjustment | undefined) => void
+  /** The label shoppers see when none is typed, shown as the placeholder. */
+  labelPlaceholder?: string | undefined
 }
 
 type AdjustmentType = PaymentAdjustment['type']
@@ -34,6 +36,7 @@ export default function PaymentAdjustmentFields({
   providerId,
   value,
   onChange,
+  labelPlaceholder,
 }: PaymentAdjustmentFieldsProps) {
   // Hooks
   const { adjustment: copy } = useCopy(paymentsSettingsContent)
@@ -114,7 +117,7 @@ export default function PaymentAdjustmentFields({
               size="lg"
               id={ids.label}
               value={value?.label ?? ''}
-              placeholder={copy.labelPlaceholder[type]}
+              placeholder={labelPlaceholder ?? copy.labelPlaceholder[type]}
               onChange={(e) => handleLabel(e.target.value)}
               autoComplete="off"
             />
