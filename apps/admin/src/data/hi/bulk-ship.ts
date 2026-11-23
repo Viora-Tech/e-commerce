@@ -162,6 +162,8 @@ export default [
       codHelp: 'यहाँ कोई कूरियर कैश नहीं लेता? ग्राहक से ऑनलाइन भुगतान करवाएँ, फिर इसे प्रीपेड करें।',
       insurance: 'इस ऑर्डर का इंश्योरेंस',
       insuranceCovers: (value) => `खोने या टूटने पर ${value} कवर`,
+      shieldFollowsSettings:
+        'RapidShyp Shield आपकी RapidShyp सेटिंग से चलता है। यह स्विच इसे चालू या बंद नहीं करता।',
       charge: 'खर्च',
       chargeValue: (amount, insured) =>
         insured ? `${amount} GST + इंश्योरेंस सहित` : `${amount} GST सहित`,

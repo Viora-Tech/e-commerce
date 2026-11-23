@@ -151,6 +151,9 @@ export const createShipmentContent = {
       `Open-box / used items aren’t covered by ${courier} insurance.`,
     /** RapidShyp's insurance is worked out from its published rate, not its own figure. */
     insuranceEstimateHint: 'RapidShyp’s own figure can differ slightly',
+    /** RapidShyp Shield is one account setting; its API has no per-parcel switch (RapidShyp support, 23 Nov). */
+    shieldFollowsSettings:
+      'RapidShyp Shield follows your RapidShyp settings. This switch does not turn it on or off.',
     /** The picked row's one-line breakdown (Figma 898:7790). */
     breakdown: 'Price breakdown',
     freightWeight: (kg: string) => `Freight (${kg})`,
