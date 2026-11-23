@@ -108,7 +108,10 @@ export function buildSnapmintCart(
   if (input.currency !== 'INR') throw new SnapmintInputError('Snapmint only takes rupee payments')
   const mobile = snapmintMobile(input.customer.phone)
   if (!mobile) throw new SnapmintInputError('Snapmint needs a 10-digit Indian mobile number')
-  const ip = input.customer.ip?.trim()
+  // Local development has no proxy header, so `clientIp` answers 'unknown': use loopback there
+  // so sandbox checkouts on localhost can reach Snapmint. Anywhere else a missing IP is refused.
+  const raw = input.customer.ip?.trim()
+  const ip = !isIp(raw) && process.env.NODE_ENV === 'development' ? '127.0.0.1' : raw
   if (!isIp(ip)) throw new SnapmintInputError("Snapmint needs the shopper's IP address")
   if (!input.shipping) throw new SnapmintInputError('Snapmint needs a delivery address')
   if (!input.storefrontOrigin) throw new SnapmintInputError('Snapmint needs the store address')
