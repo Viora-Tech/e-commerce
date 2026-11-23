@@ -15,8 +15,8 @@ type PickupDayCardsProps = {
 
 /**
  * Figma 905:8280 "Pickup day": today, tomorrow and the next day as cards. Today greys out after
- * the courier's 2 pm cut-off, unless a pickup is already booked for it (joining stays fine); a
- * day with a booked pickup carries its tag (Figma 906:8464).
+ * the courier's 2 pm cut-off, even when a pickup was booked for it (that pickup's time has
+ * passed); a day with a booked pickup carries its tag (Figma 906:8464).
  */
 export default function PickupDayCards({ days, value, onChange, bookedAt }: PickupDayCardsProps) {
   // Hooks
@@ -29,7 +29,8 @@ export default function PickupDayCards({ days, value, onChange, bookedAt }: Pick
     return {
       ...d,
       booked,
-      closed: d.pastCutoff && booked === null,
+      // Past the cut-off today is closed even with a pickup booked: its time has gone.
+      closed: d.pastCutoff,
       title:
         d.offset === 0
           ? copy.today
