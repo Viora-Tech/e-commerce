@@ -7,6 +7,8 @@ import {
   decryptShippingSettings,
   estimateForStore,
   FulfillmentOnHold,
+  isKeyedLabelUrl,
+  labelOnDemand,
   markShipmentCancelled,
   mergeMaskedSecrets,
   orderNumberLabel,
@@ -37,6 +39,7 @@ import { CourierError, describeCourierFailureForStaff, isValidPincode } from '@c
 import { ORPCError } from '@orpc/server'
 import { and, eq } from 'drizzle-orm'
 import { pickupByCourier, pickupHeldByCourier } from './courier-pickup'
+import { fetchPublicLabel } from './label-link'
 
 export async function updateStoreShipping(tx: StoreTx, storeId: string, shipping: unknown) {
   const [s] = await tx.update(store).set({ shipping }).where(eq(store.id, storeId)).returning()
@@ -572,6 +575,16 @@ export async function shipmentLabelFile(
     row.provider,
   )
   if (!provider?.getLabel) return null
-  const label = await provider.getLabel(row.waybill).catch(courierToRpc)
-  return label.body
+  try {
+    return (await provider.getLabel(row.waybill)).body
+  } catch (error) {
+    /* An on-demand courier (RapidShyp) that could not hand it over now: the public link kept
+       from booking, when there is one. */
+    const saved = row.labelUrl
+    if (labelOnDemand(row.provider) && saved?.startsWith('https://') && !isKeyedLabelUrl(saved)) {
+      const bytes = await fetchPublicLabel(saved).catch(() => null)
+      if (bytes) return bytes
+    }
+    return courierToRpc(error)
+  }
 }

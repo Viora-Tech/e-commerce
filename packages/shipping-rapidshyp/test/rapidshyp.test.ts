@@ -1269,3 +1269,92 @@ describe('eddDaysFromToday', () => {
     expect(eddDaysFromToday('31-02-2026', now)).toBeNull()
   })
 })
+
+describe('RapidshypProvider getLabel', () => {
+  const pdf = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34])
+  const labelRoutes = (extra: Record<string, Route> = {}) => ({
+    '/rapidshyp/apis/v1/track_order': () =>
+      json({
+        success: true,
+        records: [{ shipment_details: [{ shipment_id: 'S9', awb: 'AWB9' }] }],
+      }),
+    '/rapidshyp/apis/v1/generate_label': () =>
+      json({
+        status: true,
+        labelData: [{ shipmentId: 'S9', labelURL: 'https://rapidshyp-public.s3.test/L9.pdf' }],
+      }),
+    '/L9.pdf': () => new Response(pdf, { headers: { 'content-type': 'application/pdf' } }),
+    ...extra,
+  })
+
+  it('finds the shipment by AWB, asks Label PDF for it and returns the file', async () => {
+    const f = fakeFetch(labelRoutes())
+    const p = new RapidshypProvider({ ...config, fetchImpl: f.impl })
+    const label = await p.getLabel('AWB9')
+    expect(label.contentType).toBe('application/pdf')
+    expect(Array.from(label.body)).toEqual(Array.from(pdf))
+    expect(JSON.parse(f.calls[0]?.init?.body as string)).toEqual({ awb: 'AWB9' })
+    expect(JSON.parse(f.calls[1]?.init?.body as string)).toEqual({ shipmentId: ['S9'] })
+    expect(f.calls[1]?.init?.headers).toMatchObject({ 'rapidshyp-token': 'rs-test-key' })
+    expect(f.calls[2]?.url.href).toBe('https://rapidshyp-public.s3.test/L9.pdf')
+  })
+
+  it('asks Label PDF as a GET when the POST is not routed', async () => {
+    const f = fakeFetch(
+      labelRoutes({
+        '/rapidshyp/apis/v1/generate_label': (url, init) =>
+          init?.method === 'POST'
+            ? new Response('', { status: 405 })
+            : json({
+                status: true,
+                labelData: [{ labelURL: `https://rapidshyp-public.s3.test/L9.pdf?${url.search}` }],
+              }),
+      }),
+    )
+    const p = new RapidshypProvider({ ...config, fetchImpl: f.impl })
+    await expect(p.getLabel('AWB9')).resolves.toMatchObject({ contentType: 'application/pdf' })
+    const get = f.calls.find((c) => c.url.pathname.endsWith('/generate_label') && !c.init?.method)
+    expect(get?.url.searchParams.get('shipmentId')).toBe('S9')
+  })
+
+  it('refuses when RapidShyp has no shipment, no label yet, or a file that is not a PDF', async () => {
+    const none = fakeFetch(
+      labelRoutes({
+        '/rapidshyp/apis/v1/track_order': () => json({ success: false, records: [] }),
+      }),
+    )
+    await expect(
+      new RapidshypProvider({ ...config, fetchImpl: none.impl }).getLabel('AWB9'),
+    ).rejects.toThrow(/did not find a shipment/)
+
+    const noLabel = fakeFetch(
+      labelRoutes({
+        '/rapidshyp/apis/v1/generate_label': () => json({ status: true, labelData: [] }),
+      }),
+    )
+    await expect(
+      new RapidshypProvider({ ...config, fetchImpl: noLabel.impl }).getLabel('AWB9'),
+    ).rejects.toThrow(/no label/)
+
+    const xml = fakeFetch(
+      labelRoutes({ '/L9.pdf': () => new Response('<Error>AccessDenied</Error>') }),
+    )
+    await expect(
+      new RapidshypProvider({ ...config, fetchImpl: xml.impl }).getLabel('AWB9'),
+    ).rejects.toBeInstanceOf(CourierError)
+  })
+
+  it('books with no label link as a label asked for when printed', async () => {
+    const f = fakeFetch({
+      '/rapidshyp/apis/v1/create_order': () =>
+        json({ status: 'SUCCESS', order_id: '2471', shipment: [{ shipment_id: 'ship-1' }] }),
+      '/rapidshyp/apis/v1/assign_awb': () => json({ status: 'SUCCESS', awb: 'BD-1' }),
+      '/rapidshyp/apis/v1/schedule_pickup': () => json({ status: 'SUCCESS' }),
+      '/rapidshyp/apis/v1/generate_label': () => json({ status: true, labelData: [] }),
+    })
+    const p = new RapidshypProvider({ ...config, fetchImpl: f.impl })
+    const r = await p.createShipment({ ...sampleShipment, orderNumber: 2471, serviceId: 'BD' })
+    expect(r.labelUrl).toBeUndefined()
+    expect(r.labelViaProvider).toBe(true)
+  })
+})

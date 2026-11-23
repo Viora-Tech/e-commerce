@@ -344,7 +344,7 @@ export async function bulkBookShipments(
           ok: true,
           shipmentId: row.id,
           waybill: row.waybill,
-          labelUrl: row.labelUrl,
+          labelUrl: shipmentLabelUrl(row),
         })
       } catch (err) {
         results.push({

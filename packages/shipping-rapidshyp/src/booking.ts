@@ -443,7 +443,9 @@ async function finishBooking(
   const pickupScheduled =
     done.pickupScheduled === true ||
     pickupTaken(await calls.schedulePickup(shipmentId, assigned.awb).catch(() => undefined))
-  const labelUrl = done.labelUrl || (await calls.generateLabel([shipmentId]).catch(() => undefined))
+  const given = done.labelUrl || (await calls.generateLabel([shipmentId]).catch(() => undefined))
+  // Only a real link is kept. With none, the label is asked for when printed (`getLabel`).
+  const labelUrl = given && /^https:\/\//i.test(given) ? given : undefined
   const booked =
     assigned.courierCode || assigned.courierName
       ? {
@@ -457,7 +459,7 @@ async function finishBooking(
   return {
     waybill: assigned.awb,
     providerRef: done.orderRef,
-    labelUrl,
+    ...(labelUrl ? { labelUrl } : { labelViaProvider: true }),
     ...booked,
     ...(pickupScheduled ? { pickupScheduled: true } : {}),
   }
