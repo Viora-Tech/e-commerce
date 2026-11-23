@@ -64,9 +64,13 @@ export function bookedCourier(
     asked.quotedChargePaise > 0
       ? Math.round(asked.quotedChargePaise)
       : null
+  /* No courier picked: the aggregator chose one (Shiprocket's recommended courier), recorded by
+     its own name so the shipment says who carries it (23 Nov 2026). Not a swap: nothing asked. */
+  const chosen = !swapped && !asked.serviceId && !askedLabel ? booked?.label?.trim() || null : null
+  const named = swapped?.booked ?? chosen
   return {
-    serviceLabel: swapped ? `${swapped.booked} (${provider.label})` : askedLabel,
-    carrier: swapped ? bookedCarrier(provider, swapped.booked) : null,
+    serviceLabel: named ? `${named} (${provider.label})` : askedLabel,
+    carrier: named ? bookedCarrier(provider, named) : null,
     courierChargePaise: result.chargePaise ?? quoted,
     swapped,
   }

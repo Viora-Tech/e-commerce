@@ -79,6 +79,8 @@ import {
   type WebhookNotice,
   type WebhookRequest,
 } from '@commerce/shipping'
+import { orderAmounts } from './amounts'
+import { type AssignedCourier, bookedCharge, bookedService } from './booked'
 import { cancelByAwb } from './cancel'
 import { SHIPROCKET_CAPABILITIES } from './client'
 import { pickupAtBooking, scheduleShiprocketPickup } from './pickup'
@@ -156,9 +158,7 @@ type CreateOrderResponse = {
 
 type AssignAwbResponse = {
   awb_assign_status?: number
-  response?: {
-    data?: { awb_code?: string; courier_name?: string; courier_company_id?: number }
-  }
+  response?: { data?: AssignedCourier }
   message?: string
 }
 
@@ -217,6 +217,8 @@ export function boxCm(box: CreateShipmentInput['dimensionsCm']) {
 export class ShiprocketProvider implements ShippingProvider {
   readonly id = 'shiprocket'
   readonly label = 'Shiprocket'
+  /** Its rate quote is not what the wallet takes: the charge is read back after the AWB (`./booked`). */
+  readonly quoteIsCharge = false
   /** Its pickups go per shipment id (`./pickup`): never joined to one already booked. */
   readonly pickupPerParcel = true
 
@@ -418,7 +420,8 @@ export class ShiprocketProvider implements ShippingProvider {
         selling_price: rupees(l.unitPricePaise),
       })),
       payment_method: input.paymentMode === 'cod' ? 'COD' : 'Prepaid',
-      sub_total: rupees(input.valuePaise),
+      // Items, shipping, COD fee and discount, so Shiprocket collects the admin's COD amount.
+      ...orderAmounts(input),
       ...boxCm(input.dimensionsCm),
       weight: Math.max(input.weightGrams, 1) / 1000,
     }
@@ -465,7 +468,10 @@ export class ShiprocketProvider implements ShippingProvider {
   async createShipment(input: CreateShipmentInput): Promise<CreateShipmentResult> {
     // Sent here earlier as a pending order: book that one, not a second copy.
     const order = input.pushed?.externalShipmentId
-      ? { shipment_id: Number(input.pushed.externalShipmentId) }
+      ? {
+          order_id: input.pushed.externalOrderId,
+          shipment_id: Number(input.pushed.externalShipmentId),
+        }
       : await this.createOrder(input)
 
     /* The courier picked in the rate table (its courier_company_id), or none: Shiprocket
@@ -504,6 +510,9 @@ export class ShiprocketProvider implements ShippingProvider {
       waybill: awb,
       providerRef: String(order.shipment_id),
       labelUrl,
+      // The courier Shiprocket really booked, and what it charges (`./booked`).
+      ...bookedService(assign.response?.data),
+      ...(await bookedCharge(<T>(path: string) => this.getJson<T>(path), order.order_id)),
       ...(pickupScheduled ? { pickupScheduled: true } : {}),
     }
   }
