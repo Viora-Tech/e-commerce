@@ -55,7 +55,7 @@ export function buildEntries(
       id: `pe-${e.id}`,
       at: new Date(e.receivedAt),
       kind: 'payment',
-      title: t.paymentEvent(e.type),
+      title: t.paymentEvent(methodLabel(e.provider, copy), e.type),
       detail: e.error ?? undefined,
       tone: e.status === 'failed' ? 'destructive' : undefined,
     })
