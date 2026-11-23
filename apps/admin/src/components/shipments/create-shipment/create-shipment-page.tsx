@@ -158,12 +158,16 @@ export default function CreateShipmentPage({
     const next = o?.parcels.find((p) => p.id === id)
     if (!draft || !o || !next) return
     setParcelId(next.id)
-    setForm(packageFor(o, partial.start(next), draft))
+    handlePackage(packageFor(o, partial.start(next), draft))
+  }
+  /* A changed package re-prices the couriers: Book shipment opens the list again (owner). */
+  const handlePackage = (next: PackageForm) => {
+    setForm(next)
+    setChosenByHand(false)
   }
   const handlePickupPlace = (pickupLocationId: string | null) =>
-    form && setForm({ ...form, pickupLocationId })
-  /* Split, but the booking failed: reload the parcel (now only what ships now) so a retry
-     books it without splitting twice. */
+    form && handlePackage({ ...form, pickupLocationId })
+  /* Split, but booking failed: reload the parcel so a retry does not split twice. */
   const handleSplitKept = () => {
     toast.info(content.partial.splitKept)
     api.shipments.prepare({ orderIds: [orderId] }).then(
@@ -205,8 +209,7 @@ export default function CreateShipmentPage({
     if (!order || !parcel || !form || !parsed) return
     const key = optionKey ?? pick
     const chosen = quote?.options.find((o) => o.optionKey === key) ?? null
-    /* Booking always goes through the courier list (Figma 898:7790): Book shipment opens it
-       until the merchant picks a courier there, and Ship now books from it. */
+    /* Book shipment opens the courier list (Figma 898:7790) until a courier is picked there. */
     if (
       key !== MANUAL &&
       (!chosen || chosen.problem || !pricesCurrent || (!optionKey && !chosenByHand))
@@ -412,7 +415,7 @@ export default function CreateShipmentPage({
               order={order}
               parcel={parcel}
               form={form}
-              onChange={setForm}
+              onChange={handlePackage}
               onParcelChange={handleParcel}
               partial={partial}
               chargedGrams={quote?.chargedWeightGrams}
