@@ -1,240 +1,95 @@
 'use client'
 
-import {
-  DESIGN_LIMITS,
-  type DesignBlock,
-  type FreeBlock,
-  type IntroBlock,
+import type {
+  CellBlock,
+  ColumnsLayoutBlock,
+  DesignBlock,
+  EmailTemplateDesign,
 } from '@commerce/notifications/design'
-import { Lock } from '@commerce/ui/icons'
-import SwitchRow from '@/components/fields/switch-row'
+import { ArrowLeft } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import { emailDesignContent } from '@/data/email-design'
+import { emailDesignFieldsContent } from '@/data/email-design-fields'
 import { useCopy } from '@/hooks/use-copy'
-import DesignChoiceField from './design-choice-field'
-import DesignImageField from './design-image-field'
-import DesignLinkField from './design-link-field'
-import { blockTitle, isLocked } from './design-state'
-import DesignTextField from './design-text-field'
-
-type BlockPatch = Partial<FreeBlock> | Partial<IntroBlock>
+import DesignBoxFields from './design-box-fields'
+import DesignFieldsBasic from './design-fields-basic'
+import DesignFieldsColumns from './design-fields-columns'
+import DesignFieldsMore from './design-fields-more'
+import DesignSlotFields from './design-slot-fields'
+import { type BlockPatch, blockTitle } from './design-state'
 
 type DesignBlockSettingsProps = {
+  design: EmailTemplateDesign
   /** The selected block; null shows a hint to pick one. */
-  block: DesignBlock | null
+  block: DesignBlock | CellBlock | null
+  /** The Columns block around it, when the block sits in a column. */
+  parent: ColumnsLayoutBlock | null
   onChange: (patch: BlockPatch) => void
+  /** Changes that touch more than the block (the blocks inside a column). */
+  onDesign: (design: EmailTemplateDesign) => void
+  onSelect: (id: string) => void
 }
 
-const WIDTHS = [40, 60, 80, 100]
+/** Blocks whose content lines up left, centre or right with the box's alignment. */
+const ALIGNED = new Set(['intro', 'heading', 'text', 'image', 'button', 'social', 'hero'])
 
-/** The settings of the selected block; the order's own blocks only say they are locked. */
-export default function DesignBlockSettings({ block, onChange }: DesignBlockSettingsProps) {
+/**
+ * The settings of the selected block: its own fields, then its Layout (background, space,
+ * alignment). The order's own blocks take their words and colours; their data stays the order's.
+ */
+export default function DesignBlockSettings({
+  design,
+  block,
+  parent,
+  onChange,
+  onDesign,
+  onSelect,
+}: DesignBlockSettingsProps) {
   // Hooks
   const copy = useCopy(emailDesignContent)
-
-  // Helpers
-  const id = (field: string) => `design-${block?.id ?? 'none'}-${field}`
-  const note = (text: string) => <p className="text-caption text-muted-foreground">{text}</p>
+  const more = useCopy(emailDesignFieldsContent)
 
   // Early returns
   if (!block) return <p className="text-body text-muted-foreground">{copy.editor.noneSelected}</p>
 
   // Render logic
-  const f = copy.fields
-  const fields = (() => {
-    switch (block.type) {
-      case 'slot':
-        return isLocked(block) ? (
-          <p className="flex items-start gap-2 text-body text-muted-foreground">
-            <Lock aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-            {copy.editor.lockedNote}
-          </p>
-        ) : (
-          note(copy.editor.builtInNote)
-        )
-      case 'intro':
-        return (
-          <>
-            <DesignTextField
-              id={id('eyebrow')}
-              label={f.eyebrow}
-              value={block.eyebrow ?? ''}
-              placeholder={f.builtInPlaceholder}
-              maxLength={DESIGN_LIMITS.label}
-              onChange={(eyebrow) => onChange({ eyebrow })}
-            />
-            <DesignTextField
-              id={id('heading')}
-              label={f.heading}
-              value={block.heading ?? ''}
-              placeholder={f.builtInPlaceholder}
-              maxLength={DESIGN_LIMITS.label}
-              onChange={(heading) => onChange({ heading })}
-            />
-            <DesignTextField
-              id={id('lead')}
-              label={f.lead}
-              value={block.lead ?? ''}
-              placeholder={f.builtInPlaceholder}
-              maxLength={DESIGN_LIMITS.text}
-              multiline
-              onChange={(lead) => onChange({ lead })}
-            />
-          </>
-        )
-      case 'logo':
-        return (
-          <SwitchRow
-            id={id('menu')}
-            label={f.menu}
-            checked={block.menu}
-            onChange={(menu) => onChange({ menu })}
-          />
-        )
-      case 'heading':
-        return (
-          <>
-            <DesignTextField
-              id={id('text')}
-              label={f.text}
-              value={block.text}
-              maxLength={DESIGN_LIMITS.label}
-              onChange={(text) => onChange({ text })}
-            />
-            <DesignChoiceField
-              id={id('size')}
-              label={f.size}
-              value={block.size}
-              options={[
-                { value: 'large', label: f.large },
-                { value: 'small', label: f.small },
-              ]}
-              onChange={(size) => onChange({ size })}
-            />
-          </>
-        )
-      case 'text':
-        return (
-          <>
-            <DesignTextField
-              id={id('text')}
-              label={f.text}
-              value={block.text}
-              hint={f.textHint}
-              multiline
-              maxLength={DESIGN_LIMITS.text}
-              onChange={(text) => onChange({ text })}
-            />
-            <DesignChoiceField
-              id={id('align')}
-              label={f.align}
-              value={block.align}
-              options={[
-                { value: 'center', label: f.center },
-                { value: 'left', label: f.left },
-              ]}
-              onChange={(align) => onChange({ align })}
-            />
-            <SwitchRow
-              id={id('muted')}
-              label={f.muted}
-              checked={block.muted}
-              onChange={(muted) => onChange({ muted })}
-            />
-          </>
-        )
-      case 'image':
-        return (
-          <>
-            <DesignImageField
-              src={block.src}
-              onPick={(m) => onChange({ src: m.src, alt: block.alt || m.alt })}
-            />
-            <DesignTextField
-              id={id('alt')}
-              label={f.alt}
-              value={block.alt}
-              maxLength={DESIGN_LIMITS.label}
-              onChange={(alt) => onChange({ alt })}
-            />
-            <DesignChoiceField
-              id={id('width')}
-              label={f.width}
-              value={String(block.width)}
-              options={WIDTHS.map((w) => ({ value: String(w), label: f.widthValue(w) }))}
-              onChange={(w) => onChange({ width: Number(w) })}
-            />
-            <DesignLinkField
-              id={id('href')}
-              value={block.href ?? ''}
-              optional
-              onChange={(href) => onChange({ href: href || undefined })}
-            />
-          </>
-        )
-      case 'button':
-        return (
-          <>
-            <DesignTextField
-              id={id('label')}
-              label={f.label}
-              value={block.label}
-              maxLength={DESIGN_LIMITS.label}
-              onChange={(label) => onChange({ label })}
-            />
-            <DesignLinkField
-              id={id('url')}
-              value={block.url}
-              onChange={(url) => onChange({ url })}
-            />
-          </>
-        )
-      case 'divider':
-        return (
-          <DesignTextField
-            id={id('label')}
-            label={f.dividerLabel}
-            value={block.label}
-            maxLength={DESIGN_LIMITS.label}
-            onChange={(label) => onChange({ label })}
-          />
-        )
-      case 'spacer':
-        return (
-          <DesignChoiceField
-            id={id('size')}
-            label={f.size}
-            value={block.size}
-            options={[
-              { value: 'small', label: f.small },
-              { value: 'medium', label: f.medium },
-              { value: 'large', label: f.large },
-            ]}
-            onChange={(size) => onChange({ size })}
-          />
-        )
-      case 'social':
-        return note(f.socialNote)
-      case 'help':
-        return note(f.helpNote)
-      case 'footer':
-        return (
-          <>
-            {note(f.footerNote)}
-            <SwitchRow
-              id={id('social')}
-              label={f.showSocial}
-              checked={block.social}
-              onChange={(social) => onChange({ social })}
-            />
-          </>
-        )
-    }
-  })()
+  const title = blockTitle(block as DesignBlock, copy)
+  const fields =
+    block.type === 'slot' ? (
+      <DesignSlotFields block={block} onChange={(edit) => onChange({ edit })} />
+    ) : block.type === 'columns' ? (
+      <DesignFieldsColumns design={design} block={block} onDesign={onDesign} onSelect={onSelect} />
+    ) : (
+      <>
+        <DesignFieldsBasic block={block} onChange={onChange} />
+        {parent ? null : <DesignFieldsMore block={block} onChange={onChange} />}
+      </>
+    )
 
   return (
-    <section aria-label={blockTitle(block, copy)} className="flex flex-col gap-3">
-      <h3 className="text-card-title">{blockTitle(block, copy)}</h3>
+    <section aria-label={title} className="flex flex-col gap-3">
+      {parent ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="self-start"
+          onClick={() => onSelect(parent.id)}
+        >
+          <ArrowLeft aria-hidden="true" />
+          {more.columns.back}
+        </Button>
+      ) : null}
+      <h3 className="text-card-title">{title}</h3>
       {fields}
+      {parent ? null : (
+        <DesignBoxFields
+          id={`design-${block.id}-box`}
+          box={block.box}
+          withAlign={ALIGNED.has(block.type)}
+          onChange={(box) => onChange({ box })}
+        />
+      )}
     </section>
   )
 }

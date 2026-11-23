@@ -14,6 +14,12 @@ export type DesignPaletteType =
   | 'social'
   | 'help'
   | 'footer'
+  | 'hero'
+  | 'products'
+  | 'coupon'
+  | 'video'
+  | 'html'
+  | 'columns'
 
 export const emailDesignContent = {
   row: {
@@ -22,7 +28,7 @@ export const emailDesignContent = {
   },
   editor: {
     title: (name: string) => `Edit design: ${name}`,
-    help: 'Drag blocks to change the order. Order details are locked: they move but always show the real order.',
+    help: 'Drag blocks to change the order. Click a block to change its words and look. Order details always show the real order.',
     loading: 'Loading the design…',
     loadFailed: 'Could not load the design',
     save: 'Save design',
@@ -43,7 +49,8 @@ export const emailDesignContent = {
     add: 'Add a block',
     noneSelected: 'Pick a block to change it.',
     remove: (name: string) => `Remove ${name}`,
-    lockedNote: 'Filled in from the real order. You can move it, not remove or edit it.',
+    lockedNote:
+      'Filled in from the real order. You can move it and change its words and colours, not remove it.',
     lockedLabel: 'Locked',
     builtInNote: 'Built-in words, filled in for each order. You can move or remove it.',
     unsaved: 'Unsaved changes',
@@ -101,6 +108,12 @@ export const emailDesignContent = {
     social: 'Social links',
     help: 'Questions box',
     footer: 'Footer',
+    hero: 'Hero image',
+    products: 'Products',
+    coupon: 'Discount code',
+    video: 'Video',
+    html: 'HTML',
+    columns: 'Columns',
     intro: 'Title and opening line',
   } satisfies Record<DesignPaletteType | 'intro', string>,
   /** The template's own blocks, by kind. */

@@ -203,6 +203,7 @@ export default function DesignEditorPage({ messageId }: DesignEditorPageProps) {
               variables={variables}
               selected={selected}
               onChange={handleChange}
+              onSelect={setSelected}
             />
           </div>
         </div>

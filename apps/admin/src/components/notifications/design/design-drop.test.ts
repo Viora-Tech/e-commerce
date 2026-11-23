@@ -17,7 +17,7 @@ import {
 } from './design-state'
 
 const design: EmailTemplateDesign = {
-  version: 1,
+  version: 2,
   subject: '  Your order {{order_number}}  ',
   blocks: [
     { id: 'logo', type: 'logo', menu: true },
@@ -37,7 +37,7 @@ function fullDesign(): EmailTemplateDesign {
     type: 'spacer' as const,
     size: 'small' as const,
   }))
-  return { version: 1, blocks, removed: [] }
+  return { version: 2, blocks, removed: [] }
 }
 
 describe('Edit design: moving blocks', () => {
@@ -117,7 +117,7 @@ describe('Edit design: duplicate and remove', () => {
 describe('Edit design: what Save sends', () => {
   it('sends the stored design shape with a trimmed subject', () => {
     expect(savePayload(design)).toEqual({
-      version: 1,
+      version: 2,
       subject: 'Your order {{order_number}}',
       blocks: design.blocks,
       removed: [],

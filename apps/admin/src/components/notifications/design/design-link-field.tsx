@@ -15,6 +15,8 @@ type DesignLinkFieldProps = {
   value: string
   /** An image's link may stay empty; a button's may not. */
   optional?: boolean
+  /** The field's label; "Link" when left out. */
+  label?: string | undefined
   onChange: (value: string) => void
 }
 
@@ -22,7 +24,13 @@ type DesignLinkFieldProps = {
  * A link for a button or image: typed (https, mailto or a word like `{{order_url}}`), or picked
  * from the store's products and collections with the campaign builder's link picker.
  */
-export default function DesignLinkField({ id, value, optional, onChange }: DesignLinkFieldProps) {
+export default function DesignLinkField({
+  id,
+  value,
+  optional,
+  label,
+  onChange,
+}: DesignLinkFieldProps) {
   // Hooks
   const copy = useCopy(emailDesignContent)
   const [picking, setPicking] = useState(false)
@@ -38,7 +46,7 @@ export default function DesignLinkField({ id, value, optional, onChange }: Desig
 
   return (
     <Field data-invalid={bad || undefined}>
-      <FieldLabel htmlFor={id}>{copy.fields.link}</FieldLabel>
+      <FieldLabel htmlFor={id}>{label ?? copy.fields.link}</FieldLabel>
       <div className="flex gap-2">
         <Input
           id={id}

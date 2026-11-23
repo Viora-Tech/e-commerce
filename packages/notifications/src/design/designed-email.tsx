@@ -55,7 +55,7 @@ export function DesignedEmail(p: DesignedEmailProps) {
                 heading={own(r.block.heading, p.heading)}
                 lead={own(r.block.lead, p.lead)}
                 accent={accent}
-                align={r.block.align}
+                align={r.block.align ?? r.block.box?.align}
               >
                 {p.paragraphs.map((t) => (
                   <Body key={t}>{t}</Body>

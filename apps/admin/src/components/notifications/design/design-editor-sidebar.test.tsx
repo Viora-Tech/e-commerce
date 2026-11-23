@@ -14,7 +14,7 @@ vi.mock('@/components/growth/campaigns/visual-builder/builder-link-dialog', () =
 }))
 
 const design: EmailTemplateDesign = {
-  version: 1,
+  version: 2,
   blocks: [
     { id: 'logo', type: 'logo', menu: true },
     { id: 'intro', type: 'intro' },
@@ -98,6 +98,7 @@ describe('Edit design: locked blocks', () => {
         design={design}
         variables={['customer_name']}
         selected="hello"
+        onSelect={vi.fn()}
         onChange={vi.fn()}
       />,
     )

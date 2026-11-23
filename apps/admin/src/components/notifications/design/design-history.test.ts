@@ -11,7 +11,7 @@ import {
 } from './design-history'
 
 const base: EmailTemplateDesign = {
-  version: 1,
+  version: 2,
   blocks: [{ id: 'intro', type: 'intro' }],
   removed: [],
 }

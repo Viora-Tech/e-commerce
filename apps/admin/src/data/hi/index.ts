@@ -70,6 +70,7 @@ import ekart from './ekart'
 import emailBranding from './email-branding'
 import emailBuilder from './email-builder'
 import emailDesign from './email-design'
+import emailDesignFields from './email-design-fields'
 import emailSuppression from './email-suppression'
 import fedex from './fedex'
 import filterPanel from './filter-panel'
@@ -264,6 +265,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...emailBuilder,
   ...emailBranding,
   ...emailDesign,
+  ...emailDesignFields,
   ...dtdc,
   ...analytics,
   ...discounts,

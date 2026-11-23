@@ -1,13 +1,14 @@
 import {
+  type CellBlock,
   DESIGN_LIMITS,
   type DesignBlock,
   type EmailTemplateDesign,
   type FreeBlock,
   type FreeBlockType,
-  isSafeLink,
+  type IntroBlock,
+  type SlotBlock,
   slotKind,
   slotLocked,
-  unknownVariables,
 } from '@commerce/notifications/design'
 import type { emailDesignContent } from '@/data/email-design'
 
@@ -33,7 +34,8 @@ export function newBlock(type: FreeBlockType): FreeBlock {
     case 'heading':
       return { id, type, text: '', size: 'large' }
     case 'text':
-      return { id, type, text: '', align: 'center', muted: false }
+      // New text blocks take bold, italic, links and lists; old ones stay plain.
+      return { id, type, text: '', align: 'center', muted: false, rich: true }
     case 'image':
       return { id, type, src: '', alt: '', width: 100 }
     case 'button':
@@ -48,7 +50,38 @@ export function newBlock(type: FreeBlockType): FreeBlock {
       return { id, type }
     case 'footer':
       return { id, type, social: true }
+    case 'hero':
+      return {
+        id,
+        type,
+        src: '',
+        alt: '',
+        heading: '',
+        text: '',
+        buttonLabel: '',
+        buttonUrl: '{{shop_url}}',
+      }
+    case 'products':
+      return { id, type, title: '', items: [], columns: 3, showPrice: true, buttonLabel: '' }
+    case 'coupon':
+      return { id, type, code: '', label: '', note: '', value: '', valueNote: '' }
+    case 'video':
+      return { id, type, src: '', url: '', alt: '', label: '' }
+    case 'html':
+      return { id, type, html: '' }
+    case 'columns':
+      return {
+        id,
+        type,
+        stack: true,
+        cells: [[newCell('text')], [newCell('text')]],
+      }
   }
+}
+
+/** A new block inside a column. */
+export function newCell(type: CellBlock['type']): CellBlock {
+  return newBlock(type) as CellBlock
 }
 
 /** Locked: the intro and the order's own data blocks never go; plain built-in lines may. */
@@ -57,9 +90,9 @@ export function isLocked(block: DesignBlock): boolean {
   return block.type === 'slot' && slotLocked(block.slot)
 }
 
-/** Whether the block's settings can be changed (built-in data blocks cannot). */
-export function isEditable(block: DesignBlock): boolean {
-  return block.type !== 'slot'
+/** Every block has settings now: the order's own blocks take words, colours and a box. */
+export function isEditable(_block: DesignBlock): boolean {
+  return true
 }
 
 /** Whether another block fits (the server keeps the first 60). */
@@ -112,7 +145,15 @@ export function duplicateBlock(
   const index = design.blocks.findIndex((b) => b.id === id)
   const block = design.blocks[index]
   if (!block || !canDuplicate(block) || !canAdd(design)) return { design, id: null }
-  const copy = { ...block, id: newId(block.type) } as FreeBlock
+  const copy = (
+    block.type === 'columns'
+      ? {
+          ...block,
+          id: newId(block.type),
+          cells: block.cells.map((cell) => cell.map((c) => ({ ...c, id: newId(c.type) }))),
+        }
+      : { ...block, id: newId(block.type) }
+  ) as FreeBlock
   return { design: insertBlock(design, copy, index + 1), id: copy.id }
 }
 
@@ -125,6 +166,7 @@ export function savePayload(design: EmailTemplateDesign): EmailTemplateDesign {
   return {
     version: design.version,
     ...(subject ? { subject } : {}),
+    ...(design.styles && Object.keys(design.styles).length > 0 ? { styles: design.styles } : {}),
     blocks: design.blocks,
     removed: design.removed,
   }
@@ -141,17 +183,30 @@ export function removeBlock(design: EmailTemplateDesign, id: string): EmailTempl
   }
 }
 
+export type BlockPatch = Partial<FreeBlock> | Partial<IntroBlock> | Partial<SlotBlock>
+
+/** Changes a block, top level or inside a column; a slot only takes its edit and box. */
 export function updateBlock(
   design: EmailTemplateDesign,
   id: string,
-  patch: Partial<FreeBlock> | Partial<Extract<DesignBlock, { type: 'intro' }>>,
+  patch: BlockPatch,
 ): EmailTemplateDesign {
-  return {
-    ...design,
-    blocks: design.blocks.map((b) =>
-      b.id === id && b.type !== 'slot' ? ({ ...b, ...patch } as DesignBlock) : b,
-    ),
+  const apply = <T extends DesignBlock>(b: T): T => {
+    if (b.id === id) {
+      if (b.type !== 'slot') return { ...b, ...patch } as T
+      const p = patch as Partial<SlotBlock>
+      return {
+        ...b,
+        ...('edit' in p ? { edit: p.edit } : {}),
+        ...('box' in p ? { box: p.box } : {}),
+      }
+    }
+    if (b.type === 'columns') {
+      return { ...b, cells: b.cells.map((cell) => cell.map((c) => apply(c))) }
+    }
+    return b
   }
+  return { ...design, blocks: design.blocks.map(apply) }
 }
 
 /** The block's name in the list ("Items and totals", "Text"). */
@@ -175,46 +230,19 @@ export function blockSummary(block: DesignBlock): string {
       return block.label
     case 'intro':
       return block.heading ?? ''
+    case 'hero':
+      return block.heading
+    case 'coupon':
+      return block.code
+    case 'video':
+      return block.label
+    case 'products':
+      return block.title
+    case 'columns':
+      return String(block.cells.length)
     default:
       return ''
   }
 }
 
-/** Every text field of a block that may hold variables. */
-function textsOf(block: DesignBlock): string[] {
-  switch (block.type) {
-    case 'intro':
-      return [block.eyebrow ?? '', block.heading ?? '', block.lead ?? '']
-    case 'heading':
-    case 'text':
-      return [block.text]
-    case 'image':
-      return [block.alt, block.href ?? '']
-    case 'button':
-      return [block.label, block.url]
-    case 'divider':
-      return [block.label]
-    default:
-      return []
-  }
-}
-
-export type BlockProblem = { unknown: string[]; badLink: boolean; empty: boolean }
-
-/** What is wrong with a block before it can be saved; null when it is fine. */
-export function blockProblem(
-  block: DesignBlock,
-  variables: readonly string[],
-): BlockProblem | null {
-  const unknown = [...new Set(textsOf(block).flatMap((t) => unknownVariables(t, variables)))]
-  const badLink =
-    (block.type === 'button' && !isSafeLink(block.url)) ||
-    (block.type === 'image' && Boolean(block.href) && !isSafeLink(block.href ?? ''))
-  const empty =
-    (block.type === 'button' && !block.label.trim()) || (block.type === 'image' && !block.src)
-  return unknown.length > 0 || badLink || empty ? { unknown, badLink, empty } : null
-}
-
-export function subjectUnknown(design: EmailTemplateDesign, variables: readonly string[]) {
-  return unknownVariables(design.subject ?? '', variables)
-}
+export { type BlockProblem, blockProblem, subjectUnknown } from './design-checks'
