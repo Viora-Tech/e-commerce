@@ -17,7 +17,7 @@ import { eq, sql } from 'drizzle-orm'
 import { isAbroad, taxRegimeFor } from '../checkout/address-abroad'
 import { tagsForRisk } from '../cod-rto/risk'
 import { applyDiscount } from '../discounts/evaluate'
-import { recordDiscountUses, releaseDiscountUses } from '../discounts/usage'
+import { recordDiscountUses, releaseOrderDiscountUses } from '../discounts/usage'
 import { insertOutboxEvent } from '../outbox/write'
 import { applyPaymentAdjustment } from '../payments/adjustments'
 import { parsePaymentSettings } from '../payments/settings'
@@ -422,7 +422,14 @@ export const createOrder: WorkflowStep<State> = {
     }
     if (applied) {
       const email = (contact ? contact.email : input.checkout?.email.trim().toLowerCase()) || null
-      await recordDiscountUses(ctx, applied, { id: o.id, customerId, email, discountPaise })
+      // An unpaid checkout draft only notes its code: it counts once paid (convertCheckoutDraft),
+      // so a failed payment never uses up the shopper's code.
+      await recordDiscountUses(
+        ctx,
+        applied,
+        { id: o.id, customerId, email, discountPaise },
+        { noteOnly: !!draft },
+      )
     }
     return {
       orderId: o.id,
@@ -435,7 +442,7 @@ export const createOrder: WorkflowStep<State> = {
   },
   async compensate({ ctx, orderId, discount: applied, draft, rewrite }) {
     if (!orderId) return
-    if (applied) await releaseDiscountUses(ctx, applied, orderId)
+    if (applied) await releaseOrderDiscountUses(ctx, orderId)
     await deleteFulfillmentOrders(ctx.tx, orderId)
     await ctx.tx.delete(orderLine).where(eq(orderLine.orderId, orderId))
     // The shopper's open draft used again stays; the rolled-back transaction restores it.

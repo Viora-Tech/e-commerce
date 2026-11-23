@@ -134,7 +134,12 @@ export async function customerUsageCount(
     .select({ n: count() })
     .from(discountUsage)
     .where(
-      and(eq(discountUsage.discountId, discountId), eq(discountUsage.email, email.toLowerCase())),
+      and(
+        eq(discountUsage.discountId, discountId),
+        eq(discountUsage.email, email.toLowerCase()),
+        // An unpaid checkout draft's noted use does not count (discounts/usage.ts).
+        eq(discountUsage.counted, true),
+      ),
     )
   return row?.n ?? 0
 }

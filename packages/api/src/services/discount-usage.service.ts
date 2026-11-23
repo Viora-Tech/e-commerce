@@ -50,7 +50,13 @@ export async function usageOf(
     })
     .from(discountUsage)
     .innerJoin(order, eq(order.id, discountUsage.orderId))
-    .where(and(inArray(discountUsage.discountId, ids), eq(order.isTest, false)))
+    .where(
+      and(
+        inArray(discountUsage.discountId, ids),
+        eq(order.isTest, false),
+        eq(discountUsage.counted, true),
+      ),
+    )
     .groupBy(discountUsage.discountId)
   for (const r of rows) {
     byId.set(r.discountId, {
@@ -138,7 +144,13 @@ export async function recentUses(tx: StoreTx, id: string) {
     })
     .from(discountUsage)
     .innerJoin(order, eq(order.id, discountUsage.orderId))
-    .where(and(eq(discountUsage.discountId, id), eq(order.isTest, false)))
+    .where(
+      and(
+        eq(discountUsage.discountId, id),
+        eq(order.isTest, false),
+        eq(discountUsage.counted, true),
+      ),
+    )
     .orderBy(desc(discountUsage.createdAt))
     .limit(RECENT_USES)
 }

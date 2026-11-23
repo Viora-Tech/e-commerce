@@ -1,7 +1,8 @@
 /** SOURCE OF TRUTH: checkout drafts — WHAT: the shopper's open unpaid checkout draft (#D57) found again for the same items, cleared for a fresh try, converted in place into a numbered order when paid, and expired after 7 days without activity / WHY: an unpaid online or UPI checkout used to burn an order number and clutter Orders (docs/design/unpaid-checkouts-as-drafts.md) */
-import { discount, discountUsage, order, orderLine, orderNote, payment } from '@commerce/db'
+import { order, orderLine, orderNote, payment } from '@commerce/db'
 import { and, desc, eq, gte, inArray, isNull, lt, notInArray, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { countDraftDiscountUses, releaseOrderDiscountUses } from '../discounts/usage'
 import { insertOutboxEvent } from '../outbox/write'
 import { CHECKOUT_DRAFT_EXPIRY_DAYS } from '../payments/checkout-drafts'
 import { type CheckoutContactKeys, orderContactMatch } from '../payments/manual-unpaid'
@@ -82,19 +83,8 @@ export async function findSameItemsDraft(
   return locked ?? null
 }
 
-/** Give back the discount uses an order counted, so a fresh try counts its own. */
-export async function releaseOrderDiscountUses(ctx: StoreContext, orderId: string): Promise<void> {
-  const uses = await ctx.tx
-    .delete(discountUsage)
-    .where(eq(discountUsage.orderId, orderId))
-    .returning({ discountId: discountUsage.discountId })
-  for (const u of uses) {
-    await ctx.tx
-      .update(discount)
-      .set({ usedCount: sql`greatest(${discount.usedCount} - 1, 0)` })
-      .where(eq(discount.id, u.discountId))
-  }
-}
+/** Moved to discounts/usage.ts; kept here for the checkout callers. */
+export { releaseOrderDiscountUses }
 
 /** Mark the draft's open gateway attempts cancelled: a new try (or the expiry) replaces them. */
 export async function cancelOpenAttempts(ctx: StoreContext, orderId: string, why: string) {
@@ -147,6 +137,8 @@ export async function convertCheckoutDraft(
   // Its hold is given back first, so the stock below is held once, for the order.
   await releaseDraftHold(ctx, o)
   await routeAndBillDraft(ctx, o, lines)
+  // Its code was only noted while unpaid; it counts against the limits now.
+  await countDraftDiscountUses(ctx, id)
   const number = await takeOrderNumber(ctx.tx, ctx.storeId)
   await ctx.tx
     .update(order)
