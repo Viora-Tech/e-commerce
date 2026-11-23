@@ -6,6 +6,8 @@ import type { OrderDetail } from './order-detail-types'
 export type TotalRow = {
   label: string
   value: string
+  /** Small grey note after the label: the checkout rate's name on the Shipping row. */
+  detail?: string
   strong?: boolean
   muted?: boolean
 }
@@ -69,10 +71,13 @@ export function totalRows(
     })
   }
 
+  /* Always "Shipping": the rate the customer picked at checkout ("Standard · Courier X") is only a
+     note, since another courier may carry the parcel in the end. */
+  const rateName = order.shippingRateName?.trim()
   rows.push({
-    // The rate's own name ("Bluedart") when it has one, like the discount's label above.
-    label: order.shippingRateName || copy.items.shipping,
+    label: copy.items.shipping,
     value: fmt.money(order.shippingPaise),
+    ...(rateName && rateName !== copy.items.shipping ? { detail: rateName } : {}),
   })
 
   const adj = order.paymentAdjustmentPaise

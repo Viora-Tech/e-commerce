@@ -37,7 +37,7 @@ export const profitCostsContent = {
   },
   delivery: {
     heading: 'Delivery estimate',
-    help: 'Until the courier’s charge for a parcel is known, profit counts your highest charge to the same state in the last 60 days. With none on record, it counts this amount per parcel.',
+    help: 'Until the courier’s charge for a parcel is known, profit counts the courier quote saved at checkout, else your highest charge to the same state in the last 60 days. With none on record, it counts this amount per parcel.',
     label: 'Default delivery cost per parcel (₹)',
     gstClaimable: 'Type it before GST: you claim the GST back.',
     gstNotClaimable: 'Type what you actually pay, GST included.',

@@ -93,6 +93,7 @@ async function factsFor(tx: StoreTx, ids: string[]): Promise<ProfitFacts[]> {
       storeId: order.storeId,
       status: order.status,
       shippingAddressId: order.shippingAddressId,
+      shipping: order.shipping,
       placedAt: order.placedAt,
       totalPaise: order.totalPaise,
       taxPaise: order.taxPaise,

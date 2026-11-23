@@ -11,6 +11,7 @@ import {
   address,
   fulfillmentOrder,
   fulfillmentOrderLine,
+  type OrderShippingSnapshot,
   order,
   type StoreTx,
   shipment,
@@ -55,7 +56,31 @@ async function deliveryRatesFor(tx: StoreTx, now = new Date()): Promise<Delivery
   return buildDeliveryRates(rows)
 }
 
-type OrderRow = { id: string; status: string; shippingAddressId: string | null }
+type OrderRow = {
+  id: string
+  status: string
+  shippingAddressId: string | null
+  /** Its shipping snapshot: the Delivery options route keeps checkout's courier quote. */
+  shipping?: OrderShippingSnapshot | null
+}
+
+const positive = (paise: number | null | undefined) => (paise != null && paise > 0 ? paise : null)
+
+/**
+ * Checkout's courier quote per parcel while nothing is booked (PARCEL_COSTS step 0): a cart split
+ * across locations by each parcel route's fulfilment order, else the order's one route for its
+ * only parcel (`only`, or the whole order when it has no parcels). Null when there is none.
+ */
+function quoteFor(o: OrderRow, parcelId: string | null, parcelCount: number): number | null {
+  const delivery = o.shipping?.delivery
+  if (!delivery) return null
+  if (delivery.parcels?.length) {
+    if (!parcelId) return null
+    const route = delivery.parcels.find((r) => r.fulfillmentOrderId === parcelId)
+    return positive(route?.courierCostPaise)
+  }
+  return parcelCount <= 1 ? positive(delivery.courierCostPaise) : null
+}
 type LineRow = {
   id: string
   orderId: string
@@ -159,6 +184,7 @@ export async function orderParcelCosts(
             cancelled: false,
             boxCostPaise: boxCost(picked),
             shipments: shipped.map(asShipment),
+            quotePaise: quoteFor(o, null, 0),
           },
           ctx,
         ),
@@ -185,6 +211,7 @@ export async function orderParcelCosts(
               cancelled: p.status === 'cancelled',
               boxCostPaise: boxCost(picked),
               shipments: booked.map(asShipment),
+              quotePaise: quoteFor(o, p.id, mine.length),
             },
             ctx,
           ),

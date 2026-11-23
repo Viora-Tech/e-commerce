@@ -10,7 +10,7 @@ import RelativeTime from '@/components/layout/relative-time'
 import ShipmentDetails from '@/components/shipments/shipment-details'
 import { sharedParcelContent } from '@/data/shared-parcel'
 import { shipmentPanelContent } from '@/data/shipping'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import type { OrderShipment } from './order-detail-types'
 
@@ -24,6 +24,9 @@ type ShipmentPanelProps = {
   /** After a cancel or a pickup request from the details: the order is read again. */
   onChanged: () => void
 }
+
+const SHORT_DATE = { day: 'numeric', month: 'short' } as const
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/
 
 /* Nothing to book once the order is closed or the parcel has arrived. */
 const CLOSED: ReadonlySet<string> = new Set(['cancelled', 'completed', 'delivered', 'returned'])
@@ -43,6 +46,7 @@ export default function ShipmentPanel({
   // Hooks
   const copy = useCopy(shipmentPanelContent)
   const shared = useCopy(sharedParcelContent)
+  const fmt = useFormat()
 
   // Early returns
   const canBook = !shipment || shipment.status === 'cancelled'
@@ -69,6 +73,11 @@ export default function ShipmentPanel({
   const events = tracking?.events.slice().reverse() ?? []
   const host = shipment.sameBoxAs
   const riders = shipment.alsoCarries
+  // The courier's "2026-11-23" read as a calendar day: "23 Nov".
+  const expectedDay = tracking?.expectedDate?.slice(0, 10) ?? ''
+  const expected = ISO_DAY.test(expectedDay)
+    ? fmt.pattern(`${expectedDay}T12:00:00Z`, SHORT_DATE)
+    : (tracking?.expectedDate ?? null)
 
   return (
     <DataCard
@@ -78,7 +87,7 @@ export default function ShipmentPanel({
       meta={
         <span>
           {copy.updated} <RelativeTime value={shipment.updatedAt} />
-          {tracking?.expectedDate ? `, ${copy.expected} ${tracking.expectedDate}` : ''}
+          {expected ? `, ${copy.expected} ${expected}` : ''}
         </span>
       }
     >

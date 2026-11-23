@@ -265,6 +265,7 @@ export default [
         balancePaid: (when) => `बाकी रकम मिली ${when}`,
         requested: (when, reminders) => `${when} माँगा, ${reminders} रिमाइंडर भेजे`,
         notRequested: 'अभी माँगा नहीं',
+        paidInFull: 'पूरा भुगतान मिल गया',
         request: 'बाकी रकम माँगें',
         resend: 'बाकी रकम फिर से माँगें',
         requestedToast: 'ग्राहक से बाकी रकम माँग ली गई',

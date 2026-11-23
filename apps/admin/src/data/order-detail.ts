@@ -291,6 +291,7 @@ export const orderDetailContent = {
       requested: (when: string, reminders: number) =>
         `requested ${when}, ${reminders === 1 ? '1 reminder' : `${reminders} reminders`} sent`,
       notRequested: 'not requested yet',
+      paidInFull: 'Paid in full',
       request: 'Request balance',
       resend: 'Send balance request again',
       requestedToast: 'Balance request sent to the customer',
