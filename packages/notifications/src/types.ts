@@ -1,4 +1,5 @@
 import type { ChatEmail, ChatWaitingEmail } from './chat-types'
+import type { DesignStyles } from './design/style-types'
 import type { PerformanceReport } from './report-types'
 import type { SeoWeeklyEmail } from './seo-weekly-types'
 import type { TemplateId } from './template-ids'
@@ -54,6 +55,11 @@ export type EmailBrandInfo = {
   /** One line: "12 MG Road, Pune 411001". */
   address?: string | null | undefined
   social?: { platform: string; url: string }[] | undefined
+  /**
+   * The email styles saved in Email branding for every email (font, size, colours, width,
+   * buttons); a design's own styles sit on top (Edit design).
+   */
+  styles?: DesignStyles | undefined
 }
 
 /** Everything a template needs; built by the worker from the order row. */

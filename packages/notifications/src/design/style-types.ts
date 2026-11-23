@@ -133,3 +133,14 @@ export type SlotEdit = {
 }
 
 export const HEX = /^#[0-9a-f]{6}$/i
+
+/** Email branding's styles with a design's own on top (the button style merged field by field). */
+export function mergeStyles(
+  base: DesignStyles | undefined,
+  own: DesignStyles | undefined,
+): DesignStyles | undefined {
+  if (!base) return own
+  if (!own) return base
+  const button = base.button || own.button ? { ...base.button, ...own.button } : undefined
+  return { ...base, ...own, ...(button ? { button } : {}) }
+}

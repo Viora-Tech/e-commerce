@@ -82,6 +82,7 @@ export function TransactionalEmail(p: TransactionalEmailProps) {
       footerNote={p.footerNote}
       internal={p.internal}
       labels={p.labels}
+      look={p.brand?.styles}
     >
       <Intro eyebrow={p.eyebrow} heading={p.heading} lead={p.intro} accent={accent}>
         {paragraphs.map((t) => (

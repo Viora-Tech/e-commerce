@@ -10,6 +10,7 @@ export {
   isSafeLink,
   parseEmailDesign,
 } from './parse'
+export { parseStyles } from './parse-style'
 export { parseRichText, richToPlain } from './rich-text'
 export { sanitizeEmailHtml } from './sanitize-html'
 export { SLOT_KEY, slotKind, slotLocked } from './slots'

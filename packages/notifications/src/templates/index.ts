@@ -4,6 +4,7 @@ import { designFor } from '../design/design-for'
 import { applyDesignLook } from '../design/design-look'
 import { DesignedEmail } from '../design/designed-email'
 import { designTextLines, introOverride } from '../design/plain-text'
+import { mergeStyles } from '../design/style-types'
 import { fillVariables } from '../design/variables'
 import { PerformanceReportEmail } from '../emails/performance-report'
 import { TransactionalEmail } from '../emails/transactional-email'
@@ -383,6 +384,8 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
     (l) => l.url !== primaryAction?.url && !shown.has(l.url),
   )
 
+  // Email branding's styles for every email, a design's own on top.
+  const styles = mergeStyles(d.brand?.styles, design?.styles)
   if (design) {
     try {
       const html = await render(
@@ -401,11 +404,11 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
             ...((composed?.ownsNote ? undefined : note)?.split(/\n+/).filter(Boolean) ?? []),
           ].filter((t): t is string => Boolean(t)),
           blocks: design.blocks,
-          styles: design.styles,
+          styles,
           internal: INTERNAL.has(template),
         }),
       )
-      return { subject, text, html: applyDesignLook(html, design.styles) }
+      return { subject, text, html: applyDesignLook(html, styles) }
     } catch (err) {
       // An order email never fails over a design: send the built-in one instead.
       console.warn('email design failed to render; sending the built-in email', {
@@ -465,7 +468,7 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
     }),
   )
 
-  return { subject, text, html }
+  return { subject, text, html: applyDesignLook(html, styles) }
 }
 
 export function renderWhatsapp(template: TemplateId, d: TemplateData): WhatsappBody {

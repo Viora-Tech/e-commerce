@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: the merchant's own email branding — WHAT: logo, logo size, accent and button text colour set once for every notification email (Settings → Notifications → Email branding), over what the live theme gives / WHY: Shopify's "Customize email templates"; one place so every email changes together (owner, 22 Nov 2026) */
 import { emailTemplateDesign, type StoreTx } from '@commerce/db'
-import type { EmailBrandInfo } from '@commerce/notifications'
+import { type EmailBrandInfo, parseStyles } from '@commerce/notifications'
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
@@ -21,6 +21,14 @@ export const EmailBrandingSchema = z.object({
   colour: hex.optional(),
   /** The text on buttons. */
   onColour: hex.optional(),
+  /**
+   * Font, text size, colours, card width and button style for every email; anything not set
+   * keeps the built-in look. A design's own styles (Edit design) sit on top.
+   */
+  styles: z
+    .unknown()
+    .transform((v) => parseStyles(v))
+    .optional(),
 })
 
 export type EmailBranding = z.infer<typeof EmailBrandingSchema>
@@ -87,5 +95,6 @@ export function applyEmailBranding(
     ...(branding.logoWidth !== undefined ? { logoWidth: branding.logoWidth } : {}),
     ...(branding.colour ? { colour: branding.colour } : {}),
     ...(branding.onColour ? { onColour: branding.onColour } : {}),
+    ...(branding.styles ? { styles: branding.styles } : {}),
   }
 }

@@ -450,3 +450,22 @@ describe('new blocks', () => {
     expect(email.text).toContain('- fast')
   })
 })
+
+describe('Email branding styles', () => {
+  it('apply to every email, built-in or designed, with the design on top', async () => {
+    const brand = {
+      ...sampleEmailBrand,
+      styles: { font: 'verdana' as const, background: '#101010' },
+    }
+    const plain = await renderEmail('delivered', { ...data('delivered'), brand })
+    expect(plain.html).toContain('Verdana, Geneva, sans-serif')
+    expect(plain.html).toContain('background-color:#101010')
+    const designed = await renderEmail('delivered', {
+      ...data('delivered'),
+      brand,
+      design: { ...defaultEmailDesign('delivered'), styles: { font: 'georgia' } },
+    })
+    expect(designed.html).toContain('Georgia, Times, serif')
+    expect(designed.html).toContain('background-color:#101010')
+  })
+})

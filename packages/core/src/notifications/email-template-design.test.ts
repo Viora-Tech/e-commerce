@@ -82,14 +82,23 @@ describe('EmailTemplateDesignSchema', () => {
 
 describe('EmailTemplateDesignSchema, version 2', () => {
   it('accepts an old version 1 design and stores it as version 2', () => {
-    const r = EmailTemplateDesignSchema.safeParse({ ...defaultEmailDesign('delivered'), version: 1 })
+    const r = EmailTemplateDesignSchema.safeParse({
+      ...defaultEmailDesign('delivered'),
+      version: 1,
+    })
     expect(r.success && r.data.version).toBe(2)
   })
 
   it('accepts styles, boxes, slot edits and the new blocks; cleans HTML', () => {
     const r = parse(
       [
-        { id: 'items#0', type: 'slot', slot: 'items#0', edit: { hide: ['image'] }, box: { top: 'small' } },
+        {
+          id: 'items#0',
+          type: 'slot',
+          slot: 'items#0',
+          edit: { hide: ['image'] },
+          box: { top: 'small' },
+        },
         { id: 'h', type: 'html', html: '<p onclick="x">Hi</p><script>x</script>' },
         { id: 'c', type: 'coupon', code: 'SAVE', label: '', note: '', value: '', valueNote: '' },
       ],
