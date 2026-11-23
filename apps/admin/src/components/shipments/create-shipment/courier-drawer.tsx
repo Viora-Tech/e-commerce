@@ -57,8 +57,8 @@ const SORTS: CourierSort[] = ['recommended', 'cheapest', 'fastest']
 
 /**
  * Select courier partner (Figma 898:7790): a bottom drawer with a swipe handle, the order's
- * route and charged weight, the Shipping insurance toggle beside Close, All / Air / Surface
- * tabs with counts, Sort, and the courier table with its price breakdown.
+ * route and charged weight beside Close, the Shipping insurance toggle as its own row, All / Air /
+ * Surface tabs with counts, Check again and Sort, and the courier table with its price breakdown.
  */
 export default function CourierDrawer({
   open,
@@ -115,62 +115,61 @@ export default function CourierDrawer({
     <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
       {/* One height whatever the number of couriers (owner, 11 Nov): a single service leaves room below, the drawer does not shrink. */}
       <DrawerContent className={cn('mx-auto h-[calc(100dvh-6rem)] max-w-[90rem]', BESIDE_SIDEBAR)}>
-        <DrawerHeader className="flex flex-row flex-wrap items-start justify-between gap-4 px-4 pt-2 text-left">
+        <DrawerHeader className="flex flex-row items-start justify-between gap-4 px-4 pt-2 text-left">
           <div className="flex min-w-0 flex-col items-start gap-1 text-left">
             <DrawerTitle>{copy.title}</DrawerTitle>
             <DrawerDescription className="text-body text-muted-foreground">
               {summary}
             </DrawerDescription>
           </div>
-          <div className="flex items-start gap-3">
-            <div className="flex max-w-[26rem] flex-col gap-1.5">
-              <label
-                htmlFor="drawer-insurance"
-                className="flex cursor-pointer items-center gap-4 rounded-lg border border-border px-4 py-2.5"
-              >
-                <span className="flex flex-col text-left">
-                  <span className="text-body font-medium text-ink-strong">{copy.insurance}</span>
-                  <span className="text-caption text-muted-foreground" title={excess}>
-                    {copy.insuranceCovers(
-                      insuranceLine === null ? null : fmt.money(insuranceLine),
-                      coveredLabel,
-                    )}
-                  </span>
-                </span>
-                <Switch id="drawer-insurance" checked={insured} onCheckedChange={onInsured} />
-              </label>
-              {notes?.uninsuredLimitPaise != null && picked ? (
-                <p role="status" className="text-caption text-warning">
-                  {copy.uninsuredLimit(
-                    picked.providerName,
-                    fmt.money(notes.uninsuredLimitPaise),
-                    fmt.money(notes.valuePaise),
-                  )}
-                </p>
-              ) : null}
-              {picked?.providerId === 'rapidshyp' ? (
-                <p role="status" className="text-caption text-muted-foreground">
-                  {copy.shieldFollowsSettings}
-                </p>
-              ) : null}
-              {notes?.usedNotCovered && picked ? (
-                <p role="status" className="text-caption text-warning">
-                  {copy.usedNotCovered(picked.providerName)}
-                </p>
-              ) : null}
-            </div>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label={copy.close}
-              onClick={() => onOpenChange(false)}
-            >
-              <XIcon aria-hidden="true" />
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={copy.close}
+            onClick={() => onOpenChange(false)}
+          >
+            <XIcon aria-hidden="true" />
+          </Button>
         </DrawerHeader>
 
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-6">
+          {/* Its own full-width row (owner, 23 Nov): squeezed beside Close it wrapped and crowded the header. */}
+          <div className="flex flex-col gap-1.5 rounded-lg border border-border px-4 py-3">
+            <label
+              htmlFor="drawer-insurance"
+              className="flex cursor-pointer items-center justify-between gap-4"
+            >
+              <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+                <span className="text-body font-medium text-ink-strong">{copy.insurance}</span>
+                <span className="text-caption text-muted-foreground" title={excess}>
+                  {copy.insuranceCovers(
+                    insuranceLine === null ? null : fmt.money(insuranceLine),
+                    coveredLabel,
+                  )}
+                </span>
+              </span>
+              <Switch id="drawer-insurance" checked={insured} onCheckedChange={onInsured} />
+            </label>
+            {notes?.uninsuredLimitPaise != null && picked ? (
+              <p role="status" className="text-caption text-warning">
+                {copy.uninsuredLimit(
+                  picked.providerName,
+                  fmt.money(notes.uninsuredLimitPaise),
+                  fmt.money(notes.valuePaise),
+                )}
+              </p>
+            ) : null}
+            {picked?.providerId === 'rapidshyp' ? (
+              <p role="status" className="text-caption text-muted-foreground">
+                {copy.shieldFollowsSettings}
+              </p>
+            ) : null}
+            {notes?.usedNotCovered && picked ? (
+              <p role="status" className="text-caption text-warning">
+                {copy.usedNotCovered(picked.providerName)}
+              </p>
+            ) : null}
+          </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
               {MODES.map((m) => (
