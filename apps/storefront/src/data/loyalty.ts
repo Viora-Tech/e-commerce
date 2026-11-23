@@ -9,6 +9,15 @@ export const loyaltyAccountContent = {
     'Points sit in your store credit. At checkout, keep Store credit ticked and they come off the order.',
   expiring: (points: string, day: string) => `${points} run out after ${day}`,
   pending: (points: string) => `${points} on the way, after the return window of a delivered order`,
+  earn: {
+    title: 'How you earn points',
+    orders: (points: string) =>
+      `${points} for every ₹100 you spend, once the order is delivered and the return window is over`,
+    review: (points: string) => `${points} for a review of a product you bought`,
+    birthday: (points: string) => `${points} on your birthday, every year`,
+    expiry: (months: number) =>
+      `Points run out ${months} ${months === 1 ? 'month' : 'months'} after you get them.`,
+  },
   history: 'History',
   empty: 'No points yet. You earn them on delivered orders.',
   sources: {

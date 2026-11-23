@@ -5,7 +5,7 @@ import { dayStart } from '@commerce/dates'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import InlineState from '@/components/states/inline-state'
@@ -17,6 +17,7 @@ import { api } from '@/lib/api-client'
 import { formatDay, formatPattern } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
+import { announceStoreCreditChanged, STORE_CREDIT_CHANGED_EVENT } from '@/lib/store-credit-events'
 import StoreCreditDialog from './store-credit-dialog'
 
 type CustomerStoreCreditCardProps = { customerId: string }
@@ -39,6 +40,14 @@ export default function CustomerStoreCreditCard({ customerId }: CustomerStoreCre
   } = useLoad<Account>(() => api.storeCredit.get({ customerId }), [customerId])
   const [mode, setMode] = useState<'add' | 'remove' | null>(null)
 
+  // Effects
+  // The other card (points are store credit) changed the balance: read it again.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: retry only bumps a state counter
+  useEffect(() => {
+    window.addEventListener(STORE_CREDIT_CHANGED_EVENT, retry)
+    return () => window.removeEventListener(STORE_CREDIT_CHANGED_EVENT, retry)
+  }, [])
+
   // Helpers
   const money = (paise: number) => formatPaise(paise, locale)
   const lastDay = (day: string) =>
@@ -47,8 +56,9 @@ export default function CustomerStoreCreditCard({ customerId }: CustomerStoreCre
   // Event handlers
   const handleDone = () => {
     setMode(null)
-    // Read the balance again; the old one stays on screen until the new one arrives.
-    retry()
+    // Both cards (this one and Loyalty points) read the balance again; the old one stays on
+    // screen until the new one arrives.
+    announceStoreCreditChanged()
   }
 
   // Render logic

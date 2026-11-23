@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import AccountPageHead from '@/components/account/account-page-head'
 import BirthdayForm from '@/components/account/birthday-form'
+import PointsEarnWays from '@/components/account/points-earn-ways'
 import PointsHistory from '@/components/account/points-history'
 import { loyaltyAccountContent } from '@/data/loyalty'
 import { storeTimeZone } from '@/lib/account'
@@ -44,6 +45,7 @@ export default async function PointsPage({ params }: PointsPageProps) {
           entries={points.entries}
           timeZone={timeZone}
         />
+        <PointsEarnWays settings={settings} />
         {!points.birthday && settings.birthdayPoints > 0 ? (
           <div className="max-w-[40rem]">
             <BirthdayForm birthdayPoints={settings.birthdayPoints} />

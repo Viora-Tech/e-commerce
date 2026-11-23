@@ -5,7 +5,7 @@ import { dayStart } from '@commerce/dates'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import InlineState from '@/components/states/inline-state'
@@ -17,6 +17,7 @@ import { api } from '@/lib/api-client'
 import { formatDay, formatPattern } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
+import { announceStoreCreditChanged, STORE_CREDIT_CHANGED_EVENT } from '@/lib/store-credit-events'
 import AdjustDialog from './adjust-dialog'
 import BirthdayDialog from './birthday-dialog'
 
@@ -42,6 +43,14 @@ export default function LoyaltyCustomerCard({ customerId }: LoyaltyCustomerCardP
   )
   const [dialog, setDialog] = useState<'adjust' | 'birthday' | null>(null)
 
+  // Effects
+  // The other card (points are store credit) changed the balance: read it again.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: retry only bumps a state counter
+  useEffect(() => {
+    window.addEventListener(STORE_CREDIT_CHANGED_EVENT, retry)
+    return () => window.removeEventListener(STORE_CREDIT_CHANGED_EVENT, retry)
+  }, [])
+
   // Helpers
   const day = (key: string) =>
     formatPattern(dayStart(key), { day: 'numeric', month: 'short', year: 'numeric' }, locale)
@@ -53,7 +62,8 @@ export default function LoyaltyCustomerCard({ customerId }: LoyaltyCustomerCardP
   // Event handlers
   const handleDone = () => {
     setDialog(null)
-    retry()
+    // Both cards (this one and Store credit) read the balance again.
+    announceStoreCreditChanged()
   }
 
   // Render logic
