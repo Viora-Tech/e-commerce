@@ -25,6 +25,8 @@ export const loyaltyAccountContent = {
     review: 'Thanks for your review',
     birthday: 'Happy birthday',
     adjustment: 'From the store',
+    /** Staff took points off (a negative adjustment). */
+    adjustmentRemoved: 'Removed by the store',
     reversal: (n: number | null) => (n ? `Taken back: order #${n}` : 'Taken back'),
   },
   statuses: {

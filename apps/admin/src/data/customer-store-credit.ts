@@ -7,6 +7,8 @@ export const customerStoreCreditContent = {
   empty:
     'No store credit yet. Credit added here, or a refund to store credit, shows up as a balance the customer can spend.',
   history: 'History',
+  more: 'Show older',
+  less: 'Show fewer',
   by: (who: string) => `by ${who}`,
   system: 'automatically',
   kinds: {

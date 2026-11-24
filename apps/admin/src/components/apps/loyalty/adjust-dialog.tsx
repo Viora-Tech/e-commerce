@@ -4,12 +4,12 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
+import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
-import PillTabs from '@/components/layout/pill-tabs'
 import { loyaltyContent } from '@/data/loyalty'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -87,15 +87,21 @@ export default function AdjustDialog({
             <DialogTitle>{d.title}</DialogTitle>
             <DialogDescription>{d.body(copy.points(points))}</DialogDescription>
           </DialogHeader>
-          <PillTabs
+          {/* Two equal halves filling the dialog, as the address dialog's role switch. */}
+          <ToggleGroup
             variant="segmented"
-            value={mode}
-            onChange={(m: Mode) => setMode(m)}
-            tabs={[
-              { value: 'add', label: d.add },
-              { value: 'remove', label: d.remove },
-            ]}
-          />
+            aria-label={d.title}
+            value={[mode]}
+            onValueChange={(v) => v[0] && setMode(v[0] as Mode)}
+            className="w-full"
+          >
+            <ToggleGroupItem value="add" className="flex-1">
+              {d.add}
+            </ToggleGroupItem>
+            <ToggleGroupItem value="remove" className="flex-1">
+              {d.remove}
+            </ToggleGroupItem>
+          </ToggleGroup>
           <Field data-invalid={tooMuch || undefined}>
             <FieldLabel htmlFor="loyalty-points">{d.amount}</FieldLabel>
             <Input

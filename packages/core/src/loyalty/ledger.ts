@@ -151,7 +151,7 @@ export async function pointsHistory(
 }
 
 /** The admin's customer card: points, history and the birthday. */
-export async function customerPoints(ctx: StoreContext, customerId: string) {
+export async function customerPoints(ctx: StoreContext, customerId: string, limit = 50) {
   const [c] = await ctx.tx
     .select({ birthday: customer.birthday })
     .from(customer)
@@ -160,7 +160,7 @@ export async function customerPoints(ctx: StoreContext, customerId: string) {
   return {
     ...(await pointsSummary(ctx, customerId)),
     birthday: c.birthday,
-    entries: await pointsHistory(ctx, customerId),
+    entries: await pointsHistory(ctx, customerId, limit),
   }
 }
 
@@ -274,12 +274,12 @@ export type ShopperPointsEntry = Omit<PointsEntryView, 'reason' | 'staffEmail' |
  * The shopper's own Points page: the summary, the birthday and the history with the order each
  * line belongs to. Never the reason or the staff member (staff reasons are for the store only).
  */
-export async function shopperPoints(ctx: StoreContext, customerId: string) {
+export async function shopperPoints(ctx: StoreContext, customerId: string, limit = 30) {
   const [c] = await ctx.tx
     .select({ birthday: customer.birthday })
     .from(customer)
     .where(eq(customer.id, customerId))
-  const entries: ShopperPointsEntry[] = (await pointsHistory(ctx, customerId, 30)).map((e) => ({
+  const entries: ShopperPointsEntry[] = (await pointsHistory(ctx, customerId, limit)).map((e) => ({
     id: e.id,
     source: e.source,
     status: e.status,

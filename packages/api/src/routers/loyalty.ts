@@ -55,10 +55,16 @@ export const loyaltyRouter = {
 
   /** A customer's points, points expiring soon and on the way, birthday and history. */
   forCustomer: can(permissions.CUSTOMERS_READ)
-    .input(z.object({ customerId: z.uuid() }))
+    .input(
+      z.object({
+        customerId: z.uuid(),
+        // The customer page asks for a few lines at a time ("Show older" asks for more).
+        limit: z.number().int().min(1).max(200).default(50),
+      }),
+    )
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
-      return surface(() => customerPoints(ctxOf(context), input.customerId))
+      return surface(() => customerPoints(ctxOf(context), input.customerId, input.limit))
     }),
 
   /** Add (positive) or remove (negative) points with a reason the history shows. */

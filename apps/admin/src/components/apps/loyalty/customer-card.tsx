@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
+import HistoryPager from '@/components/layout/history-pager'
 import InlineState from '@/components/states/inline-state'
 import { loyaltyContent } from '@/data/loyalty'
 import { useCopy, useLocale } from '@/hooks/use-copy'
@@ -15,6 +16,8 @@ import { useLoad } from '@/hooks/use-load'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { formatDay, formatPattern } from '@/lib/format-date'
+import { HISTORY_PAGE, historyLimit, historyPage, nextShown } from '@/lib/history-page'
+import { pointsEntryKind } from '@/lib/loyalty-entry'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
 import { announceStoreCreditChanged, STORE_CREDIT_CHANGED_EVENT } from '@/lib/store-credit-events'
@@ -37,9 +40,10 @@ export default function LoyaltyCustomerCard({ customerId }: LoyaltyCustomerCardP
   const copy = useCopy(loyaltyContent)
   const locale = useLocale()
   const { hasPermission } = usePermissions()
-  const { data, failed, retry } = useLoad<Points>(
-    () => api.loyalty.forCustomer({ customerId }),
-    [customerId],
+  const [shown, setShown] = useState(HISTORY_PAGE)
+  const { data, failed, loading, retry } = useLoad<Points>(
+    () => api.loyalty.forCustomer({ customerId, limit: historyLimit(shown) }),
+    [customerId, shown],
   )
   const [dialog, setDialog] = useState<'adjust' | 'birthday' | null>(null)
 
@@ -69,6 +73,7 @@ export default function LoyaltyCustomerCard({ customerId }: LoyaltyCustomerCardP
   // Render logic
   const c = copy.card
   const canEdit = hasPermission(permissions.CUSTOMERS_WRITE)
+  const { visible, hasMore } = historyPage(data?.entries ?? [], shown)
 
   return (
     <DataCard
@@ -131,7 +136,7 @@ export default function LoyaltyCustomerCard({ customerId }: LoyaltyCustomerCardP
             <EmptyState variant="inline" body={c.empty} />
           ) : (
             <ul aria-label={c.history} className="flex flex-col divide-y divide-line">
-              {data.entries.map((e) => (
+              {visible.map((e) => (
                 <li key={e.id} className="flex items-start justify-between gap-3 py-2">
                   <span className="min-w-0">
                     {e.orderId ? (
@@ -145,8 +150,7 @@ export default function LoyaltyCustomerCard({ customerId }: LoyaltyCustomerCardP
                       <span className="block truncate text-body text-foreground">{e.reason}</span>
                     )}
                     <span className="block text-caption text-muted-foreground">
-                      {copy.sources[e.source] ?? e.source} · {copy.statuses[e.status] ?? e.status} ·{' '}
-                      {formatDay(e.createdAt, new Date(), locale)}
+                      {pointsEntryKind(e, copy)} · {formatDay(e.createdAt, new Date(), locale)}
                       {e.staffEmail ? ` ${c.by(e.staffEmail)}` : ''}
                     </span>
                     {e.status === 'pending' ? (
@@ -165,6 +169,15 @@ export default function LoyaltyCustomerCard({ customerId }: LoyaltyCustomerCardP
               ))}
             </ul>
           )}
+          <HistoryPager
+            hasMore={hasMore}
+            expanded={shown > HISTORY_PAGE}
+            loading={loading}
+            moreLabel={c.more}
+            lessLabel={c.less}
+            onMore={() => setShown(nextShown)}
+            onLess={() => setShown(HISTORY_PAGE)}
+          />
         </div>
       )}
       <AdjustDialog

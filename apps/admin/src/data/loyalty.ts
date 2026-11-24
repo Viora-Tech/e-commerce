@@ -13,6 +13,9 @@ export const loyaltyContent = {
     credited: 'Credited',
     cancelled: 'Cancelled',
   } as Record<string, string>,
+  /** A staff change in the history, by its direction (never "Adjusted · Credited"). */
+  adjustAdded: 'Added',
+  adjustRemoved: 'Removed',
   overview: {
     title: 'Loyalty points',
     subtitle:
@@ -75,6 +78,8 @@ export const loyaltyContent = {
     by: (who: string) => `by ${who}`,
     lands: (day: string) => `Lands ${day}`,
     loadFailed: 'Could not load loyalty points.',
+    more: 'Show older',
+    less: 'Show fewer',
   },
   adjust: {
     title: 'Adjust points',

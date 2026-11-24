@@ -16,6 +16,8 @@ export default [
       credited: 'जुड़ गए',
       cancelled: 'रद्द',
     },
+    adjustAdded: 'जोड़े गए',
+    adjustRemoved: 'हटाए गए',
     overview: {
       title: 'लॉयल्टी पॉइंट्स',
       subtitle:
@@ -78,6 +80,8 @@ export default [
       by: (who: string) => `${who} ने`,
       lands: (day: string) => `${day} को जुड़ेंगे`,
       loadFailed: 'लॉयल्टी पॉइंट लोड नहीं हुए।',
+      more: 'पुराने दिखाएँ',
+      less: 'कम दिखाएँ',
     },
     adjust: {
       title: 'पॉइंट बदलें',

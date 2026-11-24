@@ -1,5 +1,6 @@
 import { formatPaise } from '@commerce/blocks'
 import type { ShopperPointsEntry } from '@commerce/core'
+import HistoryMore from '@/components/account/history-more'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import { formatAccountDate } from '@/data/account'
 import { loyaltyAccountContent } from '@/data/loyalty'
@@ -19,6 +20,8 @@ type PointsHistoryProps = {
   birthday: string | null
   entries: ShopperPointsEntry[]
   timeZone: string
+  /** `?show=N` for older lines; null when every line is shown. */
+  moreHref?: string | null
 }
 
 const copy = loyaltyAccountContent
@@ -30,9 +33,10 @@ const POINT_PAISE = 100
 const lastDay = (day: string) => formatAccountDate(`${day}T12:00:00Z`, 'UTC')
 
 /** What a line was, in the shopper's words: never the reason staff typed. */
-function describe(e: ShopperPointsEntry): string {
+export function describePoints(e: Pick<ShopperPointsEntry, 'source' | 'orderNumber' | 'points'>) {
   if (e.source === 'order') return copy.sources.order(e.orderNumber)
   if (e.source === 'reversal') return copy.sources.reversal(e.orderNumber)
+  if (e.source === 'adjustment' && e.points < 0) return copy.sources.adjustmentRemoved
   return copy.sources[e.source]
 }
 
@@ -63,6 +67,7 @@ export default function PointsHistory({
   birthday,
   entries,
   timeZone,
+  moreHref = null,
 }: PointsHistoryProps) {
   // Render logic
   return (
@@ -110,7 +115,7 @@ export default function PointsHistory({
             {entries.map((e) => (
               <li key={e.id} className={ACCOUNT_ROW}>
                 <span className="flex min-w-0 flex-col gap-0.5">
-                  <span className="text-[0.9375rem] text-ck-ink">{describe(e)}</span>
+                  <span className="text-[0.9375rem] text-ck-ink">{describePoints(e)}</span>
                   <span className="text-[0.8125rem] text-ck-muted">{lineDay(e, timeZone)}</span>
                 </span>
                 <span
@@ -123,6 +128,7 @@ export default function PointsHistory({
             ))}
           </ul>
         )}
+        <HistoryMore href={moreHref} />
       </section>
     </div>
   )

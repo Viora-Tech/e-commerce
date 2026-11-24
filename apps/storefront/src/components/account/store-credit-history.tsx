@@ -1,5 +1,6 @@
 import { formatPaise } from '@commerce/blocks'
 import type { ShopperStoreCreditEntry } from '@commerce/core'
+import HistoryMore from '@/components/account/history-more'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import { accountContent, formatAccountDate } from '@/data/account'
 import {
@@ -14,6 +15,8 @@ type StoreCreditHistoryProps = {
   balancePaise: number
   entries: ShopperStoreCreditEntry[]
   timeZone: string
+  /** `?show=N` for older lines; null when every line is shown. */
+  moreHref?: string | null
 }
 
 const copy = accountContent.storeCredit
@@ -44,6 +47,7 @@ export default function StoreCreditHistory({
   balancePaise,
   entries,
   timeZone,
+  moreHref = null,
 }: StoreCreditHistoryProps) {
   // Render logic
   return (
@@ -88,6 +92,7 @@ export default function StoreCreditHistory({
             ))}
           </ul>
         )}
+        <HistoryMore href={moreHref} />
       </section>
     </div>
   )

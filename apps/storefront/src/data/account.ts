@@ -148,6 +148,10 @@ export const accountContent = {
     summaryBody: 'It comes off your next order at checkout.',
     seeHistory: 'See history',
   },
+  /** Under a long history (Store credit, Points): the next older lines. */
+  history: {
+    more: 'Show older',
+  },
   orders: {
     title: 'Orders',
     emptyTitle: 'No orders yet',
