@@ -155,7 +155,9 @@ export default function CustomizeEditor({
         const parts = { header: header.data, main: main.data, footer: footer.data }
         const doc = normalizeDoc(composeDoc(parts), config, record.imported)
         drafts.prime(partsOf(ref, doc))
-        setTemplatesDirty(leftoverDrafts([header, main, footer], loaded === null, handleDiscard))
+        setTemplatesDirty(
+          leftoverDrafts([header, main, footer], loaded === null, handleDiscard, copy),
+        )
         setLoaded({ ref, doc, nonce })
         setSwitching(false)
       },
