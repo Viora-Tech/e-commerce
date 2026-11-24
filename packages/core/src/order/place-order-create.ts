@@ -427,7 +427,13 @@ export const createOrder: WorkflowStep<State> = {
       await recordDiscountUses(
         ctx,
         applied,
-        { id: o.id, customerId, email, discountPaise },
+        {
+          id: o.id,
+          customerId,
+          email,
+          phone: contact?.phone ?? input.checkout?.phone ?? null,
+          discountPaise,
+        },
         { noteOnly: !!draft },
       )
     }

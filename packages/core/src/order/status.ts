@@ -3,6 +3,7 @@ import { and, desc, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm'
 import { parseCheckoutSettings } from '../checkout/settings'
 import type { StoreContext } from '../context'
 import { captureHeldStoreCredit, releaseHeldStoreCredit } from '../customers/store-credit-checkout'
+import { uncountOrderDiscountUses } from '../discounts/usage'
 import { CommerceError } from '../errors'
 import { insertOutboxEvent } from '../outbox/write'
 import { applyPaymentStatus } from '../payments/confirm'
@@ -146,6 +147,9 @@ export async function cancelOrder(
   // Store credit held for a payment that never came goes back whatever else is kept: it was
   // never the order's money.
   await releaseHeldStoreCredit(ctx, orderId, { expiresOn: opts.storeCreditExpiresOn })
+  // The coupon use goes back too (owner, 24 Nov 2026): the total and the shopper's cap. This
+  // also covers split tender (store credit + gateway), whose order counts its code at once.
+  await uncountOrderDiscountUses(ctx, orderId)
   if (opts.returnGiftCards !== false) {
     await returnGiftCardPayments(ctx, orderId, opts.storeCreditExpiresOn)
   }

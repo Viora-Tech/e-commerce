@@ -8,8 +8,9 @@ const RECENT_USES = 10
 /**
  * What a discount has done, from its `discount_usage` rows (one per order that used it):
  * the orders, what they brought in and what the discount gave away, and the last use.
- * Test orders are left out; a cancelled order still counts as a use (it took one of the
- * limit) but adds nothing to revenue or the amount given.
+ * Test orders are left out; a cancelled order gave its use back (`uncountOrderDiscountUses`),
+ * so its row is no longer counted. An older cancelled order still counted adds nothing to
+ * revenue or the amount given.
  */
 export type DiscountUsageSummary = {
   orders: number

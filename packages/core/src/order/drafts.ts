@@ -406,6 +406,7 @@ export async function convertDraft(
       id,
       customerId: o.customerId,
       email: o.email,
+      phone: o.phone,
       discountPaise: o.discountPaise,
     })
   }
