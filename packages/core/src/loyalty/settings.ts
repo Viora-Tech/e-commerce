@@ -62,6 +62,8 @@ export const LoyaltySettingsSchema = z.object({
   tierBasis: z.enum(['points', 'spend']).default('points'),
   /** Over the whole membership, or the last 12 months. */
   tierWindow: z.enum(['lifetime', 'rolling_12m']).default('lifetime'),
+  /** Loyalty emails the merchant switched off on the app's Emails page (`LOYALTY_EMAIL_KEYS`). */
+  emailsOff: z.array(z.string().min(1).max(60)).max(20).default([]),
   referrals: z
     .object({
       enabled: z.boolean().default(false),
@@ -182,4 +184,36 @@ export function boostedPoints(
 ): number {
   if (basePoints <= 0) return 0
   return Math.floor((basePoints * Math.max(0, multiplierBp)) / 10_000) + Math.max(0, bonusPoints)
+}
+
+/**
+ * The loyalty emails a merchant can switch on or off, one per template and reminder day
+ * (Emails page). `points_expiring` also stays off while `reminderDays` is 0.
+ */
+export const LOYALTY_EMAIL_KEYS = [
+  'loyalty_points_earned',
+  'loyalty_reward_redeemed',
+  'loyalty_reward_expiring:30',
+  'loyalty_reward_expiring:3',
+  'loyalty_birthday',
+  'loyalty_tier_unlocked',
+  'points_expiring:30',
+  'points_expiring:7',
+] as const
+export type LoyaltyEmailKey = (typeof LOYALTY_EMAIL_KEYS)[number]
+
+/** A queued email's switch: the template, plus the reminder day for the two expiry emails. */
+export function loyaltyEmailKey(template: string, data: unknown): string {
+  const days = (data as { days?: unknown } | null)?.days
+  const daily = template === 'loyalty_reward_expiring' || template === 'points_expiring'
+  return daily && typeof days === 'number' ? `${template}:${days}` : template
+}
+
+/** Whether the store sends this loyalty email (everything is on until switched off). */
+export function loyaltyEmailOn(
+  s: Pick<LoyaltySettings, 'emailsOff' | 'reminderDays'>,
+  key: string,
+): boolean {
+  if (key.startsWith('points_expiring') && s.reminderDays === 0) return false
+  return !s.emailsOff.includes(key)
 }

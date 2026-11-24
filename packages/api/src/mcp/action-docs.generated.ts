@@ -426,6 +426,10 @@ export const ACTION_DOCS: Record<string, string> = {
   'loyalty.emails': 'Loyalty emails per template: waiting to go and sent.',
   'loyalty.forCustomer':
     "A customer's points, points expiring soon and on the way, birthday and history.",
+  'loyalty.insights.getRevenue':
+    'Member revenue per store day, and what non-members spent, over [from, to).',
+  'loyalty.insights.previewImport':
+    'Reads an import file and says what importing it would do; changes nothing.',
   'loyalty.members.export':
     'Every member as CSV (email, name, status, tier, points, lifetime_points, total_spent).',
   'loyalty.members.import':
