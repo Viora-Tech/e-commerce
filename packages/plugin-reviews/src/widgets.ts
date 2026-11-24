@@ -6,8 +6,8 @@
  */
 import { media, product, type StoreTx } from '@commerce/db'
 import { and, desc, eq, gte, inArray, type SQL, sql } from 'drizzle-orm'
+import { onLiveProductSql } from './live-product'
 import { emptySummary, photoCopy, photosFor, type RatingSummary, type ReviewPhoto } from './reviews'
-
 import { review, reviewMedia } from './schema'
 import { displayName, type ReviewsSettings } from './settings'
 
@@ -96,6 +96,7 @@ export async function storeWidgetReviews(
   if (productIds?.length === 0) return empty
   const scope: SQL | undefined = and(
     eq(review.status, 'published'),
+    onLiveProductSql,
     productIds ? inArray(review.productId, productIds) : undefined,
   )
 
@@ -124,8 +125,7 @@ export async function storeWidgetReviews(
       handle: product.handle,
     })
     .from(review)
-    // A draft or archived product has no page to link to: the review reads as a store review.
-    .leftJoin(product, and(eq(product.id, review.productId), eq(product.status, 'active')))
+    .leftJoin(product, eq(product.id, review.productId))
     .where(
       and(
         scope,
