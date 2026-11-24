@@ -9,40 +9,26 @@ import {
   customerPoints,
   LoyaltySettingsSchema,
   loyaltyOverview,
-  loyaltyState,
   permissions,
-  StoreCreditError,
   saveLoyaltySettings,
   setCustomerBirthday,
 } from '@commerce/core'
-import type { StoreTx } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can } from '../procedures'
-
-type Ctx = { tx: StoreTx; scope: { storeId: string } }
-
-async function requireInstalled(context: Ctx) {
-  const { installed, settings } = await loyaltyState(context.tx, context.scope.storeId)
-  if (!installed) {
-    throw new ORPCError('PRECONDITION_FAILED', { message: 'Install the Loyalty points app first' })
-  }
-  return settings
-}
-
-const ctxOf = (context: Ctx) => ({ storeId: context.scope.storeId, tx: context.tx })
-
-/** Store credit errors as the API reports them: a missing customer is 404, the rest 400. */
-function surface<T>(run: () => Promise<T>): Promise<T> {
-  return run().catch((err) => {
-    if (err instanceof StoreCreditError) {
-      throw new ORPCError(err.reason === 'not_found' ? 'NOT_FOUND' : 'BAD_REQUEST', {
-        message: err.message,
-      })
-    }
-    throw err
-  })
-}
+import { ctxOf, requireInstalled, surface } from './loyalty-common'
+import {
+  loyaltyCampaignsRouter,
+  loyaltyRedemptionsRouter,
+  loyaltyRewardsRouter,
+  loyaltyRulesRouter,
+  loyaltyTiersRouter,
+} from './loyalty-v2'
+import {
+  loyaltyMembersRouter,
+  loyaltyReferralsRouter,
+  loyaltyV2ReadRouter,
+} from './loyalty-v2-members'
 
 export const loyaltyRouter = {
   /** Points given and taken back in the last days, customers with points and points on the way. */
@@ -106,8 +92,18 @@ export const loyaltyRouter = {
       return r
     }),
 
+  // v2 (docs/loyalty-v2-interfaces.md)
+  rules: loyaltyRulesRouter,
+  rewards: loyaltyRewardsRouter,
+  redemptions: loyaltyRedemptionsRouter,
+  tiers: loyaltyTiersRouter,
+  campaigns: loyaltyCampaignsRouter,
+  members: loyaltyMembersRouter,
+  referrals: loyaltyReferralsRouter,
+  ...loyaltyV2ReadRouter,
+
   settings: {
-    /** The app's numbers: earn rate, expiry, review and birthday points, reminder. */
+    /** The app's settings: v1 numbers (earn rate, expiry, review and birthday points, reminder) and v2 switches. */
     get: can(permissions.SETTINGS_READ).handler(({ context }) => requireInstalled(context)),
     /** Save the app's numbers. */
     save: can(permissions.SETTINGS_MANAGE)
