@@ -28,7 +28,7 @@ const storeRef = () =>
     .references(() => store.id)
 
 /** What an earning rule rewards. */
-export const LOYALTY_RULE_TYPES = [
+const LOYALTY_RULE_TYPES = [
   'order_spend',
   'first_order',
   'signup',
@@ -42,23 +42,8 @@ export const LOYALTY_RULE_TYPES = [
   'social',
 ] as const
 
-/** The social and link actions a `social` rule can be (its `key`). */
-export const LOYALTY_SOCIAL_KINDS = [
-  'instagram',
-  'youtube',
-  'x',
-  'facebook',
-  'tiktok',
-  'pinterest',
-  'discord',
-  'reddit',
-  'telegram',
-  'whatsapp',
-  'link',
-] as const
-
 /** What a reward gives. */
-export const LOYALTY_REWARD_TYPES = [
+const LOYALTY_REWARD_TYPES = [
   'amount_off',
   'custom_amount_off',
   'percent_off',
@@ -68,17 +53,12 @@ export const LOYALTY_REWARD_TYPES = [
 ] as const
 
 /** `issued`: code not used yet. `used`: an order took it. `cancelled`: staff cancelled, points back. `expired`: ran out unused. */
-export const LOYALTY_REDEMPTION_STATUSES = ['issued', 'used', 'cancelled', 'expired'] as const
+const LOYALTY_REDEMPTION_STATUSES = ['issued', 'used', 'cancelled', 'expired'] as const
 
 /** `pending`: friend signed up. `friend_ordered`: waiting for the hold. `completed`: referrer rewarded. `rejected`: a fraud check failed. */
-export const LOYALTY_REFERRAL_STATUSES = [
-  'pending',
-  'friend_ordered',
-  'completed',
-  'rejected',
-] as const
+const LOYALTY_REFERRAL_STATUSES = ['pending', 'friend_ordered', 'completed', 'rejected'] as const
 
-export const LOYALTY_NOTIFICATION_TEMPLATES = [
+const LOYALTY_NOTIFICATION_TEMPLATES = [
   'loyalty_points_earned',
   'loyalty_reward_redeemed',
   'loyalty_reward_expiring',
