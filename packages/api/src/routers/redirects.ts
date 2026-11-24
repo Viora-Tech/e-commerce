@@ -8,6 +8,7 @@ import {
   listRedirects,
   parseRedirectsCsv,
   permissions,
+  RedirectLoop,
   RedirectWriteSchema,
   redirectsToCsv,
   saveRedirect,
@@ -47,7 +48,7 @@ export const redirectsRouter = {
           id: input.id,
         })
       } catch (err) {
-        if (err instanceof DuplicateRedirect) {
+        if (err instanceof DuplicateRedirect || err instanceof RedirectLoop) {
           throw new ORPCError('CONFLICT', { message: err.message })
         }
         throw err

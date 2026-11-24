@@ -9,6 +9,7 @@ import {
   hasRedirects,
   importRedirect,
   listRedirects,
+  RedirectLoop,
   saveRedirect,
   upsertImportedRedirect,
 } from './service'
@@ -109,6 +110,19 @@ describe('redirect service', () => {
         outcome: 'skipped',
         skip: 'invalid',
       })
+    })
+  })
+
+  it('refuses a redirect that sends shoppers back where they came from', async () => {
+    const storeId = await seedStore('loop')
+    await withStore(app, storeId, async (tx) => {
+      await saveRedirect(tx, storeId, { path: '/old', target: '/new' })
+      await expect(saveRedirect(tx, storeId, { path: '/New/', target: '/OLD' })).rejects.toThrow(
+        RedirectLoop,
+      )
+      // Editing the first one to point elsewhere is fine; so is a chain that ends somewhere.
+      await saveRedirect(tx, storeId, { path: '/new', target: '/newest' })
+      expect(await findRedirect(tx, '/new')).toBe('/newest')
     })
   })
 

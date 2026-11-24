@@ -37,7 +37,39 @@ export async function listRedirects(tx: StoreTx, input: RedirectList) {
   return { items, total: total?.n ?? 0 }
 }
 
-/** Create or edit one redirect. A second redirect from the same path is refused. */
+export class RedirectLoop extends CommerceError {
+  constructor(path: string, target: string) {
+    super(
+      'CONFLICT',
+      `${target} already redirects back to ${path}, so shoppers would go round in a loop`,
+    )
+  }
+}
+
+/** How many existing hops the loop check follows from a new redirect's target. */
+const LOOP_HOPS = 10
+
+/** Whether following redirects from `target` leads back to `path` (a store path target only). */
+async function leadsBack(tx: StoreTx, path: string, target: string, id?: string): Promise<boolean> {
+  const back = normaliseRedirectPath(path)
+  let at = target
+  for (let hop = 0; hop < LOOP_HOPS && at.startsWith('/'); hop++) {
+    const from = normaliseRedirectPath(at)
+    if (from === back) return true
+    const [next] = await tx
+      .select({ target: urlRedirect.target })
+      .from(urlRedirect)
+      .where(and(eq(urlRedirect.path, from), id ? ne(urlRedirect.id, id) : undefined))
+    if (!next) return false
+    at = next.target
+  }
+  return false
+}
+
+/**
+ * Create or edit one redirect. A second redirect from the same path is refused, and so is one
+ * whose target already redirects (directly or down a chain) back to its path.
+ */
 export async function saveRedirect(
   tx: StoreTx,
   storeId: string,
@@ -50,6 +82,9 @@ export async function saveRedirect(
       and(eq(urlRedirect.path, input.path), input.id ? ne(urlRedirect.id, input.id) : undefined),
     )
   if (clash) throw new DuplicateRedirect(input.path)
+  if (await leadsBack(tx, input.path, input.target, input.id)) {
+    throw new RedirectLoop(input.path, input.target)
+  }
   if (input.id) {
     const [row] = await tx
       .update(urlRedirect)
