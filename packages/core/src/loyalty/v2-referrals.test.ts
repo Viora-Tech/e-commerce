@@ -39,6 +39,8 @@ const S = settingsWith({
     friendTag: 'referred',
     orderTag: 'referral-order',
     codeDays: 30,
+    holdForReturns: true,
+    shareChannels: [],
   },
 })
 

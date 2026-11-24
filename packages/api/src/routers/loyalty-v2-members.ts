@@ -20,6 +20,7 @@ import {
   referralSummary,
   resetAllPoints,
   tierProgress,
+  tierValue,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -136,6 +137,12 @@ export const loyaltyV2ReadRouter = {
       const ctx = ctxOf(context)
       return {
         tier: await tierProgress(ctx, input.customerId, settings),
+        // Points earned over the whole membership, whatever the tier basis and window.
+        lifetimePoints: await tierValue(ctx, input.customerId, {
+          ...settings,
+          tierBasis: 'points',
+          tierWindow: 'lifetime',
+        }),
         redemptions: (await listRedemptions(ctx, { customerId: input.customerId, perPage: 50 }))
           .rows,
         referral: await referralSummary(ctx, input.customerId),

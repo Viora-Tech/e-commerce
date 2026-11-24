@@ -1906,13 +1906,13 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/loyalty/settings.ts',
-    names: ['pointsLabel', 'ReferralRewardSchema'],
+    names: ['ReferralRewardSchema'],
     reason:
       'browser-safe loyalty v2 helpers for the admin and storefront UI built next (docs/loyalty-v2-interfaces.md); ReferralRewardSchema also shapes the settings schema in the module',
   },
   {
     file: 'packages/core/src/loyalty/schemas.ts',
-    names: ['LOYALTY_RULE_TYPES', 'LOYALTY_SOCIAL_KINDS', 'LOYALTY_REWARD_TYPES'],
+    names: ['LOYALTY_RULE_TYPES'],
     reason:
       'the lists the v2 admin pickers read (built next, docs/loyalty-v2-interfaces.md); used in the module by the input schemas',
   },
@@ -1926,12 +1926,6 @@ const ALLOWLIST: AllowEntry[] = [
     file: 'packages/core/src/loyalty/campaigns.ts',
     names: ['boostFrom'],
     reason: 'pure step of campaignBoost, asserted directly by v2-rules.test.ts',
-  },
-  {
-    file: 'packages/core/src/loyalty/tiers.ts',
-    names: ['tierValue'],
-    reason:
-      'used in the module by recalcTier and tierProgress, asserted directly by v2-earn.test.ts',
   },
   {
     file: 'packages/core/src/loyalty/ledger.ts',

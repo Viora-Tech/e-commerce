@@ -23,6 +23,7 @@ import { routes } from '@/lib/routes'
 import { announceStoreCreditChanged, STORE_CREDIT_CHANGED_EVENT } from '@/lib/store-credit-events'
 import AdjustDialog from './adjust-dialog'
 import BirthdayDialog from './birthday-dialog'
+import CustomerLoyaltyExtras from './customer-loyalty-extras'
 
 type LoyaltyCustomerCardProps = { customerId: string }
 
@@ -121,6 +122,7 @@ export default function LoyaltyCustomerCard({ customerId }: LoyaltyCustomerCardP
               {c.pending(copy.points(data.pendingPoints))}
             </span>
           ) : null}
+          <CustomerLoyaltyExtras customerId={customerId} />
           <div className="flex items-center justify-between gap-3 border-t border-line pt-3">
             <span className="text-caption text-muted-foreground">{c.birthday}</span>
             <span className="flex items-center gap-2 text-body">

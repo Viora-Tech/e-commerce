@@ -68,7 +68,9 @@ import IndiaPostLabelPage from '@/components/apps/india-post/label-page'
 import IndiaPostOverviewPage from '@/components/apps/india-post/overview-page'
 import LoyaltyCustomerCard from '@/components/apps/loyalty/customer-card'
 import LoyaltyOverviewPage from '@/components/apps/loyalty/overview-page'
-import LoyaltySettingsPage from '@/components/apps/loyalty/settings-page'
+import LoyaltyPlacementsPage from '@/components/apps/loyalty/placements-page'
+import LoyaltyProgramPage from '@/components/apps/loyalty/program/program-page'
+import LoyaltyRewardPage from '@/components/apps/loyalty/reward/reward-page'
 import MeilisearchPage from '@/components/apps/meilisearch/settings-page'
 import SesConnectPage from '@/components/apps/messages/ses-connect-page'
 import WhatsappConnectPage from '@/components/apps/messages/whatsapp-connect-page'
@@ -230,8 +232,10 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
   },
   loyalty: {
     pages: {
-      '': LoyaltyOverviewPage,
-      settings: LoyaltySettingsPage,
+      '': LoyaltyProgramPage,
+      overview: LoyaltyOverviewPage,
+      placements: LoyaltyPlacementsPage,
+      'rewards/[id]': LoyaltyRewardPage,
     },
     CustomerCard: LoyaltyCustomerCard,
   },

@@ -141,8 +141,10 @@ export const loyaltyPlugin = definePlugin({
     icon: 'Gift',
     customerDetailCard: true,
     pages: [
-      { path: '', title: 'Loyalty points', navLabel: 'Overview', icon: 'BarChart3' },
-      { path: 'settings', title: 'Settings', navLabel: 'Settings', icon: 'Settings' },
+      { path: '', title: 'Loyalty points', navLabel: 'Program', icon: 'Gift' },
+      { path: 'overview', title: 'Overview', navLabel: 'Overview', icon: 'BarChart3' },
+      { path: 'placements', title: 'Placements', navLabel: 'Placements', icon: 'Blocks' },
+      { path: 'rewards/[id]', title: 'Reward' },
     ],
   },
 })

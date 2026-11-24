@@ -211,8 +211,9 @@ export async function referralOrderDelivered(
     )
     .for('update')
   if (!ref) return null
-  const availableAt = new Date(now.getTime() + (await pointsHoldMs(ctx.tx, ctx.storeId)))
   const cfg = settings.referrals
+  const holdMs = cfg.holdForReturns ? await pointsHoldMs(ctx.tx, ctx.storeId) : 0
+  const availableAt = new Date(now.getTime() + holdMs)
   if (cfg.friendReward.kind === 'points') {
     await ctx.tx
       .insert(loyaltyEntry)

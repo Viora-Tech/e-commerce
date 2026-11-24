@@ -27,6 +27,18 @@ export const ReferralRewardSchema = z
   })
 export type ReferralReward = z.infer<typeof ReferralRewardSchema>
 
+/** Where a member can share their referral link from the storefront. */
+export const REFERRAL_SHARE_CHANNELS = [
+  'whatsapp',
+  'email',
+  'x',
+  'facebook',
+  'messenger',
+  'threads',
+  'telegram',
+] as const
+export type ReferralShareChannel = (typeof REFERRAL_SHARE_CHANNELS)[number]
+
 /** Owner's defaults (16 Nov 2026); every number is the merchant's to change. */
 export const LoyaltySettingsSchema = z.object({
   /** Points per ₹100 spent (1 = 1%); 0 turns earning on orders off. */
@@ -75,6 +87,13 @@ export const LoyaltySettingsSchema = z.object({
       orderTag: z.string().trim().max(60).default(''),
       /** Days a referral discount code works. */
       codeDays: z.number().int().min(1).max(365).default(30),
+      /** Reward only once the friend's order is past the return window (off: on delivery). */
+      holdForReturns: z.boolean().default(true),
+      /** Share buttons the storefront shows beside the referral link. */
+      shareChannels: z
+        .array(z.enum(REFERRAL_SHARE_CHANNELS))
+        .max(REFERRAL_SHARE_CHANNELS.length)
+        .default(['whatsapp', 'email', 'x', 'facebook']),
     })
     .default({
       enabled: false,
@@ -85,6 +104,8 @@ export const LoyaltySettingsSchema = z.object({
       friendTag: '',
       orderTag: '',
       codeDays: 30,
+      holdForReturns: true,
+      shareChannels: ['whatsapp', 'email', 'x', 'facebook'],
     }),
 })
 export type LoyaltySettings = z.infer<typeof LoyaltySettingsSchema>
