@@ -5,6 +5,7 @@ import CourierOrdersCard from './courier-orders-card'
 import CustomerCard from './customer-card'
 import DeliveryRouteCard from './delivery-route-card'
 import type { OrderDetail } from './order-detail-types'
+import OrderNotesCard from './order-notes-card'
 import ProfitCard from './profit-card'
 import SaleSourceCard from './sale-source-card'
 import TagsCard from './tags-card'
@@ -31,7 +32,10 @@ function appCard(id: string, orderId: string) {
   return Card ? <Card key={id} orderId={orderId} /> : null
 }
 
-/** The order page's side column: where it came from, customer, invoices, couriers, route, profit, apps, tags. */
+/**
+ * The order page's side column, in Shopify's order: customer, notes, where it came from, then
+ * invoices, couriers, route, profit, apps, tags.
+ */
 export default function OrderSideColumn({
   order,
   appCards,
@@ -43,9 +47,10 @@ export default function OrderSideColumn({
   // Render logic
   return (
     <>
-      <SaleSourceCard attribution={order.attribution} />
       <CustomerCard order={order} />
-      {/* Invoices sit right under the customer, where staff look for them (issue 920). */}
+      <OrderNotesCard note={order.customerNote} />
+      <SaleSourceCard attribution={order.attribution} />
+      {/* Invoices sit high in the column, where staff look for them (issue 920). */}
       {appCards.includes(INVOICES_APP) ? (
         <div id={INVOICES_ANCHOR} className="scroll-mt-6">
           {appCard(INVOICES_APP, order.id)}
