@@ -152,7 +152,8 @@ export default function OrderNextStep({
     title = copy.transit.title(name || copy.transit.fallbackName)
     body = shipment
       ? [
-          shipment.provider,
+          // The registry's name ("Delhivery"), not the stored id ("delhivery").
+          shipment.providerLabel,
           copy.transit.tracking(shipment.waybill),
           tracking?.expectedDate
             ? copy.transit.expected(fmt.pattern(tracking.expectedDate, SHORT_DATE))

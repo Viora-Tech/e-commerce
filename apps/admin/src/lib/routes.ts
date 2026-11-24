@@ -310,6 +310,8 @@ export const routes = {
     /** `open` opens one section in place (`dispatch` holds the ship-from address). */
     shipping: (open?: 'rates' | 'boxes' | 'dispatch' | 'split' | 'courier' | 'pincode') =>
       open ? `/settings/shipping?open=${open}` : '/settings/shipping',
+    /** When orders go out, with More options open at the ship-from (pickup) address fields. */
+    shippingAddress: () => '/settings/shipping?open=dispatch&focus=address',
     newShippingZone: (profileId?: string) =>
       profileId
         ? `/settings/shipping/zones/new?profile=${id(profileId)}`

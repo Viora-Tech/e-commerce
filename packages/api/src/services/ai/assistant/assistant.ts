@@ -21,6 +21,7 @@ import {
   type ThemeEditRequest,
   type ThemeEditView,
   type ThemeOutline,
+  themeEditSummary,
   themeOutlineForPrompt,
   validateThemeEdits,
 } from '@commerce/ai'
@@ -249,7 +250,7 @@ function themeEditTool(
         if (!checked.ok) return { error: checked.error }
         const view: ThemeEditView = {
           id: randomUUID(),
-          summary: input.summary,
+          summary: themeEditSummary(input),
           changes: checked.changes,
           flagged: taint.flagged,
         }

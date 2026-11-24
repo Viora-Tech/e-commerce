@@ -2323,6 +2323,11 @@ export const discountUsage = pgTable(
     customerId: uuid('customer_id').references(() => customer.id),
     email: text('email'),
     amountPaise: integer('amount_paise').notNull(),
+    /**
+     * False while the order is an unpaid checkout draft: the use is noted (which discounts,
+     * how much) but not counted against the limits until the payment succeeds.
+     */
+    counted: boolean('counted').notNull().default(true),
     createdAt: createdAt(),
   },
   (t) => [

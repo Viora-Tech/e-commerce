@@ -14,6 +14,7 @@ import SwitchRow from '@/components/fields/switch-row'
 import { shippingSettingsContent } from '@/data/shipping'
 import { useCopy, useRegion } from '@/hooks/use-copy'
 import { orderWeekdays } from '@/lib/region'
+import ReturnAddressFields from './return-address-fields'
 import SettingsCard from './settings-card'
 import SettingsRow from './settings-row'
 import SettingsTextRow from './settings-text-row'
@@ -21,9 +22,9 @@ import SettingsTextRow from './settings-text-row'
 type ShippingPolicyFieldsProps = {
   value: ShippingPolicySettings
   onChange: (next: ShippingPolicySettings) => void
+  /** Open More options and bring the ship-from address into view (Create shipment's Edit). */
+  focusAddress?: boolean | undefined
 }
-
-type Warehouse = ShippingPolicySettings['warehouse']
 
 const toDays = (selected: number[]) =>
   [...new Set(selected)].filter((n) => n >= 1 && n <= 7).sort((a, b) => a - b)
@@ -102,15 +103,17 @@ function TextField({ id, label, value, onChange, help, type = 'text' }: TextFiel
 }
 
 /** "When orders go out" on Settings › Shipping: the everyday dispatch fields, the rest under More options. */
-export default function ShippingPolicyFields({ value, onChange }: ShippingPolicyFieldsProps) {
+export default function ShippingPolicyFields({
+  value,
+  onChange,
+  focusAddress = false,
+}: ShippingPolicyFieldsProps) {
   // Hooks
   const { policy: p } = useCopy(shippingSettingsContent)
 
   // Helpers
   const set = <K extends keyof ShippingPolicySettings>(k: K, v: ShippingPolicySettings[K]) =>
     onChange({ ...value, [k]: v })
-  const setWarehouse = (k: keyof Warehouse, v: string) =>
-    onChange({ ...value, warehouse: { ...value.warehouse, [k]: v } })
 
   return (
     <SettingsCard title={p.heading} description={p.intro}>
@@ -167,7 +170,7 @@ export default function ShippingPolicyFields({ value, onChange }: ShippingPolicy
         weight="semibold"
         divided
       />
-      <Collapsible>
+      <Collapsible defaultOpen={focusAddress}>
         <CollapsibleTrigger className="group flex w-fit items-center gap-1.5 text-body font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <ChevronDown aria-hidden="true" className="hidden size-4 group-data-[panel-open]:block" />
           <ChevronRight aria-hidden="true" className="size-4 group-data-[panel-open]:hidden" />
@@ -202,42 +205,10 @@ export default function ShippingPolicyFields({ value, onChange }: ShippingPolicy
               }
               help={p.transitHelp}
             />
-            <h3 className="text-body font-bold text-ink-strong">{p.warehouse}</h3>
-            <TextField
-              id="wh-name"
-              label={p.warehouseName}
-              value={value.warehouse.name}
-              onChange={(v) => setWarehouse('name', v)}
-            />
-            <TextField
-              id="wh-line1"
-              label={p.line1}
-              value={value.warehouse.line1}
-              onChange={(v) => setWarehouse('line1', v)}
-            />
-            <TextField
-              id="wh-line2"
-              label={p.line2}
-              value={value.warehouse.line2}
-              onChange={(v) => setWarehouse('line2', v)}
-            />
-            <TextField
-              id="wh-city"
-              label={p.city}
-              value={value.warehouse.city}
-              onChange={(v) => setWarehouse('city', v)}
-            />
-            <TextField
-              id="wh-state"
-              label={p.state}
-              value={value.warehouse.state}
-              onChange={(v) => setWarehouse('state', v)}
-            />
-            <TextField
-              id="wh-phone"
-              label={p.phone}
-              value={value.warehouse.phone}
-              onChange={(v) => setWarehouse('phone', v)}
+            <ReturnAddressFields
+              value={value.warehouse}
+              onChange={(warehouse) => set('warehouse', warehouse)}
+              focus={focusAddress}
             />
             <TextField
               id="policy-insurance"

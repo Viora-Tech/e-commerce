@@ -69,6 +69,24 @@ describe('parcelCost', () => {
     })
   })
 
+  it('a parcel not booked yet uses the courier quote saved at checkout when there is one', () => {
+    // The state-wide maximum (8,500) was far above what checkout quoted for this route.
+    const cost = parcelCost(parcel({ quotePaise: 1_600 }), ctx())
+    expect(cost?.courierPaise).toBe(1_600)
+    expect(cost?.courierEstimated).toBe(true)
+    // No usable quote (backup order, or zero): the cautious estimate again.
+    expect(parcelCost(parcel({ quotePaise: null }), ctx())?.courierPaise).toBe(8_500)
+    expect(parcelCost(parcel({ quotePaise: 0 }), ctx())?.courierPaise).toBe(8_500)
+  })
+
+  it('once booked, the quote no longer counts', () => {
+    const cost = parcelCost(
+      parcel({ quotePaise: 1_600, shipments: [booked({ courierChargePaise: 7_200 })] }),
+      ctx(),
+    )
+    expect(cost?.courierPaise).toBe(7_200)
+  })
+
   it('a booked parcel uses its snapshot and the real charge', () => {
     const cost = parcelCost(
       parcel({

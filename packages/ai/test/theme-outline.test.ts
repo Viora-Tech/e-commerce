@@ -272,7 +272,7 @@ describe('validateThemeEdits', () => {
     const twice = { sectionId: 'Hero-1', setting: 'heading', value: 'x' }
     expect(validateThemeEdits(outline(), edit([twice, twice])).ok).toBe(false)
     const many = Array.from({ length: THEME_OUTLINE_LIMITS.maxEdits + 1 }, () => twice)
-    expect(ThemeEditInput.safeParse({ summary: 'x', edits: many }).success).toBe(false)
+    expect(validateThemeEdits(outline(), edit(many)).ok).toBe(false)
   })
 })
 

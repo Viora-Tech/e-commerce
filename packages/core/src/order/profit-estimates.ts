@@ -8,6 +8,8 @@
  *                     the parcel's box cost now (estimated); a box with no cost, or no box at
  *                     all, counts ₹0 and is flagged "packing cost not set"
  *          delivery = what the courier charged each live consignment, else an estimate:
+ *                     0. not booked yet: the courier quote saved at checkout (Delivery
+ *                        options), the figure the order's Delivery option card shows;
  *                     1. the highest real charge in the last 60 days for that courier and
  *                        destination state (any courier, when none is booked yet and the store
  *                        has none switched on);
@@ -79,6 +81,8 @@ export type ParcelFacts = {
   boxCostPaise: number | null
   /** Consignments, oldest first. */
   shipments: readonly ParcelShipment[]
+  /** What checkout's courier quote was for this parcel (Delivery options), when one was saved. */
+  quotePaise?: number | null | undefined
 }
 
 /** What the order around the parcels says. */
@@ -130,7 +134,9 @@ export function parcelCost(p: ParcelFacts, ctx: ParcelOrderContext): ParcelCost 
       }
     }
   } else if (eligible) {
-    courierPaise = estimate(ctx.defaultCourier)
+    // Not booked yet: checkout's own quote beats the cautious state-wide maximum (it was over 5x).
+    courierPaise =
+      p.quotePaise != null && p.quotePaise > 0 ? p.quotePaise : estimate(ctx.defaultCourier)
     courierEstimated = true
   }
   return { packingPaise, packingEstimated, packingMissing, courierPaise, courierEstimated }

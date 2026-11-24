@@ -33,7 +33,7 @@ export const profitCardContent = {
     costMissing: 'Some items have no cost yet, so they count as free. Add the cost on the product.',
     courierMissing: 'The courier charge is not known yet. Add it below.',
     courierEstimated:
-      'Delivery is estimated (your highest charge to this state in 60 days, else your default) until the courier charge is known. Add it below when you have it.',
+      'Delivery is estimated (the courier quote at checkout, else your highest charge to this state in 60 days, else your default) until the courier charge is known. Add it below when you have it.',
     packingEstimated: 'Packing is your box cost today; it is fixed when the parcel is booked.',
     packingMissing:
       'Your box has no cost set, so packing counts as nothing. Add it in Settings › Shipping.',

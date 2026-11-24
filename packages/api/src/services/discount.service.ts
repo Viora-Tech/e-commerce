@@ -225,7 +225,10 @@ export async function discountStats(tx: StoreTx, now = new Date()): Promise<Disc
         expired: sql<number>`count(*) filter (where ${lifecycleWhere('expired', now)})::int`,
       })
       .from(discount),
-    tx.select({ n: count() }).from(discountUsage).where(gte(discountUsage.createdAt, monthAgo)),
+    tx
+      .select({ n: count() })
+      .from(discountUsage)
+      .where(and(gte(discountUsage.createdAt, monthAgo), eq(discountUsage.counted, true))),
   ])
   const c = counts[0]
   return {

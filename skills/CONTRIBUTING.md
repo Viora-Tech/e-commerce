@@ -31,7 +31,7 @@ A skill is listed when it:
    readable and documented.
 8. **Is not a copy** of an existing skill here without meaningful changes.
 9. **Says its licence** in the `license` frontmatter field when it lives in its own repository.
-   Skills in this folder follow the repository's licence terms.
+   Skills in this folder are under the MIT licence in `LICENSE`.
 
 ## Add a skill to this folder
 

@@ -50,7 +50,7 @@ export async function lenderVisibleAction(input: LenderVisibilityInput): Promise
   const name = clip(input.name, 200)
   return provider.checkAvailability({
     amountPaise: Math.max(0, Math.round(Number(input.amountPaise) || 0)),
-    customer: { name, email: clip(input.email, 200) || undefined, phone },
+    customer: { name, email: clip(input.email, 200) || undefined, phone, ip },
     shipping: {
       name,
       line1: clip(input.line1, 200),

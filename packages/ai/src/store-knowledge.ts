@@ -12,11 +12,22 @@ import { guardData } from './guard-text'
 /** Marks the call for the offline mock model, which answers with canned facts. */
 export const STORE_KNOWLEDGE_MARKER = 'Task: draft store facts for AI shopping agents'
 
+/**
+ * Output budget for one scan. Up to 13 fields, three tag lists fed by 25 brands, 20 types and
+ * 30 collections, and the FAQ: about 1.5k tokens, too close to the writers' 1,800.
+ */
+export const STORE_KNOWLEDGE_MAX_OUTPUT_TOKENS = 4_000
+
 const text = (what: string) =>
   z.string().describe(`${what} One or two plain sentences, or "" when the content does not say.`)
 const tags = (what: string) =>
-  z.array(z.string()).max(12).describe(`${what} Short items; [] when the content does not say.`)
+  z.array(z.string()).describe(`${what} At most 12 short items; [] when the content does not say.`)
 
+/**
+ * What the model must return. No length or item limits in the schema itself: the provider does
+ * not enforce them while writing, so a store with more than 12 brands failed validation every
+ * time (24 Nov). The knowledge base trims afterwards (`cleanValue` in core: 12 tags, 8 questions).
+ */
 export const StoreKnowledgeSchema = z.object({
   description: text('What the store is and what it is known for.'),
   audience: text('Who the store is for.'),
@@ -32,7 +43,6 @@ export const StoreKnowledgeSchema = z.object({
   support: text('How shoppers reach the store (email, phone, WhatsApp, hours).'),
   faq: z
     .array(z.object({ q: z.string(), a: z.string() }))
-    .max(6)
     .describe('Up to 6 questions shoppers often ask, answered only from the content.'),
 })
 export type StoreKnowledgeDraft = z.infer<typeof StoreKnowledgeSchema>

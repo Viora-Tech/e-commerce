@@ -18,6 +18,7 @@ import { categoryPath, productSearchQueries } from '@commerce/core'
 import { withStore } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { type AiCallContext, finishAiCall, startAiCall } from './guard'
+import { logModelFailure } from './model-failure'
 
 export type SuggestKeywordsInput = {
   /** The saved product, for its Search Console queries; null while it is new. */
@@ -71,7 +72,8 @@ export async function suggestKeywords(
     await finishAiCall(context.db, call, usage)
     const seen = searchQueries.map((q) => q.query)
     return { keywords: clampKeywords(output, seen), searchQueries: searchQueries.length }
-  } catch {
+  } catch (err) {
+    logModelFailure('seo_keywords', err)
     throw new ORPCError('BAD_GATEWAY', {
       message: 'The AI could not suggest keywords this time. Please try again.',
       data: { reason: 'model_failed' },

@@ -19,6 +19,7 @@ import {
 } from '@commerce/core/analytics-query'
 import { ORPCError } from '@orpc/server'
 import { type AiCallContext, finishAiCall, startAiCall } from './guard'
+import { logModelFailure } from './model-failure'
 
 /** One model answer for a request, told what was wrong with the last one when retrying. */
 export type QueryAsk = (problem?: { query: string; error: string }) => Promise<string>
@@ -66,7 +67,8 @@ export async function refineQuery(
       usage.outputTokens += out.usage.outputTokens
       return out.output.query
     })
-  } catch {
+  } catch (err) {
+    logModelFailure('query_writer', err)
     throw new ORPCError('BAD_GATEWAY', {
       message: 'The AI could not write a query this time. Please try again.',
       data: { reason: 'model_failed' },

@@ -23,6 +23,7 @@ import { writerPhotos } from '@commerce/core/ai-runtime'
 import { withStore } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { type AiCallContext, finishAiCall, startAiCall } from './guard'
+import { logModelFailure } from './model-failure'
 
 export type WriteProductInput = ProductWriterInput & {
   mediaIds: string[]
@@ -56,7 +57,8 @@ export async function writeProduct(
     })
     await finishAiCall(context.db, call, usage)
     return { copy: clampProductCopy(output), photosUsed: photos.length }
-  } catch {
+  } catch (err) {
+    logModelFailure('product_writer', err)
     throw new ORPCError('BAD_GATEWAY', {
       message: 'The AI writer could not finish this time. Please try again.',
       data: { reason: 'model_failed' },

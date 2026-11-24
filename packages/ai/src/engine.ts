@@ -98,6 +98,8 @@ export async function generateStructured<T>(opts: {
   instructions: string
   content: AiContent[]
   abortSignal?: AbortSignal | undefined
+  /** Overrides the feature's output budget, for a call that returns more than the feature's usual. */
+  maxOutputTokens?: number | undefined
 }): Promise<{ output: T; usage: AiUsage }> {
   const settings = FEATURE_MODELS[opts.runtime.feature]
   const result = await generateText({
@@ -105,7 +107,7 @@ export async function generateStructured<T>(opts: {
     instructions: opts.instructions,
     messages: [{ role: 'user', content: toParts(opts.content) }],
     output: Output.object({ schema: opts.schema }),
-    maxOutputTokens: settings.maxOutputTokens,
+    maxOutputTokens: opts.maxOutputTokens ?? settings.maxOutputTokens,
     temperature: settings.temperature,
     maxRetries: 1,
     ...(opts.abortSignal ? { abortSignal: opts.abortSignal } : {}),

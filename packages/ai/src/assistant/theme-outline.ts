@@ -222,31 +222,48 @@ export function themeOutlineForPrompt(outline: ThemeOutline): { text: string; fl
   return { text: JSON.stringify(data), flagged }
 }
 
-/** What the model sends to `proposeThemeEdit`. */
+/**
+ * What the model sends to `proposeThemeEdit`. No length or count limits in the schema: the
+ * provider does not enforce them while writing, so a long summary failed the whole tool call.
+ * `themeEditSummary` trims the summary; `validateThemeEdits` checks the count and value length
+ * and tells the model what to fix.
+ */
 export const ThemeEditInput = z.object({
   summary: z
     .string()
-    .trim()
-    .min(1)
-    .max(200)
-    .describe('One short line saying what the change does, e.g. "New announcement bar text".'),
+    .describe(
+      'One short line (at most 200 characters) saying what the change does, e.g. "New announcement bar text".',
+    ),
   edits: z
     .array(
       z.object({
-        sectionId: Id.describe('The section id, exactly as in the page outline.'),
-        blockId: Id.optional().describe('The block id, only when the setting belongs to a block.'),
-        setting: Id.describe('The setting key, exactly as in the page outline.'),
+        sectionId: z.string().describe('The section id, exactly as in the page outline.'),
+        blockId: z
+          .string()
+          .optional()
+          .describe('The block id, only when the setting belongs to a block.'),
+        setting: z.string().describe('The setting key, exactly as in the page outline.'),
         value: z
-          .union([z.string().max(L.maxEditValue), z.number(), z.boolean()])
+          .union([z.string(), z.number(), z.boolean()])
           .describe(
-            'The new value: text for text, textarea, richtext (plain text), url and select settings; true or false for checkbox; a number for number; an image URL from findImages for image.',
+            `The new value: text for text, textarea, richtext (plain text), url and select settings; true or false for checkbox; a number for number; an image URL from findImages for image. Text at most ${L.maxEditValue} characters.`,
           ),
       }),
     )
-    .min(1)
-    .max(L.maxEdits),
+    .describe(`One to ${L.maxEdits} changes.`),
 })
 export type ThemeEditRequest = z.infer<typeof ThemeEditInput>
+
+/** Longest summary a theme edit card shows. */
+export const THEME_EDIT_SUMMARY_MAX = 200
+
+/** The model's summary on one line, cut to `THEME_EDIT_SUMMARY_MAX`; "Theme edit" when empty. */
+export function themeEditSummary(request: ThemeEditRequest): string {
+  const clean = request.summary.replace(/\s+/g, ' ').trim()
+  if (!clean) return 'Theme edit'
+  if (clean.length <= THEME_EDIT_SUMMARY_MAX) return clean
+  return `${clean.slice(0, THEME_EDIT_SUMMARY_MAX - 1).trimEnd()}…`
+}
 
 /** One checked change, with what the card shows: where it goes and the value before. */
 export type ThemeEditChange = {
@@ -324,9 +341,19 @@ export function validateThemeEdits(
   outline: ThemeOutline,
   request: ThemeEditRequest,
 ): { ok: true; changes: ThemeEditChange[] } | { ok: false; error: string } {
+  if (request.edits.length === 0) return { ok: false, error: 'Add at least one change.' }
+  if (request.edits.length > L.maxEdits) {
+    return { ok: false, error: `At most ${L.maxEdits} changes in one edit; split the rest.` }
+  }
   const changes: ThemeEditChange[] = []
   const seen = new Set<string>()
   for (const edit of request.edits) {
+    if (typeof edit.value === 'string' && edit.value.length > L.maxEditValue) {
+      return {
+        ok: false,
+        error: `The new value for "${edit.setting}" is longer than ${L.maxEditValue} characters.`,
+      }
+    }
     const section = outline.sections.find((s) => s.id === edit.sectionId)
     if (!section) return { ok: false, error: `No section "${edit.sectionId}" on this page.` }
     const block = edit.blockId ? section.blocks.find((b) => b.id === edit.blockId) : null

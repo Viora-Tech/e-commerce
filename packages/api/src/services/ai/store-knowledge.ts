@@ -6,6 +6,7 @@
  */
 import {
   generateStructured,
+  STORE_KNOWLEDGE_MAX_OUTPUT_TOKENS,
   type StoreKnowledgeDraft,
   StoreKnowledgeSchema,
   storeKnowledgeContent,
@@ -15,6 +16,7 @@ import { type AgentKnowledge, applyKnowledgeDraft, loadKnowledgeSources } from '
 import { withStore } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { type AiCallContext, finishAiCall, startAiCall } from './guard'
+import { logModelFailure } from './model-failure'
 
 export async function scanStoreKnowledge(
   context: AiCallContext,
@@ -34,10 +36,12 @@ export async function scanStoreKnowledge(
       instructions: storeKnowledgeInstructions(sources.storeName),
       content: storeKnowledgeContent(sources),
       abortSignal: signal,
+      maxOutputTokens: STORE_KNOWLEDGE_MAX_OUTPUT_TOKENS,
     })
     await finishAiCall(context.db, call, usage)
     d = output
-  } catch {
+  } catch (err) {
+    logModelFailure('store_knowledge_scan', err)
     throw new ORPCError('BAD_GATEWAY', {
       message: 'The AI could not finish the scan this time. Please try again.',
       data: { reason: 'model_failed' },

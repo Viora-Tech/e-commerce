@@ -47,6 +47,7 @@ export default function LineItemsCard({
   const lines: TotalsLine[] = totalRows(order, copy, fmt).map((r) => ({
     label: r.label,
     value: r.value,
+    detail: r.detail,
     quiet: r.muted,
     strong: r.strong,
   }))
