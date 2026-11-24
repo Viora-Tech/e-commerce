@@ -18,8 +18,25 @@ import { storeCreditEntry } from './store-credit-schema'
  * points still waiting for an order's return window, and the one-per-thing guarantees.
  */
 
-/** Why points moved: an order earned them, a review, a birthday, staff, or an order taking them back. */
-export const LOYALTY_SOURCES = ['order', 'review', 'birthday', 'adjustment', 'reversal'] as const
+/**
+ * Why points moved: an order earned them, a review, a birthday, staff, or an order taking them
+ * back (v1); an earning rule, a reward redeemed or cancelled (points back), a referral, points
+ * running out, a balance import or a reset (v2).
+ */
+export const LOYALTY_SOURCES = [
+  'order',
+  'review',
+  'birthday',
+  'adjustment',
+  'reversal',
+  'rule',
+  'redemption',
+  'redemption_refund',
+  'referral',
+  'expiry',
+  'import',
+  'reset',
+] as const
 
 /** `pending`: waiting to be credited. `credited`: on the balance. `cancelled`: never credited. */
 export const LOYALTY_STATUSES = ['pending', 'credited', 'cancelled'] as const
@@ -57,6 +74,18 @@ export const loyaltyEntry = pgTable(
     expiresAt: at('expires_at'),
     /** When the "points expiring soon" email went out for this entry. */
     remindedAt: at('reminded_at'),
+    /** v2: the earning rule that gave these points. */
+    ruleId: uuid('rule_id'),
+    /** v2: a once-only key per customer (`signup`, `social:instagram`, `visit:2026-11-24`...). */
+    earnKey: text('earn_key'),
+    /** v2: the reward redemption these points paid for or came back from. */
+    redemptionId: uuid('redemption_id'),
+    referralId: uuid('referral_id'),
+    campaignId: uuid('campaign_id'),
+    /** v2, order points: tier × campaign multiplier (basis points) fixed at delivery. */
+    multiplierBp: integer('multiplier_bp'),
+    /** v2, order points: a campaign's fixed bonus added on top. */
+    bonusPoints: integer('bonus_points'),
     createdAt: at('created_at').notNull().defaultNow(),
   },
   (t) => [
@@ -69,12 +98,15 @@ export const loyaltyEntry = pgTable(
     uniqueIndex('loyalty_entry_birthday_once')
       .on(t.storeId, t.customerId, t.year)
       .where(sql`${t.source} = 'birthday'`),
+    uniqueIndex('loyalty_entry_earn_once')
+      .on(t.storeId, t.customerId, t.earnKey)
+      .where(sql`${t.earnKey} is not null`),
     index('loyalty_entry_customer').on(t.storeId, t.customerId, t.createdAt),
     index('loyalty_entry_due').on(t.storeId, t.status, t.availableAt),
     check('loyalty_entry_points_nonzero', sql`${t.points} <> 0`),
     check(
       'loyalty_entry_source_check',
-      sql`${t.source} in ('order', 'review', 'birthday', 'adjustment', 'reversal')`,
+      sql`${t.source} in ('order', 'review', 'birthday', 'adjustment', 'reversal', 'rule', 'redemption', 'redemption_refund', 'referral', 'expiry', 'import', 'reset')`,
     ),
     check('loyalty_entry_status_check', sql`${t.status} in ('pending', 'credited', 'cancelled')`),
   ],
