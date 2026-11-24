@@ -122,6 +122,7 @@
     "./cod-rto-app": "./src/cod-rto/app.ts",
     "./loyalty": "./src/loyalty/client.ts",
     "./loyalty-app": "./src/loyalty/app.ts",
+    "./loyalty-blocks": "./src/loyalty/storefront-blocks.tsx",
     "./delivery-options": "./src/shipping/delivery-options/config.ts",
     "./delivery-options-app": "./src/shipping/delivery-options/app.ts",
     "./delivery-margin": "./src/shipping/delivery-options/margin.ts",

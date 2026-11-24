@@ -269,6 +269,8 @@ export default async function ProductPage({ params, searchParams }: Params) {
       deliveryChecker: { estimate: estimateDeliveryAction },
       emiOffers: abroad ? null : emiOfferFor(emiApp.config, variant?.pricePaise ?? 0),
       reviews: reviews?.widget,
+      // Loyalty points app's "Points on product" block counts from the default variant's price.
+      loyalty: { pricePaise: variant?.pricePaise ?? null },
     },
     renderers: {
       MainProduct: (s) => {

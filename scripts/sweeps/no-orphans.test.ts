@@ -1887,22 +1887,15 @@ const ALLOWLIST: AllowEntry[] = [
       'the TTL is used in the module and app-bar-cache.test.ts steps the clock past it; clearAppBarCache resets the per-process cache between tests',
   },
   {
-    file: 'packages/core/src/loyalty/shopper.ts',
-    names: ['publicLoyaltyProgram', 'shopperLoyalty'],
+    file: 'packages/blocks/src/components/loyalty/loyalty-panel.tsx',
+    names: ['LoyaltyPanel'],
     reason:
-      'loyalty v2 foundation (24 Nov): storefront widget functions the storefront UI wires next (docs/loyalty-v2-interfaces.md); drop from here once imported',
-  },
-  {
-    file: 'packages/core/src/loyalty/grants.ts',
-    names: ['claimActionRule'],
-    reason:
-      'loyalty v2 foundation (24 Nov): storefront widget functions the storefront UI wires next (docs/loyalty-v2-interfaces.md); drop from here once imported',
+      'the Loyalty widget panel is loaded by a dynamic import in loyalty-launcher.tsx (on first open), which the sweep does not follow',
   },
   {
     file: 'packages/core/src/loyalty/referrals.ts',
-    names: ['attachReferral', 'inboxOf'],
-    reason:
-      'attachReferral: loyalty v2 foundation (24 Nov): storefront widget functions the storefront UI wires next (docs/loyalty-v2-interfaces.md); drop from here once imported; inboxOf is the pure fraud key, asserted directly by v2-rules.test.ts',
+    names: ['inboxOf'],
+    reason: 'the pure fraud key, asserted directly by v2-rules.test.ts',
   },
   {
     file: 'packages/core/src/loyalty/settings.ts',

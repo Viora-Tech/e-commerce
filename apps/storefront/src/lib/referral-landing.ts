@@ -1,4 +1,5 @@
 import 'server-only'
+import { isBotUserAgent } from '@commerce/core/marketing'
 import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { logger } from '@commerce/observability/logging'
 import { affiliateState } from '@commerce/plugin-affiliates/server'
@@ -6,6 +7,7 @@ import type { NextRequest, NextResponse } from 'next/server'
 import { countAffiliateClick } from './affiliates'
 import { REFERRAL_COOKIE } from './attribution-cookie'
 import { marketingAllowed } from './consent-cookie'
+import { LOYALTY_REF_COOKIE, loyaltyRefCookieOptions, loyaltyRefLanding } from './loyalty-referral'
 import { isPrefetch, referralClick } from './referral-click'
 import { inStore } from './store-context'
 
@@ -64,6 +66,19 @@ export async function noteReferral(
   request: NextRequest,
   response: NextResponse,
 ): Promise<void> {
+  // A Loyalty points member's link uses the same `?ref=`: kept apart, for the friend's reward.
+  const loyaltyCode = loyaltyRefLanding({
+    param: request.nextUrl.searchParams.get('ref'),
+    existing: request.cookies.get(LOYALTY_REF_COOKIE)?.value,
+    method: request.method,
+    prefetch: isPrefetch(request.headers),
+    bot: isBotUserAgent(request.headers.get('user-agent')),
+    marketing: marketingAllowed(request.cookies.get(CONSENT_COOKIE)?.value),
+  })
+  if (loyaltyCode) {
+    const secure = request.nextUrl.protocol === 'https:'
+    response.cookies.set(LOYALTY_REF_COOKIE, loyaltyCode, loyaltyRefCookieOptions(secure))
+  }
   const click = referralClick({
     param: request.nextUrl.searchParams.get('ref'),
     existing: request.cookies.get(REFERRAL_COOKIE)?.value,

@@ -6,6 +6,7 @@ import { markRedemptionsUsed } from './redeem'
 import { referralOrderDelivered } from './referrals'
 import { LOYALTY_APP_ID } from './settings'
 import { loyaltyState } from './state'
+import { loyaltyBlocks, loyaltyEmbeds } from './storefront-blocks'
 
 /**
  * Loyalty points: shoppers earn points (₹1 each, as store credit) on delivered orders once the
@@ -77,6 +78,7 @@ export const loyaltyPlugin = definePlugin({
     summary: 'gives loyalty points',
   },
   provides: {},
+  storefront: { blocks: loyaltyBlocks, embeds: loyaltyEmbeds },
   hooks: {
     'order.paid': async (ctx, payload) => {
       await ctx.inStore((tx) => markRedemptionsUsed({ storeId: ctx.storeId, tx }, payload.orderId))
