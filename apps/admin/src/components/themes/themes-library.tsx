@@ -22,6 +22,7 @@ import { routes } from '@/lib/routes'
 import AddThemeDialog, { type ThemeStart } from './add-theme-dialog'
 import AddThemeMenu from './add-theme-menu'
 import CurrentThemeCard from './current-theme-card'
+import PublishThemeDialog from './customize/publish-theme-dialog'
 import type { ThemeAction } from './theme-actions-menu'
 import ThemeLibraryRow from './theme-library-row'
 import ThemePacksCard from './theme-packs-card'
@@ -41,6 +42,15 @@ type ThemesLibraryProps = {
   passwordOn?: boolean
   /** Real shoppers' page speed; null when it could not be read. */
   performance?: WebPerformance | null
+}
+
+/** The storefront's address as the publish confirmation names it (`www.waimers.in`). */
+function hostOf(origin: string): string {
+  try {
+    return new URL(origin).host
+  } catch {
+    return origin
+  }
 }
 
 /** Live first, then the library by last saved, as the server orders them. */
@@ -92,6 +102,8 @@ export default function ThemesLibrary({
   const [renaming, setRenaming] = useState<ThemeItem | null>(null)
   const [deleting, setDeleting] = useState<ThemeItem | null>(null)
   const [versioning, setVersioning] = useState<ThemeItem | null>(null)
+  /** The theme whose Publish was pressed: it goes live only after the confirmation, as in Customize. */
+  const [confirming, setConfirming] = useState<ThemeItem | null>(null)
 
   // Helpers
   const run = async (key: string, work: () => Promise<void>) => {
@@ -169,6 +181,8 @@ export default function ThemesLibrary({
         toast.success(copy.duplicated(copied.name))
       })
   }
+
+  const handleConfirmPublish = () => (confirming ? handlePublish(confirming) : undefined)
 
   // Render logic
   const live = themes.find((t) => t.role === 'main')
@@ -249,7 +263,7 @@ export default function ThemesLibrary({
                 busy={busy}
                 publishing={pending === `publish:${t.id}`}
                 canPublish={canPublish}
-                onPublish={() => handlePublish(t)}
+                onPublish={() => setConfirming(t)}
                 onAction={(action) => handleAction(t, action)}
               />
             ))}
@@ -309,6 +323,15 @@ export default function ThemesLibrary({
           onRestored={handleRestored}
         />
       ) : null}
+      <PublishThemeDialog
+        open={confirming !== null}
+        name={confirming?.name ?? ''}
+        liveName={live?.name ?? null}
+        domain={hostOf(origin)}
+        dirty={false}
+        onOpenChange={(open) => !open && setConfirming(null)}
+        onConfirm={handleConfirmPublish}
+      />
       <ConfirmDialog
         tone="destructive"
         open={deleting !== null}
