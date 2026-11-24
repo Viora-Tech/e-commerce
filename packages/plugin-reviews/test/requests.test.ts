@@ -227,9 +227,9 @@ describe('review requests', () => {
     })
     const link = { orderId: o.orderId, productId: a.productId }
     // No email on the order: the form must ask for one rather than hide the field.
-    expect(
-      (await withStore(app, storeId, (tx) => requestLinkBuyer(tx, link)))?.hasEmail,
-    ).toBe(false)
+    expect((await withStore(app, storeId, (tx) => requestLinkBuyer(tx, link)))?.hasEmail).toBe(
+      false,
+    )
     await withStore(app, storeId, async (tx) => {
       await scheduleReviewRequests(tx, storeId, o.orderId, whatsapp, t0)
       await queueDueReviewRequests(tx, storeId, whatsapp, at(7))
