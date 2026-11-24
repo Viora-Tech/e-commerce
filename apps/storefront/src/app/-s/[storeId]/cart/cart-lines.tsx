@@ -62,6 +62,11 @@ export default function CartLines({ lines }: { lines: CartLineView[] }) {
               </span>
             ) : null}
             {l.preorderNote ? <p className="cart-line__preorder-note">{l.preorderNote}</p> : null}
+            {l.saleEndedFromPaise ? (
+              <p className="cart-line__preorder-note" role="status">
+                {content.saleEnded}
+              </p>
+            ) : null}
             <div className="cart-line__actions">
               <QuantityInput
                 value={l.quantity}

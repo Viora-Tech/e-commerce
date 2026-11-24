@@ -132,6 +132,7 @@ export default function CheckoutSummary({
               imageUrl={l.imageUrl}
               preorder={l.preorder}
               preorderNote={l.preorderNote}
+              saleEnded={!!l.saleEndedFromPaise}
               format={money}
               price={cartMoney.line(l)}
             />

@@ -10,6 +10,8 @@ type SummaryLineProps = {
   preorder?: boolean
   /** The pre-order note (#936), under the title; null for none. */
   preorderNote?: string | null | undefined
+  /** The line's sale ended since it was added: it now costs its regular price (a note under it). */
+  saleEnded?: boolean | undefined
   /** How prices read: the checkout passes the market's (`useFormatPaise`); rupees by default. */
   format?: ((paise: number) => string) | undefined
   /** The line's price, formatted (a market catalog's fixed price × quantity); wins over `format`. */
@@ -28,6 +30,7 @@ export default function SummaryLine({
   imageUrl,
   preorder = false,
   preorderNote = null,
+  saleEnded = false,
   format = formatPaise,
   price,
 }: SummaryLineProps) {
@@ -74,6 +77,11 @@ export default function SummaryLine({
       {preorderNote ? (
         <p className="basis-full text-[0.75rem] leading-snug whitespace-pre-line text-ck-summary-muted">
           {preorderNote}
+        </p>
+      ) : null}
+      {saleEnded ? (
+        <p role="status" className="basis-full text-[0.75rem] leading-snug text-ck-summary-muted">
+          {content.saleEnded}
         </p>
       ) : null}
     </li>

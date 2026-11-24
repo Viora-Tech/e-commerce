@@ -5,6 +5,8 @@ export const cartContent = {
   itemCount: (n: number) => `${n} ${n === 1 ? 'item' : 'items'}`,
   remove: 'Remove',
   preorder: 'Pre-order',
+  /** The line was added at a sale price and the sale has ended since (core cart/reprice.ts). */
+  saleEnded: 'The sale on this item has ended, so it is now at its regular price.',
   /** A pre-order campaign keeps its pre-orders apart from in-stock items (#143). */
   preorderMixedCart:
     'Pre-orders ship on their own. Check out your cart first, or remove the in-stock items, then add this.',
