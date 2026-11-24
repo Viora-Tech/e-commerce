@@ -256,6 +256,25 @@ describe('runInboxAiReply', () => {
     })
   })
 
+  it('posts nothing when staff reply while the model is still thinking', async () => {
+    const s = await newStore('all')
+    const q = await say(s, guest(), 'Is the blue kurta in stock?')
+    const model = answer()
+    const generate = model.doGenerate.bind(model)
+    model.doGenerate = async (options) => {
+      await inStore(s, (ctx) =>
+        staffSend(ctx, { conversationId: q.conversation.id, body: 'Yes, Asha here.' }, 'u1'),
+      )
+      return generate(options)
+    }
+    expect(await run(s, q.conversation.id, q.message.id, model)).toMatchObject({
+      done: 'skipped',
+      why: 'changed_meanwhile',
+    })
+    const senders = (await thread(q.conversation.id)).map((m) => m.sender)
+    expect(senders).toEqual(['shopper', 'staff'])
+  })
+
   it('hands a refund or cancellation to staff without a model call', async () => {
     const s = await newStore('all')
     const { conversation, message } = await say(s, guest(), 'Please cancel my order #1042')
