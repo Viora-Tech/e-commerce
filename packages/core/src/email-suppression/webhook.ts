@@ -1,5 +1,7 @@
 /** SOURCE OF TRUTH: handleSesSnsWebhook — WHAT: one Amazon SNS POST to the worker: check it is signed by SNS and from our topic, confirm a new subscription, or record the SES bounce or complaint it carries against the right store / WHY: the worker route stays a thin HTTP shell; every decision lives here and is tested without AWS */
-import { type Db, storeForEmailFeedback, withStore } from '@commerce/db'
+import { type Db, store, storeForEmailFeedback, withStore } from '@commerce/db'
+import { eq } from 'drizzle-orm'
+import { parseNotificationSettings } from '../notifications/settings'
 import { recordEmailFeedback } from './service'
 import { parseSesFeedback } from './ses-feedback'
 import {
@@ -86,4 +88,47 @@ export async function handleSesSnsWebhook(
     recordEmailFeedback(tx, storeId, m.MessageId, feedback, deps.now),
   )
   return { status: 'recorded', storeId, recorded: r.recorded, suppressed: r.suppressed.length }
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * The SNS topic a store's own Amazon SES account publishes bounces and complaints to (the SES
+ * app's "SNS topic ARN"), or null when the app is off or the field is empty.
+ */
+export async function storeSesEventsTopic(db: Db, storeId: string): Promise<string | null> {
+  if (!UUID.test(storeId)) return null
+  return withStore(db, storeId, async (tx) => {
+    const [s] = await tx
+      .select({ notifications: store.notifications })
+      .from(store)
+      .where(eq(store.id, storeId))
+    const settings = parseNotificationSettings(s?.notifications)
+    if (!settings.enabled.includes('ses')) return null
+    const topic = (settings.providers.ses as Record<string, unknown> | undefined)?.eventsTopicArn
+    return typeof topic === 'string' && topic.trim() ? topic.trim() : null
+  })
+}
+
+/**
+ * One SNS POST from a store's own SES account (`/webhooks/email/ses/<store id>`): the same checks
+ * as the platform topic, but the topic must be the one this store saved, and what it reports is
+ * recorded for this store only (a message tagged with another store is ignored).
+ */
+export async function handleStoreSesSnsWebhook(
+  db: Db,
+  storeId: string,
+  rawBody: string,
+  deps: Omit<SesWebhookDeps, 'topicArn' | 'findStore'> & {
+    /** Tests pass the topic; otherwise it is read from the store's SES settings. */
+    topicArn?: string | null | undefined
+  } = {},
+): Promise<SesWebhookOutcome> {
+  const topicArn = deps.topicArn ?? (await storeSesEventsTopic(db, storeId))
+  if (!topicArn) return { status: 'rejected', reason: 'no SES events topic for this store' }
+  return handleSesSnsWebhook(db, rawBody, {
+    ...deps,
+    topicArn,
+    findStore: async (hint) => (!hint.storeTag || hint.storeTag === storeId ? storeId : null),
+  })
 }

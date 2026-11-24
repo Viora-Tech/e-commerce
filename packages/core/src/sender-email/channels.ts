@@ -22,6 +22,11 @@ export type StoreChannelDeps = {
 /** Tests pass their own channels; only a real development run gets the log fallback. */
 const devFallback = () => !['production', 'test'].includes(process.env.NODE_ENV ?? '')
 
+/** A channel that can carry the store's tag on its sends (Amazon SES: `SesChannel.forStore`). */
+type StoreTaggable = NotificationChannel & { forStore: (storeId: string) => NotificationChannel }
+const taggable = (c: NotificationChannel): c is StoreTaggable =>
+  typeof (c as Partial<StoreTaggable>).forStore === 'function'
+
 /** A store's own email app (Amazon SES) wins; the dev log channel does not count. */
 const ownsEmail = (channels: NotificationChannel[]) =>
   channels.some((c) => c.requires === 'email' && c.id !== 'log')
@@ -60,12 +65,14 @@ export async function storeNotificationChannels(
     .select({ notifications: store.notifications })
     .from(store)
     .where(eq(store.id, storeId))
-  const { channels } = resolveNotificationChannels(
+  const resolved = resolveNotificationChannels(
     deps.registry,
     parseNotificationSettings(s?.notifications),
     deps.settingsSecret,
     deps.previousSecrets,
   )
+  // The store's own SES tags each send with the store, so its bounces reach this store's list.
+  const channels = resolved.channels.map((c) => (taggable(c) ? c.forStore(storeId) : c))
   // Addresses that bounced or complained are skipped on every email channel (core
   // `email-suppression`). Loaded now, not at send time: marketing sends after the transaction.
   const suppressed = await activeSuppressions(tx)

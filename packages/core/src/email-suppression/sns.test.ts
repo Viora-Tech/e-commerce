@@ -3,7 +3,7 @@ import type { Db } from '@commerce/db'
 import { describe, expect, it } from 'vitest'
 import { parseSesFeedback } from './ses-feedback'
 import { parseSnsEnvelope, snsSubscribeUrlAllowed, verifySnsMessage } from './sns'
-import { handleSesSnsWebhook, type SesWebhookDeps } from './webhook'
+import { handleSesSnsWebhook, handleStoreSesSnsWebhook, type SesWebhookDeps } from './webhook'
 
 /**
  * SNS messages signed offline with a throwaway key whose self-signed certificate is below; the
@@ -361,5 +361,40 @@ describe('handleSesSnsWebhook', () => {
       reason: 'no store for this message',
     })
     expect(hints).toEqual([{ storeTag: null, fromDomain: 'shop.example' }])
+  })
+})
+
+describe('handleStoreSesSnsWebhook (a store’s own SES account)', () => {
+  const OTHER_STORE = '0b8a4e1f-1c2d-4e5f-8a9b-0c1d2e3f4a5b'
+  const deps = (topicArn: string | null) => ({
+    topicArn,
+    fetchCert: goodCerts().fetchCert,
+    now: NOW,
+  })
+
+  it("refuses a topic that is not the store's own", async () => {
+    expect(
+      await handleStoreSesSnsWebhook(
+        noDb,
+        F.store,
+        body(F.hardBounceV1),
+        deps('arn:aws:sns:ap-south-1:999999999999:other'),
+      ),
+    ).toEqual({ status: 'rejected', reason: 'unexpected topic' })
+  })
+
+  it('never records a bounce tagged for another store', async () => {
+    expect(
+      await handleStoreSesSnsWebhook(noDb, OTHER_STORE, body(F.hardBounceV1), deps(F.topic)),
+    ).toEqual({ status: 'ignored', reason: 'no store for this message' })
+  })
+
+  it('confirms the subscription of the store topic', async () => {
+    expect(
+      await handleStoreSesSnsWebhook(noDb, F.store, body(F.subscriptionV2), {
+        ...deps(F.topic),
+        confirm: async () => undefined,
+      }),
+    ).toEqual({ status: 'confirmed' })
   })
 })
