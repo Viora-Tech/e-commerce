@@ -16,6 +16,7 @@ import { store, withStore } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { eq } from 'drizzle-orm'
 import { type AiCallContext, finishAiCall, startAiCall } from './guard'
+import { logModelFailure } from './model-failure'
 
 export type SectionProposalView = {
   type: SectionWriterType
@@ -50,7 +51,8 @@ export async function proposeSection(
       summary: output.summary.trim(),
       props: proposalProps(output.section),
     }
-  } catch {
+  } catch (err) {
+    logModelFailure('section_writer', err)
     throw new ORPCError('BAD_GATEWAY', {
       message: 'The AI could not build a section this time. Please try again.',
       data: { reason: 'model_failed' },

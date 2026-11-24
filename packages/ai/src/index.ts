@@ -125,6 +125,7 @@ export {
 } from './seo-keywords/prompt'
 export {
   STORE_KNOWLEDGE_MARKER,
+  STORE_KNOWLEDGE_MAX_OUTPUT_TOKENS,
   type StoreKnowledgeDraft,
   type StoreKnowledgeInput,
   StoreKnowledgeSchema,

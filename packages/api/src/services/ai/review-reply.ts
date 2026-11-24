@@ -16,6 +16,7 @@ import { getReview } from '@commerce/plugin-reviews/server'
 import { ORPCError } from '@orpc/server'
 import { eq } from 'drizzle-orm'
 import { type AiCallContext, finishAiCall, startAiCall } from './guard'
+import { logModelFailure } from './model-failure'
 
 export async function writeReviewReply(
   context: AiCallContext,
@@ -47,7 +48,8 @@ export async function writeReviewReply(
     })
     await finishAiCall(context.db, call, usage)
     return { reply: clampReply(output) }
-  } catch {
+  } catch (err) {
+    logModelFailure('review_reply', err)
     throw new ORPCError('BAD_GATEWAY', {
       message: 'The AI writer could not finish this time. Please try again.',
       data: { reason: 'model_failed' },
