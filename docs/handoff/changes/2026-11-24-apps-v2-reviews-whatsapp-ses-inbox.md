@@ -23,11 +23,36 @@ states, duplicate sends, store isolation and webhook checks. Branch
 - **Reviews list error read as empty** (`admin/.../reviews/reviews-page.tsx`): a failed read
   now shows "Could not load the reviews" with Try again (existing copy, Hindi included).
 
-## Left for the owner (see the PR report)
-WhatsApp delivery statuses and inbound STOP replies are not processed; a store's own SES
-account sends no bounces or complaints to suppression; Inbox emails go to an unverified typed
-address; replies to hidden reviews still email the reviewer.
+## Owner decisions, built the same day
+- **Reply to a hidden review** never emails the reviewer (`replyToReview`, `replyEmailData`).
+- **Store totals and review walls** (`storeReviewTotals`, `storeReviewFeed`, `storeWidgetReviews`)
+  leave out reviews of draft and archived products (`plugin-reviews/src/live-product.ts`).
+- **Load failures vs 404**: `useLoad` now also returns `notFound` (the API's NOT_FOUND); the review
+  page shows "Could not load this review" with Try again for anything else.
+- **WhatsApp delivery reports**: migration **0268_whatsapp_delivery_reports** adds
+  `notification.delivery_status` / `delivery_at` and partial indexes on `provider_ref`
+  (notification, marketing_message). The Meta webhook saves delivered, read and failed on the
+  message (never downgrading read; failed marks the row failed with Meta's words; campaign rows
+  get failed or opened). The WhatsApp log shows Delivered and Read.
+  `core/src/platform-apps/whatsapp-reports.ts`.
+- **WhatsApp STOP replies**: STOP, STOP ALL, UNSUBSCRIBE, OPT OUT (any case, alone in the
+  message; not CANCEL) turn WhatsApp consent off for that store's customers with the phone,
+  consent source `whatsapp_reply`. Only for accounts linked through Embedded Signup (the Meta
+  webhook names the account); a pasted-token account has no webhook to us.
+- **Store's own SES bounces**: SES app fields Configuration set and SNS topic ARN; sends name the
+  set and carry the `store-id` tag; the topic posts to `/webhooks/email/ses/<store id>`, which
+  accepts only that store's saved topic (`handleStoreSesSnsWebhook`).
+- **SES check after save**: `notifications.checkSes` (`checkSesSetup` in notifications-ses):
+  errors for wrong keys, permission, region, paused sending, From not verified, missing
+  configuration set; sandbox only warns. Shown on the Connect page with the subscription address.
+- **Suppressed addresses**: recorded as `skipped` (`sendStatus` in email-suppression/guard), not
+  failed and never retried; campaigns do not count them, automation steps move on.
+- **Inbox guest emails**: unchanged, as decided.
 
 ## Tests
 `core`: `inbox/ai-agent.test.ts`, `inbox/chat-emails.test.ts`, `notifications/deliver.test.ts`.
 `plugin-reviews`: `test/requests.test.ts`. Each new test fails on the old code.
+Owner-decision tests: `plugin-reviews` `test/reviews.test.ts`, `test/widgets.test.ts`; `core`
+`platform-apps/whatsapp-reports.test.ts`, `email-suppression/sns.test.ts` and `service.test.ts`,
+`notifications/deliver.test.ts`, `notifications/ses-check.test.ts`; `notifications-ses`
+`test/check.test.ts`, `test/ses.test.ts`; admin `hooks/use-load.test.tsx`.
