@@ -1,6 +1,7 @@
 ---
 name: koomerce-app-developer
 description: Build a Koomerce app (plugin) - a payment gateway, courier, notification channel, storage connection or a built-in feature app with admin pages, order hooks, background jobs, order actions and storefront app blocks. Use when writing or reviewing a definePlugin manifest, its access declaration, provider factories and their conformance tests, app settings, or app blocks for the Koomerce theme editor.
+license: MIT
 compatibility: For the Koomerce commerce monorepo (github.com/Viora-Tech/e-commerce), Bun and TypeScript.
 metadata:
   author: Viora-Tech
