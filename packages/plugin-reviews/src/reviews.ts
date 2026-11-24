@@ -449,15 +449,16 @@ export async function purchaseOf(
 }
 
 /**
- * The buyer behind a review request link: the order's number and the customer's name, when
- * that order really holds the product. Null otherwise (cancelled, another product).
+ * The buyer behind a review request link: the order's number, the customer's name and whether
+ * the order has an email (a WhatsApp-only order has none, so the form asks), when that order
+ * really holds the product. Null otherwise (cancelled, another product).
  */
 export async function requestLinkBuyer(
   tx: StoreTx,
   link: { orderId: string; productId: string },
-): Promise<{ orderNumber: number; name: string } | null> {
+): Promise<{ orderNumber: number; name: string; hasEmail: boolean } | null> {
   const [o] = await tx
-    .select({ number: order.number, customerId: order.customerId })
+    .select({ number: order.number, customerId: order.customerId, email: order.email })
     .from(order)
     .where(
       and(
@@ -476,7 +477,7 @@ export async function requestLinkBuyer(
   const [cu] = o.customerId
     ? await tx.select({ name: customer.name }).from(customer).where(eq(customer.id, o.customerId))
     : []
-  return { orderNumber: o.number, name: cu?.name ?? '' }
+  return { orderNumber: o.number, name: cu?.name ?? '', hasEmail: Boolean(o.email?.trim()) }
 }
 
 /** Products that have reviews, by name, for the list's product filter. */
