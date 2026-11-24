@@ -8,6 +8,7 @@ import StoreCreditField from '@/components/checkout/store-credit-field'
 import SummaryItems from '@/components/checkout/summary-items'
 import SummaryLine from '@/components/checkout/summary-line'
 import SummaryRow from '@/components/checkout/summary-row'
+import { cartContent } from '@/data/cart'
 import { type CheckoutCopy, checkoutContent as content } from '@/data/checkout'
 import { storeCreditCheckoutContent } from '@/data/store-credit'
 import type { ShippingRow } from '@/lib/checkout-preview'
@@ -47,6 +48,8 @@ type CheckoutSummaryProps = {
   updating: boolean
   /** The store's own wording for the heading and the taxes line (#158); ours when unset. */
   words?: Pick<CheckoutCopy, 'summary' | 'taxes'> | undefined
+  /** The note under a line whose price went up since it was added, in the shopper's language. */
+  priceChangedNote?: string | undefined
   /** Shipping abroad: no PIN code to ask for, and no Indian "inclusive of taxes" line (#64, #210). */
   abroad?: boolean
 }
@@ -89,6 +92,7 @@ export default function CheckoutSummary({
   updating,
   words = content,
   abroad = false,
+  priceChangedNote = cartContent.priceChanged,
 }: CheckoutSummaryProps) {
   // Hooks
   // On a market in another currency (`/ae`) the summary reads in it; Pay still charges rupees.
@@ -132,7 +136,7 @@ export default function CheckoutSummary({
               imageUrl={l.imageUrl}
               preorder={l.preorder}
               preorderNote={l.preorderNote}
-              saleEnded={!!l.saleEndedFromPaise}
+              priceNote={l.saleEndedFromPaise ? priceChangedNote : null}
               format={money}
               price={cartMoney.line(l)}
             />

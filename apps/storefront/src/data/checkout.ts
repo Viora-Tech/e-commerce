@@ -319,8 +319,6 @@ export const checkoutContent = {
   hideSummary: 'Hide order summary',
   quantity: (n: number) => `Qty ${n}`,
   preorder: 'Pre-order',
-  /** The line was added at a sale price and the sale has ended since (core cart/reprice.ts). */
-  saleEnded: 'The sale on this item has ended, so it is now at its regular price.',
   subtotal: 'Subtotal',
   discount: 'Discount',
   shipping: 'Shipping',

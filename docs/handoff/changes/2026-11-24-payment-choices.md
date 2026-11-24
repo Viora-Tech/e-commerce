@@ -11,13 +11,11 @@ other branches take; renumber at merge if needed.
   discount, GST, shipping and the order all use the live price. Lines under a pre-order campaign
   are left to the campaign's own pricing, as before.
 - A price that went up keeps what the line was added at in `sale_ended_from_paise`; the cart line
-  and the checkout summary show "The sale on this item has ended, so it is now at its regular
-  price." (`data/cart.ts`, `data/checkout.ts`). Adding the item again clears the note. A price
-  that came down is passed on with no note.
-- Any price rise shows this note (the shop has no other kind of scheduled price change).
+  and the checkout summary show the owner's neutral note "The price of this item has changed since
+  you added it." (`data/cart.ts`), in Hindi for Hindi-market shoppers (`data/hi/cart.ts`, picked by
+  `lib/price-changed.ts` on the server from the market locale). Adding the item again clears the
+  note. A price that came down is passed on with no note.
 - Not done: imported Liquid (Shopify) theme carts get the live price but do not show the note.
-  The note has no Hindi version (the storefront's checkout words are English plus the merchant's
-  own Hindi overrides).
 
 ## 2. One-per-customer codes: email or phone
 
@@ -49,12 +47,14 @@ other branches take; renumber at merge if needed.
 - Checkout device: a first-party, httpOnly cookie `wc_ckd` (`storefront/lib/checkout-unpaid-cap.ts`),
   set on the first checkout and stored on the order (`order.checkout_device_id`). The per-IP bot
   guard (20 an hour) is unchanged, moved to the same file.
+- The device cookie is set without waiting for cookie consent: the owner accepted it as a fraud
+  guard (24 Nov). Defaults stay as built; the owner sets Waimers' live value after release.
 - The refusal is friendlier and has a Hindi version for Hindi-market shoppers
   (`data/checkout-repeat.ts`, `data/hi/checkout-repeat.ts`). Cash on delivery is never counted.
 
 ## Tests
 
-- `packages/core/src/cart/reprice.test.ts` (item 1)
+- `packages/core/src/cart/reprice.test.ts`, `apps/storefront/src/lib/price-changed.test.ts` (item 1)
 - `packages/core/src/discounts/one-per-customer.test.ts` (items 2 and 3)
 - `packages/core/src/customers/store-credit-coupon.test.ts` (item 3, split tender)
 - `packages/core/src/order/duplicate-checkout.test.ts`, `packages/core/src/payments/settings.test.ts`,

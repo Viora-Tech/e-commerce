@@ -30,6 +30,7 @@ import { storeEmiOffers } from '@/lib/emi-offers'
 import { MARKET_HEADERS } from '@/lib/markets'
 import { storeCheckoutMethods, storeOffersEmi, storePaymentMethodRules } from '@/lib/payments'
 import { cartDepositTerms } from '@/lib/preorder'
+import { priceChangedNote } from '@/lib/price-changed'
 import { storeSignIn } from '@/lib/sign-in-methods'
 import { inStore } from '@/lib/store-context'
 
@@ -146,6 +147,7 @@ export default async function CheckoutPage({ params }: Params) {
         deposit={deposit}
         settings={settings}
         text={text}
+        priceChangedNote={priceChangedNote(requestHeaders.get(MARKET_HEADERS.locale))}
         methodRules={methodRules}
         countries={countries}
         defaultCountry={defaultCountry}
