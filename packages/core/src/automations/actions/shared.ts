@@ -243,13 +243,20 @@ export async function claimMessage(
 export async function recordMessage(
   tx: StoreTx,
   id: string,
-  result: { ok: boolean; channel: string; error?: string | undefined; providerRef?: string },
+  result: {
+    ok: boolean
+    channel: string
+    error?: string | undefined
+    providerRef?: string
+    /** The address is on the suppression list: nothing was tried, so it is not a failure. */
+    skipped?: boolean | undefined
+  },
 ): Promise<void> {
   await tx
     .update(marketingMessage)
     .set({
       channel: result.channel,
-      status: result.ok ? 'sent' : 'failed',
+      status: result.ok ? 'sent' : result.skipped ? 'skipped' : 'failed',
       providerRef: result.ok ? (result.providerRef ?? null) : null,
       error: result.ok ? null : (result.error ?? 'failed').slice(0, 500),
       sentAt: result.ok ? new Date() : null,

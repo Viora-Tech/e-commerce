@@ -11,6 +11,19 @@ const WHY: Record<EmailSuppressionReason, string> = {
   complaint: 'this address marked the store’s email as spam',
 }
 
+/** True for the result of a send the suppression list stopped (not a failure: nothing was tried). */
+export function isSuppressed(r: SendResult): boolean {
+  return !r.ok && r.error.startsWith(SUPPRESSED_PREFIX)
+}
+
+/**
+ * The status a notification row records: `skipped` for an address on the suppression list, so
+ * it is never retried and never counts as a failed send.
+ */
+export function sendStatus(r: SendResult): 'sent' | 'failed' | 'skipped' {
+  return r.ok ? 'sent' : isSuppressed(r) ? 'skipped' : 'failed'
+}
+
 /** The failed result a suppressed send returns; never retryable, so no fallback tries it. */
 export function suppressedError(reason: EmailSuppressionReason): SendResult {
   return {

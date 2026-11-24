@@ -303,7 +303,12 @@ export const customerDetailContent = {
       document_copy: 'Invoice copy',
       customer_message: 'Email from you',
     } as Record<string, string>,
-    status: { queued: 'Queued', sent: 'Sent', failed: 'Failed' } as Record<string, string>,
+    status: {
+      queued: 'Queued',
+      sent: 'Sent',
+      failed: 'Failed',
+      skipped: 'Skipped: the address bounced or complained',
+    } as Record<string, string>,
     via: (channel: string) => `via ${channel}`,
   },
   tags: {

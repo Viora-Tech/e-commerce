@@ -108,7 +108,7 @@ export function createNotificationWorker(
         for (const r of sent) {
           delivery('newsletter_confirm', { storeId, channel: r.channel, ok: r.ok, error: r.error })
         }
-        const bad = sent.filter((r) => !r.ok)
+        const bad = sent.filter((r) => !r.ok && !r.skipped)
         if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
         return sent
       }
@@ -136,7 +136,7 @@ export function createNotificationWorker(
             },
           )
         })
-        const bad = sent.filter((r) => !r.ok)
+        const bad = sent.filter((r) => !r.ok && !r.skipped)
         if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
         return sent
       }
@@ -162,7 +162,7 @@ export function createNotificationWorker(
         for (const r of sent) {
           delivery(template, { storeId, channel: r.channel, ok: r.ok, error: r.error })
         }
-        const bad = sent.filter((r) => !r.ok)
+        const bad = sent.filter((r) => !r.ok && !r.skipped)
         if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
         return sent
       }
@@ -191,7 +191,7 @@ export function createNotificationWorker(
             skipChannels: sentChannels,
           })
         })
-        const bad = sent.filter((r) => !r.ok)
+        const bad = sent.filter((r) => !r.ok && !r.skipped)
         if (bad.length > 0) {
           // Email went and WhatsApp failed: the retry sends only WhatsApp, never a second email.
           await job.updateData({ ...job.data, sentChannels: sentChannelsAfter(sentChannels, sent) })
@@ -210,7 +210,7 @@ export function createNotificationWorker(
           settingsSecret: opts.settingsSecret,
           storefrontUrl: opts.storefrontUrl ?? '',
         })
-        const bad = sent.filter((r) => !r.ok)
+        const bad = sent.filter((r) => !r.ok && !r.skipped)
         if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
         return sent
       }
@@ -230,7 +230,7 @@ export function createNotificationWorker(
             },
           )
         })
-        const bad = sent.filter((r) => !r.ok)
+        const bad = sent.filter((r) => !r.ok && !r.skipped)
         if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
         return sent
       }
@@ -266,7 +266,7 @@ export function createNotificationWorker(
             },
           )
         })
-        const bad = sent.filter((r) => !r.ok)
+        const bad = sent.filter((r) => !r.ok && !r.skipped)
         if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
         return sent
       }
@@ -300,7 +300,7 @@ export function createNotificationWorker(
             },
           )
         })
-        const bad = sent.filter((r) => !r.ok)
+        const bad = sent.filter((r) => !r.ok && !r.skipped)
         if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
         return sent
       }
@@ -329,7 +329,7 @@ export function createNotificationWorker(
             },
           )
         })
-        const bad = sent.filter((r) => !r.ok)
+        const bad = sent.filter((r) => !r.ok && !r.skipped)
         if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
         return sent
       }
@@ -363,7 +363,7 @@ export function createNotificationWorker(
             },
           )
         })
-        const bad = sent.filter((r) => !r.ok)
+        const bad = sent.filter((r) => !r.ok && !r.skipped)
         if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
         return sent
       }
@@ -434,7 +434,8 @@ export function createNotificationWorker(
           },
         ),
       )
-      const failed = results.filter((r) => !r.ok)
+      // A suppressed address is skipped, not failed: no retry.
+      const failed = results.filter((r) => !r.ok && !r.skipped)
       for (const r of results) {
         delivery(template, { storeId, orderId, channel: r.channel, ok: r.ok, error: r.error })
       }

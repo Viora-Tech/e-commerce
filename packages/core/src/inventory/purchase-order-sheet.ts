@@ -20,6 +20,7 @@ import {
 } from '@commerce/db'
 import type { NotificationChannel, TemplateData } from '@commerce/notifications'
 import { asc, eq } from 'drizzle-orm'
+import { sendStatus } from '../email-suppression/guard'
 import { StoreAddressSchema } from '../settings/general'
 import { gstState } from '../tax/gstin'
 import { documentRegistration } from '../tax/origin'
@@ -253,7 +254,7 @@ export async function emailPurchaseOrder(
       channel: channel.id,
       template: 'purchase_order',
       to: input.to,
-      status: r.ok ? 'sent' : 'failed',
+      status: sendStatus(r),
       providerRef: r.ok ? r.providerRef : null,
       error: r.ok ? null : r.error,
     })

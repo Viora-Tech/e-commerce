@@ -2078,7 +2078,7 @@ export const notification = pgTable(
     template: text('template').notNull(),
     /** Email address or phone the message went to. */
     to: text('to').notNull(),
-    status: text('status', { enum: ['queued', 'sent', 'failed'] })
+    status: text('status', { enum: ['queued', 'sent', 'failed', 'skipped'] })
       .notNull()
       .default('queued'),
     providerRef: text('provider_ref'),

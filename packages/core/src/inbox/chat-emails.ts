@@ -5,6 +5,7 @@ import type { ChatEmailMessage, ChatWaitingThread, TemplateData } from '@commerc
 import { and, count, desc, eq, gt, isNull, ne, notInArray, or, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { storefrontOriginFor } from '../domains/origin'
+import { isSuppressed, sendStatus } from '../email-suppression/guard'
 import { alertMembers, deliverToMember } from '../member-account/alerts'
 import {
   channelsFor,
@@ -140,11 +141,17 @@ async function sendToShopper(
       channel: channel.id,
       template,
       to,
-      status: r.ok ? 'sent' : 'failed',
+      status: sendStatus(r),
       providerRef: r.ok ? r.providerRef : null,
       error: r.ok ? null : r.error,
     })
-    results.push({ channel: channel.id, to, ok: r.ok, error: r.ok ? undefined : r.error })
+    results.push({
+      channel: channel.id,
+      to,
+      ok: r.ok,
+      error: r.ok ? undefined : r.error,
+      ...(isSuppressed(r) ? { skipped: true } : {}),
+    })
   }
   return results
 }

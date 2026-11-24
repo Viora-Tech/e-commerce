@@ -5,6 +5,7 @@ import { formatMoney } from '@commerce/money'
 import type { TemplateData, TemplateId } from '@commerce/notifications'
 import { and, count, eq, gte, inArray, lt, ne, notInArray, sql, sum } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { isSuppressed, sendStatus } from '../email-suppression/guard'
 import {
   buildTemplateData,
   channelsFor,
@@ -147,11 +148,17 @@ export async function deliverToMember(
       channel: channel.id,
       template,
       to,
-      status: r.ok ? 'sent' : 'failed',
+      status: sendStatus(r),
       providerRef: r.ok ? r.providerRef : null,
       error: r.ok ? null : r.error,
     })
-    results.push({ channel: channel.id, to, ok: r.ok, error: r.ok ? undefined : r.error })
+    results.push({
+      channel: channel.id,
+      to,
+      ok: r.ok,
+      error: r.ok ? undefined : r.error,
+      ...(isSuppressed(r) ? { skipped: true } : {}),
+    })
   }
   return results
 }
