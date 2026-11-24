@@ -182,7 +182,9 @@ export default function ThemesLibrary({
       })
   }
 
-  const handleConfirmPublish = () => (confirming ? handlePublish(confirming) : undefined)
+  const handleConfirmPublish = async () => {
+    if (confirming) await handlePublish(confirming)
+  }
 
   // Render logic
   const live = themes.find((t) => t.role === 'main')
