@@ -42,10 +42,13 @@ const NO_PREVIEW: Preview = { variants: null, thumbhash: null }
 
 const asImage = (value: unknown) => (value ?? {}) as ImageValue
 
-/** The value with a new picture: the old focal point belonged to the old picture, so it goes. */
+/**
+ * The value with a new picture. The old focal point and alt text belonged to the old picture, so
+ * the new one brings its own alt (empty when it has none).
+ */
 function withPicture(image: ImageValue, url: string, alt: string | null): ImageValue {
   const { focal: _drop, ...rest } = image
-  return { ...rest, url, alt: image.alt || alt || '' }
+  return { ...rest, url, alt: alt ?? '' }
 }
 
 /**
@@ -93,11 +96,14 @@ export default function ImageField({ value, onChange }: ImageFieldProps) {
       return
     }
     setProgress(0)
+    const altBefore = asImage(value).alt ?? ''
     try {
       const done = await uploadFile(file, setProgress)
       setPreview(NO_PREVIEW)
-      // Alt text typed (or anything else changed) while the file uploaded is kept.
-      set(withPicture(asImage(latest.current), done.url, done.alt))
+      // Anything changed while the file uploaded is kept; alt typed meanwhile is for this picture.
+      const now = asImage(latest.current)
+      const typed = (now.alt ?? '') !== altBefore ? (now.alt ?? '') : null
+      set(withPicture(now, done.url, typed ?? done.alt))
     } catch {
       toast.error(copy.uploadFailed)
     } finally {
