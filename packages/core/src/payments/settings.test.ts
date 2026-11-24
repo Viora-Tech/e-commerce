@@ -67,7 +67,7 @@ describe('payment settings', () => {
       expireUnpaidAfterMinutes: 30,
       manualCancelAfterHours: 0,
       duplicateCheckoutHours: 24,
-      unpaidCheckoutsPerHour: 0,
+      unpaidCheckoutsPerHour: 5,
     })
   })
 

@@ -1,6 +1,8 @@
 import { DuplicateCheckout, TooManyUnpaidCheckouts, UnpaidTransferExists } from '@commerce/core'
 import { describe, expect, it, vi } from 'vitest'
-import { repeatCheckoutResult } from './checkout-repeat'
+import { checkoutRepeatContent } from '@/data/checkout-repeat'
+import { checkoutRepeatContentHi } from '@/data/hi/checkout-repeat'
+import { repeatCheckoutResult, tooManyFromIp } from './checkout-repeat'
 
 vi.mock('@commerce/config', () => ({ settingsSecret: () => 'test-secret-test-secret-1234' }))
 
@@ -78,10 +80,33 @@ describe('repeatCheckoutResult', () => {
       'You already have an unpaid order #7. Pay for it, or choose another payment method.',
     )
     const cap = repeatCheckoutResult(new TooManyUnpaidCheckouts(earlier), 'c1')
-    expect(cap && 'error' in cap ? cap.error : null).toBe(
-      'Too many unpaid orders. Please complete one first.',
-    )
+    expect(cap && 'error' in cap ? cap.error : null).toBe(checkoutRepeatContent.tooMany)
     expect(cap && 'error' in cap ? cap.links?.length : 0).toBe(1)
     expect(repeatCheckoutResult(new Error('boom'), null)).toBeNull()
+  })
+})
+
+describe('the unpaid-checkout cap in the shopper’s words (owner, 24 Nov 2026)', () => {
+  it('is friendly: says what happened and what to do next', () => {
+    expect(checkoutRepeatContent.tooMany).toBe(
+      'You have started a few checkouts in the last hour without paying. Please pay for one of them, or try again in an hour.',
+    )
+  })
+
+  it('reads in Hindi for a Hindi shopper, link label included; English stays the default', () => {
+    const cap = repeatCheckoutResult(new TooManyUnpaidCheckouts(earlier), 'c1', 'hi')
+    expect(cap && 'error' in cap ? cap.error : null).toBe(checkoutRepeatContentHi.tooMany)
+    expect(cap && 'error' in cap ? cap.links?.[0]?.label : null).toBe(
+      checkoutRepeatContentHi.latestOrder,
+    )
+    expect(tooManyFromIp('hi')).toEqual({ error: checkoutRepeatContentHi.tooMany })
+    expect(tooManyFromIp()).toEqual({ error: checkoutRepeatContent.tooMany })
+    // Words with no Hindi yet fall back to English.
+    const dup = repeatCheckoutResult(
+      new DuplicateCheckout('unpaid', earlier, { sameContact: false, now }),
+      'c1',
+      'hi',
+    )
+    expect(dup && 'error' in dup ? dup.error : '').toMatch(/^You already placed this order/)
   })
 })

@@ -16,7 +16,6 @@ import {
   rememberCheckoutAddress,
   setCartAttribution,
   setLineQuantity,
-  unpaidCheckoutsPerHourOf,
 } from '@commerce/core'
 import { checkoutCountry, isAbroad } from '@commerce/core/checkout-address'
 import { CONSENT_COOKIE, currentConsent, decodeConsent } from '@commerce/core/consent'
@@ -41,12 +40,14 @@ import { checkoutErrorMessage } from './checkout-errors'
 import { redirectAfterCheckout } from './checkout-redirect'
 import { repeatCheckoutResult, tooManyFromIp } from './checkout-repeat'
 import type { CheckoutResult } from './checkout-result'
+import { checkoutDeviceId, tooManyUnpaidFromIp } from './checkout-unpaid-cap'
 import { currentCustomer } from './customer-session'
 import { db } from './db'
 import { cleanParcelKeys, deliveryForOrder, type ParcelKeysForm } from './delivery-options'
 import { discoveryVisitor, recordDiscoveryCartAdd } from './discovery-events'
 import { hasChatCookie, postChatCartLine } from './inbox'
 import { requestMarketId } from './market-catalog'
+import { MARKET_HEADERS } from './markets'
 import { nudgeOutbox } from './outbox'
 import { storePaymentFallbacks, storePaymentProviders, storeUnavailableMethods } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
@@ -235,10 +236,6 @@ export type CheckoutForm = {
 
 export type { CheckoutResult } from './checkout-result'
 
-/** Unpaid checkouts one IP may start in an hour: high enough for a shared mobile-network IP. */
-const IP_UNPAID_CHECKOUTS_PER_HOUR = 20
-const UNPAID_CHECKOUT_WINDOW_MS = 3_600_000
-
 /**
  * Remember who is checking out before the order exists. Without this a cart
  * that is left behind is anonymous and cannot be recovered; with it the
@@ -370,17 +367,10 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
     )
   }
 
-  /* Too many unpaid checkouts from one IP in an hour (the email and phone count is placeOrder's,
-     at the store's cap). Indian mobile networks put many shoppers behind one IP, so the IP cap is
-     a fixed bot guard (IP_UNPAID_CHECKOUTS_PER_HOUR), on whenever the store's cap is on.
-     Cash on delivery is never counted: it is unpaid until the parcel arrives. */
-  if (form.payment !== 'cod') {
-    const cap = await inStore(storeId, (tx) => unpaidCheckoutsPerHourOf({ storeId, tx }))
-    const rule = { limit: IP_UNPAID_CHECKOUTS_PER_HOUR, windowMs: UNPAID_CHECKOUT_WINDOW_MS }
-    if (cap > 0 && !(await rateLimited('unpaid-checkout:ip', `${storeId}:${ip}`, rule)).ok) {
-      return tooManyFromIp()
-    }
-  }
+  // The hourly cap of unpaid checkouts: per IP here, by email, phone and device in placeOrder.
+  const locale = (await headers()).get(MARKET_HEADERS.locale) ?? 'en'
+  if (await tooManyUnpaidFromIp(storeId, ip, form.payment)) return tooManyFromIp(locale)
+  const deviceId = await checkoutDeviceId()
 
   /* The order and its stock are committed first; the gateway is asked after
      that, so a slow gateway never holds stock locks. A gateway failure leaves
@@ -415,6 +405,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
         paymentProvider: provider,
         paymentFallbacks: fallbacks,
         shopperIp: ip,
+        checkoutDeviceId: deviceId,
         giftCardIds,
         // Store credit only ever comes from the signed-in customer's own balance.
         ...(me && form.useStoreCredit === true ? { storeCredit: { customerId: me.id } } : {}),
@@ -448,7 +439,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
       })
     })
     .catch((err: unknown): NonNullable<CheckoutResult> => {
-      const repeat = repeatCheckoutResult(err, me?.id ?? null)
+      const repeat = repeatCheckoutResult(err, me?.id ?? null, locale)
       if (repeat) return repeat
       const refused = checkoutErrorMessage(err, form.pincode)
       if (refused === null) throw err
