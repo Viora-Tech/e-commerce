@@ -1,7 +1,8 @@
-import { loadEnv } from '@commerce/config'
+import { loadEnv, settingsSecret } from '@commerce/config'
 import {
   checkRateLimit,
   checkSenderEmail,
+  checkStoreSes,
   createMemoryRateLimitStore,
   EmailBrandingSchema,
   EmailTemplateDesignSchema,
@@ -104,7 +105,24 @@ async function senderErrors<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
+/** Each check is three read-only SES calls; a merchant re-checking after a fix stays far below this. */
+const SES_CHECK_RULE: RateLimitRule = { limit: 20, windowMs: 10 * 60_000 }
+
 export const notificationsRouter = {
+  /**
+   * Apps → Amazon SES → Connect, after Save: the saved keys checked against AWS (keys, sending
+   * on, sandbox, From verified, configuration set). Null when no SES app is saved.
+   */
+  checkSes: can(permissions.SETTINGS_MANAGE).handler(async ({ context }) => {
+    await limitOrThrow(context, 'notifications-ses-check', SES_CHECK_RULE)
+    return checkStoreSes(
+      context.tx,
+      context.scope.storeId,
+      settingsSecret(),
+      loadEnv(process.env).SETTINGS_SECRET_PREVIOUS,
+    )
+  }),
+
   /** Settings → Notifications: every message the shop sends and how messages go out. */
   overview: can(permissions.SETTINGS_READ).handler(({ context }) =>
     notificationsOverview(context.tx, context.scope.storeId),

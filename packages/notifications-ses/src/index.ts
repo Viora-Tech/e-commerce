@@ -1,4 +1,5 @@
 export { cleanDisplayName, formatMailbox } from './address'
+export { checkSesSetup, type SesCheck, type SesCheckClientLike, type SesCheckIssue } from './check'
 export {
   identityState,
   type SenderIdentityError,
