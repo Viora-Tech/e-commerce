@@ -1758,6 +1758,13 @@
       "when": 1795381300000,
       "tag": "0266_discount_usage_counted",
       "breakpoints": true
+    },
+    {
+      "idx": 251,
+      "version": "7",
+      "when": 1795381500000,
+      "tag": "0268_whatsapp_delivery_reports",
+      "breakpoints": true
     }
   ]
 }

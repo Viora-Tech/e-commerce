@@ -265,6 +265,8 @@ export async function whatsappMessages(
       orderId: notification.orderId,
       orderNumber: order.number,
       providerRef: notification.providerRef,
+      /** Meta's later report on the send: delivered, read or failed (null until one comes). */
+      deliveryStatus: notification.deliveryStatus,
       createdAt: notification.createdAt,
     })
     .from(notification)
