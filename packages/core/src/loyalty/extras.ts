@@ -1,9 +1,11 @@
-/** SOURCE OF TRUTH: review and birthday points — WHAT: which published reviews and which birthdays earn points (once per product, once a year) as pending entries the sweep credits straight away, and setting a customer's birthday / WHY: the unique indexes on `loyalty_entry` make each grant happen once even when the sweep runs twice or overlaps */
+/** SOURCE OF TRUTH: review and birthday points — WHAT: which published reviews and which birthdays earn points (once per product, once a year; the points from the store's `product_review` and `birthday` rules, or the v1 settings before rules exist) as pending entries the sweep credits straight away, and setting a customer's birthday / WHY: the unique indexes on `loyalty_entry` make each grant happen once even when the sweep runs twice or overlaps */
 import { dayKey } from '@commerce/dates'
 import { customer, loyaltyEntry } from '@commerce/db'
 import { and, eq, inArray, isNull, notExists, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { storeCreditTimeZone } from '../customers/store-credit-expiry'
+import { canUseProgram, ensureMember } from './member'
+import { rulePoints } from './rules'
 import {
   birthdaysOn,
   type LoyaltySettings,
@@ -28,7 +30,8 @@ export async function grantReviewPoints(
   settings: LoyaltySettings,
   now: Date = new Date(),
 ): Promise<number> {
-  if (settings.reviewPoints <= 0) return 0
+  const { points, ruleId } = await rulePoints(ctx, 'product_review', settings.reviewPoints)
+  if (points <= 0) return 0
   const since = new Date(now.getTime() - REVIEW_LOOKBACK_DAYS * DAY_MS)
   const rows = await ctx.tx.execute<{ customer_id: string; product_id: string; title: string }>(sql`
     select distinct on (r.customer_id, r.product_id) r.customer_id, r.product_id, p.title
@@ -56,6 +59,8 @@ export async function grantReviewPoints(
     limit ${GRANT_BATCH}`)
   let made = 0
   for (const r of rows) {
+    if (!(await canUseProgram(ctx, r.customer_id, settings))) continue
+    await ensureMember(ctx, r.customer_id, now)
     const [row] = await ctx.tx
       .insert(loyaltyEntry)
       .values({
@@ -63,7 +68,8 @@ export async function grantReviewPoints(
         customerId: r.customer_id,
         source: 'review',
         status: 'pending',
-        points: settings.reviewPoints,
+        points,
+        ruleId,
         productId: r.product_id,
         reason: `Points for reviewing ${r.title}`.slice(0, 200),
         availableAt: now,
@@ -85,7 +91,8 @@ export async function grantBirthdayPoints(
   settings: LoyaltySettings,
   now: Date = new Date(),
 ): Promise<number> {
-  if (settings.birthdayPoints <= 0) return 0
+  const { points, ruleId } = await rulePoints(ctx, 'birthday', settings.birthdayPoints)
+  if (points <= 0) return 0
   const today = dayKey(now, await storeCreditTimeZone(ctx))
   const year = Number(today.slice(0, 4))
   const due = await ctx.tx
@@ -113,6 +120,8 @@ export async function grantBirthdayPoints(
     .limit(GRANT_BATCH)
   let made = 0
   for (const c of due) {
+    if (!(await canUseProgram(ctx, c.id, settings))) continue
+    await ensureMember(ctx, c.id, now)
     const [row] = await ctx.tx
       .insert(loyaltyEntry)
       .values({
@@ -120,7 +129,8 @@ export async function grantBirthdayPoints(
         customerId: c.id,
         source: 'birthday',
         status: 'pending',
-        points: settings.birthdayPoints,
+        points,
+        ruleId,
         year,
         reason: `Birthday points ${year}`,
         availableAt: now,

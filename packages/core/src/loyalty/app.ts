@@ -1,6 +1,9 @@
 /** SOURCE OF TRUTH: the Loyalty points app manifest — WHAT: the built-in, free "Loyalty points" app (listing, access, hooks on delivery, refund, cancel and RTO, admin pages and the customer card) / WHY: the App Store catalogue, Installed apps, the admin sidebar and the worker's app events read apps from manifests; the engine is core (`packages/core/src/loyalty/`) because points are store credit, written under the account lock. Free on every plan because it is absent from `APP_PRICING`. Imported by commerce.config.ts. */
 import { definePlugin } from '@commerce/plugins'
 import { planOrderPoints, reverseOrderPoints } from './earn'
+import { grantNewsletterPoints, grantSignupPoints, planFirstOrderBonus } from './grants'
+import { markRedemptionsUsed } from './redeem'
+import { referralOrderDelivered } from './referrals'
 import { LOYALTY_APP_ID } from './settings'
 import { loyaltyState } from './state'
 
@@ -13,7 +16,7 @@ import { loyaltyState } from './state'
 export const loyaltyPlugin = definePlugin({
   id: LOYALTY_APP_ID,
   name: 'Loyalty points',
-  version: '1.0.0',
+  version: '2.0.0',
   kind: 'builtin',
   category: 'marketing',
   description:
@@ -44,7 +47,11 @@ export const loyaltyPlugin = definePlugin({
   },
   access: {
     resources: [
-      { resource: 'orders', level: 'read', why: 'Works out the points a delivered order earns' },
+      {
+        resource: 'orders',
+        level: 'read-write',
+        why: 'Works out the points a delivered order earns; tags a referred friend’s first order',
+      },
       { resource: 'refunds', level: 'read', why: 'Takes points back when an order is refunded' },
       {
         resource: 'customers',
@@ -59,19 +66,49 @@ export const loyaltyPlugin = definePlugin({
       {
         resource: 'order-events',
         level: 'read',
-        why: 'Reacts when an order is delivered, refunded, cancelled or returned',
+        why: 'Reacts when an order is paid, delivered, refunded, cancelled or returned',
+      },
+      {
+        resource: 'discounts',
+        level: 'read-write',
+        why: 'Makes one-use reward and referral codes, and sees when an order used one',
       },
     ],
     summary: 'gives loyalty points',
   },
   provides: {},
   hooks: {
+    'order.paid': async (ctx, payload) => {
+      await ctx.inStore((tx) => markRedemptionsUsed({ storeId: ctx.storeId, tx }, payload.orderId))
+    },
     'order.delivered': async (ctx, payload) => {
       const row = await ctx.inStore(async (tx) => {
+        const sctx = { storeId: ctx.storeId, tx }
         const { settings } = await loyaltyState(tx, ctx.storeId)
-        return planOrderPoints({ storeId: ctx.storeId, tx }, payload.orderId, settings)
+        await markRedemptionsUsed(sctx, payload.orderId)
+        await planFirstOrderBonus(sctx, payload.orderId, settings)
+        await referralOrderDelivered(sctx, payload.orderId, settings)
+        return planOrderPoints(sctx, payload.orderId, settings)
       })
       if (row) ctx.reportActivity?.(`${row.points} points on the way for a delivered order`)
+    },
+    'customer.created': async (ctx, payload) => {
+      if (!payload.customerId) return
+      const customerId = payload.customerId
+      await ctx.inStore(async (tx) => {
+        const sctx = { storeId: ctx.storeId, tx }
+        const { settings } = await loyaltyState(tx, ctx.storeId)
+        await grantSignupPoints(sctx, customerId, settings)
+        await grantNewsletterPoints(sctx, customerId, settings)
+      })
+    },
+    'customer.updated': async (ctx, payload) => {
+      if (!payload.customerId) return
+      const customerId = payload.customerId
+      await ctx.inStore(async (tx) => {
+        const { settings } = await loyaltyState(tx, ctx.storeId)
+        await grantNewsletterPoints({ storeId: ctx.storeId, tx }, customerId, settings)
+      })
     },
     'refund.created': async (ctx, payload) => {
       await ctx.inStore(async (tx) => {

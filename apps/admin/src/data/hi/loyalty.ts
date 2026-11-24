@@ -10,6 +10,13 @@ export default [
       birthday: 'जन्मदिन',
       adjustment: 'बदलाव',
       reversal: 'वापस लिए',
+      rule: 'कमाई का नियम',
+      redemption: 'इनाम',
+      redemption_refund: 'इनाम रद्द',
+      referral: 'रेफ़रल',
+      expiry: 'समय खत्म',
+      import: 'इम्पोर्ट',
+      reset: 'रीसेट',
     },
     statuses: {
       pending: 'आने वाले',

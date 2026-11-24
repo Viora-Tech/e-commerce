@@ -2,7 +2,7 @@
 import { customer, loyaltyEntry, order, storeCreditEntry } from '@commerce/db'
 import { and, asc, desc, eq, gt, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { changeStoreCredit, StoreCreditError } from '../customers/store-credit'
+import { StoreCreditError } from '../customers/store-credit'
 import {
   lockStoreCreditBalance,
   openLots,
@@ -10,7 +10,8 @@ import {
   storeCreditLastDay,
   storeCreditTimeZone,
 } from '../customers/store-credit-expiry'
-import { creditPoints } from './earn'
+import { addPoints, ledgerLots, takePoints } from './balance'
+import { lockMember } from './member'
 import { type LoyaltySettings, POINT_PAISE } from './settings'
 
 type Source = (typeof loyaltyEntry.$inferSelect)['source']
@@ -57,11 +58,12 @@ async function loyaltyLots(ctx: StoreContext, customerId: string, now: Date) {
 }
 
 /**
- * The customer's points: what is left of their points (never more than the whole store credit
- * balance), the soonest to expire within `soonDays`, and points on the way. Points that never
- * expire (expiry set to 0) are counted at what was given, capped by the balance.
+ * The store credit part of the customer's points: what is left of their `loyalty` lines (never
+ * more than the whole store credit balance), the soonest to expire within `soonDays`, and
+ * points on the way. Points that never expire (expiry set to 0) are counted at what was given,
+ * capped by the balance.
  */
-export async function pointsSummary(
+export async function backedPointsSummary(
   ctx: StoreContext,
   customerId: string,
   soonDays = 30,
@@ -99,6 +101,41 @@ export async function pointsSummary(
     points,
     expiringSoon: expiringSoon && expiringSoon.points > 0 ? expiringSoon : null,
     pendingPoints: pending?.points ?? 0,
+  }
+}
+
+/**
+ * The customer's points in both homes: the store credit part (`backedPointsSummary`) plus
+ * points held only in the ledger (when the store turned "points spend as store credit" off).
+ * The soonest expiry wins; on the same last day the two are added.
+ */
+export async function pointsSummary(
+  ctx: StoreContext,
+  customerId: string,
+  soonDays = 30,
+  now: Date = new Date(),
+): Promise<PointsSummary> {
+  const backed = await backedPointsSummary(ctx, customerId, soonDays, now)
+  const lots = await ledgerLots(ctx, customerId, now)
+  if (lots.length === 0) return backed
+  const points = backed.points + lots.reduce((n, l) => n + l.remaining, 0)
+  const soonBy = now.getTime() + soonDays * DAY_MS
+  const timeZone = await storeCreditTimeZone(ctx)
+  const byDay = new Map<string, number>()
+  for (const l of lots) {
+    if (!l.expiresAt || l.expiresAt.getTime() > soonBy) continue
+    const day = storeCreditLastDay(l.expiresAt, timeZone)
+    byDay.set(day, (byDay.get(day) ?? 0) + l.remaining)
+  }
+  if (backed.expiringSoon) {
+    const d = backed.expiringSoon.lastDay
+    byDay.set(d, (byDay.get(d) ?? 0) + backed.expiringSoon.points)
+  }
+  const first = [...byDay.keys()].sort()[0]
+  return {
+    points,
+    expiringSoon: first ? { points: byDay.get(first) ?? 0, lastDay: first } : null,
+    pendingPoints: backed.pendingPoints,
   }
 }
 
@@ -180,50 +217,40 @@ export async function adjustPoints(
     throw new StoreCreditError('invalid', 'Enter a number of points', ctx.storeId)
   }
   if (!reason) throw new StoreCreditError('invalid', 'Give a reason', ctx.storeId)
-  let storeCreditEntryId: string
-  let expiresAt: Date | null = null
   if (input.points > 0) {
-    const done = await creditPoints(
+    await addPoints(
       ctx,
-      { customerId: input.customerId, points: input.points, reason },
+      {
+        customerId: input.customerId,
+        points: input.points,
+        source: 'adjustment',
+        reason,
+        staffEmail: input.staffEmail,
+      },
       settings,
       now,
     )
-    storeCreditEntryId = done.storeCreditEntryId
-    expiresAt = done.expiresAt
   } else {
-    // Lock the account first, so the balance read below cannot change before the removal.
+    // Lock the member, then the account (the order every points change takes), so the
+    // balance read below cannot change before the removal.
+    await lockMember(ctx, input.customerId, now)
     await lockStoreCreditBalance(ctx, input.customerId, now)
     const { points } = await pointsSummary(ctx, input.customerId, 0, now)
     if (-input.points > points) {
       throw new StoreCreditError('insufficient', 'That is more points than they have.', ctx.storeId)
     }
-    const line = await changeStoreCredit(
+    await takePoints(
       ctx,
       {
         customerId: input.customerId,
-        amountPaise: input.points * POINT_PAISE,
-        kind: 'loyalty',
+        points: -input.points,
+        source: 'adjustment',
         reason,
-        staff: { email: input.staffEmail },
+        staffEmail: input.staffEmail,
       },
       now,
     )
-    storeCreditEntryId = line.entryId
   }
-  await ctx.tx.insert(loyaltyEntry).values({
-    storeId: ctx.storeId,
-    customerId: input.customerId,
-    source: 'adjustment',
-    status: 'credited',
-    points: input.points,
-    reason,
-    staffEmail: input.staffEmail,
-    availableAt: now,
-    creditedAt: now,
-    storeCreditEntryId,
-    expiresAt,
-  })
   return pointsSummary(ctx, input.customerId, 30, now)
 }
 

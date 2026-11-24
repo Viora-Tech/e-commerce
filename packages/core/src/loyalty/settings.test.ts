@@ -37,12 +37,35 @@ describe('loyalty rules', () => {
   })
 
   it('uses the owner’s defaults when nothing is saved', () => {
-    expect(parseLoyaltySettings(undefined)).toEqual({
+    expect(parseLoyaltySettings(undefined)).toMatchObject({
       pointsPer100: 1,
       expiryMonths: 12,
       reviewPoints: 25,
       birthdayPoints: 100,
       reminderDays: 14,
     })
+  })
+
+  it('reads a v1 row with the v2 defaults that keep v1 behaviour', () => {
+    const s = parseLoyaltySettings({
+      pointsPer100: 2,
+      expiryMonths: 6,
+      reviewPoints: 10,
+      birthdayPoints: 50,
+      reminderDays: 7,
+    })
+    expect(s).toMatchObject({
+      pointsPer100: 2,
+      pointsAsStoreCredit: true,
+      pointsNameSingular: 'point',
+      pointsNamePlural: 'points',
+      excludeTags: [],
+      programStatus: 'live',
+      includeShipping: false,
+      includeTaxes: true,
+      tierBasis: 'points',
+      tierWindow: 'lifetime',
+    })
+    expect(s.referrals.enabled).toBe(false)
   })
 })

@@ -12,6 +12,21 @@ const EARN_PER_PAISE = 10_000
 /** A review earns points only when it was published this recently (the sweep looks back this far). */
 export const REVIEW_LOOKBACK_DAYS = 7
 
+/**
+ * A referral reward: `points`, `percent` (whole percent off the order, 1 to 90) or `fixed`
+ * (paise off the order).
+ */
+export const ReferralRewardSchema = z
+  .object({
+    kind: z.enum(['points', 'percent', 'fixed']),
+    value: z.number().int().min(1).max(10_000_000),
+  })
+  .refine((r) => r.kind !== 'percent' || r.value <= 90, {
+    message: 'A percent off is 1 to 90',
+    path: ['value'],
+  })
+export type ReferralReward = z.infer<typeof ReferralRewardSchema>
+
 /** Owner's defaults (16 Nov 2026); every number is the merchant's to change. */
 export const LoyaltySettingsSchema = z.object({
   /** Points per ₹100 spent (1 = 1%); 0 turns earning on orders off. */
@@ -22,8 +37,55 @@ export const LoyaltySettingsSchema = z.object({
   reviewPoints: z.number().int().min(0).max(10_000).default(25),
   /** Points on the shopper's birthday, once a year; 0 off. */
   birthdayPoints: z.number().int().min(0).max(10_000).default(100),
-  /** Days before points run out that the reminder email goes; 0 sends none. */
+  /**
+   * v1: days before points run out that the reminder email goes; 0 sends none. In v2 the
+   * reminders go 30 and 7 days before (`POINTS_EXPIRY_NOTICE_DAYS`); 0 still turns them off.
+   */
   reminderDays: z.number().int().min(0).max(60).default(14),
+  // v2 (24 Nov 2026). Each field has its own default, so a v1 row parses to today's behaviour.
+  /** Points sit on the store credit balance and pay at checkout; off: only rewards spend them. */
+  pointsAsStoreCredit: z.boolean().default(true),
+  /** What the store calls its points, in the shopper's words. */
+  pointsNameSingular: z.string().trim().min(1).max(30).default('point'),
+  pointsNamePlural: z.string().trim().min(1).max(30).default('points'),
+  /** Customers with any of these tags never earn or redeem. */
+  excludeTags: z.array(z.string().trim().min(1).max(60)).max(50).default([]),
+  /** `paused`: only the test accounts below see and use the program. */
+  programStatus: z.enum(['live', 'paused']).default('live'),
+  /** Emails that use the program while it is paused (lower-cased). */
+  testEmails: z.array(z.string().trim().toLowerCase().max(200)).max(50).default([]),
+  /** Order points count the shipping charge too. */
+  includeShipping: z.boolean().default(false),
+  /** Order points count GST (Indian prices include it, so on is the v1 behaviour). */
+  includeTaxes: z.boolean().default(true),
+  /** VIP tiers go by points earned or by money spent. */
+  tierBasis: z.enum(['points', 'spend']).default('points'),
+  /** Over the whole membership, or the last 12 months. */
+  tierWindow: z.enum(['lifetime', 'rolling_12m']).default('lifetime'),
+  referrals: z
+    .object({
+      enabled: z.boolean().default(false),
+      referrerReward: ReferralRewardSchema.default({ kind: 'points', value: 100 }),
+      friendReward: ReferralRewardSchema.default({ kind: 'percent', value: 10 }),
+      /** Most friends one member may refer; 0 no limit. */
+      maxPerMember: z.number().int().min(0).max(10_000).default(0),
+      /** Tags added to the referrer and the friend, and to the friend's first order; '' none. */
+      referrerTag: z.string().trim().max(60).default(''),
+      friendTag: z.string().trim().max(60).default(''),
+      orderTag: z.string().trim().max(60).default(''),
+      /** Days a referral discount code works. */
+      codeDays: z.number().int().min(1).max(365).default(30),
+    })
+    .default({
+      enabled: false,
+      referrerReward: { kind: 'points', value: 100 },
+      friendReward: { kind: 'percent', value: 10 },
+      maxPerMember: 0,
+      referrerTag: '',
+      friendTag: '',
+      orderTag: '',
+      codeDays: 30,
+    }),
 })
 export type LoyaltySettings = z.infer<typeof LoyaltySettingsSchema>
 export type LoyaltySettingsInput = z.input<typeof LoyaltySettingsSchema>
@@ -79,4 +141,45 @@ export function birthdaysOn(today: string): string[] {
   const year = Number(today.slice(0, 4))
   const mmdd = today.slice(5)
   return mmdd === '02-28' && !isLeapYear(year) ? ['02-28', '02-29'] : [mmdd]
+}
+
+/** Days before points run out that the reminder emails go (v2). */
+export const POINTS_EXPIRY_NOTICE_DAYS = [30, 7] as const
+
+/** Days before an issued reward code runs out that the reminder emails go. */
+export const REWARD_EXPIRY_NOTICE_DAYS = [30, 3] as const
+
+/** "1 point", "250 points", in the store's own name for points. */
+export function pointsLabel(
+  n: number,
+  s: Pick<LoyaltySettings, 'pointsNameSingular' | 'pointsNamePlural'>,
+): string {
+  return `${n} ${Math.abs(n) === 1 ? s.pointsNameSingular : s.pointsNamePlural}`
+}
+
+/**
+ * Whether a customer is in the program: not carrying an excluded tag, and, while the program
+ * is paused, one of the test accounts.
+ */
+export function programOpenTo(
+  s: Pick<LoyaltySettings, 'excludeTags' | 'programStatus' | 'testEmails'>,
+  c: { email: string | null; tags: readonly string[] },
+): boolean {
+  const excluded = new Set(s.excludeTags.map((t) => t.toLowerCase()))
+  if (c.tags.some((t) => excluded.has(t.toLowerCase()))) return false
+  if (s.programStatus === 'paused') {
+    const email = (c.email ?? '').trim().toLowerCase()
+    return email !== '' && s.testEmails.includes(email)
+  }
+  return true
+}
+
+/** Order points after a tier or campaign multiplier (basis points) and a fixed bonus. */
+export function boostedPoints(
+  basePoints: number,
+  multiplierBp: number,
+  bonusPoints: number,
+): number {
+  if (basePoints <= 0) return 0
+  return Math.floor((basePoints * Math.max(0, multiplierBp)) / 10_000) + Math.max(0, bonusPoints)
 }

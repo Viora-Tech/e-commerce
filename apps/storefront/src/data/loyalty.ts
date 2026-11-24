@@ -28,6 +28,13 @@ export const loyaltyAccountContent = {
     /** Staff took points off (a negative adjustment). */
     adjustmentRemoved: 'Removed by the store',
     reversal: (n: number | null) => (n ? `Taken back: order #${n}` : 'Taken back'),
+    rule: 'Bonus points',
+    redemption: 'Spent on a reward',
+    redemption_refund: 'Reward cancelled: points back',
+    referral: 'Referral reward',
+    expiry: 'Ran out',
+    import: 'From the store',
+    reset: 'Reset by the store',
   },
   statuses: {
     pending: (day: string) => `On the way · lands ${day}`,

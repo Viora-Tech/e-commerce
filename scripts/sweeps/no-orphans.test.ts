@@ -1886,6 +1886,68 @@ const ALLOWLIST: AllowEntry[] = [
     reason:
       'the TTL is used in the module and app-bar-cache.test.ts steps the clock past it; clearAppBarCache resets the per-process cache between tests',
   },
+  {
+    file: 'packages/core/src/loyalty/shopper.ts',
+    names: ['publicLoyaltyProgram', 'shopperLoyalty'],
+    reason:
+      'loyalty v2 foundation (24 Nov): storefront widget functions the storefront UI wires next (docs/loyalty-v2-interfaces.md); drop from here once imported',
+  },
+  {
+    file: 'packages/core/src/loyalty/grants.ts',
+    names: ['claimActionRule'],
+    reason:
+      'loyalty v2 foundation (24 Nov): storefront widget functions the storefront UI wires next (docs/loyalty-v2-interfaces.md); drop from here once imported',
+  },
+  {
+    file: 'packages/core/src/loyalty/referrals.ts',
+    names: ['attachReferral', 'inboxOf'],
+    reason:
+      'attachReferral: loyalty v2 foundation (24 Nov): storefront widget functions the storefront UI wires next (docs/loyalty-v2-interfaces.md); drop from here once imported; inboxOf is the pure fraud key, asserted directly by v2-rules.test.ts',
+  },
+  {
+    file: 'packages/core/src/loyalty/settings.ts',
+    names: ['pointsLabel', 'ReferralRewardSchema'],
+    reason:
+      'browser-safe loyalty v2 helpers for the admin and storefront UI built next (docs/loyalty-v2-interfaces.md); ReferralRewardSchema also shapes the settings schema in the module',
+  },
+  {
+    file: 'packages/core/src/loyalty/schemas.ts',
+    names: ['LOYALTY_RULE_TYPES', 'LOYALTY_SOCIAL_KINDS', 'LOYALTY_REWARD_TYPES'],
+    reason:
+      'the lists the v2 admin pickers read (built next, docs/loyalty-v2-interfaces.md); used in the module by the input schemas',
+  },
+  {
+    file: 'packages/core/src/loyalty/notify.ts',
+    names: ['LOYALTY_TEMPLATES'],
+    reason:
+      'the loyalty email template ids the packages/notifications templates are added under next (docs/loyalty-v2-interfaces.md, Emails)',
+  },
+  {
+    file: 'packages/core/src/loyalty/campaigns.ts',
+    names: ['boostFrom'],
+    reason: 'pure step of campaignBoost, asserted directly by v2-rules.test.ts',
+  },
+  {
+    file: 'packages/core/src/loyalty/tiers.ts',
+    names: ['tierValue'],
+    reason:
+      'used in the module by recalcTier and tierProgress, asserted directly by v2-earn.test.ts',
+  },
+  {
+    file: 'packages/core/src/loyalty/ledger.ts',
+    names: ['pointsHistory'],
+    reason: 'used in the module by customerPoints and shopperPoints (v1 loyalty, 23 Nov)',
+  },
+  {
+    file: 'packages/db/src/loyalty-schema.ts',
+    names: ['LOYALTY_SOURCES', 'LOYALTY_STATUSES'],
+    reason: 'used in the module as the loyalty_entry column enums (v1 loyalty, 23 Nov)',
+  },
+  {
+    file: 'packages/core/src/loyalty/fixtures.test-util.ts',
+    names: ['DAY', 'T0', 'settingsWith', 'addCustomer', 'signIn', 'deliveredOrder'],
+    reason: 'test-only fixtures shared by the loyalty v2 suites',
+  },
 ]
 
 function allowlistedNames(file: string): Set<string> {

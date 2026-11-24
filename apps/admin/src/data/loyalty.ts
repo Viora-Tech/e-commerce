@@ -7,6 +7,13 @@ export const loyaltyContent = {
     birthday: 'Birthday',
     adjustment: 'Adjusted',
     reversal: 'Taken back',
+    rule: 'Earning rule',
+    redemption: 'Reward',
+    redemption_refund: 'Reward cancelled',
+    referral: 'Referral',
+    expiry: 'Expired',
+    import: 'Imported',
+    reset: 'Reset',
   } as Record<string, string>,
   statuses: {
     pending: 'On the way',

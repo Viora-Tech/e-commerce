@@ -296,7 +296,7 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
         },
       ],
     },
-    adminPages: ['Overview', 'Shipments', 'Pickups', 'Pickup locations', 'Connect'],
+    adminPages: ['Overview', 'Pickup locations', 'Connect'],
     themeBlocks: ['Delivery checker'],
     credits: [],
   },
@@ -2058,6 +2058,11 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
           level: 'read',
           why: 'Reads collections and tags for product route rules',
         },
+        {
+          resource: 'store-settings',
+          level: 'read',
+          why: 'Reads your Shipping rates to suggest product rules',
+        },
       ],
       shares: [],
     },
@@ -2102,8 +2107,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
       resources: [
         {
           resource: 'orders',
-          level: 'read',
-          why: 'Works out the points a delivered order earns',
+          level: 'read-write',
+          why: 'Works out the points a delivered order earns; tags a referred friend’s first order',
         },
         {
           resource: 'refunds',
@@ -2123,7 +2128,12 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
         {
           resource: 'order-events',
           level: 'read',
-          why: 'Reacts when an order is delivered, refunded, cancelled or returned',
+          why: 'Reacts when an order is paid, delivered, refunded, cancelled or returned',
+        },
+        {
+          resource: 'discounts',
+          level: 'read-write',
+          why: 'Makes one-use reward and referral codes, and sees when an order used one',
         },
       ],
       shares: [],

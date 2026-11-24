@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm'
 import { lockStoreApps } from '../apps/locked'
 import { parseAppsSettings, withAppSettings } from '../apps/settings'
 import { parseReturnPolicy } from '../returns/policy'
+import { syncV1RuleNumbers } from './rules'
 import {
   LOYALTY_APP_ID,
   type LoyaltySettings,
@@ -33,8 +34,11 @@ export async function saveLoyaltySettings(
   input: unknown,
 ): Promise<LoyaltySettings> {
   const next = LoyaltySettingsSchema.parse(input)
-  const apps = withAppSettings(await lockStoreApps(tx, storeId), LOYALTY_APP_ID, next)
+  const locked = await lockStoreApps(tx, storeId)
+  const prev = parseLoyaltySettings(locked.settings?.[LOYALTY_APP_ID])
+  const apps = withAppSettings(locked, LOYALTY_APP_ID, next)
   await tx.update(store).set({ apps }).where(eq(store.id, storeId))
+  await syncV1RuleNumbers({ storeId, tx }, prev, next)
   return next
 }
 
