@@ -236,6 +236,8 @@ export const orderDetailContent = {
     groups: (n: number) => `${n} fulfilment ${n === 1 ? 'group' : 'groups'}`,
     subtotal: 'Subtotal',
     tax: 'Tax',
+    /** The one GST line on the Payment card; it opens to the CGST/SGST or IGST split. */
+    gstIncluded: 'GST (included)',
     cgst: (rate: number) => `CGST ${rate / 2}%`,
     sgst: (rate: number) => `SGST ${rate / 2}%`,
     igst: (rate: number) => `IGST ${rate}%`,
@@ -257,6 +259,8 @@ export const orderDetailContent = {
     heading: 'Payment',
     /** The gateway transactions card (the money side is the Payment card above it). */
     transactions: 'Transactions',
+    /** The folded section of the Payment card: attempts, references, refunds, gateway events. */
+    details: 'Payment details',
     /** "Payment due later" terms from the draft (#1029). */
     dueOn: (date: string) => `Payment due ${date}`,
     dueOnFulfilment: 'Payment due on fulfilment',

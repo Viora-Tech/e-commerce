@@ -213,6 +213,7 @@ export default [
       groups: (n) => `${n} पैकिंग ग्रुप`,
       subtotal: 'सबटोटल',
       tax: 'टैक्स',
+      gstIncluded: 'GST (कीमत में शामिल)',
       cgst: (rate) => `CGST ${rate / 2}%`,
       sgst: (rate) => `SGST ${rate / 2}%`,
       igst: (rate) => `IGST ${rate}%`,
@@ -233,6 +234,7 @@ export default [
       heading: 'पेमेंट',
       /** The gateway transactions card (the money side is the Payment card above it). */
       transactions: 'लेन-देन',
+      details: 'पेमेंट की जानकारी',
       dueOn: (date: string) => `पेमेंट ${date} तक देय`,
       dueOnFulfilment: 'डिलीवरी भेजने पर पेमेंट देय',
       overdue: 'देर हो गई',

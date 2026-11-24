@@ -216,6 +216,9 @@ export const shipmentPanelContent = {
   expected: 'Expected',
   events: 'Scans',
   noEvents: 'No scans yet.',
+  /** The scans list shows the latest three until opened. */
+  showAllScans: (n: number) => `Show all ${n} scans`,
+  showFewerScans: 'Show fewer scans',
   status: {
     created: 'Label created',
     picked_up: 'Picked up',

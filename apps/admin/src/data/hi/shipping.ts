@@ -170,6 +170,8 @@ export default [
     expected: 'पहुंचने की उम्मीद',
     events: 'स्कैन',
     noEvents: 'अभी कोई स्कैन नहीं।',
+    showAllScans: (n) => `सभी ${n} स्कैन देखें`,
+    showFewerScans: 'कम स्कैन दिखाएं',
     status: {
       created: 'लेबल बन गया',
       picked_up: 'पिकअप हो गया',
