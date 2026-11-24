@@ -30,5 +30,15 @@ schema sent has no limits, the budget is passed, a cut-off answer throws) and
 `packages/api/test/ai-model-failure.test.ts` (fields for schema mismatch, cut-off answer and
 provider error, nothing from the answer leaks).
 
-**Left:** `section-writer.ts` and `assistant/theme-outline.ts` in `packages/ai` still use
-`.max()` in model schemas. If they fail on live, the new log line will name the path.
+**Same fix for the other model schemas (second commit):**
+- Section writer (`packages/ai/src/section-writer.ts`): no `.max()`/`.min()` in
+  `SectionProposalSchema`; limits live in `SECTION_WRITER_LIMITS` and the descriptions, and
+  `clampSectionProposal` cuts text at a word break and drops extra columns / questions. The API
+  service clamps before building props.
+- Theme edits (`assistant/theme-outline.ts`): `ThemeEditInput` (the `proposeThemeEdit` tool
+  input) has no limits. `themeEditSummary` cuts the card summary to 200 characters ("Theme
+  edit" when empty). Too many changes (over 20), none, or a value over 2,000 characters is not
+  trimmed but returned to the model as an error by `validateThemeEdits`, so it retries instead
+  of a merchant's change being silently dropped. `ThemeOutlineSchema` keeps its limits: it
+  checks the browser's request, not the model.
+- Tests: `packages/ai/test/model-schema-limits.test.ts`.

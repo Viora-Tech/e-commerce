@@ -18,6 +18,7 @@ export type { AssistantLanguage } from './assistant/prompt'
 export {
   fitOutline,
   outlineText,
+  THEME_EDIT_SUMMARY_MAX,
   THEME_OUTLINE_LIMITS,
   THEME_SETTING_KINDS,
   type ThemeEditChange,
@@ -31,6 +32,7 @@ export {
   type ThemeOutlineSetting,
   type ThemeSettingKind,
   type ThemeValue,
+  themeEditSummary,
   themeOutlineForPrompt,
   validateThemeEdits,
 } from './assistant/theme-outline'

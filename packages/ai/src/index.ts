@@ -101,7 +101,9 @@ export {
   reviewSummaryInstructions,
 } from './review-summary'
 export {
+  clampSectionProposal,
   proposalProps,
+  SECTION_WRITER_LIMITS,
   SECTION_WRITER_TYPES,
   type SectionProposal,
   SectionProposalSchema,

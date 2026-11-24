@@ -5,6 +5,7 @@
  * switch and monthly allowance (Settings → AI).
  */
 import {
+  clampSectionProposal,
   generateStructured,
   proposalProps,
   SectionProposalSchema,
@@ -46,10 +47,11 @@ export async function proposeSection(
       abortSignal: signal,
     })
     await finishAiCall(context.db, call, usage)
+    const proposal = clampSectionProposal(output)
     return {
-      type: output.section.type,
-      summary: output.summary.trim(),
-      props: proposalProps(output.section),
+      type: proposal.section.type,
+      summary: proposal.summary,
+      props: proposalProps(proposal.section),
     }
   } catch (err) {
     logModelFailure('section_writer', err)
