@@ -6,10 +6,17 @@ import type { OrderDetail } from './order-detail-types'
 export type TotalRow = {
   label: string
   value: string
-  /** Small grey note after the label: the checkout rate's name on the Shipping row. */
+  /** Small grey note beside the label: "2 items", the checkout rate's name, the code. */
   detail?: string
   strong?: boolean
   muted?: boolean
+  /** A rule above it: the start of what was paid, after the total. */
+  rule?: boolean
+  /**
+   * `sum`: the one "GST (included)" line; `split`: its CGST/SGST or IGST lines and the GST
+   * number it is billed from, shown only when the sum is opened (Indian invoices need them).
+   */
+  tax?: 'sum' | 'split'
 }
 
 type TaxBreakdown = {
@@ -31,6 +38,7 @@ function billedFrom(order: OrderDetail, copy: typeof orderDetailContent): TotalR
       label: copy.items.billedFrom,
       value: place ? `${place} · ${origin.gstin}` : origin.gstin,
       muted: true,
+      tax: 'split',
     },
   ]
 }
@@ -41,16 +49,21 @@ function taxRows(order: OrderDetail, copy: typeof orderDetailContent, fmt: Forma
   /* Prices already include GST, so these lines explain the total rather than add to it. Parcels
      from different states put both CGST + SGST and IGST on one order. */
   const show = gstRowsToShow(tax)
+  const split = (label: string, paise: number): TotalRow => ({
+    label,
+    value: fmt.money(paise),
+    muted: true,
+    tax: 'split',
+  })
   return [
+    { label: copy.items.gstIncluded, value: fmt.money(tax.taxPaise), tax: 'sum' },
     ...(show.intraState
       ? [
-          { label: copy.items.cgst(tax.ratePercent), value: fmt.money(tax.cgstPaise), muted: true },
-          { label: copy.items.sgst(tax.ratePercent), value: fmt.money(tax.sgstPaise), muted: true },
+          split(copy.items.cgst(tax.ratePercent), tax.cgstPaise),
+          split(copy.items.sgst(tax.ratePercent), tax.sgstPaise),
         ]
       : []),
-    ...(show.interState
-      ? [{ label: copy.items.igst(tax.ratePercent), value: fmt.money(tax.igstPaise), muted: true }]
-      : []),
+    ...(show.interState ? [split(copy.items.igst(tax.ratePercent), tax.igstPaise)] : []),
     ...billedFrom(order, copy),
   ]
 }
@@ -61,13 +74,22 @@ export function totalRows(
   copy: typeof orderDetailContent,
   fmt: Formatters,
 ): TotalRow[] {
-  const rows: TotalRow[] = [{ label: copy.items.subtotal, value: fmt.money(order.subtotalPaise) }]
+  const units = order.lines.reduce((n, l) => n + l.quantity, 0)
+  const rows: TotalRow[] = [
+    {
+      label: copy.items.subtotal,
+      value: fmt.money(order.subtotalPaise),
+      ...(units > 0 ? { detail: copy.unfulfilled.itemsCount(units) } : {}),
+    },
+  ]
 
   if (order.discountPaise > 0) {
-    const code = order.discountCode ? ` (${order.discountCode})` : ''
+    // "Discount · DIWALI10": the code (or the automatic offer's name) is the note.
+    const note = order.discountCode ?? order.discountLabel
     rows.push({
-      label: `${order.discountLabel ?? copy.items.orderDiscount}${code}`,
+      label: copy.items.orderDiscount,
       value: `−${fmt.money(order.discountPaise)}`,
+      ...(note ? { detail: note } : {}),
     })
   }
 
@@ -95,6 +117,7 @@ export function totalRows(
   rows.push({
     label: copy.items.paidByCustomer,
     value: fmt.money(balance.capturedPaise),
+    rule: true,
   })
   if (balance.refundedPaise > 0) {
     rows.push({
