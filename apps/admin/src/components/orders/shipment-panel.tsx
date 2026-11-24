@@ -4,6 +4,7 @@ import type { Tracking } from '@commerce/core'
 import { PackageCheck, RefreshCw, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
+import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import RelativeTime from '@/components/layout/relative-time'
@@ -27,6 +28,8 @@ type ShipmentPanelProps = {
 
 const SHORT_DATE = { day: 'numeric', month: 'short' } as const
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/
+/** Scans shown before "Show all": the latest few say where the parcel is. */
+const SCANS_SHOWN = 3
 
 /* Nothing to book once the order is closed or the parcel has arrived. */
 const CLOSED: ReadonlySet<string> = new Set(['cancelled', 'completed', 'delivered', 'returned'])
@@ -47,6 +50,10 @@ export default function ShipmentPanel({
   const copy = useCopy(shipmentPanelContent)
   const shared = useCopy(sharedParcelContent)
   const fmt = useFormat()
+  const [allScans, setAllScans] = useState(false)
+
+  // Event handlers
+  const handleToggleScans = () => setAllScans((v) => !v)
 
   // Early returns
   const canBook = !shipment || shipment.status === 'cancelled'
@@ -71,6 +78,7 @@ export default function ShipmentPanel({
   const tracking = (shipment.tracking ?? null) as Tracking | null
   const open = shipment.status !== 'cancelled' && shipment.status !== 'delivered'
   const events = tracking?.events.slice().reverse() ?? []
+  const shownEvents = allScans ? events : events.slice(0, SCANS_SHOWN)
   const host = shipment.sameBoxAs
   const riders = shipment.alsoCarries
   // The courier's "2026-11-23" read as a calendar day: "23 Nov".
@@ -136,7 +144,7 @@ export default function ShipmentPanel({
             <EmptyState variant="inline" body={copy.noEvents} />
           ) : (
             <ol className="relative flex flex-col gap-3 border-border border-l pl-4">
-              {events.map((e) => (
+              {shownEvents.map((e) => (
                 <li key={`${e.at}-${e.description}`} className="relative text-body">
                   <span
                     className="absolute top-1.5 -left-5 size-2.5 rounded-full border-2 border-background bg-border-strong"
@@ -156,6 +164,17 @@ export default function ShipmentPanel({
               ))}
             </ol>
           )}
+          {events.length > SCANS_SHOWN ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-2"
+              onClick={handleToggleScans}
+              aria-expanded={allScans}
+            >
+              {allScans ? copy.showFewerScans : copy.showAllScans(events.length)}
+            </Button>
+          ) : null}
         </div>
       </div>
     </DataCard>
