@@ -143,6 +143,12 @@ export const loyaltyPlugin = definePlugin({
     pages: [
       { path: '', title: 'Loyalty points', navLabel: 'Overview', icon: 'BarChart3' },
       { path: 'settings', title: 'Settings', navLabel: 'Settings', icon: 'Settings' },
+      { path: 'members', title: 'Members', navLabel: 'Members', icon: 'Users' },
+      { path: 'analytics', title: 'Analytics', navLabel: 'Analytics', icon: 'FileBarChart' },
+      { path: 'campaigns', title: 'Campaigns', navLabel: 'Campaigns', icon: 'Gift' },
+      { path: 'emails', title: 'Emails', navLabel: 'Emails', icon: 'MessageSquare' },
+      { path: 'activity', title: 'Activity' },
+      { path: 'campaigns/[id]', title: 'Campaign' },
     ],
   },
 })

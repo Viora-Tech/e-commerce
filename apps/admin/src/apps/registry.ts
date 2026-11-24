@@ -66,7 +66,13 @@ import GstSettingsEditor from '@/components/apps/gst-invoices/settings-editor'
 import IndiaPostConnectPage from '@/components/apps/india-post/connect-page'
 import IndiaPostLabelPage from '@/components/apps/india-post/label-page'
 import IndiaPostOverviewPage from '@/components/apps/india-post/overview-page'
+import LoyaltyActivityPage from '@/components/apps/loyalty/activity-page'
+import LoyaltyAnalyticsPage from '@/components/apps/loyalty/analytics-page'
+import LoyaltyCampaignEditor from '@/components/apps/loyalty/campaign-editor'
+import LoyaltyCampaignsPage from '@/components/apps/loyalty/campaigns-page'
 import LoyaltyCustomerCard from '@/components/apps/loyalty/customer-card'
+import LoyaltyEmailsPage from '@/components/apps/loyalty/emails-page'
+import LoyaltyMembersPage from '@/components/apps/loyalty/members-page'
 import LoyaltyOverviewPage from '@/components/apps/loyalty/overview-page'
 import LoyaltySettingsPage from '@/components/apps/loyalty/settings-page'
 import MeilisearchPage from '@/components/apps/meilisearch/settings-page'
@@ -232,6 +238,12 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
     pages: {
       '': LoyaltyOverviewPage,
       settings: LoyaltySettingsPage,
+      members: LoyaltyMembersPage,
+      activity: LoyaltyActivityPage,
+      analytics: LoyaltyAnalyticsPage,
+      campaigns: LoyaltyCampaignsPage,
+      'campaigns/[id]': LoyaltyCampaignEditor,
+      emails: LoyaltyEmailsPage,
     },
     CustomerCard: LoyaltyCustomerCard,
   },

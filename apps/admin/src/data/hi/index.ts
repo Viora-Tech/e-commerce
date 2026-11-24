@@ -98,6 +98,7 @@ import layout from './layout'
 import localDelivery from './local-delivery'
 import login from './login'
 import loyalty from './loyalty'
+import loyaltyInsights from './loyalty-insights'
 import manifestSheet from './manifest-sheet'
 import marketingAutomations from './marketing-automations'
 import marketingCampaigns from './marketing-campaigns'
@@ -235,6 +236,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...checkoutSettings,
   ...codRto,
   ...loyalty,
+  ...loyaltyInsights,
   ...deliveryOptionQuestions,
   ...deliveryOptionSections,
   ...deliveryOptions,
