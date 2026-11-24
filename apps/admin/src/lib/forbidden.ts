@@ -10,3 +10,9 @@ export function isForbidden(error: unknown): boolean {
   const e = error as { code?: unknown; digest?: unknown }
   return e.code === 'FORBIDDEN' || e.digest === FORBIDDEN_DIGEST
 }
+
+/** The API's NOT_FOUND as a client call rejects with it: the record does not exist (any more). */
+export function isNotFound(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false
+  return (error as { code?: unknown }).code === 'NOT_FOUND'
+}

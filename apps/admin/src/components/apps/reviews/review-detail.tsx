@@ -8,11 +8,13 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { AppPageProps } from '@/apps/registry'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import EmptyState from '@/components/layout/empty-state'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import StatusLabel from '@/components/status/status-label'
+import { appsContent } from '@/data/apps'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
@@ -30,14 +32,17 @@ type Detail = Awaited<ReturnType<typeof api.reviews.get>>
 export default function ReviewDetail({ params }: AppPageProps) {
   // Hooks
   const reviewsCopy = useCopy(reviewsContent)
+  const apps = useCopy(appsContent)
   const { detail: copy } = useCopy(reviewsContent)
   const router = useRouter()
   const [version, setVersion] = useState(0)
-  // A failed read reads as a review that is gone.
-  const { data: detail, failed: missing } = useLoad<Detail>(
-    () => api.reviews.get({ id: params.id ?? '' }),
-    [params.id, version],
-  )
+  // Only the API's NOT_FOUND reads as a review that is gone; any other failure offers Try again.
+  const {
+    data: detail,
+    failed,
+    notFound,
+    retry,
+  } = useLoad<Detail>(() => api.reviews.get({ id: params.id ?? '' }), [params.id, version])
   const [busy, setBusy] = useState(false)
   /** The status being set, so only that button spins while `busy`. */
   const [pending, setPending] = useState<'published' | 'hidden' | null>(null)
@@ -65,7 +70,17 @@ export default function ReviewDetail({ params }: AppPageProps) {
   }
 
   // Early returns
-  if (missing) {
+  if (failed && !notFound) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.review}
+        failed={failed}
+        onRetry={retry}
+      />
+    )
+  }
+  if (notFound) {
     return (
       <Card inset="y-10">
         <EmptyState
