@@ -2,7 +2,7 @@
 import { formatInZone } from '@commerce/dates'
 import { customer, inboxConversation, inboxMessage, notification, type StoreTx } from '@commerce/db'
 import type { ChatEmailMessage, ChatWaitingThread, TemplateData } from '@commerce/notifications'
-import { and, count, desc, eq, gt, isNull, ne, notInArray, or } from 'drizzle-orm'
+import { and, count, desc, eq, gt, isNull, ne, notInArray, or, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { storefrontOriginFor } from '../domains/origin'
 import { alertMembers, deliverToMember } from '../member-account/alerts'
@@ -180,7 +180,13 @@ export async function sendInboxChatEmails(
         or(gt(inboxConversation.lastMessageAt, since), gt(inboxConversation.closedAt, since)),
       ),
     )
-    .orderBy(inboxConversation.lastMessageAt)
+    // Newest first: what is due now is the latest activity, so a busy day's older chats never
+    // crowd it out of the scan.
+    .orderBy(
+      desc(
+        sql`greatest(${inboxConversation.lastMessageAt}, coalesce(${inboxConversation.closedAt}, ${inboxConversation.lastMessageAt}))`,
+      ),
+    )
     .limit(SCAN_LIMIT)
 
   const storeName = state.storeName
