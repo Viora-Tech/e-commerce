@@ -17,6 +17,7 @@ import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can } from '../procedures'
 import { ctxOf, requireInstalled, surface } from './loyalty-common'
+import { loyaltyInsightsRouter } from './loyalty-insights'
 import {
   loyaltyCampaignsRouter,
   loyaltyRedemptionsRouter,
@@ -100,6 +101,7 @@ export const loyaltyRouter = {
   campaigns: loyaltyCampaignsRouter,
   members: loyaltyMembersRouter,
   referrals: loyaltyReferralsRouter,
+  insights: loyaltyInsightsRouter,
   ...loyaltyV2ReadRouter,
 
   settings: {

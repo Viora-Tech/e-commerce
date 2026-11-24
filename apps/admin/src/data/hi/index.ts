@@ -99,6 +99,7 @@ import localDelivery from './local-delivery'
 import login from './login'
 import loyalty from './loyalty'
 import loyaltyCustomer from './loyalty-customer'
+import loyaltyInsights from './loyalty-insights'
 import loyaltyPlacements from './loyalty-placements'
 import loyaltyProgram from './loyalty-program'
 import loyaltyReward from './loyalty-reward'
@@ -241,6 +242,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...codRto,
   ...loyalty,
   ...loyaltyCustomer,
+  ...loyaltyInsights,
   ...loyaltyPlacements,
   ...loyaltyProgram,
   ...loyaltyReward,

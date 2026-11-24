@@ -10,6 +10,7 @@ import {
 } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
+import LoyaltyInsightCards from '@/components/apps/loyalty/insight-cards'
 import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCard from '@/components/layout/data-card'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
@@ -117,6 +118,7 @@ export default function LoyaltyOverviewPage() {
               </TableBody>
             </Table>
           </DataCard>
+          <LoyaltyInsightCards />
         </>
       ) : (
         <>

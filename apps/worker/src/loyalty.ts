@@ -4,6 +4,8 @@ import {
   duePointEntryIds,
   grantBirthdayPoints,
   grantReviewPoints,
+  loyaltyEmailKey,
+  loyaltyEmailOn,
   loyaltyState,
   markLoyaltyEmailsSent,
   runLoyaltySweepSteps,
@@ -68,7 +70,9 @@ export function createLoyaltySweep(db: Db, opts: LoyaltyOpts) {
       let sent = 0
       for (const r of due) {
         const data = r.data as { expiringPoints: number; lastDay: string; balancePoints: number }
-        if (r.email) {
+        // Switched off on the app's Emails page: marked sent so it never goes late.
+        const on = loyaltyEmailOn(settings, loyaltyEmailKey(r.template, r.data))
+        if (r.email && on) {
           await deliverEmailTo(
             ctx,
             'points_expiring',
