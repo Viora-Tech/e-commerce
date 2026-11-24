@@ -18,6 +18,7 @@ import type { Message, NotificationChannel } from '@commerce/notifications'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { buildTemplateData, deliverNotification } from './deliver'
+import { deliverMessageTo, sentChannelsAfter } from './deliver-email'
 import { enqueueNotification, type NotificationJob, notificationJobId } from './enqueue'
 import {
   builtInNotificationRegistry,
@@ -261,6 +262,31 @@ describe('deliverNotification', () => {
     expect(rows[0]).toMatchObject({ status: 'sent', providerRef: 'mail_2', error: null })
     expect(await run()).toEqual([]) // already sent: nothing to do
     expect(flaky.sent).toHaveLength(1)
+  })
+
+  it('a message with no order retries only the channel that failed', async () => {
+    const { storeId } = await seedOrder()
+    const mail = recorder('mail', 'email')
+    const wa = recorder('wa', 'phone', true)
+    const send = (skipChannels?: string[]) =>
+      withStore(app, storeId, (tx) =>
+        deliverMessageTo(
+          { storeId, tx },
+          'review_request',
+          { email: 'asha@example.com', phone: '+919876543210' },
+          {},
+          { registry, settingsSecret: secret, channels: [mail, wa], skipChannels },
+        ),
+      )
+    const first = await send()
+    expect(first.map((r) => [r.channel, r.ok])).toEqual([
+      ['mail', true],
+      ['wa', false],
+    ])
+    const retry = await send(sentChannelsAfter(undefined, first))
+    expect(retry.map((r) => [r.channel, r.ok])).toEqual([['wa', true]])
+    expect(mail.sent).toHaveLength(1)
+    expect(wa.sent).toHaveLength(1)
   })
 
   it('skips a message the store switched off, and still sends the others', async () => {

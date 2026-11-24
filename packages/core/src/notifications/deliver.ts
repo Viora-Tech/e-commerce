@@ -77,6 +77,11 @@ export type DeliverOptions = {
   channels?: NotificationChannel[] | undefined
   /** Send again even to channels that already sent this template (a copy on request). */
   resend?: boolean | undefined
+  /**
+   * Channel ids an earlier attempt of the same job already sent through (`deliverMessageTo`):
+   * a retry after one channel failed sends only the others, never a second copy.
+   */
+  skipChannels?: readonly string[] | undefined
   /** Only channels that need this recipient field, e.g. email for a file. */
   requires?: 'email' | 'phone' | undefined
   /** Extra template fields, e.g. the document label of a copy. */

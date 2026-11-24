@@ -64,7 +64,7 @@ export async function deliverMessageTo(
   const results: DeliveryResult[] = []
   for (const channel of await channelsFor(ctx, opts)) {
     const address = channel.requires === 'email' ? to.email : to.phone
-    if (!address) continue
+    if (!address || opts.skipChannels?.includes(channel.id)) continue
     const r = await channel.send({
       to: channel.requires === 'email' ? { email: address } : { phone: address },
       template,
@@ -82,4 +82,12 @@ export async function deliverMessageTo(
     results.push({ channel: channel.id, to: address, ok: r.ok, error: r.ok ? undefined : r.error })
   }
   return results
+}
+
+/** The channels done after this attempt: those done before plus the ones that just sent. */
+export function sentChannelsAfter(
+  before: readonly string[] | undefined,
+  sent: readonly { channel: string; ok: boolean }[],
+): string[] {
+  return [...new Set([...(before ?? []), ...sent.filter((r) => r.ok).map((r) => r.channel)])]
 }

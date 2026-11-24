@@ -11,6 +11,7 @@ import {
   NOTIFICATIONS_QUEUE,
   type NotificationJob,
   notifyMembersOfNewOrder,
+  sentChannelsAfter,
   storefrontOriginFor,
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
@@ -87,6 +88,7 @@ export function createNotificationWorker(
         payoutId,
         custom,
         requires,
+        sentChannels,
       } = job.data
       // The one message without an order: the newsletter confirm link (double opt-in).
       if (template === 'newsletter_confirm') {
@@ -186,10 +188,15 @@ export function createNotificationWorker(
           return deliverMessageTo({ storeId, tx }, template, email.contact, email.data, {
             registry: (await registriesForStore(tx, storeId)).notifications,
             settingsSecret: opts.settingsSecret,
+            skipChannels: sentChannels,
           })
         })
         const bad = sent.filter((r) => !r.ok)
-        if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
+        if (bad.length > 0) {
+          // Email went and WhatsApp failed: the retry sends only WhatsApp, never a second email.
+          await job.updateData({ ...job.data, sentChannels: sentChannelsAfter(sentChannels, sent) })
+          throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
+        }
         return sent
       }
       // Affiliates app: to the affiliate (approved, a new sale, a payout), no order.
