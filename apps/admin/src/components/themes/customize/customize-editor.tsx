@@ -25,6 +25,7 @@ import {
 import { withLiquidCanvas } from '@/lib/customize-liquid-metadata'
 import { CUSTOMIZE_OVERRIDES } from '@/lib/customize-overrides'
 import { previewMetadata } from '@/lib/customize-preview'
+import { customizePreviewPath } from '@/lib/customize-preview-path'
 import { previewDefaultMode, useDeviceDark } from '@/lib/customize-preview-root'
 import { useThemePacks } from '@/lib/customize-theme-context'
 import { scopeFor } from '@/lib/dynamic-sources'
@@ -155,9 +156,7 @@ export default function CustomizeEditor({
         const parts = { header: header.data, main: main.data, footer: footer.data }
         const doc = normalizeDoc(composeDoc(parts), config, record.imported)
         drafts.prime(partsOf(ref, doc))
-        setTemplatesDirty(
-          leftoverDrafts([header, main, footer], loaded === null, handleDiscard, copy),
-        )
+        setTemplatesDirty(leftoverDrafts([header, main, footer], !loaded, handleDiscard, copy))
         setLoaded({ ref, doc, nonce })
         setSwitching(false)
       },
@@ -321,6 +320,7 @@ export default function CustomizeEditor({
   const liquidHead = importedSettings.head
   // The "Theme scripts" view: the page on the store's address, where the theme's JS may run.
   const scriptsPath = designFramePath(ref.key, ref.suffix, preview.resource)
+  const previewPath = customizePreviewPath(ref.key, ref.suffix, preview.resource) // Preview button
   const scriptsFrame =
     liquidInfo && scriptsPath
       ? { src: designModeUrl(origin, record.previewToken, scriptsPath), origin }
@@ -340,7 +340,7 @@ export default function CustomizeEditor({
       publishing={publishing}
       canPublish={canPublish}
       device={device}
-      previewHref={previewUrl(origin, record.previewToken)}
+      previewHref={previewUrl(origin, record.previewToken, previewPath)}
       codeHref={routes.onlineStore.themeCode(record.id)}
       aiConnected={ai.connected}
       user={user}

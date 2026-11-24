@@ -82,9 +82,10 @@ export async function loadResource(kind: ResourceKind, id: string): Promise<Prev
     return {
       kind,
       title: c.title,
+      handle: c.handle,
       cards: rows.items.flatMap((r) => cards.filter((card) => card.handle === r.handle)),
     }
   }
   const page = await api.pages.get({ id })
-  return page ? { kind, title: page.title, body: page.body } : null
+  return page ? { kind, title: page.title, handle: page.handle, body: page.body } : null
 }

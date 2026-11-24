@@ -5,7 +5,7 @@ export type ThemeItem = Awaited<ReturnType<typeof api.themes.list>>[number]
 
 /** The storefront URL that renders exactly this theme (Preview button, thumbnails). */
 export const previewUrl = (origin: string, token: string, path = '/'): string =>
-  `${origin}${path}?theme-preview=${encodeURIComponent(token)}`
+  `${origin}${path}${path.includes('?') ? '&' : '?'}theme-preview=${encodeURIComponent(token)}`
 
 /** The theme's preview link opened on one saved version (Version history › Preview). */
 export const versionPreviewUrl = (origin: string, token: string, batchId: string): string =>
