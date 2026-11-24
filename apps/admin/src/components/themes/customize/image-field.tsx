@@ -14,7 +14,7 @@ import {
 import { Input } from '@commerce/ui/shadcn/input'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import type { CSSProperties } from 'react'
-import { type DragEvent, useId, useState } from 'react'
+import { type DragEvent, useEffect, useId, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import MediaPickDialog, { type PickedMedia } from '@/components/media/media-pick-dialog'
 import type { MediaVariants } from '@/components/media/media-pick-types'
@@ -62,9 +62,17 @@ export default function ImageField({ value, onChange }: ImageFieldProps) {
   const [progress, setProgress] = useState<number | null>(null)
   const [preview, setPreview] = useState<Preview>(NO_PREVIEW)
   const altId = useId()
+  /** The value as last rendered or set: an upload that finishes later builds on it, not on a stale copy. */
+  const latest = useRef(value)
+  useEffect(() => {
+    latest.current = value
+  }, [value])
 
   // Helpers
-  const set = (next: ImageValue) => onChange(next)
+  const set = (next: ImageValue) => {
+    latest.current = next
+    onChange(next)
+  }
 
   // Event handlers
   const handlePick = (media: PickedMedia | null) => {
@@ -88,7 +96,8 @@ export default function ImageField({ value, onChange }: ImageFieldProps) {
     try {
       const done = await uploadFile(file, setProgress)
       setPreview(NO_PREVIEW)
-      set(withPicture(asImage(value), done.url, done.alt))
+      // Alt text typed (or anything else changed) while the file uploaded is kept.
+      set(withPicture(asImage(latest.current), done.url, done.alt))
     } catch {
       toast.error(copy.uploadFailed)
     } finally {

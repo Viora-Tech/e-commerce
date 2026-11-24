@@ -1,6 +1,7 @@
 'use client'
 
 import { AutoField, type Field } from '@puckeditor/core'
+import { useEffect, useRef } from 'react'
 import { customizeContent } from '@/data/customize'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -35,19 +36,34 @@ export default function VideoSettingField({
 }: VideoSettingFieldProps) {
   // Hooks
   const copy = useCopy(customizeContent.video)
+  /** The value as last rendered: a poster lookup that answers late merges into it, not a stale copy. */
+  const latest = useRef(value)
+  useEffect(() => {
+    latest.current = value
+  }, [value])
 
   // Event handlers
   const handleUrl = async (next: unknown) => {
     const current = asVideo(value)
     const url = typeof next === 'string' ? next.trim() : ''
     const changed = { ...current, url: typeof next === 'string' ? next : '' }
+    latest.current = changed
     onChange(changed)
     if (!url || current.poster?.url) return
     const poster = await api.media.posterFor({ url }).catch(() => null)
-    if (poster) onChange({ ...changed, poster: { url: poster.url, alt: '' } })
+    const now = asVideo(latest.current)
+    // Meanwhile the link changed again, or a poster was picked: this answer is no longer wanted.
+    if (!poster || now.url?.trim() !== url || now.poster?.url) return
+    const withPoster = { ...now, poster: { url: poster.url, alt: '' } }
+    latest.current = withPoster
+    onChange(withPoster)
   }
 
-  const handleSub = (key: string) => (next: unknown) => onChange({ ...asVideo(value), [key]: next })
+  const handleSub = (key: string) => (next: unknown) => {
+    const changed = { ...asVideo(value), [key]: next }
+    latest.current = changed
+    onChange(changed)
+  }
 
   // Render logic
   const video = asVideo(value)
