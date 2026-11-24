@@ -364,8 +364,8 @@ export const REPLY_MAX = 2000
 
 /**
  * The store's public reply. The first reply emails the customer (when we have their
- * address), through the outbox in the same transaction; editing it later does not email
- * again. An empty reply removes it.
+ * address and the review is not hidden), through the outbox in the same transaction; editing
+ * it later does not email again. An empty reply removes it.
  */
 export async function replyToReview(
   tx: StoreTx,
@@ -375,7 +375,7 @@ export async function replyToReview(
   now: Date = new Date(),
 ): Promise<{ emailed: boolean }> {
   const [r] = await tx
-    .select({ replyAt: review.replyAt, email: review.reviewerEmail })
+    .select({ replyAt: review.replyAt, email: review.reviewerEmail, status: review.status })
     .from(review)
     .where(eq(review.id, id))
   if (!r) throw new CommerceError('NOT_FOUND', 'Review not found')
@@ -388,7 +388,8 @@ export async function replyToReview(
       updatedAt: now,
     })
     .where(eq(review.id, id))
-  const emailed = Boolean(reply && !r.replyAt && r.email)
+  // A hidden review's reply is never emailed (owner, 24 Nov 2026).
+  const emailed = Boolean(reply && !r.replyAt && r.email && r.status !== 'hidden')
   if (emailed) await insertOutboxEvent(tx, storeId, 'review.replied', { reviewId: id })
   return { emailed }
 }
@@ -409,7 +410,8 @@ export async function replyEmailData(tx: StoreTx, id: string) {
     .from(review)
     .leftJoin(product, eq(product.id, review.productId))
     .where(eq(review.id, id))
-  if (!r?.email || !r.reply) return null
+  // Hidden after the reply was written: the email no longer goes.
+  if (!r?.email || !r.reply || r.status === 'hidden') return null
   return r
 }
 
