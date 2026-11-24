@@ -4,6 +4,7 @@ import {
   Braces,
   Copy,
   Download,
+  Eye,
   History,
   type IconComponent,
   Palette,
@@ -29,17 +30,20 @@ type ThemeActionsMenuProps = {
   customizeHref?: string
   /** Edit code, after Customize (Figma 699:93894: Themes › ⋯ › Edit code). */
   codeHref?: string
+  /** The storefront showing this theme (a theme that is not live), opened in a new tab. */
+  previewHref?: string
   /** The live theme card's kebab is a key button beside Customize (Figma); rows keep the rim. */
   variant?: 'default' | 'outline' | 'plain'
   disabled?: boolean
   onAction: (action: ThemeAction) => void
 }
 
-/** The kebab on a theme card: customize, duplicate, rename, versions, download settings, delete. */
+/** The kebab on a theme card: customize, edit code, preview, duplicate, rename, versions, download settings, delete. */
 export default function ThemeActionsMenu({
   actions,
   customizeHref,
   codeHref,
+  previewHref,
   variant = 'outline',
   disabled,
   onAction,
@@ -61,6 +65,13 @@ export default function ThemeActionsMenu({
       items={[
         { label: labels.customize, icon: Palette, href: customizeHref, hidden: !customizeHref },
         { label: labels.editCode, icon: Braces, href: codeHref, hidden: !codeHref },
+        {
+          label: labels.preview,
+          icon: Eye,
+          href: previewHref,
+          newTab: true,
+          hidden: !previewHref,
+        },
         ...safe.map((a) => ({
           label: labels[a],
           icon: ACTION_ICONS[a],

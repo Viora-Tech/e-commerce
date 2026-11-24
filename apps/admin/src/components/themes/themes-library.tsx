@@ -261,6 +261,7 @@ export default function ThemesLibrary({
               <ThemeLibraryRow
                 key={t.id}
                 theme={t}
+                origin={origin}
                 hold={holds[t.id]}
                 busy={busy}
                 publishing={pending === `publish:${t.id}`}
