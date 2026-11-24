@@ -94,6 +94,8 @@ export default function ProductCard({
           ) : null}
           <div
             className={`product-card__price${soldOut ? ' product-card__price--unavailable' : ''}`}
+            // The Loyalty widget's "Earn N points" line reads the price from here.
+            data-loyalty-price={product.pricePaise}
           >
             <Price
               pricePaise={product.pricePaise}

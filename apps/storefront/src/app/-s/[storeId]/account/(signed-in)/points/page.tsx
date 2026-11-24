@@ -5,10 +5,13 @@ import AccountPageHead from '@/components/account/account-page-head'
 import BirthdayForm from '@/components/account/birthday-form'
 import PointsEarnWays from '@/components/account/points-earn-ways'
 import PointsHistory from '@/components/account/points-history'
+import PointsLoyalty from '@/components/account/points-loyalty'
 import { loyaltyAccountContent } from '@/data/loyalty'
 import { storeTimeZone } from '@/lib/account'
 import { accountHistory, historyLimit, shownFrom } from '@/lib/account-history'
 import { requireCustomer } from '@/lib/customer-session'
+import { loyaltyViewFor } from '@/lib/loyalty-view'
+import { requestOrigin } from '@/lib/seo'
 import { inStore } from '@/lib/store-context'
 
 type PointsPageProps = {
@@ -20,8 +23,8 @@ export const metadata: Metadata = { title: loyaltyAccountContent.title }
 
 /**
  * The shopper's loyalty points (Loyalty points app): what they hold, what runs out soon, what is
- * on the way and every change. Points are store credit, spent at checkout. Missing while the
- * store does not have the app.
+ * on the way and every change, then the v2 cards (tier, rewards to claim, their codes, ways to
+ * earn with click-through, the referral link). Missing while the store does not have the app.
  */
 export default async function PointsPage({ params, searchParams }: PointsPageProps) {
   const { storeId } = await params
@@ -39,6 +42,9 @@ export default async function PointsPage({ params, searchParams }: PointsPagePro
   if (!data) notFound()
   const { settings, points, timeZone } = data
   const history = accountHistory(points.entries, shown)
+  // Loyalty v2: tier, rewards, codes, ways to earn and the referral link (the widget's cards).
+  const view = await loyaltyViewFor(storeId, await requestOrigin())
+  const member = view?.member ?? null
   return (
     <>
       <AccountPageHead title={loyaltyAccountContent.title} />
@@ -52,7 +58,10 @@ export default async function PointsPage({ params, searchParams }: PointsPagePro
           moreHref={history.moreHref}
           timeZone={timeZone}
         />
-        <PointsEarnWays settings={settings} />
+        {view && member ? <PointsLoyalty view={view} member={member} /> : null}
+        {view && member && view.waysToEarn.length > 0 ? null : (
+          <PointsEarnWays settings={settings} />
+        )}
         {!points.birthday && settings.birthdayPoints > 0 ? (
           <div className="max-w-[40rem]">
             <BirthdayForm birthdayPoints={settings.birthdayPoints} />

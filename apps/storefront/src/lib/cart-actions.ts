@@ -9,7 +9,6 @@ import {
   createCart,
   findRedeemableGiftCard,
   getCart,
-  onOrderPlaced,
   type PlacedAndPaid,
   PreorderMixedCart,
   placeOrderAndPay,
@@ -47,6 +46,7 @@ import { cleanParcelKeys, deliveryForOrder, type ParcelKeysForm } from './delive
 import { discoveryVisitor, recordDiscoveryCartAdd } from './discovery-events'
 import { hasChatCookie, postChatCartLine } from './inbox'
 import { requestMarketId } from './market-catalog'
+import { afterOrderPlaced } from './order-placed-extras'
 import { nudgeOutbox } from './outbox'
 import { storePaymentFallbacks, storePaymentProviders, storeUnavailableMethods } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
@@ -483,14 +483,8 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
       (err) => logger.error('could not save the checkout address', { storeId, error: err }),
     )
   }
-  // Marketing: end the sequences this order converts and start the order automations.
-  await inStore(storeId, (tx) => onOrderPlaced(tx, storeId, result.orderId)).catch((err) =>
-    logger.error('could not update marketing automations', {
-      storeId,
-      orderId: result.orderId,
-      error: err,
-    }),
-  )
+  // Marketing automations and a Loyalty points friend link (never fails the order).
+  await afterOrderPlaced(storeId, result.orderId)
   // order_placed (and payment_received when paid at checkout: gift cards,
   // capture-at-creation gateways) were already written to the outbox in the
   // same transaction as the order/payment change (placeOrder, applyPaymentStatus).
