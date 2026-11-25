@@ -2,8 +2,10 @@
 
 import { useState } from 'react'
 import { loyaltyWidgetContent as copy } from '../../data/loyalty-widget'
+import LoyaltyCard from './loyalty-card'
 import { claimWayToEarn } from './loyalty-client'
-import { wayPoints, wayTitle } from './loyalty-format'
+import { wayGlyph, wayPoints, wayTitle } from './loyalty-format'
+import LoyaltyIcon from './loyalty-icon'
 import type { LoyaltyPointsName, LoyaltyWayToEarn } from './loyalty-types'
 
 type LoyaltyEarnListProps = {
@@ -12,12 +14,14 @@ type LoyaltyEarnListProps = {
   /** Signed in: social and review rules get a button that opens the link and credits the points. */
   interactive: boolean
   onChanged?: (() => void) | undefined
+  /** False inside the panel's "Ways to earn" screen, whose header already names it. */
+  heading?: boolean | undefined
 }
 
 const CLICK_THROUGH = new Set(['social', 'google_review'])
 
 /**
- * "Ways to earn": each switched-on rule with its points. For a member, a follow or review rule
+ * "Ways to earn": each switched-on rule with its icon, title and points ("+50 points"). For a member, a follow or review rule
  * opens its link in a new tab and credits the points on the click (the honour system the
  * program uses); a once-only rule already earned shows Done.
  */
@@ -26,6 +30,7 @@ export default function LoyaltyEarnList({
   names,
   interactive,
   onChanged,
+  heading = true,
 }: LoyaltyEarnListProps) {
   // Hooks
   const [earned, setEarned] = useState<Record<string, number>>({})
@@ -46,8 +51,7 @@ export default function LoyaltyEarnList({
 
   // Render logic
   return (
-    <section className="flex flex-col gap-2 rounded-xl border border-(--kl-line) p-4">
-      <h3 className="m-0 text-[1rem] font-bold text-(--kl-ink)">{copy.earn.title}</h3>
+    <LoyaltyCard title={heading ? copy.earn.title : undefined}>
       <ul className="m-0 flex list-none flex-col p-0">
         {ways.map((w) => {
           const got = earned[w.id]
@@ -56,10 +60,13 @@ export default function LoyaltyEarnList({
           return (
             <li
               key={w.id}
-              className="flex items-center justify-between gap-3 border-t border-(--kl-line) py-2.5 first:border-t-0"
+              className="flex items-center gap-3 border-t border-(--kl-line) py-3 first:border-t-0"
             >
-              <span className="flex min-w-0 flex-col">
-                <span className="font-medium text-(--kl-ink)">{wayTitle(w)}</span>
+              <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-(--kl-soft) text-(--kl-ink)">
+                <LoyaltyIcon name={wayGlyph(w.type)} className="size-[1.125rem]" />
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="font-semibold text-(--kl-ink)">{wayTitle(w)}</span>
                 <span className="text-[0.8125rem] text-(--kl-muted)">
                   {got ? copy.earn.earned(copy.points(got, names)) : wayPoints(w, names)}
                 </span>
@@ -81,6 +88,6 @@ export default function LoyaltyEarnList({
           )
         })}
       </ul>
-    </section>
+    </LoyaltyCard>
   )
 }

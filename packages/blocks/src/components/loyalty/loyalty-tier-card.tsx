@@ -1,5 +1,6 @@
 import { loyaltyWidgetContent as copy } from '../../data/loyalty-widget'
 import { formatPaise } from '../../money'
+import LoyaltyCard from './loyalty-card'
 import { tierPercent } from './loyalty-math'
 import type { LoyaltyMemberView, LoyaltyPointsName, LoyaltyTierView } from './loyalty-types'
 
@@ -30,7 +31,7 @@ export default function LoyaltyTierCard({ tiers, tier, names }: LoyaltyTierCardP
   const pct = tierPercent(tier.value, next?.threshold ?? null)
   const colors = current?.colors
   return (
-    <section className="flex flex-col gap-2 rounded-xl border border-(--kl-line) p-4">
+    <LoyaltyCard>
       <span className="text-[0.8125rem] font-medium text-(--kl-muted)">{copy.tier.current}</span>
       <span
         className="self-start rounded-full bg-(--kl-soft) px-3 py-1 text-[0.9375rem] font-bold text-(--kl-ink)"
@@ -62,6 +63,6 @@ export default function LoyaltyTierCard({ tiers, tier, names }: LoyaltyTierCardP
       <span className="text-[0.8125rem] text-(--kl-muted)">
         {next ? copy.tier.toNext(amount(tier.toNext), next.name) : copy.tier.top}
       </span>
-    </section>
+    </LoyaltyCard>
   )
 }

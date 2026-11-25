@@ -1,4 +1,5 @@
 import { loyaltyWidgetContent as copy } from '../../data/loyalty-widget'
+import LoyaltyCard from './loyalty-card'
 import { dayLabel } from './loyalty-format'
 import type { LoyaltyCodeView } from './loyalty-types'
 
@@ -8,8 +9,7 @@ type LoyaltyCodesListProps = { codes: LoyaltyCodeView[] }
 export default function LoyaltyCodesList({ codes }: LoyaltyCodesListProps) {
   // Render logic
   return (
-    <section className="flex flex-col gap-2 rounded-xl border border-(--kl-line) p-4">
-      <h3 className="m-0 text-[1rem] font-bold text-(--kl-ink)">{copy.codes.title}</h3>
+    <LoyaltyCard title={copy.codes.title}>
       {codes.length === 0 ? (
         <p className="m-0 text-[0.875rem] text-(--kl-muted)">{copy.codes.empty}</p>
       ) : (
@@ -39,6 +39,6 @@ export default function LoyaltyCodesList({ codes }: LoyaltyCodesListProps) {
           ))}
         </ul>
       )}
-    </section>
+    </LoyaltyCard>
   )
 }

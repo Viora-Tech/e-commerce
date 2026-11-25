@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
+  rewardGlyph,
+  wayGlyph,
+  wayPoints,
+  wayTitle,
+} from '../src/components/loyalty/loyalty-format'
+import {
   earnPreview,
   priceFromText,
   referralParam,
@@ -202,5 +208,25 @@ describe('embed settings', () => {
   it('names the program after the store unless the merchant named it', () => {
     expect(programTitle({ title: '' }, 'Waimers')).toBe('Waimers Rewards')
     expect(programTitle({ title: 'Club W' }, 'Waimers')).toBe('Club W')
+  })
+})
+
+describe('panel list rows', () => {
+  const names = { singular: 'point', plural: 'points' }
+  it('words earn rows like Essential Loyalty: titles and a plus on the points', () => {
+    expect(wayTitle({ title: null, type: 'birthday', key: '', streakDays: null })).toBe(
+      'Celebrate a birthday',
+    )
+    expect(wayPoints({ type: 'signup', points: 600 }, names)).toBe('+600 points')
+    expect(wayPoints({ type: 'order_spend', points: 8 }, names)).toBe(
+      '+8 points for every ₹100 spent',
+    )
+  })
+
+  it('gives each rule and reward an icon, with a fallback for new types', () => {
+    expect(wayGlyph('newsletter')).toBe('mail')
+    expect(wayGlyph('something_new')).toBe('star')
+    expect(rewardGlyph('free_shipping')).toBe('truck')
+    expect(rewardGlyph('percent_off')).toBe('tag')
   })
 })

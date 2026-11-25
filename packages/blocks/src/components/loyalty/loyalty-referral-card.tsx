@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { loyaltyWidgetContent as copy } from '../../data/loyalty-widget'
+import LoyaltyCard from './loyalty-card'
 import { offerLabel } from './loyalty-format'
 import { shareNetworksOf, shareUrl } from './loyalty-share'
 import type { LoyaltyPointsName, LoyaltyReferralView } from './loyalty-types'
@@ -46,8 +47,7 @@ export default function LoyaltyReferralCard({
       }
     : null
   return (
-    <section className="flex flex-col gap-2 rounded-xl border border-(--kl-line) p-4">
-      <h3 className="m-0 text-[1rem] font-bold text-(--kl-ink)">{copy.referral.title}</h3>
+    <LoyaltyCard title={copy.referral.title}>
       <ul className="m-0 flex list-disc flex-col gap-0.5 pl-5 text-[0.875rem] text-(--kl-ink)">
         {referral.referrerReward ? (
           <li>{copy.referral.you(offerLabel(referral.referrerReward, names))}</li>
@@ -97,6 +97,6 @@ export default function LoyaltyReferralCard({
           {copy.referral.done(referral.completed)}
         </span>
       ) : null}
-    </section>
+    </LoyaltyCard>
   )
 }

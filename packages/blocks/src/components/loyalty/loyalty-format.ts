@@ -2,6 +2,7 @@
 import { formatInZone } from '@commerce/dates'
 import { loyaltyWidgetContent as copy } from '../../data/loyalty-widget'
 import { formatPaise } from '../../money'
+import type { LoyaltyGlyph } from './loyalty-icon'
 import type {
   LoyaltyOffer,
   LoyaltyPointsName,
@@ -45,12 +46,42 @@ export function wayTitle(w: Pick<LoyaltyWayToEarn, 'title' | 'type' | 'key' | 's
   return copy.earn.types[w.type] ?? w.type
 }
 
-/** A way to earn's points line ("50 points", "1 point for every ₹100 spent"). */
+/** A way to earn's points line ("+50 points", "+1 point for every ₹100 spent"). */
 export function wayPoints(w: Pick<LoyaltyWayToEarn, 'type' | 'points'>, names: LoyaltyPointsName) {
   const p = copy.points(w.points, names)
   if (w.type === 'order_spend') return copy.earn.perOrder(p)
   if (w.type === 'daily_visit') return copy.earn.perDay(p)
-  return p
+  return copy.earn.value(p)
+}
+
+const WAY_GLYPHS: Record<string, LoyaltyGlyph> = {
+  order_spend: 'bag',
+  first_order: 'bag',
+  signup: 'user',
+  newsletter: 'mail',
+  birthday: 'cake',
+  anniversary: 'calendar',
+  daily_visit: 'eye',
+  visit_streak: 'flame',
+  product_review: 'star',
+  google_review: 'chat',
+  social: 'share',
+}
+
+const REWARD_GLYPHS: Record<string, LoyaltyGlyph> = {
+  free_product: 'gift',
+  free_shipping: 'truck',
+  store_credit: 'wallet',
+}
+
+/** The small icon beside a way to earn in the panel's lists. */
+export function wayGlyph(type: string): LoyaltyGlyph {
+  return WAY_GLYPHS[type] ?? 'star'
+}
+
+/** The small icon beside a reward: a tag for money or percent off. */
+export function rewardGlyph(type: string): LoyaltyGlyph {
+  return REWARD_GLYPHS[type] ?? 'tag'
 }
 
 /** "24 Dec 2026" for an ISO time or a `YYYY-MM-DD` day (read at noon UTC, so the day holds). */

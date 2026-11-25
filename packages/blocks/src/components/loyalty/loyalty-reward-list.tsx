@@ -3,13 +3,16 @@
 import { useState } from 'react'
 import { loyaltyWidgetContent as copy } from '../../data/loyalty-widget'
 import { formatPaise } from '../../money'
+import LoyaltyCard from './loyalty-card'
 import LoyaltyClaimedCode from './loyalty-claimed-code'
 import { redeemReward } from './loyalty-client'
-import { rewardValueLabel } from './loyalty-format'
+import { rewardGlyph } from './loyalty-format'
+import LoyaltyIcon from './loyalty-icon'
 import { rewardCost } from './loyalty-math'
 import type { LoyaltyPointsName, LoyaltyRedeemed, LoyaltyRewardView } from './loyalty-types'
 
 type LoyaltyRewardListProps = {
+  /** The card's heading; '' inside the panel's "Ways to redeem" screen, whose header names it. */
   title: string
   rewards: LoyaltyRewardView[]
   names: LoyaltyPointsName
@@ -19,7 +22,7 @@ type LoyaltyRewardListProps = {
   onClaimed: (() => void) | null
 }
 
-/** The line under a reward: its cost, or why it cannot be taken yet. */
+/** The line under a reward: its cost ("for 1,000 points"), or why it cannot be taken yet. */
 function costLine(r: LoyaltyRewardView, names: LoyaltyPointsName, points: number | null) {
   const cost = rewardCost(r)
   const base =
@@ -32,7 +35,7 @@ function costLine(r: LoyaltyRewardView, names: LoyaltyPointsName, points: number
 }
 
 /**
- * The rewards catalog. A guest sees what each costs ("Ways to redeem"); a member gets a Claim
+ * The rewards catalog: each reward's icon, title and cost. A guest sees what each costs; a member gets a Claim
  * button on each reward they can take now, and the code (Copy, Apply at checkout) once claimed.
  * A custom amount reward is claimed at its smallest step.
  */
@@ -70,20 +73,22 @@ export default function LoyaltyRewardList({
 
   // Render logic
   return (
-    <section className="flex flex-col gap-2 rounded-xl border border-(--kl-line) p-4">
-      <h3 className="m-0 text-[1rem] font-bold text-(--kl-ink)">{title}</h3>
+    <LoyaltyCard title={title || undefined}>
       {claimed ? <LoyaltyClaimedCode redeemed={claimed} /> : null}
       <ul className="m-0 flex list-none flex-col p-0">
         {rewards.map((r) => (
           <li
             key={r.id}
-            className="flex flex-col gap-1 border-t border-(--kl-line) py-2.5 first:border-t-0"
+            className="flex flex-col gap-1 border-t border-(--kl-line) py-3 first:border-t-0"
           >
-            <span className="flex items-center justify-between gap-3">
-              <span className="flex min-w-0 flex-col">
-                <span className="font-medium text-(--kl-ink)">{r.title}</span>
+            <span className="flex items-center gap-3">
+              <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-(--kl-soft) text-(--kl-ink)">
+                <LoyaltyIcon name={rewardGlyph(r.type)} className="size-[1.125rem]" />
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="font-semibold text-(--kl-ink)">{r.title}</span>
                 <span className="text-[0.8125rem] text-(--kl-muted)">
-                  {rewardValueLabel(r)} · {costLine(r, names, points)}
+                  {costLine(r, names, points)}
                 </span>
                 {r.minOrderPaise ? (
                   <span className="text-[0.8125rem] text-(--kl-muted)">
@@ -110,6 +115,6 @@ export default function LoyaltyRewardList({
           </li>
         ))}
       </ul>
-    </section>
+    </LoyaltyCard>
   )
 }
