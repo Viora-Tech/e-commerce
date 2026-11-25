@@ -160,7 +160,7 @@ export default function PayoutsPage() {
         }
       />
       <PillTabs
-        variant="segmented"
+        variant="underline"
         label={layout.tabsLabel}
         value={tab}
         onChange={setTab}

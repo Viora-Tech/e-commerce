@@ -102,7 +102,7 @@ export default function ProgramsPage() {
   return (
     <div className="flex flex-col gap-5">
       <PillTabs
-        variant="segmented"
+        variant="underline"
         label={layout.tabsLabel}
         value={tab}
         onChange={setTab}
