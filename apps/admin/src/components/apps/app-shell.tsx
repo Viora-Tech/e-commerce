@@ -81,11 +81,11 @@ export default async function AppShell({
       <div className="relative flex flex-col gap-5">
         <AppShellActions>
           {pillText && statusPill ? (
-            <span title={pillText} className="flex max-w-[22rem] min-w-0">
-              <StatusChip tone={statusPill.tone} variant="outline" className="min-w-0">
-                <span className="truncate">{pillText}</span>
-              </StatusChip>
-            </span>
+            // Shown in full (owner, 26 Nov 2026: "GSTIN … · numbering 2026-27" was cut); the
+            // page header's room grows with it (AppShellActions).
+            <StatusChip tone={statusPill.tone} variant="outline" className="whitespace-nowrap">
+              {pillText}
+            </StatusChip>
           ) : null}
           {headerAction}
           <AppUninstallButton
