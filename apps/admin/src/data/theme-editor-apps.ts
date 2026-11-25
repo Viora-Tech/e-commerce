@@ -14,10 +14,11 @@ export const themeEditorAppsContent = {
   embedMissing: 'Not available',
   embedOff: 'Off in the theme',
   /** The canvas switch that shows the page on the store's own address with its scripts running. */
-  scripts: 'Theme scripts',
-  scriptsOn: 'Show the page with the theme’s scripts running (sliders, tabs, accordions)',
-  scriptsOff: 'Back to the editing canvas',
-  scriptsNote:
-    'Showing the page with its scripts. Click a section to edit it. Theme settings you have not saved show after Save.',
+  scripts: 'Interactive preview',
+  scriptsStop: 'Back to editing',
+  scriptsOn:
+    'Interactive preview: see the page with your theme’s own scripts running, so sliders, tabs and menus move like on your store.',
+  scriptsOff: 'Back to the editing canvas.',
+  scriptsNote: 'Click a section to edit it. Theme settings you have not saved show after Save.',
   scriptsFrame: 'Store page with theme scripts',
 }

@@ -38,6 +38,7 @@ import { routes } from '@/lib/routes'
 import { useEditorKeys } from '@/lib/use-editor-keys'
 import type { PreviewDevice } from '../theme-preview'
 import FullViewButton from './full-view-button'
+import ThemeScriptsToggle from './theme-scripts-toggle'
 import ZoomMenu from './zoom-menu'
 
 type CustomizeTopBarProps = {
@@ -176,6 +177,7 @@ export default function CustomizeTopBar({
           ))}
         </fieldset>
         {modeSwitch}
+        <ThemeScriptsToggle />
         <ZoomMenu />
         <FullViewButton className={ICON_BUTTON} />
         <button
