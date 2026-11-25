@@ -1,4 +1,4 @@
-import { takeOverImportedOrder } from '@commerce/core'
+import { type BulkCreateResult, takeOverImportedOrder } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { order } from '@commerce/db'
 import { and, inArray, isNotNull } from 'drizzle-orm'
@@ -22,13 +22,13 @@ export async function takeOverImportedForBooking(
   storeId: string,
   orderIds: readonly string[],
   author: string,
-): Promise<Array<{ orderId: string; ok: false; error: string }>> {
+): Promise<BulkCreateResult[]> {
   if (orderIds.length === 0) return []
   const imported = await tx
     .select({ id: order.id })
     .from(order)
     .where(and(inArray(order.id, [...orderIds]), isNotNull(order.importedFrom)))
-  const refused: Array<{ orderId: string; ok: false; error: string }> = []
+  const refused: BulkCreateResult[] = []
   for (const { id } of imported) {
     try {
       await takeOverImportedOrder({ tx, storeId }, id, author)
