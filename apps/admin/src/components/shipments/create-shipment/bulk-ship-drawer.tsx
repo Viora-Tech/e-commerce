@@ -28,7 +28,7 @@ import BulkResult from './bulk-result'
 import BulkShipFooter from './bulk-ship-footer'
 import BulkShipRow, { editButtonId } from './bulk-ship-row'
 import { BULK_RULES, type BulkRule, bulkSummary, isTicked, type OrderEdit } from './bulk-ship-state'
-import { courierTotals } from './flow-state'
+import { courierTotals, type ParcelQuote } from './flow-state'
 import { useBulkShip } from './use-bulk-ship'
 
 type BulkShipDrawerProps = {
@@ -72,8 +72,8 @@ export default function BulkShipDrawer({
   }
 
   // Event handlers
-  const handleApply = (orderId: string, edit: OrderEdit) => {
-    b.saveEdit(orderId, edit)
+  const handleApply = (orderId: string, edit: OrderEdit, fresh: ParcelQuote | null) => {
+    b.saveEdit(orderId, edit, fresh)
     closeEditor()
   }
   const handleSkip = (orderId: string, skip: boolean) => {
@@ -273,7 +273,7 @@ export default function BulkShipDrawer({
                                   boxes={draft.boxes}
                                   columns={COLUMNS}
                                   skipped={b.unticked.has(id)}
-                                  onApply={(edit) => handleApply(id, edit)}
+                                  onApply={(edit, fresh) => handleApply(id, edit, fresh)}
                                   onCancel={closeEditor}
                                   onSkip={(skip) => handleSkip(id, skip)}
                                 />

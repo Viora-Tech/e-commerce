@@ -119,21 +119,12 @@ export const bulkShipContent = {
       `Pickup already booked · ${time}${ref ? ` · ID ${ref}` : ''}`,
     newRequest: 'New pickup request',
     dropOff: 'Drop off yourself',
-    slotLabel: 'Pickup day and time',
-    slot: (day: string, time: string) => `${day} · from ${time}`,
-    today: (date: string) => `Today, ${date}`,
-    tomorrow: (date: string) => `Tomorrow, ${date}`,
-    footnote: (fresh: number, joined: string[]) =>
-      `${[
-        fresh > 0 ? `${plural(fresh, 'new pickup request', 'new pickup requests')}` : null,
-        joined.length > 0 ? `${joined.join(', ')} parcels join the pickup already booked` : null,
-      ]
-        .filter(Boolean)
-        .join('; ')}. Parcels move to To be picked up.`,
+    /** After the Create pickup drawer booked or joined every courier's pickup. */
+    onPickup: 'On a pickup',
+    footnote:
+      'Next, pick the day and time for each courier, or add the parcels to a pickup already booked. Parcels then move to To be picked up.',
     later: 'Later',
     create: 'Create pickups',
-    created: 'Pickups created. Parcels moved to To be picked up.',
-    createFailed: 'Could not create the pickups.',
   },
   editPopup: {
     title: (n: number) => `Edit shipment · #${n}`,
@@ -162,7 +153,12 @@ export const bulkShipContent = {
       [cheapest ? `Cheapest: ${cheapest}` : null, fastest ? `Fastest: ${fastest}` : null]
         .filter(Boolean)
         .join(' · '),
-    repriceNote: 'Apply asks the couriers again for this package.',
+    /** The courier list's help while the typed package is being priced. */
+    pricing: {
+      updating: 'Updating prices…',
+      waiting: 'Finish the box size to update the prices.',
+      failed: 'Could not get new prices. Apply asks the couriers again.',
+    } as Record<'updating' | 'waiting' | 'failed', string>,
     noShopperChoice: 'No delivery option chosen at checkout',
     payment: 'Payment',
     prepaid: 'Prepaid',
