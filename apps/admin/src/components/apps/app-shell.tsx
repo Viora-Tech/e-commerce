@@ -75,7 +75,7 @@ export default async function AppShell({
     <PageBody>
       {/* No app title row and no gap (owner, 25 Nov 2026): the sidebar names the open app and
           each page has its own title. The app's status pill, action and "…" menu float top right. */}
-      <div className="relative flex flex-col gap-5">
+      <div className="relative mt-4 flex flex-col gap-5">
         <div className="absolute top-0 right-0 z-10 flex items-center gap-2">
           {pillText && statusPill ? (
             <span title={pillText} className="flex max-w-[22rem] min-w-0">
