@@ -1,6 +1,7 @@
 ---
 name: koomerce-theme-developer
 description: Move a Shopify Online Store 2.0 (Liquid) theme to Koomerce or build sections for it - what the theme importer and Liquid engine support, what Shopify features are swapped for Koomerce ones, what does not work yet, and how to test a theme safely. Use when preparing a Shopify theme zip for import, debugging a section that renders differently after import, editing an imported theme in Customize, or writing native Koomerce sections.
+license: MIT
 compatibility: For Koomerce stores (Online Store, Themes) and the Koomerce monorepo (github.com/Viora-Tech/e-commerce).
 metadata:
   author: Viora-Tech

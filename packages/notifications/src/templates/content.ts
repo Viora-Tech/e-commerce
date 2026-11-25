@@ -205,6 +205,19 @@ ${d.review?.rewardCode ?? ''}`,
     whatsapp: (d) =>
       `${d.storeName}: thanks for your photo review! ${d.review?.rewardLabel ?? 'A discount'} with code ${d.review?.rewardCode ?? ''}`,
   },
+  points_expiring: {
+    subject: (d) =>
+      `${d.points?.expiringPoints ?? 'Some'} of your ${d.storeName} points run out on ${d.points?.lastDay ?? 'soon'}`,
+    heading: (d) => `Hi ${d.customerName}, your points are running out`,
+    intro: (d) =>
+      `${d.points?.expiringPoints ?? 'Some'} points run out after ${d.points?.lastDay ?? 'soon'}. Each point is ₹1 off your next order at ${d.storeName}: tick Store credit at checkout.`,
+    outro: (d) =>
+      d.points
+        ? `You have ${d.points.balancePoints} points in all.`
+        : 'See your points in your account.',
+    whatsapp: (d) =>
+      `${d.storeName}: ${d.points?.expiringPoints ?? 'Some'} points run out on ${d.points?.lastDay ?? 'soon'}.`,
+  },
   question_answered: {
     subject: (d) => `${d.storeName} answered your question`,
     heading: (d) =>

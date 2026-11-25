@@ -1,0 +1,62 @@
+/** The shopper's Points page (Loyalty points app). One point is ₹1 of store credit. */
+export const loyaltyAccountContent = {
+  nav: 'Points',
+  title: 'Points',
+  balance: 'Your points',
+  points: (n: number) => `${n} ${n === 1 ? 'point' : 'points'}`,
+  worth: (money: string) => `Worth ${money} off your next order`,
+  intro:
+    'Points sit in your store credit. At checkout, keep Store credit ticked and they come off the order.',
+  expiring: (points: string, day: string) => `${points} run out after ${day}`,
+  pending: (points: string) => `${points} on the way, after the return window of a delivered order`,
+  earn: {
+    title: 'How you earn points',
+    orders: (points: string) =>
+      `${points} for every ₹100 you spend, once the order is delivered and the return window is over`,
+    review: (points: string) => `${points} for a review of a product you bought`,
+    birthday: (points: string) => `${points} on your birthday, every year`,
+    expiry: (months: number) =>
+      `Points run out ${months} ${months === 1 ? 'month' : 'months'} after you get them.`,
+  },
+  history: 'History',
+  empty: 'No points yet. You earn them on delivered orders.',
+  sources: {
+    order: (n: number | null) => (n ? `Order #${n}` : 'An order'),
+    review: 'Thanks for your review',
+    birthday: 'Happy birthday',
+    adjustment: 'From the store',
+    /** Staff took points off (a negative adjustment). */
+    adjustmentRemoved: 'Removed by the store',
+    reversal: (n: number | null) => (n ? `Taken back: order #${n}` : 'Taken back'),
+  },
+  statuses: {
+    pending: (day: string) => `On the way · lands ${day}`,
+    cancelled: 'Not given: the order was cancelled or returned',
+  },
+  usableUntil: (day: string) => `use by ${day}`,
+  birthday: {
+    title: 'Your birthday',
+    intro: (points: string) => `Add your birthday and get ${points} on the day, every year.`,
+    label: 'Birthday',
+    save: 'Save birthday',
+    saving: 'Saving',
+    saved: (day: string) => `Birthday: ${day}`,
+    savedNote: 'To change it, ask the store.',
+    invalid: 'Pick your birthday.',
+    failed: 'Could not save. Try again.',
+  },
+  months: [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ],
+}

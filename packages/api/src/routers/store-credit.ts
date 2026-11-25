@@ -35,9 +35,19 @@ function surface<T>(run: () => Promise<T>): Promise<T> {
 export const storeCreditRouter = {
   /** The customer's balance in paise and their newest 50 changes, newest first. */
   get: can(permissions.CUSTOMERS_READ)
-    .input(z.object({ customerId: z.uuid() }))
+    .input(
+      z.object({
+        customerId: z.uuid(),
+        // The customer page asks for a few lines at a time ("Show older" asks for more).
+        limit: z.number().int().min(1).max(200).default(50),
+      }),
+    )
     .handler(({ context, input }) =>
-      storeCreditOf({ storeId: context.scope.storeId, tx: context.tx }, input.customerId),
+      storeCreditOf(
+        { storeId: context.scope.storeId, tx: context.tx },
+        input.customerId,
+        input.limit,
+      ),
     ),
 
   /**

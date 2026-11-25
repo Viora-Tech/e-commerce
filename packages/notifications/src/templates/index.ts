@@ -63,6 +63,7 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'review_reminder',
   'review_reply',
   'review_reward',
+  'points_expiring',
   'question_answered',
   'question_asked',
   'affiliate_update',
@@ -130,6 +131,7 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   review_reminder: 'Review reminder',
   review_reply: 'Reply to a review',
   review_reward: 'Photo review thanks',
+  points_expiring: 'Points expiring soon',
   question_answered: 'Product question answered',
   question_asked: 'New product question (merchant)',
   affiliate_update: 'Affiliate update (to the affiliate)',
@@ -173,6 +175,8 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
     case 'review_reply':
     case 'review_reward':
       return 'Your review'
+    case 'points_expiring':
+      return 'Your points'
     case 'question_answered':
       return 'Your question'
     case 'question_asked':

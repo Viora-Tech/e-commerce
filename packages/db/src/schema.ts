@@ -1040,6 +1040,8 @@ export const customer = pgTable(
      */
     gstin: text('gstin'),
     businessName: text('business_name'),
+    /** Birthday as `MM-DD` (no year), for the Loyalty points app's birthday points. */
+    birthday: text('birthday'),
     /** Snapshot of the address from the latest order, so the profile card needs no join. */
     defaultAddress: jsonb('default_address').$type<CustomerAddress>(),
     tags: text('tags').array().notNull().default([]),

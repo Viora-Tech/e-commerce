@@ -108,3 +108,7 @@ testing, release flow, emails). They describe internal workflows and are not par
 - Developer docs: "Agent skills", "Plugins SDK and app blocks", "MCP server and API tokens",
   "Shopify theme import" (in `apps/docs`)
 - [Agent Skills specification](https://agentskills.io/specification)
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).

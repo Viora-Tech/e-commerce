@@ -5,6 +5,7 @@
  * switch and monthly allowance (Settings → AI).
  */
 import {
+  clampSectionProposal,
   generateStructured,
   proposalProps,
   SectionProposalSchema,
@@ -16,6 +17,7 @@ import { store, withStore } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { eq } from 'drizzle-orm'
 import { type AiCallContext, finishAiCall, startAiCall } from './guard'
+import { logModelFailure } from './model-failure'
 
 export type SectionProposalView = {
   type: SectionWriterType
@@ -45,12 +47,14 @@ export async function proposeSection(
       abortSignal: signal,
     })
     await finishAiCall(context.db, call, usage)
+    const proposal = clampSectionProposal(output)
     return {
-      type: output.section.type,
-      summary: output.summary.trim(),
-      props: proposalProps(output.section),
+      type: proposal.section.type,
+      summary: proposal.summary,
+      props: proposalProps(proposal.section),
     }
-  } catch {
+  } catch (err) {
+    logModelFailure('section_writer', err)
     throw new ORPCError('BAD_GATEWAY', {
       message: 'The AI could not build a section this time. Please try again.',
       data: { reason: 'model_failed' },

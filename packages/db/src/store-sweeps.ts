@@ -139,3 +139,13 @@ export async function storesWithPendingGatewayRefunds(db: Db): Promise<string[]>
   )
   return rows.map((r) => r.id)
 }
+
+/**
+ * Store ids with the Loyalty points app installed, for the worker's hourly sweep (credit due
+ * points, review and birthday points, expiry reminders). SECURITY DEFINER backed
+ * (`stores_with_loyalty_points`, 0266).
+ */
+export async function storesWithLoyaltyPoints(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(sql`select stores_with_loyalty_points() as id`)
+  return rows.map((r) => r.id)
+}

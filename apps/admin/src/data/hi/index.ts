@@ -97,6 +97,7 @@ import labelSheet from './label-sheet'
 import layout from './layout'
 import localDelivery from './local-delivery'
 import login from './login'
+import loyalty from './loyalty'
 import manifestSheet from './manifest-sheet'
 import marketingAutomations from './marketing-automations'
 import marketingCampaigns from './marketing-campaigns'
@@ -233,6 +234,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...checkoutRules,
   ...checkoutSettings,
   ...codRto,
+  ...loyalty,
   ...deliveryOptionQuestions,
   ...deliveryOptionSections,
   ...deliveryOptions,

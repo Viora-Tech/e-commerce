@@ -86,6 +86,8 @@ export function primaryActionFor(
       return d.review?.productUrl ? { label: 'See the reply', url: d.review.productUrl } : undefined
     case 'review_reward':
       return d.actionUrl ? { label: 'Shop with your code', url: d.actionUrl } : undefined
+    case 'points_expiring':
+      return d.actionUrl ? { label: 'Use your points', url: d.actionUrl } : undefined
     case 'question_answered':
       return d.review?.productUrl
         ? { label: 'See it on the product page', url: d.review.productUrl }

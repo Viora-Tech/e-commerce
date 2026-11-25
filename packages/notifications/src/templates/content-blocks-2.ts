@@ -88,6 +88,12 @@ export const blockCopy2 = {
       return `Your rating: ${'★'.repeat(n)}${'☆'.repeat(5 - n)}`
     },
     rewardLead: 'Your review is live, photos and all.',
+    pointsKicker: 'Your points',
+    pointsLead: 'Each point is ₹1 off at checkout when you tick Store credit.',
+    pointsExpiring: 'Run out soon',
+    pointsLastDay: 'Last day',
+    pointsBalance: 'You have',
+    pointsCount: (n: number) => `${n} ${n === 1 ? 'point' : 'points'}`,
     yourCode: 'Your code',
     rewardNote: (until: string | undefined) =>
       until ? `Your next order · valid till ${until}` : 'Your next order',

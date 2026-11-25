@@ -2,6 +2,7 @@ import { automationsPlugin } from '@commerce/core/automations-app'
 import { codRtoPlugin } from '@commerce/core/cod-rto-app'
 import { deliveryOptionsPlugin } from '@commerce/core/delivery-options-app'
 import { inboxPlugin } from '@commerce/core/inbox-app'
+import { loyaltyPlugin } from '@commerce/core/loyalty-app'
 import { pixelsPlugin } from '@commerce/core/pixels-app'
 import { sesPlugin } from '@commerce/notifications-ses'
 import { whatsappPlugin } from '@commerce/notifications-whatsapp'
@@ -84,5 +85,6 @@ export default defineConfig({
     inboxPlugin,
     codRtoPlugin,
     deliveryOptionsPlugin,
+    loyaltyPlugin,
   ],
 })

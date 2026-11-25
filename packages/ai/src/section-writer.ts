@@ -17,56 +17,81 @@ export const SECTION_WRITER_MARKER = 'Task: propose one store section'
 export const SECTION_WRITER_TYPES = ['ImageBanner', 'ImageWithText', 'Multicolumn', 'Faq'] as const
 export type SectionWriterType = (typeof SECTION_WRITER_TYPES)[number]
 
-const short = (max: number, what: string) => z.string().max(max).describe(what)
+/**
+ * Longest text per field and item counts, enforced by `clampSectionProposal` after the model
+ * answers. The schema only states them in the descriptions: the provider does not enforce
+ * limits while writing, and zod rejecting a slightly long answer failed the whole call (the
+ * knowledge scan failed that way on 24 Nov).
+ */
+export const SECTION_WRITER_LIMITS = {
+  summary: 160,
+  eyebrow: 40,
+  heading: 70,
+  bannerText: 240,
+  imageText: 500,
+  buttonLabel: 30,
+  buttonHref: 200,
+  columnTitle: 50,
+  columnText: 200,
+  columns: 4,
+  question: 120,
+  answer: 400,
+  items: 8,
+} as const
+const L = SECTION_WRITER_LIMITS
+
+const short = (max: number, what: string) =>
+  z.string().describe(`${what} At most ${max} characters.`)
 
 const Button = z.object({
-  label: short(30, 'Button text, two or three words. Empty for no button.'),
-  href: short(200, 'A store path like /collections/all or /pages/about. Empty for no button.'),
+  label: short(L.buttonLabel, 'Button text, two or three words. Empty for no button.'),
+  href: short(
+    L.buttonHref,
+    'A store path like /collections/all or /pages/about. Empty for no button.',
+  ),
 })
 
 export const SectionProposalSchema = z.object({
-  summary: short(160, 'One sentence for the merchant: what this section is and why it fits.'),
+  summary: short(L.summary, 'One sentence for the merchant: what this section is and why it fits.'),
   section: z.discriminatedUnion('type', [
     z.object({
       type: z.literal('ImageBanner'),
-      eyebrow: short(40, 'A small line above the heading. May be empty.'),
-      heading: short(70, 'The heading.'),
-      text: short(240, 'One or two sentences under the heading.'),
+      eyebrow: short(L.eyebrow, 'A small line above the heading. May be empty.'),
+      heading: short(L.heading, 'The heading.'),
+      text: short(L.bannerText, 'One or two sentences under the heading.'),
       button: Button,
     }),
     z.object({
       type: z.literal('ImageWithText'),
-      kicker: short(40, 'A small line above the heading. May be empty.'),
-      heading: short(70, 'The heading.'),
-      text: short(500, 'Two to four sentences.'),
+      kicker: short(L.eyebrow, 'A small line above the heading. May be empty.'),
+      heading: short(L.heading, 'The heading.'),
+      text: short(L.imageText, 'Two to four sentences.'),
       button: Button,
     }),
     z.object({
       type: z.literal('Multicolumn'),
-      kicker: short(40, 'A small line above the heading. May be empty.'),
-      heading: short(70, 'The heading.'),
+      kicker: short(L.eyebrow, 'A small line above the heading. May be empty.'),
+      heading: short(L.heading, 'The heading.'),
       columns: z
         .array(
           z.object({
-            title: short(50, 'Column title.'),
-            text: short(200, 'One or two sentences.'),
+            title: short(L.columnTitle, 'Column title.'),
+            text: short(L.columnText, 'One or two sentences.'),
           }),
         )
-        .min(2)
-        .max(4),
+        .describe(`Two to ${L.columns} columns.`),
     }),
     z.object({
       type: z.literal('Faq'),
-      heading: short(70, 'The heading.'),
+      heading: short(L.heading, 'The heading.'),
       items: z
         .array(
           z.object({
-            question: short(120, 'A question shoppers ask.'),
-            answer: short(400, 'A short, plain answer.'),
+            question: short(L.question, 'A question shoppers ask.'),
+            answer: short(L.answer, 'A short, plain answer.'),
           }),
         )
-        .min(3)
-        .max(8),
+        .describe(`Three to ${L.items} questions.`),
     }),
   ]),
 })
@@ -125,5 +150,76 @@ export function proposalProps(p: SectionProposal['section']): Record<string, unk
       return { kicker: p.kicker, heading: p.heading, columns: p.columns }
     case 'Faq':
       return { heading: p.heading, items: p.items }
+  }
+}
+
+/** Text cut to `max` characters at a word break when one is near, whitespace tidied. */
+function cut(text: string, max: number): string {
+  const clean = text.replace(/\s+/g, ' ').trim()
+  if (clean.length <= max) return clean
+  const slice = clean.slice(0, max)
+  const space = slice.lastIndexOf(' ')
+  return (space > max * 0.6 ? slice.slice(0, space) : slice).trim()
+}
+
+/** The model's proposal trimmed to the limits: text cut, extra columns or questions dropped. */
+export function clampSectionProposal(p: SectionProposal): SectionProposal {
+  const button = (b: { label: string; href: string }) => ({
+    label: cut(b.label, L.buttonLabel),
+    href: b.href.trim().slice(0, L.buttonHref),
+  })
+  const s = p.section
+  const summary = cut(p.summary, L.summary)
+  switch (s.type) {
+    case 'ImageBanner':
+      return {
+        summary,
+        section: {
+          type: s.type,
+          eyebrow: cut(s.eyebrow, L.eyebrow),
+          heading: cut(s.heading, L.heading),
+          text: cut(s.text, L.bannerText),
+          button: button(s.button),
+        },
+      }
+    case 'ImageWithText':
+      return {
+        summary,
+        section: {
+          type: s.type,
+          kicker: cut(s.kicker, L.eyebrow),
+          heading: cut(s.heading, L.heading),
+          text: cut(s.text, L.imageText),
+          button: button(s.button),
+        },
+      }
+    case 'Multicolumn':
+      return {
+        summary,
+        section: {
+          type: s.type,
+          kicker: cut(s.kicker, L.eyebrow),
+          heading: cut(s.heading, L.heading),
+          columns: s.columns
+            .map((c) => ({ title: cut(c.title, L.columnTitle), text: cut(c.text, L.columnText) }))
+            .filter((c) => c.title || c.text)
+            .slice(0, L.columns),
+        },
+      }
+    case 'Faq':
+      return {
+        summary,
+        section: {
+          type: s.type,
+          heading: cut(s.heading, L.heading),
+          items: s.items
+            .map((i) => ({
+              question: cut(i.question, L.question),
+              answer: cut(i.answer, L.answer),
+            }))
+            .filter((i) => i.question && i.answer)
+            .slice(0, L.items),
+        },
+      }
   }
 }

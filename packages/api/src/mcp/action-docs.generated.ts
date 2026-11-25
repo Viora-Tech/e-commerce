@@ -411,6 +411,15 @@ export const ACTION_DOCS: Record<string, string> = {
     'Signed in as the invited email: grants the invited role and joins the store.',
   'invitations.preview':
     'Public: the accept page shows the store, inviter and role before sign in.',
+  'loyalty.adjust': 'Add (positive) or remove (negative) points with a reason the history shows.',
+  'loyalty.forCustomer':
+    "A customer's points, points expiring soon and on the way, birthday and history.",
+  'loyalty.overview':
+    'Points given and taken back in the last days, customers with points and points on the way.',
+  'loyalty.setBirthday': "Set or clear a customer's birthday (MM-DD) for birthday points.",
+  'loyalty.settings.get':
+    "The app's numbers: earn rate, expiry, review and birthday points, reminder.",
+  'loyalty.settings.save': "Save the app's numbers.",
   'marketing.automations.get': 'One automation with its stats and the latest runs.',
   'marketing.automations.mode':
     "Which runner owns the store's automations: after the cutover Growth opens the Automations app.",
