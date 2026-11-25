@@ -85,3 +85,69 @@ Branch `fix/nov25-live-test` (from `origin/dev`). Migration `0271_gst_stale_queu
   in the local Waimers store, and Loyalty was uninstalled and installed again there.
 - `bun run lint:components` reports errors elsewhere already on dev (e.g.
   `delivery-options/rule-order-card.tsx`); none in the files changed here.
+
+## Round 2 (items 11 to 15, Affiliates)
+
+No migration: the coupon's new keys live in `affiliate_program.rules` (JSON with defaults) and
+use existing `discount` columns.
+
+11. **Storefront signup page** (`/affiliate` before approval,
+    `apps/storefront/src/app/-s/[storeId]/affiliate/page.tsx`, `affiliate-brand-panel.tsx`):
+    rebuilt on the shadcn login-02 block. Two equal halves on desktop: the form half with the
+    form centred both ways at 28rem and Login top right; the brand half (store name, "Become
+    our partner", "Earn 10% on every order you bring"). The brand words stay mid-screen while
+    the form scrolls (sticky inside an `overflow-clip` panel, never `top-0` under the store's
+    sticky header, which caused the overlap). Phone: a short brand band above the form. The
+    storefront has no `@commerce/ui` dependency, so its controls stay the theme's own (`btn`
+    classes, existing fields); headings use `!` utilities against the Liquid theme's styles.
+12. **Affiliates admin selects**: every native select on the Affiliates screens (the "Default"
+    program picker on an affiliate, add / archive dialogs, rule and type, approval, Share and
+    earn's program, signup question kind, blocklist kind, creative's program, TDS period) is now
+    `ChoiceSelect` (`components/apps/affiliates/choice-select.tsx`) over `@commerce/ui` Select.
+    The signup-link share icon is a ghost `Button`.
+13. **Code request** on an affiliate (`codes-card.tsx`): a warning `Alert` with a tag icon,
+    "Code request" and the code in a mono chip, Approve (primary) and Decline (outline) at the
+    right on desktop, under the words on a phone.
+14. **Special rates and "Earns nothing" pickers** (`program-overrides.tsx`,
+    `program-excludes.tsx`, `target-picker.tsx`, `targets.ts`): the typed id inputs are gone;
+    a Products field and a Collections field open the Discounts app's Browse dialog
+    (`PickedField` + `itemTabs` / `loadPicked` from `components/discounts/pick-sources.ts`),
+    rows show name, image and price / product count, a special rate's percent sits on its row.
+    Same ids stored as before.
+15. **Per-product discount on the affiliate's code** (`packages/plugin-affiliates/src/settings.ts`
+    `CouponSchema`, `couponDiscountFields`, `couponOffer`; `codes.ts`; `programs.ts`):
+    - A program's code takes money off the whole order (as before), specific products (each
+      its own percent) or specific collections (one percent). Built on the engine's own
+      targeting, same as the Discounts app's "Amount off products": `type: products`,
+      `applies_to: products` + `product_values` (per-product amounts), or `applies_to:
+      collections` with one `value`. **The engine has no per-collection amounts in one code**,
+      so collections share one percent; per-product amounts are fully supported.
+    - Codes made for affiliates carry the targeting. Saving a program, or moving an affiliate
+      to another program, rewrites their current code's targeting (previously only the value).
+      Stored v1 coupons read as the whole order, so existing codes keep working unchanged.
+    - Saving a narrowed code with nothing picked is refused (`COUPON_TARGETS`).
+    - Admin: "The code takes money off" select + pickers (`program-incentives.tsx`); the
+      summary reads "Customers save up to N% on selected products".
+    - Storefront Benefits / dashboard hint / share message: "N% off with your code" or
+      "Up to N% off selected products" (`AffiliatePortal.program.couponSelected`).
+
+### Round 2 tests
+
+- Added: `packages/plugin-affiliates/test/coupon-targets.test.ts` (pure fields and offer, v1
+  read, code made with per-product amounts and priced by `evaluateDiscount`, sync on program
+  save and on a move, empty narrowed code refused), `apps/admin/src/components/apps/affiliates/targets.test.ts`
+  (picker merge keeps rates, schema round trip of overrides / excludes / coupon targets).
+- Run and passing: all of `packages/plugin-affiliates` (16 files, 110 tests), api
+  `affiliates-programs`, the admin `targets` test. Typecheck clean: plugin-affiliates, admin,
+  storefront, api. `lint:components` has no Affiliates findings.
+
+### Round 2: checked on localhost / not checked
+
+- Checked in the browser: program editor selects, "Specific products" with Browse, two products
+  at 15% and 10% saved and the existing code's discount row updated; collections Browse dialog;
+  code request callout on desktop and at 390px; Settings has no native select left; storefront
+  `/affiliate` at desktop and 390px signed in, showing "Up to 15% off selected products". The
+  local Default program and its code were put back to the whole order afterwards.
+- Not checked: the signed-out storefront page visually (its HTML renders with Login and JOIN),
+  placing a real checkout with a narrowed affiliate code (the engine path is covered by the
+  test), and the Hindi admin screens.
