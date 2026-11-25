@@ -42,5 +42,11 @@ export default async function Page({ params }: Props) {
     { context },
   )
   const invoiceSent = row.items.some((d) => d.id === id && d.invoiceSentAt !== null)
-  return <DraftForm draft={draft} invoiceSent={invoiceSent} />
+  return (
+    <>
+      {/* Opened: the Drafts list dims it for this member (staff drafts never count in the badge). */}
+      <MarkDraftSeen id={id} />
+      <DraftForm draft={draft} invoiceSent={invoiceSent} />
+    </>
+  )
 }

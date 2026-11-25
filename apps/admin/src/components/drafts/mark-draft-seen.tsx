@@ -7,8 +7,9 @@ import { api } from '@/lib/api-client'
 type MarkDraftSeenProps = { id: string }
 
 /**
- * Opening a shopper's checkout draft marks it seen, so the sidebar's Drafts count drops by one
- * (owner, 10 Nov 2026). The layout is only read again when the count went down.
+ * Opening a draft marks it seen for this member: a shopper's checkout draft leaves the sidebar's
+ * Drafts count (owner, 10 Nov 2026), and every opened draft shows dimmed in the Drafts list
+ * (owner, 26 Nov 2026). The layout is only read again when the count went down.
  */
 export default function MarkDraftSeen({ id }: MarkDraftSeenProps) {
   // Hooks

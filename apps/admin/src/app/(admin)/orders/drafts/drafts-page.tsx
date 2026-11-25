@@ -243,6 +243,8 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
           items={items}
           getId={(d) => d.id}
           href={(d) => routes.orders.draft(d.id)}
+          // A draft this member has opened (since it last changed) is dimmed, like shipped orders.
+          rowMuted={(d) => d.seen}
           rowActions={(d) => (
             <RowMenu
               items={[

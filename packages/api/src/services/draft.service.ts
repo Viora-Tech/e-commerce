@@ -50,6 +50,7 @@ import {
 import type { CustomMessage, NotificationRegistry } from '@commerce/notifications'
 import { ORPCError } from '@orpc/server'
 import { and, asc, count, desc, eq, isNull, or, sql } from 'drizzle-orm'
+import { seenDraftIds } from './drafts-seen.service'
 
 /**
  * Draft orders and abandoned checkouts for the admin. Core owns the rules;
@@ -89,11 +90,24 @@ function draftErrorToRpc(err: unknown): never {
   throw err
 }
 
-export const listStoreDrafts = (
+/**
+ * One page of drafts, each with `seen`: this member opened it since it last changed (the same
+ * per-member record as the sidebar's Drafts count, `draft_seen`). The list dims seen rows.
+ */
+export async function listStoreDrafts(
   tx: StoreTx,
   storeId: string,
+  userId: string,
   input: DraftListFilters & { page: number; perPage: number },
-) => listDrafts(ctxOf(tx, storeId), input)
+) {
+  const page = await listDrafts(ctxOf(tx, storeId), input)
+  const seen = await seenDraftIds(
+    tx,
+    userId,
+    page.items.map((d) => d.id),
+  )
+  return { ...page, items: page.items.map((d) => ({ ...d, seen: seen.has(d.id) })) }
+}
 
 /** The stat cards above the drafts list: open drafts, invoices sent, and what they add up to. */
 export async function draftTiles(tx: StoreTx) {

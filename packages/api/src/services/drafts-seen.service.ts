@@ -1,5 +1,5 @@
 import { draftSeen, order, type StoreTx, storeMember } from '@commerce/db'
-import { and, count, eq, gt, isNull, sql } from 'drizzle-orm'
+import { and, count, eq, gt, inArray, isNull, sql } from 'drizzle-orm'
 
 /**
  * The Drafts badge in the sidebar: shoppers' unpaid checkout drafts (waiting for payment, not
@@ -34,6 +34,30 @@ export async function unseenCheckoutDrafts(
       ),
     )
   return row?.n ?? 0
+}
+
+/**
+ * Which of these drafts this member opened since they last changed (`seen_at` at or after the
+ * draft's last activity, the badge's rule): the Drafts list dims them.
+ */
+export async function seenDraftIds(
+  tx: StoreTx,
+  userId: string,
+  orderIds: readonly string[],
+): Promise<Set<string>> {
+  if (orderIds.length === 0) return new Set()
+  const rows = await tx
+    .select({ id: draftSeen.orderId })
+    .from(draftSeen)
+    .innerJoin(order, eq(order.id, draftSeen.orderId))
+    .where(
+      and(
+        eq(draftSeen.userId, userId),
+        inArray(draftSeen.orderId, [...orderIds]),
+        sql`(${order.lastActivityAt} is null or ${draftSeen.seenAt} >= ${order.lastActivityAt})`,
+      ),
+    )
+  return new Set(rows.map((r) => r.id))
 }
 
 /**

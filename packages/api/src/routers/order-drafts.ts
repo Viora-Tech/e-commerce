@@ -72,7 +72,9 @@ export const draftAndAbandonedRoutes = {
         totalMaxPaise: z.number().int().min(0).optional(),
       }),
     )
-    .handler(({ context, input }) => listStoreDrafts(context.tx, context.scope.storeId, input)),
+    .handler(({ context, input }) =>
+      listStoreDrafts(context.tx, context.scope.storeId, context.scope.userId, input),
+    ),
 
   /** The stat cards above the drafts list: open drafts, invoices sent, and their total value. */
   draftTiles: can(permissions.DRAFTS_READ).handler(({ context }) => draftTiles(context.tx)),
