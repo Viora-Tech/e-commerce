@@ -5,9 +5,9 @@
  * No em or en dashes.
  */
 export const gstAlreadyInvoicedContent = {
-  /** The Queue row's button. */
-  action: 'Already invoiced',
-  actionLabel: (order: string) => `${order} was already invoiced`,
+  /** The Queue row's button: an action, not a status (it records an invoice made outside Koomerce). */
+  action: 'Mark invoiced',
+  actionLabel: (order: string) => `Mark ${order} as already invoiced`,
   title: (order: string) => `${order} is already invoiced`,
   body: 'Record the invoice you issued earlier, by hand or in your previous billing system. With its number and date it counts in GSTR-1 and GSTR-3B like any invoice. No PDF is made or emailed.',
   /** Under the fields: the order can leave the queue without the old invoice's details. */

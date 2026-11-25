@@ -1786,6 +1786,13 @@
       "when": 1795950000000,
       "tag": "0270_loyalty_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 255,
+      "version": "7",
+      "when": 1796040000000,
+      "tag": "0271_gst_stale_queue_drafts",
+      "breakpoints": true
     }
   ]
 }

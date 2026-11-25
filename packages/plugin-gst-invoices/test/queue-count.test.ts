@@ -5,6 +5,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { gstAppBar } from '../src/app-bar'
 import { enqueueOrder, issueDrafts } from '../src/queue'
 import { queuePage } from '../src/queue-status'
+import { invoice } from '../src/schema'
 
 /*
  * The sidebar's "Queue N" (the app bar's page count) and the Queue page must agree: the badge
@@ -121,5 +122,42 @@ describe('Queue count in the sidebar', () => {
       gstAppBar({ tx, storeId, can: (p) => p !== 'orders.read' }),
     )
     expect(bar.pageCounts).toEqual({})
+  })
+
+  it('leaves out a draft whose goods an issued invoice already bills, and never issues it', async () => {
+    const { storeId, variantId } = await seedStore('count-d')
+    const orderId = await seedOrder(storeId, variantId, 2475)
+    const q = await withStore(app, storeId, (tx) => enqueueOrder(tx, storeId, orderId, 'manual'))
+    const draftId = q?.row.id as string
+    await withStore(app, storeId, (tx) =>
+      issueDrafts(tx, storeId, [{ id: draftId, invoiceDate: new Date() }], { commit: true }),
+    )
+    // Invoiced before parcels existed: the issued invoice bills the whole order (no parcel).
+    const [issued] = await owner.select().from(invoice).where(eq(invoice.id, draftId))
+    const parcelId = issued?.fulfillmentOrderId as string
+    expect(parcelId).toBeTruthy()
+    await owner.update(invoice).set({ fulfillmentOrderId: null }).where(eq(invoice.id, draftId))
+
+    // Shipping it queues nothing new: the issued invoice already bills the goods.
+    const again = await withStore(app, storeId, (tx) =>
+      enqueueOrder(tx, storeId, orderId, 'fulfilled'),
+    )
+    expect(again).toMatchObject({ created: false, row: { id: draftId, status: 'issued' } })
+    expect(await read(storeId)).toEqual({ badge: 0, list: 0 })
+
+    // A stale draft left from before this fix stays out of the Queue and cannot be issued.
+    const { id: _id, number: _n, ...rest } = issued as typeof invoice.$inferSelect
+    const [stale] = await owner
+      .insert(invoice)
+      .values({ ...rest, status: 'draft', number: null, fulfillmentOrderId: parcelId })
+      .returning()
+    expect(await read(storeId)).toEqual({ badge: 0, list: 0 })
+    await expect(
+      withStore(app, storeId, (tx) =>
+        issueDrafts(tx, storeId, [{ id: stale?.id as string, invoiceDate: new Date() }], {
+          commit: true,
+        }),
+      ),
+    ).rejects.toThrow(/already has an issued GST invoice/)
   })
 })

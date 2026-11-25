@@ -3,8 +3,8 @@ import { translation } from '@/lib/i18n'
 
 export default [
   translation(gstAlreadyInvoicedContent, {
-    action: 'पहले से इनवॉइस हुआ',
-    actionLabel: (order) => `${order} का इनवॉइस पहले ही बन चुका है`,
+    action: 'इनवॉइस हुआ मार्क करें',
+    actionLabel: (order) => `${order} को पहले से इनवॉइस हुआ मार्क करें`,
     title: (order) => `${order} का इनवॉइस पहले ही बन चुका है`,
     body: 'जो इनवॉइस आपने पहले हाथ से या अपने पुराने बिलिंग सिस्टम में बनाया था, उसे यहाँ दर्ज करें। नंबर और तारीख़ के साथ यह GSTR-1 और GSTR-3B में किसी भी इनवॉइस की तरह गिना जाता है। कोई PDF न बनती है न ईमेल होती है।',
     blankHelp:
