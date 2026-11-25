@@ -256,7 +256,10 @@ export const affiliatesContent = {
         'For a leaked code: the old one stops working at once and a new one is made. Their link is not changed.',
       rotateConfirm: 'Replace the discount code?',
       rotated: (code: string) => `New discount code: ${code}`,
-      request: (code: string) => `Asked for their own code: ${code}`,
+      requestTitle: 'Code request',
+      requestBody:
+        'They asked to use this as their link and discount code. Approving keeps their old links earning.',
+      requestCode: 'Requested code',
       approve: 'Approve',
       decline: 'Decline',
       approved: 'Approved. Old links keep earning.',
