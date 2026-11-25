@@ -118,7 +118,7 @@ let seededOrders = 0
  * Columns whose check constraint is a pattern rather than an `in (...)` list, or that must be
  * unique: a value of the right shape. Keyed by `table.column`.
  */
-const PATTERNED: Record<string, () => string | number> = {
+const PATTERNED: Record<string, () => unknown> = {
   // `^[0-9]{10,20}$` (Pixels app, 0160).
   'pixel_connection.pixel_id': () =>
     `1${randomUUID().replace(/\D/g, '').padEnd(14, '0').slice(0, 14)}`,
@@ -135,6 +135,8 @@ const PATTERNED: Record<string, () => string | number> = {
   // `order (store_id, number)` is unique since 0177: far above the numbers a new store hands
   // out (#1, #2), so an order the walk creates never collides with a seeded one.
   'order.number': () => 900_000 + ++seededOrders,
+  // Loyalty campaigns (0270): `ends_at > starts_at`.
+  'loyalty_campaign.ends_at': () => sql`now() + interval '1 day'`,
 }
 
 function valueFor(col: Column, table: string): unknown {

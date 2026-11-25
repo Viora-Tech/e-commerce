@@ -201,7 +201,13 @@ describe('apps.orderActions', () => {
     const after = await call(appRouter.apps.orderActions, undefined, { context: m.ctx })
     const gst = after.find((g) => g.appId === 'gst-invoices')
     expect(gst).toMatchObject({ appName: 'GST invoices', icon: 'FileText' })
-    expect(gst?.actions.map((a) => a.id)).toEqual(['generate-invoice', 'add-to-queue'])
+    // Email and Download are listed too; `whenState` shows them only once the order is invoiced.
+    expect(gst?.actions.map((a) => a.id)).toEqual([
+      'generate-invoice',
+      'add-to-queue',
+      'email-invoice',
+      'download-invoice',
+    ])
   })
 })
 
