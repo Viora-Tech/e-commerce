@@ -173,6 +173,14 @@ export const loyaltyWidgetContent = {
     failed: 'Could not apply this reward. Try again.',
     join: 'Sign in to use your points',
   },
+  /** The checkout summary's points line and rewards (apps/storefront checkout-loyalty). */
+  checkout: {
+    earn: (points: string) => `You'll earn ${points} with this order`,
+    earnLater: 'Points land once your order is delivered.',
+    join: (points: string) => `Sign in to earn ${points} with this order`,
+    balance: (points: string) => `You have ${points}`,
+    use: 'Use your points',
+  },
   popup: {
     heading: 'A friend sent you a gift',
     body: (offer: string) => `Get ${offer} on your first order.`,

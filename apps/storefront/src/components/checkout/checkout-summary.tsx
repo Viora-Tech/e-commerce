@@ -3,6 +3,7 @@
 import { formatPaise, useFormatCart, useFormatPaise, useMarketPricing } from '@commerce/blocks'
 import type { CartView } from '@commerce/core'
 import CheckoutDiscount from '@/components/checkout/checkout-discount'
+import CheckoutLoyalty from '@/components/checkout/checkout-loyalty'
 import GiftCardField from '@/components/checkout/gift-card-field'
 import StoreCreditField from '@/components/checkout/store-credit-field'
 import SummaryItems from '@/components/checkout/summary-items'
@@ -159,6 +160,10 @@ export default function CheckoutSummary({
                 onChange={onStoreCredit}
               />
             ) : null}
+            <CheckoutLoyalty
+              goodsPaise={Math.max(0, cart.subtotalPaise - discountPaise)}
+              hasCode={Boolean(discount?.code)}
+            />
           </div>
         )}
 
