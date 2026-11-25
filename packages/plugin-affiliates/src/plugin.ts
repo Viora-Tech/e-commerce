@@ -108,15 +108,17 @@ export const affiliatesPlugin = definePlugin({
   },
   admin: {
     icon: 'Users',
+    // UpPromote's menu order (25 Nov 2026): Home, Programs, Affiliates, Referrals, Payments,
+    // Motivation, then Settings. Routes are unchanged; only titles and order moved.
     pages: [
-      { path: '', title: 'Affiliates overview', navLabel: 'Overview', icon: 'BarChart3' },
-      { path: 'affiliates', title: 'Affiliates', navLabel: 'Affiliates', icon: 'Users' },
-      { path: 'affiliates/[id]', title: 'Affiliate' },
+      { path: '', title: 'Home', navLabel: 'Home', icon: 'BarChart3' },
       { path: 'programs', title: 'Programs', navLabel: 'Programs', icon: 'Blocks' },
       { path: 'programs/[id]', title: 'Program' },
-      { path: 'commissions', title: 'Commissions', navLabel: 'Commissions', icon: 'FileText' },
-      { path: 'creatives', title: 'Creatives', navLabel: 'Creatives', icon: 'Upload' },
-      { path: 'payouts', title: 'Payouts', navLabel: 'Payouts', icon: 'CreditCard' },
+      { path: 'affiliates', title: 'Affiliates', navLabel: 'Affiliates', icon: 'Users' },
+      { path: 'affiliates/[id]', title: 'Affiliate' },
+      { path: 'commissions', title: 'Referrals', navLabel: 'Referrals', icon: 'FileText' },
+      { path: 'payouts', title: 'Payments', navLabel: 'Payments', icon: 'CreditCard' },
+      { path: 'creatives', title: 'Motivation', navLabel: 'Motivation', icon: 'Upload' },
       { path: 'settings', title: 'Settings', navLabel: 'Settings', icon: 'Settings' },
     ],
   },

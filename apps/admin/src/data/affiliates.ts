@@ -288,7 +288,7 @@ export const affiliatesContent = {
     },
   },
   commissions: {
-    title: 'Commissions',
+    title: 'Referrals',
     subtitle:
       'Each order an affiliate brought. Commission waits for delivery and the return window, then becomes ready to pay.',
     resource: { singular: 'commission', plural: 'commissions' },
@@ -314,7 +314,7 @@ export const affiliatesContent = {
     reversed: 'Reversed',
   },
   payouts: {
-    title: 'Payouts',
+    title: 'Payments',
     subtitle:
       'Pay affiliates by UPI or a bank bulk upload, then mark the payout paid. No money moves through your store’s admin.',
     readyTitle: 'Ready to pay',

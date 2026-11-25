@@ -6,6 +6,7 @@ import activityLog from './activity-log'
 import affiliateCreatives from './affiliate-creatives'
 import affiliateFilters from './affiliate-filters'
 import affiliates from './affiliates'
+import affiliatesLayout from './affiliates-layout'
 import agentReadiness from './agent-readiness'
 import ai from './ai'
 import analytics from './analytics'
@@ -211,6 +212,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...activityLog,
   ...account,
   ...affiliates,
+  ...affiliatesLayout,
   ...affiliateCreatives,
   ...affiliateFilters,
   ...appInstall,

@@ -7,14 +7,17 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import MotivationResources from '@/components/apps/affiliates/motivation-resources'
 import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
+import SectionHead from '@/components/layout/section-head'
 import MediaPickDialog from '@/components/media/media-pick-dialog'
 import type { PickedMedia } from '@/components/media/media-pick-types'
 import { affiliateCreativesContent } from '@/data/affiliate-creatives'
 import { affiliatesContent } from '@/data/affiliates'
+import { affiliatesLayoutContent } from '@/data/affiliates-layout'
 import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -34,11 +37,16 @@ type Draft = {
 const programLabel = (programs: { id: string; name: string }[], id: string | null, all: string) =>
   id ? (programs.find((p) => p.id === id)?.name ?? all) : all
 
-/** Affiliates › Creatives: images and captions affiliates see on their dashboard, ready to post. */
+/**
+ * Affiliates › Motivation (UpPromote's name): Promotional resources (coupons and the media
+ * gallery), then the creatives themselves, images and captions affiliates see on their
+ * dashboard, ready to post.
+ */
 export default function CreativesPage() {
   // Hooks
   const copy = useCopy(affiliateCreativesContent)
   const { failed } = useCopy(affiliatesContent)
+  const { motivation } = useCopy(affiliatesLayoutContent)
   const apps = useCopy(appsContent)
   const [rows, setRows] = useState<Creative[] | null>(null)
   const [programs, setPrograms] = useState<{ id: string; name: string }[]>([])
@@ -119,12 +127,11 @@ export default function CreativesPage() {
   ) : null
 
   return (
-    <div className="flex flex-col gap-5">
-      <PageHeader
-        title={copy.title}
-        summary={copy.subtitle}
-        actions={<Button onClick={() => setPicking(true)}>{copy.add}</Button>}
-      />
+    // UpPromote's column: about 50rem, centred.
+    <div className="mx-auto flex w-full max-w-[50rem] flex-col gap-5">
+      <PageHeader title={copy.title} />
+      <MotivationResources onAddMedia={() => setPicking(true)} />
+      <SectionHead title={motivation.media} intro={copy.subtitle} />
       {draft ? (
         <DataCard title={draft.id ? copy.edit : copy.add}>
           <div className="flex flex-col gap-4 sm:flex-row">

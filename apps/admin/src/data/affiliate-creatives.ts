@@ -1,6 +1,6 @@
 /** Copy for Affiliates → Creatives. Hindi overlay: `data/hi/affiliate-creatives.ts`. */
 export const affiliateCreativesContent = {
-  title: 'Creatives',
+  title: 'Motivation',
   subtitle:
     'Images and captions your affiliates see on their dashboard, ready to save and post with their link.',
   add: 'Add creative',

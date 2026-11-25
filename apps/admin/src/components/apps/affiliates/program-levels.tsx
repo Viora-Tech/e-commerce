@@ -3,19 +3,18 @@
 import type { ProgramRules } from '@commerce/plugin-affiliates/settings'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
-import SettingsCard from '@/components/settings/settings-card'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
 
-type ProgramLevelsCardProps = {
+type ProgramLevelsProps = {
   levels: ProgramRules['levels']
   onChange: (levels: ProgramRules['levels']) => void
 }
 
 const MAX_LEVELS = 10
 
-/** Order-value levels: a different percent once an order passes a value. */
-export default function ProgramLevelsCard({ levels, onChange }: ProgramLevelsCardProps) {
+/** Order-value levels (the Tiered rule): a different percent once an order passes a value. */
+export default function ProgramLevels({ levels, onChange }: ProgramLevelsProps) {
   // Hooks
   const { program: copy, settings } = useCopy(affiliatesContent)
 
@@ -27,7 +26,8 @@ export default function ProgramLevelsCard({ levels, onChange }: ProgramLevelsCar
 
   // Render logic
   return (
-    <SettingsCard title={copy.levels} description={copy.levelsHelp}>
+    <div className="flex flex-col gap-3">
+      <p className="text-caption text-muted-foreground">{copy.levelsHelp}</p>
       {levels.length === 0 ? (
         <p className="text-caption text-muted-foreground">{copy.levelNone}</p>
       ) : null}
@@ -72,6 +72,6 @@ export default function ProgramLevelsCard({ levels, onChange }: ProgramLevelsCar
           </Button>
         </div>
       ) : null}
-    </SettingsCard>
+    </div>
   )
 }

@@ -4,11 +4,10 @@ import type { ProgramRules } from '@commerce/plugin-affiliates/settings'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
-import SettingsCard from '@/components/settings/settings-card'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
 
-type ProgramExcludesCardProps = {
+type ProgramExcludesProps = {
   excludes: ProgramRules['excludes']
   onChange: (excludes: ProgramRules['excludes']) => void
 }
@@ -16,7 +15,7 @@ type ProgramExcludesCardProps = {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /** Products and collections that earn no commission at all. */
-export default function ProgramExcludesCard({ excludes, onChange }: ProgramExcludesCardProps) {
+export default function ProgramExcludes({ excludes, onChange }: ProgramExcludesProps) {
   // Hooks
   const { program: copy, settings } = useCopy(affiliatesContent)
 
@@ -27,7 +26,7 @@ export default function ProgramExcludesCard({ excludes, onChange }: ProgramExclu
 
   // Render logic
   return (
-    <SettingsCard title={copy.excludes} description={copy.excludesHelp}>
+    <div className="flex flex-col gap-3">
       {excludes.length === 0 ? (
         <p className="text-caption text-muted-foreground">{copy.excludeNone}</p>
       ) : null}
@@ -72,6 +71,6 @@ export default function ProgramExcludesCard({ excludes, onChange }: ProgramExclu
           {copy.addExclude}
         </Button>
       </div>
-    </SettingsCard>
+    </div>
   )
 }

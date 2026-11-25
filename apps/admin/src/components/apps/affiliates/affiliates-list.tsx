@@ -1,12 +1,14 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
+import { Users } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs'
 import { Suspense, useState } from 'react'
 import AddAffiliateDialog from '@/components/apps/affiliates/add-affiliate-dialog'
 import AffiliateRowActions from '@/components/apps/affiliates/affiliate-row-actions'
 import { statusTone } from '@/components/apps/affiliates/tones'
+import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import RelativeTime from '@/components/layout/relative-time'
 import StatusChip from '@/components/layout/status-chip'
@@ -14,6 +16,7 @@ import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { affiliateFiltersContent } from '@/data/affiliate-filters'
 import { affiliatesContent } from '@/data/affiliates'
+import { affiliatesLayoutContent } from '@/data/affiliates-layout'
 import { appsContent } from '@/data/apps'
 import { filterPanelContent } from '@/data/filter-panel'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -30,7 +33,10 @@ import { routes } from '@/lib/routes'
 type Row = Awaited<ReturnType<typeof api.affiliates.list>>[number]
 type Program = { id: string; name: string }
 
-/** Every affiliate, waiting ones first to approve, with what each earned. */
+/**
+ * Every affiliate, waiting ones first to approve, with what each earned. With none yet, UpPromote's
+ * empty state (two people, "Manage affiliate list", Add affiliate) stands in for the table.
+ */
 export default function AffiliatesList() {
   return (
     <Suspense>
@@ -42,6 +48,7 @@ export default function AffiliatesList() {
 function AffiliatesTable() {
   // Hooks
   const copy = useCopy(affiliatesContent)
+  const { affiliates: layout } = useCopy(affiliatesLayoutContent)
   const apps = useCopy(appsContent)
   const filtersCopy = useCopy(affiliateFiltersContent)
   const panelCopy = useCopy(filterPanelContent)
@@ -150,6 +157,7 @@ function AffiliatesTable() {
   )
   const applied = appliedFromGroups(groups, panelCopy)
   const filtered = applied.length > 0 || q.query.length > 0
+  const none = !filtered && !failed && rows !== null && rows.length === 0
 
   return (
     <div className="flex flex-col gap-5">
@@ -157,30 +165,40 @@ function AffiliatesTable() {
         title={l.title}
         actions={<Button onClick={() => setAdding(true)}>{l.add}</Button>}
       />
-      <ResourceTable
-        resourceName={l.resource}
-        columns={columns}
-        items={visible}
-        getId={(r) => r.id}
-        href={(r) => routes.apps.page('affiliates', 'affiliates', r.id)}
-        selectable={false}
-        loading={loading && rows === null && !failed}
-        error={
-          failed ? { heading: apps.couldNotLoad.affiliates, onRetry: handleChanged } : undefined
-        }
-        query={q.query}
-        onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
-        onClearAll={() => setQ({ ...CLEAR_AFFILIATE_FILTERS, query: '', page: 1 })}
-        filterGroups={groups}
-        page={q.page}
-        perPage={q.perPage}
-        total={ordered.length}
-        onPageChange={(page) => setQ({ page })}
-        onPerPageChange={(perPage) => setQ({ perPage, page: 1 })}
-        empty={
-          filtered ? filtersCopy.affiliates.noResults : { heading: l.empty, body: l.emptyBody }
-        }
-      />
+      {none ? (
+        <EmptyState
+          variant="page"
+          icon={Users}
+          heading={layout.emptyTitle}
+          body={layout.emptyBody}
+          action={<Button onClick={() => setAdding(true)}>{l.add}</Button>}
+        />
+      ) : (
+        <ResourceTable
+          resourceName={l.resource}
+          columns={columns}
+          items={visible}
+          getId={(r) => r.id}
+          href={(r) => routes.apps.page('affiliates', 'affiliates', r.id)}
+          selectable={false}
+          loading={loading && rows === null && !failed}
+          error={
+            failed ? { heading: apps.couldNotLoad.affiliates, onRetry: handleChanged } : undefined
+          }
+          query={q.query}
+          onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
+          onClearAll={() => setQ({ ...CLEAR_AFFILIATE_FILTERS, query: '', page: 1 })}
+          filterGroups={groups}
+          page={q.page}
+          perPage={q.perPage}
+          total={ordered.length}
+          onPageChange={(page) => setQ({ page })}
+          onPerPageChange={(perPage) => setQ({ perPage, page: 1 })}
+          empty={
+            filtered ? filtersCopy.affiliates.noResults : { heading: l.empty, body: l.emptyBody }
+          }
+        />
+      )}
       <AddAffiliateDialog open={adding} onOpenChange={setAdding} onAdded={handleChanged} />
     </div>
   )

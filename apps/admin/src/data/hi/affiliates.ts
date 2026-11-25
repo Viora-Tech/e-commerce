@@ -277,7 +277,7 @@ export default [
       },
     },
     commissions: {
-      title: 'कमीशन',
+      title: 'रेफ़रल',
       subtitle:
         'एफ़िलिएट से आया हर ऑर्डर। कमीशन डिलीवरी और रिटर्न की अवधि के बाद पेमेंट के लिए तैयार होता है।',
       resource: { singular: 'कमीशन', plural: 'कमीशन' },
