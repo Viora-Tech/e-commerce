@@ -74,7 +74,7 @@ export default function LoyaltyCartRedeem({ heading, live }: LoyaltyCartRedeemPr
   })
   return (
     <section className="flex flex-col gap-2 rounded-[var(--radius-m,0.5rem)] border border-line p-4 text-ink">
-      <h3 className="m-0 text-base font-semibold">{heading || copy.cart.title}</h3>
+      <h3 className="m-0 font-[inherit] text-base! font-semibold! tracking-normal! normal-case!">{heading || copy.cart.title}</h3>
       <p className="m-0 text-sm text-muted">
         {copy.cart.balance(copy.points(view.member.points, names))}
       </p>

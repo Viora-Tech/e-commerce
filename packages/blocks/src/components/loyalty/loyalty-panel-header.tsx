@@ -37,7 +37,7 @@ export default function LoyaltyPanelHeader({
         <button type="button" onClick={onBack} aria-label={copy.back} className={ROUND}>
           <LoyaltyIcon name="chevron-left" className="size-5" />
         </button>
-        <h2 className="m-0 min-w-0 flex-1 truncate text-[1rem] font-bold leading-tight">{title}</h2>
+        <h2 className="m-0 min-w-0 flex-1 truncate font-[inherit] text-[1rem]! font-bold! leading-tight! tracking-normal! normal-case!">{title}</h2>
         <CloseButton onClose={onClose} />
       </header>
     )
@@ -47,7 +47,7 @@ export default function LoyaltyPanelHeader({
     <header className="flex items-start justify-between gap-3 bg-(image:--kl-head) bg-(--kl-head-solid) px-5 pt-5 pb-14 text-(--kl-head-text)">
       <span className="flex min-w-0 flex-col gap-1">
         {welcome ? <span className="text-[0.875rem] opacity-90">{welcome}</span> : null}
-        <h2 className="m-0 text-[1.5rem] font-bold leading-tight">{title}</h2>
+        <h2 className="m-0 font-[inherit] text-[1.5rem]! font-bold! leading-tight! tracking-normal! normal-case!">{title}</h2>
         {points ? (
           <span className="text-[0.9375rem] font-semibold opacity-90">{points}</span>
         ) : null}
