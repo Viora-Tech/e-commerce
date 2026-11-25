@@ -2138,8 +2138,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
       ],
       shares: [],
     },
-    adminPages: ['Overview', 'Settings'],
-    themeBlocks: [],
+    adminPages: ['Home', 'Program', 'Campaigns', 'Members', 'Analytics', 'Placements', 'Emails'],
+    themeBlocks: ['Points on product', 'Points on product card', 'Redeem in cart'],
     credits: [],
   },
 ]
