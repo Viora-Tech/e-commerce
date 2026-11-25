@@ -143,11 +143,13 @@ export const loyaltyPlugin = definePlugin({
     icon: 'Gift',
     customerDetailCard: true,
     pages: [
+      // Menu order as Essential Loyalty: Home, Program, Campaigns, Members, Analytics,
+      // Placements; Emails after. Activity opens from a Members header button.
+      { path: 'overview', title: 'Home', navLabel: 'Home', icon: 'BarChart3' },
       { path: '', title: 'Loyalty points', navLabel: 'Program', icon: 'Gift' },
-      { path: 'overview', title: 'Overview', navLabel: 'Overview', icon: 'BarChart3' },
+      { path: 'campaigns', title: 'Campaigns', navLabel: 'Campaigns', icon: 'StarIcon' },
       { path: 'members', title: 'Members', navLabel: 'Members', icon: 'Users' },
       { path: 'analytics', title: 'Analytics', navLabel: 'Analytics', icon: 'FileBarChart' },
-      { path: 'campaigns', title: 'Campaigns', navLabel: 'Campaigns', icon: 'StarIcon' },
       { path: 'placements', title: 'Placements', navLabel: 'Placements', icon: 'Blocks' },
       { path: 'emails', title: 'Emails', navLabel: 'Emails', icon: 'MessageSquare' },
       { path: 'rewards/[id]', title: 'Reward' },

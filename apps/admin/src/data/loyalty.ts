@@ -24,7 +24,15 @@ export const loyaltyContent = {
   adjustAdded: 'Added',
   adjustRemoved: 'Removed',
   overview: {
-    title: 'Loyalty points',
+    title: 'Overview',
+    appBlocks: (n: number) => `${n} App blocks`,
+    appBlocksHelp: 'Points blocks you can add to product, collection and cart pages in Customize.',
+    embedOn: 'App embed on',
+    embedOff: 'App embed off',
+    embedHelp: 'The floating widget on your live theme (Customize › App embeds).',
+    live: 'Loyalty live',
+    reviewProgram: 'Review program',
+    paused: 'Loyalty paused',
     subtitle:
       'Shoppers earn points on delivered orders, reviews and birthdays. 1 point is ₹1 of store credit at checkout.',
     earned: 'Points given',

@@ -3,41 +3,65 @@
 import { ExternalLink } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
+import PlacementArt from '@/components/apps/loyalty/placement-art'
+import SetupBar from '@/components/apps/loyalty/setup-bar'
+import { loadSetupData } from '@/components/apps/loyalty/setup-state'
 import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
+import SectionHead from '@/components/layout/section-head'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import StatusChip from '@/components/layout/status-chip'
 import { loyaltyPlacementsContent } from '@/data/loyalty-placements'
 import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
-import { api } from '@/lib/api-client'
-import { customizeHref, LOYALTY_PLACEMENTS, placementStatus } from '@/lib/loyalty-placements'
-import { routes } from '@/lib/routes'
+import {
+  customizeHref,
+  LOYALTY_PLACEMENTS,
+  type Placement,
+  placementStatus,
+} from '@/lib/loyalty-placements'
+
+type CardStatus = 'live' | 'disabled' | 'ready'
 
 /** The chip tone for each status. */
-const TONE = { ready: 'success', off: 'neutral', unknown: 'info' } as const
+const TONE = { live: 'success', disabled: 'neutral', ready: 'info' } as const
 
 /**
- * Where the Loyalty app shows on the storefront: the floating widget and the referral pop-up
- * (app embeds, Ready or Off from the live theme) and the product, card and cart points (app
- * blocks). Each card says where to switch it on and opens Customize there.
+ * Essential's three words: an embed switched on is Live, switched off (or no live theme) is
+ * Disabled; an app block is Ready, since whether a template holds it is not read here.
+ */
+function cardStatus(
+  p: Placement,
+  appEmbeds: Record<string, { enabled: boolean }> | null,
+): CardStatus {
+  if (p.kind === 'block') return 'ready'
+  return placementStatus(p, appEmbeds) === 'ready' ? 'live' : 'disabled'
+}
+
+/**
+ * Onsite elements (Essential Loyalty's Placements layout): the setup bar with "Enable app
+ * embed", then the onsite content cards: the floating widget and the referral pop-up (app
+ * embeds, Live or Disabled from the live theme) and the product, card and cart points (app
+ * blocks, Ready). Each card opens Customize where it is switched on.
  */
 export default function LoyaltyPlacementsPage() {
   // Hooks
   const copy = useCopy(loyaltyPlacementsContent)
-  const { data, failed, retry } = useLoad(async () => {
-    const themes = await api.themes.list()
-    const live = themes.find((t) => t.role === 'main') ?? null
-    return { live: live ? { id: live.id, appEmbeds: live.settings.appEmbeds } : null }
-  })
+  const { data, failed, retry } = useLoad(loadSetupData)
 
   // Early returns
-  if (failed) {
+  // This page is about the theme: a failed theme read is the page's error.
+  if (failed || (data && data.theme === undefined)) {
     return (
       <div className="flex flex-col gap-4">
         <PageHeader title={copy.title} summary={copy.subtitle} />
-        <LoadFailedState size="page" heading={copy.loadFailed} failed={failed} onRetry={retry} />
+        <LoadFailedState
+          size="page"
+          heading={copy.loadFailed}
+          failed={failed || undefined}
+          onRetry={retry}
+        />
       </div>
     )
   }
@@ -46,7 +70,8 @@ export default function LoyaltyPlacementsPage() {
   }
 
   // Render logic
-  const editor = data.live ? routes.onlineStore.themeEditor(data.live.id) : null
+  const editor = data.theme?.editor ?? null
+  const embeds = data.theme?.appEmbeds ?? null
 
   return (
     <div className="flex flex-col gap-5">
@@ -56,37 +81,55 @@ export default function LoyaltyPlacementsPage() {
           {copy.noTheme}
         </p>
       )}
-      <div className="grid gap-5 md:grid-cols-2">
-        {LOYALTY_PLACEMENTS.map((p) => {
-          const status = placementStatus(p, data.live?.appEmbeds ?? null)
-          const item = copy.items[p.id]
-          return (
-            <DataCard
-              key={p.id}
-              title={item.title}
-              action={<StatusChip tone={TONE[status]}>{copy.status[status]}</StatusChip>}
-            >
-              <div className="flex flex-col gap-3">
-                <p className="text-body text-foreground">{item.body}</p>
-                <p className="text-caption text-muted-foreground">{copy.where[p.kind]}</p>
-                {editor ? (
-                  <div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      nativeButton={false}
-                      render={<Link href={customizeHref(editor, p.kind)} />}
-                    >
-                      {copy.open}
-                      <ExternalLink />
-                    </Button>
+      <SetupBar
+        live={data.settings.programStatus === 'live'}
+        placementsOn={data.placementsOn}
+        ratePercent={data.ratePercent}
+        action={
+          editor ? (
+            <Button nativeButton={false} render={<Link href={customizeHref(editor, 'embed')} />}>
+              {copy.enableEmbed}
+            </Button>
+          ) : null
+        }
+      />
+      <section className="flex flex-col gap-3">
+        <SectionHead title={copy.section} />
+        <div className="grid gap-5 md:grid-cols-2">
+          {LOYALTY_PLACEMENTS.map((p) => {
+            const status = cardStatus(p, embeds)
+            const item = copy.items[p.id]
+            return (
+              <DataCard
+                key={p.id}
+                title={item.title}
+                action={<StatusChip tone={TONE[status]}>{copy.status[status]}</StatusChip>}
+              >
+                <div className="flex items-end gap-4">
+                  <div className="flex min-w-0 flex-1 flex-col gap-3">
+                    <p className="text-body text-foreground">{item.body}</p>
+                    <p className="text-caption text-muted-foreground">{copy.where[p.kind]}</p>
+                    {editor ? (
+                      <div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          nativeButton={false}
+                          render={<Link href={customizeHref(editor, p.kind)} />}
+                        >
+                          {copy.open}
+                          <ExternalLink />
+                        </Button>
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
-              </div>
-            </DataCard>
-          )
-        })}
-      </div>
+                  <PlacementArt id={p.id} />
+                </div>
+              </DataCard>
+            )
+          })}
+        </div>
+      </section>
     </div>
   )
 }

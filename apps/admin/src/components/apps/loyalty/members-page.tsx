@@ -14,6 +14,7 @@ import RelativeTime from '@/components/layout/relative-time'
 import StatusChip from '@/components/layout/status-chip'
 import type { FilterGroup } from '@/components/table/filter-panel'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
 import { loyaltyInsightsContent } from '@/data/loyalty-insights'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
@@ -41,7 +42,11 @@ function saveFile(name: string, text: string) {
   URL.revokeObjectURL(url)
 }
 
-/** Everyone in the loyalty program: tier, points, lifetime points and spend, with bulk points tools. */
+/**
+ * Everyone in the loyalty program (Essential Loyalty's layout): Activity and More actions in the
+ * header, an All / Active / Excluded view beside the search, then name, status, tier, points,
+ * lifetime points and total spent (Joined can be shown from the columns menu).
+ */
 export default function LoyaltyMembersPage() {
   return (
     <Suspense>
@@ -168,15 +173,6 @@ function MembersTable() {
       anyLabel: m.filters.any,
       onChange: (tier) => setQ({ tier: tier ?? '', page: 1 }),
     },
-    {
-      key: 'status',
-      label: m.filters.status,
-      type: 'select',
-      options: STATUSES.map((s) => ({ value: s, label: m.status[s] ?? s })),
-      value: q.status || null,
-      anyLabel: m.filters.any,
-      onChange: (status) => setQ({ status: status ?? '', page: 1 }),
-    },
   ]
   const filtered = q.query.length > 0 || q.tier !== '' || q.status !== ''
 
@@ -187,6 +183,13 @@ function MembersTable() {
         summary={m.summary}
         actions={
           <>
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href={routes.apps.page('loyalty', 'activity')} />}
+            >
+              {m.activity}
+            </Button>
             <ActionMenu
               label={m.moreActions}
               trigger="button"
@@ -197,13 +200,6 @@ function MembersTable() {
                 { label: m.reset, destructive: true, onSelect: () => setResetting(true) },
               ]}
             />
-            <Button
-              variant="outline"
-              nativeButton={false}
-              render={<Link href={routes.apps.page('loyalty', 'activity')} />}
-            >
-              {m.activity}
-            </Button>
           </>
         }
       />
@@ -219,7 +215,19 @@ function MembersTable() {
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
         onClearAll={() => setQ({ query: '', tier: '', status: '', page: 1 })}
+        views={
+          <ViewSelect
+            value={q.status === 'active' || q.status === 'excluded' ? q.status : null}
+            label={m.viewLabel}
+            onChange={(status) => setQ({ status: status ?? '', page: 1 })}
+            options={[
+              { value: null, label: m.views.all },
+              ...STATUSES.map((s) => ({ value: s, label: m.status[s] ?? s })),
+            ]}
+          />
+        }
         filterGroups={groups}
+        defaultHidden={['joined']}
         defaultSort={{ id: 'joined', desc: true }}
         sort={parseMemberSort(q.sort)}
         onSortChange={(s) => setQ({ sort: memberSortParam(s), page: 1 })}

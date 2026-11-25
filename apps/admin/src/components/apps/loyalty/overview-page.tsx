@@ -1,5 +1,6 @@
 'use client'
 
+import { Button } from '@commerce/ui/shadcn/button'
 import {
   Table,
   TableBody,
@@ -11,6 +12,9 @@ import {
 import Link from 'next/link'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
 import LoyaltyInsightCards from '@/components/apps/loyalty/insight-cards'
+import SetupBar from '@/components/apps/loyalty/setup-bar'
+import { loadSetupData } from '@/components/apps/loyalty/setup-state'
+import LoyaltyStatusChips from '@/components/apps/loyalty/status-chips'
 import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCard from '@/components/layout/data-card'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
@@ -25,7 +29,11 @@ import { api } from '@/lib/api-client'
 import { formatDay } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
 
-/** The Loyalty points app's home: points given, taken back and on the way, and the latest points. */
+/**
+ * The Loyalty points app's Home (Essential Loyalty's layout): "Overview" with the app block,
+ * app embed and program status chips, the setup bar, then points given, taken back and on the
+ * way, and the latest points.
+ */
 export default function LoyaltyOverviewPage() {
   // Hooks
   const copy = useCopy(loyaltyContent)
@@ -33,13 +41,35 @@ export default function LoyaltyOverviewPage() {
   const f = useFormat()
   const locale = useLocale()
   const { data, failed, retry } = useLoad(() => api.loyalty.overview({ days: 30 }), [])
+  // The chips and the setup bar are extras: if their read fails the page still shows its numbers.
+  const { data: setup } = useLoad(loadSetupData, [])
 
   // Render logic
   const o = copy.overview
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader title={o.title} summary={o.subtitle} />
+      <PageHeader
+        title={o.title}
+        summary={o.subtitle}
+        actions={setup ? <LoyaltyStatusChips setup={setup} /> : null}
+      />
+      {setup ? (
+        <SetupBar
+          live={setup.settings.programStatus === 'live'}
+          placementsOn={setup.placementsOn}
+          ratePercent={setup.ratePercent}
+          action={
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href={routes.apps.page('loyalty')} />}
+            >
+              {o.reviewProgram}
+            </Button>
+          }
+        />
+      ) : null}
       {failed ? (
         <LoadFailedState
           size="page"
