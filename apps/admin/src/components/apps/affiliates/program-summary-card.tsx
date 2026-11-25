@@ -1,6 +1,6 @@
 'use client'
 
-import type { ProgramRules } from '@commerce/plugin-affiliates/settings'
+import { couponOffer, type ProgramRules } from '@commerce/plugin-affiliates/settings'
 import { rateText } from '@/components/apps/affiliates/rule-label'
 import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
@@ -29,13 +29,14 @@ export default function ProgramSummaryCard({
 
   // Render logic
   const b = copy.bullets
+  const offer = couponOffer(rules.coupon)
   const lines = [
     b.rate(rateText(rules.commission, f.money)),
     rules.levels.length > 0 ? b.levels(rules.levels.length) : null,
     rules.overrides.length > 0 ? b.products(rules.overrides.length) : null,
     rules.tiers.length > 0 ? b.tiers(rules.tiers.length) : null,
     rules.scope === 'lifetime' ? b.lifetime(rules.lifetimeDays) : b.firstOrder,
-    rules.coupon.enabled ? b.coupon(rules.coupon.bp / 100) : b.noCoupon,
+    offer ? (offer.selected ? b.couponSelected : b.coupon)(offer.percent) : b.noCoupon,
     rules.excludes.length > 0 ? b.excluded(rules.excludes.length) : null,
     b.fees,
     b.self,

@@ -110,6 +110,8 @@ export const affiliatesLayoutContent = {
       firstOrder: 'First order of each customer',
       lifetime: (days: number) => `Every order for ${days} days after the first`,
       coupon: (percent: number) => `Customers save ${percent}% with the affiliate’s code`,
+      couponSelected: (percent: number) =>
+        `Customers save up to ${percent}% on selected products with the affiliate’s code`,
       noCoupon: 'No discount code for customers',
       excluded: (n: number) =>
         n === 1 ? '1 product or collection excluded' : `${n} products or collections excluded`,

@@ -107,6 +107,8 @@ export default [
         firstOrder: 'हर ग्राहक का पहला ऑर्डर',
         lifetime: (days: number) => `पहले ऑर्डर के बाद ${days} दिन तक हर ऑर्डर`,
         coupon: (percent: number) => `एफ़िलिएट के कोड से ग्राहक ${percent}% बचाते हैं`,
+        couponSelected: (percent: number) =>
+          `एफ़िलिएट के कोड से ग्राहक चुने हुए प्रोडक्ट पर ${percent}% तक बचाते हैं`,
         noCoupon: 'ग्राहकों के लिए कोई डिस्काउंट कोड नहीं',
         excluded: (n: number) => `${n} प्रोडक्ट या कलेक्शन बाहर`,
         fees: 'प्रोडक्ट टैक्स, शिपिंग और गिफ़्ट कार्ड बाहर',

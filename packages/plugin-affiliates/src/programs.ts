@@ -9,6 +9,8 @@ import {
   AFFILIATES_ID,
   type CommissionRule,
   CommissionRuleSchema,
+  couponDiscountFields,
+  couponTargets,
   PROGRAM_SLUG,
   type ProgramRules,
   ProgramRulesSchema,
@@ -20,6 +22,19 @@ export type ProgramRow = typeof affiliateProgram.$inferSelect
 export type Program = Omit<ProgramRow, 'rules'> & { rules: ProgramRules }
 
 const DEFAULT_SLUG = 'default'
+
+/** Rules as saved: a code narrowed to products or collections must name at least one. */
+function cleanRules(raw: unknown): ProgramRules {
+  const rules = ProgramRulesSchema.parse(raw)
+  if (
+    rules.coupon.enabled &&
+    rules.coupon.appliesTo !== 'all' &&
+    couponTargets(rules.coupon).length === 0
+  ) {
+    throw new AffiliateError('COUPON_TARGETS', 'Pick the products or collections the code covers')
+  }
+  return rules
+}
 
 function toProgram(row: ProgramRow): Program {
   return { ...row, rules: parseProgramRules(row.rules) }
@@ -164,7 +179,7 @@ export async function createProgram(
       storeId,
       name,
       slug: await freeSlug(tx, storeId, input.slug || name),
-      rules: ProgramRulesSchema.parse(input.rules),
+      rules: cleanRules(input.rules),
     })
     .returning()
   if (!row) throw new AffiliateError('PROGRAM_NOT_SAVED', 'Program not saved')
@@ -190,33 +205,33 @@ export async function saveProgram(
   const slug = await freeSlug(tx, storeId, wanted, id)
   if (slug !== wanted)
     throw new AffiliateError('PROGRAM_SLUG_TAKEN', 'Another program uses that link')
-  const rules = ProgramRulesSchema.parse(input.rules)
+  const rules = cleanRules(input.rules)
   const [row] = await tx
     .update(affiliateProgram)
     .set({ name: cleanName(input.name), slug, rules, updatedAt: new Date() })
     .where(eq(affiliateProgram.id, id))
     .returning()
   if (!row) throw new AffiliateError('PROGRAM_NOT_FOUND', 'Program not found')
-  if (rules.coupon.bp !== current.rules.coupon.bp) {
-    await syncCouponValues(tx, storeId, id, current.isDefault, rules.coupon.bp)
+  if (JSON.stringify(rules.coupon) !== JSON.stringify(current.rules.coupon)) {
+    await syncCouponValues(tx, storeId, id, current.isDefault, rules.coupon)
   }
   return toProgram(row)
 }
 
-/** The program's affiliates' personal codes take its discount. */
+/** The program's affiliates' personal codes take its discount: amount and what it covers. */
 async function syncCouponValues(
   tx: StoreTx,
   storeId: string,
   programId: string,
   isDefault: boolean,
-  bp: number,
+  coupon: ProgramRules['coupon'],
 ): Promise<void> {
   const inProgram = isDefault
     ? sql`(${affiliate.programId} = ${programId} or ${affiliate.programId} is null)`
     : eq(affiliate.programId, programId)
   await tx
     .update(discount)
-    .set({ value: bp, updatedAt: new Date() })
+    .set({ ...couponDiscountFields(coupon), updatedAt: new Date() })
     .where(
       sql`${discount.id} in (select ${affiliate.discountId} from ${affiliate} where ${affiliate.storeId} = ${storeId} and ${inProgram})`,
     )
@@ -244,7 +259,7 @@ export async function setAffiliateProgram(
   if (row.discountId) {
     await tx
       .update(discount)
-      .set({ value: p.rules.coupon.bp, updatedAt: new Date() })
+      .set({ ...couponDiscountFields(p.rules.coupon), updatedAt: new Date() })
       .where(and(eq(discount.id, row.discountId), eq(discount.storeId, storeId)))
   }
 }

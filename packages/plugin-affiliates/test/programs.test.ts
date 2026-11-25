@@ -219,7 +219,7 @@ describe('programs', () => {
         rules: rulesWith({
           commission: { type: 'percent', bp: 2000 },
           levels: [{ minOrderPaise: 1000_00, rule: { type: 'percent', bp: 2500 } }],
-          coupon: { enabled: true, bp: 1500 },
+          coupon: { enabled: true, bp: 1500, appliesTo: 'all', targets: [] },
         }),
       }),
     )

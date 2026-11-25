@@ -44,13 +44,14 @@ export default function AffiliateDashboard({ portal, origin }: AffiliateDashboar
           code={a.code}
           couponCode={a.couponCode}
           couponPercent={p.couponPercent}
+          couponSelected={p.couponSelected}
         />
         <div className="flex flex-col gap-4 rounded-[var(--radius-card)] bg-surface p-5 sm:p-6">
           {a.couponCode ? (
             <CopyValue
               label={copy.share.code}
               value={a.couponCode}
-              hint={copy.share.codeHint(p.couponPercent)}
+              hint={copy.share.codeHint(p.couponPercent, p.couponSelected)}
             />
           ) : null}
           <p className="text-small text-muted">{copy.tips.code}</p>

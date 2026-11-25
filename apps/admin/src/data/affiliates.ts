@@ -421,6 +421,21 @@ export const affiliatesContent = {
     couponHelp:
       'Made in Discounts, so it follows your discount rules. Orders with the code earn the affiliate commission.',
     couponRate: 'Followers save (%)',
+    couponAppliesTo: 'The code takes money off',
+    couponScopes: {
+      all: 'The whole order',
+      products: 'Specific products',
+      collections: 'Specific collections',
+    },
+    couponScopeHelp: {
+      all: 'One percent off everything in the cart.',
+      products:
+        'Only the products you pick, each with its own percent. Other products in the cart pay full price.',
+      collections: 'Only products in the collections you pick, all at the percent above.',
+    },
+    couponCollectionsRate: 'Followers save on these collections (%)',
+    couponPickNeeded:
+      'Pick at least one product or collection, or let the code cover the whole order.',
     payouts: 'Holds and payouts',
     holdDays: 'Hold after delivery (days)',
     holdHelp: 'Your return window. Cancels, RTO and refunds in this time reverse the commission.',

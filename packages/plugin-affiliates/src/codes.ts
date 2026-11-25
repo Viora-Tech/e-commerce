@@ -4,7 +4,7 @@ import { discount, type StoreTx } from '@commerce/db'
 import { and, desc, eq, inArray, or, type SQL, sql } from 'drizzle-orm'
 import { programOf } from './programs'
 import { affiliate, affiliateCode } from './schema'
-import type { ProgramRules } from './settings'
+import { couponDiscountFields, type ProgramRules } from './settings'
 import { AffiliateError } from './store-settings'
 
 type AffiliateRow = typeof affiliate.$inferSelect
@@ -65,10 +65,9 @@ export async function ensureCoupon(
       title: `Affiliate: ${row.name || row.code}`.slice(0, 120),
       kind: 'code',
       code,
-      method: 'percent',
-      value: coupon.bp,
-      appliesTo: 'all',
-      appliesToIds: [],
+      // Whole order, or the products / collections the program chose (same targeting as the
+      // Discounts app's "Amount off products").
+      ...couponDiscountFields(coupon),
       status: 'active',
     })
     .returning({ id: discount.id })
