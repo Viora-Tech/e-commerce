@@ -8,7 +8,7 @@ import {
   isEligible,
   pickSeries,
 } from '@commerce/invoices'
-import { and, asc, eq, gte, inArray, lt, type SQL, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import {
   existing,
   InvoiceError,
@@ -25,8 +25,11 @@ import { latestIssuedDate, peekNext, startOfIstDay } from './next-number'
 import { takeNumber } from './numbers'
 import { invoiceParcels } from './parcels'
 import { assertPeriodOpen, PeriodError } from './periods'
-import { gstToken, orderIssuer, sameRegistration } from './registration'
+import { queuedInvoiceDrafts } from './queue-list'
+import { gstToken, orderIssuer } from './registration'
 import { invoice, invoiceSettings } from './schema'
+
+export { listQueue, type QueueFilter, queuedInvoiceDrafts } from './queue-list'
 
 /**
  * The invoice queue. Orders wait here as unnumbered drafts; a GST number is
@@ -198,47 +201,6 @@ export async function removeFromQueue(tx: StoreTx, ids: readonly string[]): Prom
     .where(and(inArray(invoice.id, [...ids]), eq(invoice.status, 'draft')))
     .returning({ id: invoice.id })
   return gone.length
-}
-
-export type QueueFilter = {
-  from?: Date | undefined
-  to?: Date | undefined
-  q?: string | undefined
-  /** One GSTIN's drafts (null: a store without a registration); undefined: every GSTIN. */
-  gstRegistrationId?: string | null | undefined
-}
-
-/**
- * Tax invoices waiting to be issued. Drafts queued before their order was cancelled
- * stay out of the queue and its counts.
- */
-export const queuedInvoiceDrafts = (): SQL =>
-  and(
-    eq(invoice.kind, 'tax_invoice'),
-    eq(invoice.status, 'draft'),
-    sql`not exists (select 1 from ${order} where ${order.id} = ${invoice.orderId} and ${order.status} = 'cancelled')`,
-  ) as SQL
-
-export async function listQueue(tx: StoreTx, filter: QueueFilter) {
-  const conds: (SQL | undefined)[] = [
-    queuedInvoiceDrafts(),
-    filter.gstRegistrationId === undefined
-      ? undefined
-      : sameRegistration(invoice.gstRegistrationId, filter.gstRegistrationId),
-    filter.from ? gte(invoice.eligibleAt, filter.from) : undefined,
-    filter.to ? lt(invoice.eligibleAt, filter.to) : undefined,
-  ]
-  return tx
-    .select()
-    .from(invoice)
-    .where(and(...conds))
-    .orderBy(
-      // By day, then order number: the order the batch is numbered in (`issueDrafts`).
-      sql`date_trunc('day', ${invoice.eligibleAt} at time zone 'Asia/Kolkata')`,
-      sql`(select ${order.number} from ${order} where ${order.id} = ${invoice.orderId})`,
-      asc(invoice.eligibleAt),
-      asc(invoice.createdAt),
-    )
 }
 
 /** The default date for a draft: when the goods left, else today. */

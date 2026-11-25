@@ -138,6 +138,11 @@ export default function CustomizeLayout({
       }),
     [view],
   )
+  // `?panel=apps` (an app's "Switch it on" link) opens Customize on that rail panel.
+  useEffect(() => {
+    const asked = new URLSearchParams(window.location.search).get('panel')
+    if (asked === 'apps' || asked === 'sections' || asked === 'theme') setPanel(asked)
+  }, [])
   // Full view shows the page as shoppers get it: Puck's interactive mode, where a click works
   // like on the live store. Leaving it goes back to editing.
   useEffect(() => {

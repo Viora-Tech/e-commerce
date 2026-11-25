@@ -32,7 +32,7 @@ export const paymentsSettingsContent = {
       'When a customer checks out the same items again within this time, an unpaid order is not created twice: they go on paying for the first one. If the first one is paid, they are asked before ordering again. The time counts from their last try. 0 turns this off.',
     capLabel: 'Most unpaid orders per customer in an hour',
     capHelp:
-      'Counted by email, phone and internet address. Cash on delivery does not count. 0 means no limit.',
+      'Counted by email, phone, device and internet address; reaching it on any one stops the next checkout. Cash on delivery does not count. 5 unless you change it; 0 means no limit.',
   },
   preorder: {
     heading: 'Pre-order balance',
@@ -85,5 +85,17 @@ export const paymentsSettingsContent = {
     },
     labelLabel: 'Label shown to shoppers',
     labelPlaceholder: { fixed: 'COD handling', percent: 'UPI discount' },
+  },
+  /** A payment app's own "Extra charge" card (Snapmint, Razorpay, Cashfree). */
+  gatewayFee: {
+    heading: (name: string) => `Extra charge for ${name}`,
+    intro:
+      'Shoppers see this beside the payment method at checkout, and it is added to the order total. A negative amount is a discount.',
+    defaultLabel: (name: string, discount: boolean) =>
+      discount ? `${name} discount` : `${name} convenience fee`,
+    save: 'Save',
+    discard: 'Discard',
+    saved: 'Extra charge saved',
+    saveFailed: 'Could not save the extra charge',
   },
 } as const

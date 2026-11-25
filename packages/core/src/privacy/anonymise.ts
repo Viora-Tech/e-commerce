@@ -346,6 +346,7 @@ export async function anonymiseCustomer(
       name: null,
       gstin: null,
       businessName: null,
+      birthday: null,
       defaultAddress: null,
       tags: [],
       note: null,

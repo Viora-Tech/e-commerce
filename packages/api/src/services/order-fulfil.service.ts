@@ -17,7 +17,7 @@ import type { StoreTx } from '@commerce/db'
 import { customer, order, payment, refund } from '@commerce/db'
 import type { ShippingRegistry } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
-import { and, asc, count, desc, eq, gt, inArray, lt, lte, ne, sum } from 'drizzle-orm'
+import { and, asc, count, desc, eq, gt, inArray, lt, lte, ne, notInArray, sum } from 'drizzle-orm'
 import { loadShippingSettings } from './shipping.service'
 
 /** The orders either side of this one by number, for the header's arrows. */
@@ -228,6 +228,22 @@ export async function collectOrderPayment(
         message: 'That is more than is left to pay on this order.',
       })
     }
+    // A partly paid order (an imported one, or part paid online) already has its one capture:
+    // the rest collected by hand is a second capture on purpose, so it opts out of the
+    // one-capture-per-order rule instead of failing on it (#2398, 23 Nov 2026).
+    const [captured] = await tx
+      .select({ id: payment.id })
+      .from(payment)
+      .where(
+        and(
+          eq(payment.orderId, input.orderId),
+          eq(payment.status, 'captured'),
+          eq(payment.multiCapture, false),
+          eq(payment.refundNeeded, false),
+          notInArray(payment.provider, ['gift_card', 'store_credit']),
+        ),
+      )
+      .limit(1)
     await tx.insert(payment).values({
       storeId,
       orderId: input.orderId,
@@ -235,6 +251,7 @@ export async function collectOrderPayment(
       providerRef: `manual_${input.orderId}_${Date.now()}`,
       status: 'captured',
       amountPaise: input.amountPaise,
+      multiCapture: captured !== undefined,
       checkoutSession: input.collected ? withManualCollection(null, input.collected) : null,
     })
     await recomputeOrderStatuses(ctx, input.orderId)

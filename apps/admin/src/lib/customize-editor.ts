@@ -50,10 +50,11 @@ export function leftoverDrafts(
   parts: readonly { draft: boolean }[],
   firstLoad: boolean,
   onDiscard: () => unknown,
+  /** The bar's copy in the admin's language (`useCopy`); English when left out. */
+  copy: { leftoverTitle: string; leftoverBody: string; discard: string } = customizeContent.bar,
 ): boolean {
   const leftover = parts.some((p) => p.draft)
   if (leftover && firstLoad) {
-    const copy = customizeContent.bar
     toast.message(copy.leftoverTitle, {
       description: copy.leftoverBody,
       duration: 12_000,

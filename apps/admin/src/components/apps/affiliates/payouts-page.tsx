@@ -1,34 +1,28 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@commerce/ui/shadcn/table'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import MarkPaidDialog from '@/components/apps/affiliates/mark-paid-dialog'
+import PaymentCandidatesTable from '@/components/apps/affiliates/payment-candidates-table'
+import PayoutsTable from '@/components/apps/affiliates/payouts-table'
 import TdsReportDialog from '@/components/apps/affiliates/tds-report-dialog'
-import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
 import LoadFailedState from '@/components/apps/shared/load-failed-state'
-import DataCard from '@/components/layout/data-card'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import PageHeader from '@/components/layout/page-header'
 import PageHeaderSkeleton from '@/components/layout/page-header-skeleton'
-import StatusChip from '@/components/layout/status-chip'
-import TableEmptyRow from '@/components/table/table-empty-row'
+import PillTabs from '@/components/layout/pill-tabs'
+import SectionHead from '@/components/layout/section-head'
 import { affiliatesContent } from '@/data/affiliates'
+import { affiliatesLayoutContent } from '@/data/affiliates-layout'
 import { appsContent } from '@/data/apps'
-import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
 
 type Candidate = Awaited<ReturnType<typeof api.affiliates.payouts.candidates>>[number]
 type Payout = Awaited<ReturnType<typeof api.affiliates.payouts.list>>[number]
+type Tab = 'approved' | 'paid'
 
 /** Saves text as a file in the browser (the bank CSV); nothing leaves except to the merchant's disk. */
 function download(name: string, text: string) {
@@ -40,12 +34,17 @@ function download(name: string, text: string) {
   URL.revokeObjectURL(url)
 }
 
-/** Who is owed, the payouts made from it, the bank file and "Mark paid". No money moves here. */
+/**
+ * Affiliates › Payments, laid out like UpPromote's: Approved referrals (who is owed, then the
+ * payouts made and waiting to be marked paid) and Paid referrals. Export payments is the bank
+ * bulk-upload file; the TDS report stays. No money moves here.
+ */
 export default function PayoutsPage() {
   // Hooks
   const { payouts: copy, failed } = useCopy(affiliatesContent)
+  const { payments: layout } = useCopy(affiliatesLayoutContent)
   const apps = useCopy(appsContent)
-  const f = useFormat()
+  const [tab, setTab] = useState<Tab>('approved')
   const [candidates, setCandidates] = useState<Candidate[] | null>(null)
   const [payouts, setPayouts] = useState<Payout[] | null>(null)
   const [paying, setPaying] = useState<string | null>(null)
@@ -89,8 +88,12 @@ export default function PayoutsPage() {
   }
 
   // Event handlers
-  const handleCreate = () =>
-    run('create', async () => copy.created((await api.affiliates.payouts.create({})).created))
+  const handleCreate = (affiliateIds?: string[]) =>
+    run('create', async () =>
+      copy.created(
+        (await api.affiliates.payouts.create(affiliateIds ? { affiliateIds } : {})).created,
+      ),
+    )
   const handleCancel = (id: string) =>
     run(id, async () => {
       await api.affiliates.payouts.cancel({ id })
@@ -119,20 +122,19 @@ export default function PayoutsPage() {
     )
   }
   if (!candidates || !payouts) {
-    // Header with its three buttons, the ready-to-pay and history tables.
+    // Header with its three buttons, the tabs and the table.
     return (
       <div className="flex flex-col gap-5" aria-busy="true">
         <PageHeaderSkeleton title={copy.title} actions={3} />
-        <DataCardSkeleton fields={0} lines={3} />
-        <DataCardSkeleton fields={0} lines={3} />
+        <DataCardSkeleton fields={0} lines={4} />
       </div>
     )
   }
 
   // Render logic
   const ready = candidates.filter((c) => c.ready).length
-  const pending = payouts.filter((p) => p.status === 'pending').length
-  const cols = copy.columns
+  const pending = payouts.filter((p) => p.status === 'pending')
+  const paid = payouts.filter((p) => p.status === 'paid')
 
   return (
     <div className="flex flex-col gap-5">
@@ -144,11 +146,11 @@ export default function PayoutsPage() {
             <Button variant="outline" onClick={() => setReporting(true)}>
               {copy.tdsReport}
             </Button>
-            <Button variant="outline" onClick={handleExport} disabled={pending === 0}>
-              {copy.export}
+            <Button variant="outline" onClick={handleExport} disabled={pending.length === 0}>
+              {layout.export}
             </Button>
             <Button
-              onClick={handleCreate}
+              onClick={() => handleCreate()}
               disabled={busy !== null || ready === 0}
               loading={busy === 'create'}
             >
@@ -157,114 +159,39 @@ export default function PayoutsPage() {
           </>
         }
       />
-      <DataCard title={copy.readyTitle} flush>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className={HEAD}>{cols.affiliate}</TableHead>
-              <TableHead className={HEAD}>{cols.to}</TableHead>
-              <TableHead className={`${HEAD} text-right`}>{cols.gross}</TableHead>
-              <TableHead className={`${HEAD} text-right`}>{cols.clawback}</TableHead>
-              <TableHead className={`${HEAD} text-right`}>{cols.gst}</TableHead>
-              <TableHead className={`${HEAD} text-right`}>{cols.tds}</TableHead>
-              <TableHead className={`${HEAD} text-right`}>{cols.net}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {candidates.length === 0 ? (
-              <TableEmptyRow colSpan={7} message={copy.readyEmpty} />
-            ) : null}
-            {candidates.map((c) => (
-              <TableRow key={c.affiliateId}>
-                <TableCell className={`${CELL} font-medium`}>{c.name || c.code}</TableCell>
-                <TableCell className={CELL}>
-                  {c.blocker ? (
-                    <StatusChip tone="attention">{copy.blockers[c.blocker]}</StatusChip>
-                  ) : (
-                    c.payoutHint
-                  )}
-                </TableCell>
-                <TableCell className={`${CELL} text-right tabular-nums`}>
-                  {f.money(c.grossPaise)}
-                </TableCell>
-                <TableCell className={`${CELL} text-right tabular-nums`}>
-                  {c.clawbackPaise ? f.money(-c.clawbackPaise) : '—'}
-                </TableCell>
-                <TableCell className={`${CELL} text-right tabular-nums`}>
-                  {c.gstPaise ? f.money(c.gstPaise) : '—'}
-                </TableCell>
-                <TableCell className={`${CELL} text-right tabular-nums`}>
-                  {f.money(c.tdsPaise)}
-                </TableCell>
-                <TableCell className={`${CELL} text-right font-medium tabular-nums`}>
-                  {f.money(c.netPaise)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </DataCard>
-      <DataCard title={copy.historyTitle} flush>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className={HEAD}>{cols.affiliate}</TableHead>
-              <TableHead className={HEAD}>{cols.status}</TableHead>
-              <TableHead className={`${HEAD} text-right`}>{cols.net}</TableHead>
-              <TableHead className={`${HEAD} text-right`}>{cols.gst}</TableHead>
-              <TableHead className={`${HEAD} text-right`}>{cols.tds}</TableHead>
-              <TableHead className={HEAD}>{cols.created}</TableHead>
-              <TableHead className={HEAD} />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {payouts.length === 0 ? (
-              <TableEmptyRow colSpan={7} message={copy.historyEmpty} />
-            ) : null}
-            {payouts.map((p) => (
-              <TableRow key={p.id}>
-                <TableCell className={`${CELL} font-medium`}>{p.name || p.code}</TableCell>
-                <TableCell className={CELL}>
-                  <StatusChip tone={p.status === 'paid' ? 'success' : 'attention'}>
-                    {copy.payoutStatus[p.status] ?? p.status}
-                  </StatusChip>
-                  {p.reference ? (
-                    <span className="ml-2 text-caption text-muted-foreground">{p.reference}</span>
-                  ) : null}
-                </TableCell>
-                <TableCell className={`${CELL} text-right tabular-nums`}>
-                  {f.money(p.netPaise)}
-                </TableCell>
-                <TableCell className={`${CELL} text-right tabular-nums`}>
-                  {p.gstPaise ? f.money(p.gstPaise) : '—'}
-                </TableCell>
-                <TableCell className={`${CELL} text-right tabular-nums`}>
-                  {f.money(p.tdsPaise)}
-                </TableCell>
-                <TableCell className={CELL}>{f.date(p.createdAt)}</TableCell>
-                <TableCell className={`${CELL} text-right`}>
-                  {p.status === 'pending' ? (
-                    <span className="flex justify-end gap-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleCancel(p.id)}
-                        disabled={busy !== null}
-                        loading={busy === p.id}
-                      >
-                        {copy.cancel}
-                      </Button>
-                      <Button size="sm" onClick={() => setPaying(p.id)}>
-                        {copy.markPaid}
-                      </Button>
-                    </span>
-                  ) : null}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </DataCard>
+      <PillTabs
+        variant="underline"
+        label={layout.tabsLabel}
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          { value: 'approved', label: layout.tabs.approved, count: candidates.length },
+          { value: 'paid', label: layout.tabs.paid, count: paid.length },
+        ]}
+      />
+      {tab === 'approved' ? (
+        <>
+          <PaymentCandidatesTable
+            candidates={candidates}
+            busy={busy !== null}
+            onCreate={handleCreate}
+          />
+          {pending.length > 0 ? (
+            <section className="flex flex-col gap-4">
+              <SectionHead title={layout.toPayTitle} />
+              <PayoutsTable
+                payouts={pending}
+                mode="pending"
+                busy={busy}
+                onCancel={handleCancel}
+                onMarkPaid={setPaying}
+              />
+            </section>
+          ) : null}
+        </>
+      ) : (
+        <PayoutsTable payouts={paid} mode="paid" busy={busy} />
+      )}
       <p className="text-caption text-muted-foreground">{copy.exportNote}</p>
       <TdsReportDialog open={reporting} onOpenChange={setReporting} onDownload={download} />
       <MarkPaidDialog

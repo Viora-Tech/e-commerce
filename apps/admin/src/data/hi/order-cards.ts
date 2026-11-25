@@ -1,5 +1,7 @@
 import {
   deliveryRouteCardContent,
+  orderNotesCardContent,
+  orderStatusCardsContent,
   parcelsCardContent,
   partlyShippedContent,
   profitCardContent,
@@ -38,7 +40,7 @@ export default [
       costMissing: 'कुछ सामान की लागत अभी नहीं डाली, इसलिए वह मुफ़्त गिना गया। प्रोडक्ट पर लागत डालें।',
       courierMissing: 'कूरियर का खर्च अभी पता नहीं। नीचे डालें।',
       courierEstimated:
-        'कूरियर का असली खर्च आने तक डिलीवरी अंदाज़न है (60 दिन में इस राज्य का आपका सबसे ऊँचा खर्च, वरना आपका डिफ़ॉल्ट)। पता चलने पर नीचे डालें।',
+        'कूरियर का असली खर्च आने तक डिलीवरी अंदाज़न है (चेकआउट पर कूरियर का कोट, वरना 60 दिन में इस राज्य का आपका सबसे ऊँचा खर्च, वरना आपका डिफ़ॉल्ट)। पता चलने पर नीचे डालें।',
       packingEstimated: 'पैकिंग आज की डिब्बे की कीमत है; पार्सल बुक होने पर तय हो जाती है।',
       packingMissing:
         'आपके डिब्बे की कीमत नहीं डाली, इसलिए पैकिंग शून्य गिनी गई। Settings › Shipping में डालें।',
@@ -108,5 +110,18 @@ export default [
     readyWhen: (orderNumber, n, of) =>
       `सामान आने पर तैयार; फिर यह शिपमेंट › भेजना है में #${orderNumber} · ${of} में से हिस्सा ${n} के रूप में दिखेगा।`,
     told: (date, parts) => `ग्राहक को ${date} को बताया गया कि ऑर्डर ${parts} हिस्सों में जाएगा।`,
+  }),
+  translation(orderStatusCardsContent, {
+    parcelNumber: (orderNumber, position) => `#${orderNumber}-F${position}`,
+    shipped: (date) => `${date} को भेजा`,
+    awb: (waybill) => `AWB ${waybill}`,
+    trackHint: 'कूरियर की साइट पर ट्रैकिंग खोलें',
+    markDelivered: 'डिलीवर हुआ मार्क करें',
+    shipsFrom: (place) => `${place} से जाएगा`,
+    gstSplit: 'GST का बंटवारा देखें',
+  }),
+  translation(orderNotesCardContent, {
+    title: 'नोट',
+    empty: 'ग्राहक का कोई नोट नहीं',
   }),
 ]

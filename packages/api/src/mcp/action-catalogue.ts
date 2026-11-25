@@ -285,6 +285,12 @@ const SENSITIVE_PATHS: Record<string, string> = {
   'giftCards.adjust': 'changes a gift card balance (money)',
   'storeCredit.adjust': "changes a customer's store credit balance (money)",
   'storeCredit.moveGiftCards': 'moves gift card balances into store credit balances (money)',
+  'loyalty.adjust': "changes a customer's loyalty points, which are store credit (money)",
+  'loyalty.redemptions.redeemFor':
+    "spends a customer's loyalty points on a reward and issues its code or store credit (money)",
+  'loyalty.redemptions.cancel': 'cancels a reward code and gives the loyalty points back (money)',
+  'loyalty.members.import': "sets or adds customers' loyalty points from a file (money)",
+  'loyalty.members.resetAll': "takes every customer's loyalty points to 0 (money)",
   'giftCards.setDisabled': 'disables a gift card (money)',
   'customers.merge':
     'merges two customer records into one (moves orders, store credit and sign-ins; closes the other record)',

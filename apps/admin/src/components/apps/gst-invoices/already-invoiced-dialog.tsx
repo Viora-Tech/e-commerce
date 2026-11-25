@@ -10,7 +10,7 @@ import { gstAlreadyInvoicedContent } from '@/data/gst-already-invoiced'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
-import type { QueueRow } from './queue-page'
+import type { QueueRow } from './queue-columns'
 import TextField from './text-field'
 
 type AlreadyInvoicedDialogProps = {

@@ -9,9 +9,10 @@ import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import BulkEditPackage from './bulk-edit-package'
 import BulkEditShipping from './bulk-edit-shipping'
-import { editForm, formToEdit, repriced } from './bulk-edit-state'
+import { editForm, formToEdit } from './bulk-edit-state'
 import type { BulkLine, OrderEdit } from './bulk-ship-state'
-import type { ShipmentDraft } from './flow-state'
+import type { ParcelQuote, ShipmentDraft } from './flow-state'
+import { useBulkEditQuote } from './use-bulk-edit-quote'
 
 type BulkEditInlineProps = {
   line: BulkLine
@@ -21,8 +22,9 @@ type BulkEditInlineProps = {
   columns: number
   /** The merchant left this order out of the booking. */
   skipped: boolean
-  /** Apply: the drawer stores the edit and, when the package or payment changed, re-quotes. */
-  onApply: (edit: OrderEdit) => void
+  /** Apply: the drawer stores the edit with the prices already fetched for it (`fresh`), or
+   *  asks the couriers again when the package or payment changed and none came yet. */
+  onApply: (edit: OrderEdit, fresh: ParcelQuote | null) => void
   /** Cancel (or Esc, handled by the drawer): nothing changes. */
   onCancel: () => void
   onSkip: (skip: boolean) => void
@@ -32,7 +34,9 @@ type BulkEditInlineProps = {
  * Edit shipment (Figma 913:9698) in place: the order's row opens under itself, Shopify bulk
  * editor style, instead of a dialog over the drawer. Its items, box, weight and size on the
  * left; its courier (with the shopper's checkout choice), payment, insurance and charge on the
- * right. Apply keeps the changes (a changed package or payment asks its couriers again);
+ * right. A changed weight, box size or payment asks its couriers again as you type (600 ms
+ * after the last key, like the single-order page) and the courier list and charge update; Apply
+ * keeps the changes with those prices;
  * Cancel and Esc leave the row as it was. The panel is as wide as the visible table, so it
  * stays readable at phone width while the table itself scrolls sideways.
  */
@@ -52,6 +56,7 @@ export default function BulkEditInline({
   const fmt = useFormat()
   const [form, setForm] = useState(() => editForm(line, edit, boxes))
   const panel = useRef<HTMLFieldSetElement>(null)
+  const live = useBulkEditQuote(line, form, edit)
 
   // Opened: focus moves into the editor (and scrolls it into view).
   useEffect(() => {
@@ -59,13 +64,19 @@ export default function BulkEditInline({
   }, [])
 
   // Event handlers
-  const handleApply = () => onApply(formToEdit(form, line, edit))
+  const handleApply = () => onApply(formToEdit(form, line, edit), live.fresh)
 
   // Render logic
   const p = copy.editPopup
   const o = line.order
   const units = line.parcel?.lines.reduce((n, l) => n + l.quantity, 0) ?? 0
-  const repricing = repriced(edit, formToEdit(form, line, edit))
+  const pricing = live.failed
+    ? 'failed'
+    : live.waiting
+      ? 'waiting'
+      : live.updating
+        ? 'updating'
+        : null
   const titleId = `bulk-edit-title-${o.orderId}`
   const subtitle = p.subtitle([
     o.customerName ?? '',
@@ -99,7 +110,13 @@ export default function BulkEditInline({
           </div>
           <div className="grid gap-6 @3xl:grid-cols-2">
             <BulkEditPackage line={line} form={form} onChange={setForm} boxes={boxes} />
-            <BulkEditShipping line={line} form={form} onChange={setForm} repricing={repricing} />
+            <BulkEditShipping
+              line={line}
+              form={form}
+              onChange={setForm}
+              quote={live.quote}
+              pricing={pricing}
+            />
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
             <Button

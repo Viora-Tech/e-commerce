@@ -1040,6 +1040,8 @@ export const customer = pgTable(
      */
     gstin: text('gstin'),
     businessName: text('business_name'),
+    /** Birthday as `MM-DD` (no year), for the Loyalty points app's birthday points. */
+    birthday: text('birthday'),
     /** Snapshot of the address from the latest order, so the profile card needs no join. */
     defaultAddress: jsonb('default_address').$type<CustomerAddress>(),
     tags: text('tags').array().notNull().default([]),
@@ -1314,6 +1316,11 @@ export const cartLine = pgTable(
     preorderCampaignId: uuid('preorder_campaign_id').references(() => preorderCampaign.id, {
       onDelete: 'set null',
     }),
+    /**
+     * The price the line was added at, kept when the live price went up since (a sale ended):
+     * the line is re-priced (`cart/reprice.ts`) and the cart says the sale ended. Null otherwise.
+     */
+    saleEndedFromPaise: integer('sale_ended_from_paise'),
   },
   (t) => [
     /* Every storefront page reads the cart for the header count (layout `requestCart`). */
@@ -1350,6 +1357,8 @@ export const order = pgTable(
     customerId: uuid('customer_id').references(() => customer.id),
     email: text('email'),
     phone: text('phone'),
+    /** The checkout device cookie it was placed from; the hourly unpaid-checkout cap counts by it. */
+    checkoutDeviceId: text('checkout_device_id'),
     /** Business buyer's GSTIN from checkout (Settings → Checkout), validated; the GST invoice prints it. */
     buyerGstin: text('buyer_gstin'),
     /** Business name typed beside the GSTIN; the GST invoice bills to it. */
@@ -2078,15 +2087,19 @@ export const notification = pgTable(
     template: text('template').notNull(),
     /** Email address or phone the message went to. */
     to: text('to').notNull(),
-    status: text('status', { enum: ['queued', 'sent', 'failed'] })
+    status: text('status', { enum: ['queued', 'sent', 'failed', 'skipped'] })
       .notNull()
       .default('queued'),
     providerRef: text('provider_ref'),
     error: text('error'),
+    /** What the provider reported after the send (WhatsApp: delivered, read or failed). */
+    deliveryStatus: text('delivery_status', { enum: ['delivered', 'read', 'failed'] }),
+    deliveryAt: timestamp('delivery_at', { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [
     uniqueIndex('notification_order_channel_template').on(t.orderId, t.channel, t.template),
+    index('notification_provider_ref').on(t.providerRef).where(sql`provider_ref is not null`),
     uniqueIndex('notification_cart_channel_template')
       .on(t.cartId, t.channel, t.template)
       .where(sql`cart_id is not null`),
@@ -2321,6 +2334,11 @@ export const discountUsage = pgTable(
     customerId: uuid('customer_id').references(() => customer.id),
     email: text('email'),
     amountPaise: integer('amount_paise').notNull(),
+    /**
+     * False while the order is an unpaid checkout draft: the use is noted (which discounts,
+     * how much) but not counted against the limits until the payment succeeds.
+     */
+    counted: boolean('counted').notNull().default(true),
     createdAt: createdAt(),
   },
   (t) => [

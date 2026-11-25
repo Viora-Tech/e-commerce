@@ -1,6 +1,7 @@
 import type { NavigationItem, NavigationItemType } from '@commerce/db'
 import { z } from 'zod'
 import { isPolicyType } from '../policies/client'
+import { isScriptUrl } from './resolve'
 import { countNodes, MENU_MAX_LEVELS } from './tree'
 
 /** Most items a single menu may hold, counting every level. */
@@ -37,6 +38,9 @@ function valueProblem(item: {
     return 'Pick the blog post again'
   }
   if (item.type === 'policy' && !isPolicyType(item.value)) return 'Pick one of your policies'
+  if (item.type === 'url' && isScriptUrl(item.value)) {
+    return 'Use a page on your store (/pages/about) or a web address (https://…)'
+  }
   return null
 }
 

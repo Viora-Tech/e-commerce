@@ -38,7 +38,10 @@ import { useCheckoutMatch } from '@/lib/pixels/use-checkout-match'
 import { useCheckoutForm } from '@/lib/use-checkout-form'
 import { useCheckoutGst } from '@/lib/use-checkout-gst'
 
-type CheckoutFormProps = CheckoutFormInput
+type CheckoutFormProps = CheckoutFormInput & {
+  /** The note under a line whose price went up since it was added (`lib/price-changed.ts`). */
+  priceChangedNote?: string | undefined
+}
 
 const FORM_ID = 'checkout-form'
 
@@ -195,6 +198,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
         <SummaryDisclosure totalLabel={ck.payNow} updating={ck.updating}>
           <CheckoutSummary
             words={ck.copy}
+            priceChangedNote={props.priceChangedNote}
             cart={ck.cart}
             discount={ck.discount}
             digitalOnly={digitalOnly}

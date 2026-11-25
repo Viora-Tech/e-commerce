@@ -29,6 +29,17 @@ describe('useLoad', () => {
     await waitFor(() => expect(result.current.failed).toBe('no-access'))
   })
 
+  it('tells a missing record apart from a failed read', async () => {
+    const gone = renderHook(() =>
+      useLoad(() => Promise.reject(Object.assign(new Error('gone'), { code: 'NOT_FOUND' }))),
+    )
+    await waitFor(() => expect(gone.result.current.failed).toBe('error'))
+    expect(gone.result.current.notFound).toBe(true)
+    const down = renderHook(() => useLoad(() => Promise.reject(new Error('down'))))
+    await waitFor(() => expect(down.result.current.failed).toBe('error'))
+    expect(down.result.current.notFound).toBe(false)
+  })
+
   it('drops an answer that arrives after unmount', async () => {
     let resolve: (v: number) => void = () => undefined
     const { result, unmount } = renderHook(() =>

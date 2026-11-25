@@ -192,7 +192,7 @@ export default function RouteCard({
                   variant="outline"
                   size="sm"
                   nativeButton={false}
-                  render={<Link href={routes.settings.shipping('dispatch')} />}
+                  render={<Link href={routes.settings.shippingAddress()} />}
                 >
                   <Pencil aria-hidden="true" />
                   {copy.edit}

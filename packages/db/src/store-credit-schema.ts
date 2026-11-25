@@ -27,9 +27,17 @@ const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull(
 /**
  * Why the balance moved: staff added or removed it, an order was paid with it, a refund went to it,
  * credit held for a checkout came back because the order was cancelled before it was paid, or
- * what was left of a credit with an expiry date ran out on that date.
+ * what was left of a credit with an expiry date ran out on that date, or loyalty points (the
+ * Loyalty points app, 1 point = ₹1) were credited or taken back.
  */
-export const STORE_CREDIT_KINDS = ['adjustment', 'payment', 'refund', 'release', 'expiry'] as const
+export const STORE_CREDIT_KINDS = [
+  'adjustment',
+  'payment',
+  'refund',
+  'release',
+  'expiry',
+  'loyalty',
+] as const
 
 /** One customer's store credit balance, in paise. Never below zero. */
 export const storeCreditAccount = pgTable(
@@ -91,7 +99,7 @@ export const storeCreditEntry = pgTable(
     check('store_credit_entry_nonzero', sql`${t.amountPaise} <> 0`),
     check(
       'store_credit_entry_kind_check',
-      sql`${t.kind} in ('adjustment', 'payment', 'refund', 'release', 'expiry')`,
+      sql`${t.kind} in ('adjustment', 'payment', 'refund', 'release', 'expiry', 'loyalty')`,
     ),
     check('store_credit_entry_expiry_credit', sql`${t.expiresAt} is null or ${t.amountPaise} > 0`),
   ],

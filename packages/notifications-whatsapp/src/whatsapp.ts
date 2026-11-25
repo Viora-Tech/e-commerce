@@ -130,6 +130,9 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.storeName, d.review?.productTitle ?? '-', d.review?.productUrl ?? '-']
     case 'review_reward':
       return [d.storeName, d.review?.rewardLabel ?? '-', d.review?.rewardCode ?? '-']
+    // Email only in the catalogue; listed so the switch stays complete.
+    case 'points_expiring':
+      return [d.storeName, String(d.points?.expiringPoints ?? 0), d.points?.lastDay ?? '-']
     case 'question_answered':
       return [d.storeName, d.review?.productTitle ?? '-', d.review?.productUrl ?? '-']
     case 'question_asked':

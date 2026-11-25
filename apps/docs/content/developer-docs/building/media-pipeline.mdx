@@ -161,6 +161,16 @@ wide, CRF 26 capped near 3.5 Mbps, AAC 96 kbps, `+faststart`), beside the origin
   rendered HTML; built-in sections swap any setting that names a video file
   (`attachImageMedia`); the product gallery plays `compactUrl`. Until the copy exists the
   original plays. The `media` table's cache trigger refreshes cached pages when a copy lands.
+- **First-frame poster.** The same job grabs the video's first frame (ffmpeg, then sharp) as a
+  WebP beside it, `<name>.poster.webp`: 1280 wide for a landscape video, 750 for a portrait
+  (phone) one, quality stepped down until it is under 60 KB. It becomes the video's poster in
+  Files (`poster_media_id`) only when the video has none, so a merchant's or the admin upload's
+  poster always wins. Imported (Liquid) sections give a poster-less video that poster
+  (`apps/storefront/src/lib/liquid-video-poster.ts`): the page's first video as a real `poster`
+  with `<link rel="preload" as="image" fetchpriority="high">` (one per phone/desktop source,
+  under the source's media query), later videos lazily as `data-poster`. Built-in sections
+  already fill an empty poster from `poster_media_id` (`attachImageMedia`). Older videos:
+  `bun run media:videos [--store <slug>]` makes the missing posters without re-encoding copies.
 
 ## Keeping the shop fast while images process
 

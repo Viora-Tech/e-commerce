@@ -87,6 +87,34 @@ describe('bookedCourier', () => {
     ).toBe(7447)
   })
 
+  it('names the courier an aggregator chose when none was picked, without a swap note', () => {
+    const truth = bookedCourier(
+      { id: 'shiprocket', label: 'Shiprocket', quoteIsCharge: false },
+      {},
+      { bookedService: { id: '217', label: 'Blue Dart Surface' }, chargePaise: 7447 },
+    )
+    expect(truth).toMatchObject({
+      serviceLabel: 'Blue Dart Surface (Shiprocket)',
+      courierChargePaise: 7447,
+      swapped: null,
+    })
+    expect(truth.carrier).toMatch(/blue dart/i)
+  })
+
+  it('never keeps the quote of a courier whose quote is not its bill (Shiprocket)', () => {
+    expect(
+      bookedCourier(
+        { id: 'shiprocket', label: 'Shiprocket', quoteIsCharge: false },
+        {
+          serviceId: '217',
+          serviceLabel: 'Blue Dart Surface (Shiprocket)',
+          quotedChargePaise: 9900,
+        },
+        { bookedService: { id: '217', label: 'Blue Dart Surface' } },
+      ).courierChargePaise,
+    ).toBeNull()
+  })
+
   it('takes the charge in the courier’s own answer over any quote', () => {
     expect(
       bookedCourier(rapidshyp, { serviceId: 'A', quotedChargePaise: 100 }, { chargePaise: 15000 })

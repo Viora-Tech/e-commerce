@@ -165,7 +165,7 @@ describe('createPayment', () => {
   it('posts the cart to the sandbox pay host without the token and redirects', async () => {
     const m = mockFetch(json(200, { url: 'https://pay.sandbox.snapmint.com?id=x&token=y' }))
     const r = await new SnapmintProvider(config, m.fetch).createPayment(payInput)
-    expect(m.calls[0]?.url).toBe('https://pay.sandbox.snapmint.com/api/pub/carts')
+    expect(m.calls[0]?.url).toBe('https://apis.sandbox.snapmint.com/api/pub/carts')
     expect(m.calls[0]?.init.method).toBe('POST')
     const headers = (m.calls[0]?.init.headers ?? {}) as Record<string, string>
     expect(headers.authorization).toBeUndefined()
@@ -339,18 +339,43 @@ describe('visibility', () => {
     shipping: payInput.shipping,
   }
 
-  it('caps the order value at 10,000 and reads visible', async () => {
-    const m = mockFetch(json(200, { status: 'success', visible: false }))
-    expect(await new SnapmintProvider(config, m.fetch).checkAvailability(shopper)).toBe(false)
+  it('posts Visibility V2 with Basic auth and the shopper IP, and reads false', async () => {
+    const m = mockFetch(json(200, false))
+    const asked = { ...shopper, customer: { ...shopper.customer, ip: '203.0.113.7' } }
+    expect(await new SnapmintProvider(config, m.fetch).checkAvailability(asked)).toBe(false)
+    expect(m.calls[0]?.url).toBe('https://apis.sandbox.snapmint.com/ext/v1/visibility')
+    expect(m.calls[0]?.init.method).toBe('POST')
+    const headers = (m.calls[0]?.init.headers ?? {}) as Record<string, string>
+    expect(headers.authorization).toBe(`Basic ${btoa('12345:test-merchant-key')}`)
+    expect(headers['x-forwarded-for']).toBe('203.0.113.7')
     const body = JSON.parse(String(m.calls[0]?.init.body))
-    expect(body).toMatchObject({ mobile: 9876543210, order_value: 10000, shipping_zip: 411001 })
+    expect(body).toMatchObject({
+      mobile: '9876543210',
+      firstName: 'Asha',
+      lastName: 'Verma',
+      orderValue: 10000,
+      shippingAddress: { addressLine1: 'Flat 4', zip: 411001, city: 'Pune', state: 'MH' },
+      billingAddress: { zip: 411001 },
+      payload: {},
+    })
   })
 
-  it('fails open on an error or a timeout', async () => {
+  it('uses the live ext host and sends no IP header without an IP', async () => {
+    const m = mockFetch(json(200, true))
+    const live = new SnapmintProvider({ ...config, mode: 'live' }, m.fetch)
+    expect(await live.checkAvailability(shopper)).toBe(true)
+    expect(m.calls[0]?.url).toBe('https://apis.snapmint.com/ext/v1/visibility')
+    const headers = (m.calls[0]?.init.headers ?? {}) as Record<string, string>
+    expect(headers['x-forwarded-for']).toBeUndefined()
+  })
+
+  it('fails open on an error, a 403 before IP allow-listing, or an unknown answer', async () => {
     const down = mockFetch(new Error('network down'))
     expect(await new SnapmintProvider(config, down.fetch).checkAvailability(shopper)).toBe(true)
-    const refused = mockFetch(json(401, { status: 'Error', code: 'SNM0001' }))
+    const refused = mockFetch(json(403, { message: 'Forbidden' }))
     expect(await new SnapmintProvider(config, refused.fetch).checkAvailability(shopper)).toBe(true)
+    const odd = mockFetch(json(200, { something: 'else' }))
+    expect(await new SnapmintProvider(config, odd.fetch).checkAvailability(shopper)).toBe(true)
   })
 
   it('gives up after 1.5 s and shows Snapmint', async () => {

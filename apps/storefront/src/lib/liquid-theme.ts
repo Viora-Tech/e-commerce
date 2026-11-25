@@ -31,6 +31,7 @@ import {
   videoSources,
   withCompactVideos,
 } from '@commerce/core'
+import { pickVariantUrls } from '@commerce/core/media-loader'
 import { product as productTable, type StoreTx, store } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import { reviewsLiquidSource } from '@commerce/plugin-reviews/server'
@@ -68,9 +69,11 @@ import { belowTheFold } from './liquid-fold'
 import { liquidMarketFor } from './liquid-market'
 import { withMarketPrefix } from './liquid-market-links'
 import { withoutVideoCovers } from './liquid-video-cover'
+import { withVideoPosters } from './liquid-video-poster'
 import { requestCatalogId } from './market-catalog'
 import { marketPricingFor, pricingKey } from './market-pricing'
 import { MARKET_HEADERS } from './markets'
+import { postersByVideoUrl } from './media-lookup'
 import { cartIsEmpty, requestCart } from './request-cart'
 import './search-engine'
 import { abThemeId } from './rollout-ab'
@@ -388,6 +391,29 @@ export async function mainProductStylesheetUrls(storeId: string, themeId: string
   )
 }
 
+/** A video poster's width when it has variants (a merchant's pick): a full-bleed hero. */
+const POSTER_PICK_WIDTH = 1280
+
+/**
+ * Each video's poster address from Files, keyed by the video's original address and by its
+ * smaller copy's (the section HTML holds the copy by then).
+ */
+async function posterAddresses(
+  tx: StoreTx,
+  sources: readonly string[],
+  small: ReadonlyMap<string, string> | null,
+): Promise<Map<string, string>> {
+  const found = await postersByVideoUrl(tx, sources)
+  const out = new Map<string, string>()
+  for (const [video, poster] of found) {
+    const url = pickVariantUrls(poster, POSTER_PICK_WIDTH).webp ?? poster.url
+    out.set(video, url)
+    const copy = small?.get(video)
+    if (copy) out.set(copy, url)
+  }
+  return out
+}
+
 /** The footer's "Cookie settings" link, added after the cache (`./liquid-cookie-settings.ts`). */
 const withCookieLink = (p: { cookieLink: boolean }, html: string) =>
   p.cookieLink ? withCookieSettingsLink(html, privacyContent.cookieSettings) : html
@@ -452,6 +478,13 @@ export async function renderLiquidSections(
   const rendered = await inStore(storeId, async (tx) => {
     const live = await tracedContext(tx, storeId, themeId, theme, scope, cart, customer)
     const done: { p: (typeof placed)[number]; html: string; trace: RenderTrace }[] = []
+    // The page's first video is its LCP: the first above-the-fold template section with one.
+    const videoBefore = (p: (typeof placed)[number]) =>
+      placed
+        .slice(0, placed.indexOf(p))
+        .some((q) =>
+          /<video\b/i.test(out.get(q.id)?.html ?? done.find((d) => d.p === q)?.html ?? ''),
+        )
     for (const p of missing) {
       const trace = live.start()
       const html = await renderLiquidSection(live.ctx, p.section, (err) => {
@@ -468,11 +501,16 @@ export async function renderLiquidSections(
       const sources = videoSources(html)
       const small = sources.length ? await compactVideosByUrl(tx, sources) : null
       const sized = small ? withCompactVideos(html, small) : html
+      const posters = sources.length ? await posterAddresses(tx, sources, small) : null
       const parked = revealConsentEarly(deferThemeScripts(sized), NONCE_MARK)
-      // Above the fold, a hero video plays without its cover (`./liquid-video-cover.ts`).
-      // Indentation out, once, before the cache keeps it (`./liquid-compact.ts`).
+      // Above the fold, a hero video plays without its cover (`./liquid-video-cover.ts`), and
+      // a video without a poster gets its first frame from Files (`./liquid-video-poster.ts`),
+      // the page's first one eagerly. Indentation out, once, before the cache keeps it
+      // (`./liquid-compact.ts`).
+      const folded = p.belowFold ? belowTheFold(parked) : withoutVideoCovers(parked)
+      const lcp = location === 'template' && part.start === 0 && !p.belowFold && !videoBefore(p)
       const placedHtml = compactThemeHtml(
-        p.belowFold ? belowTheFold(parked) : withoutVideoCovers(parked),
+        posters ? withVideoPosters(folded, posters, { lcp, nonceMark: NONCE_MARK }) : folded,
       )
       done.push({ p, html: placedHtml, trace })
     }

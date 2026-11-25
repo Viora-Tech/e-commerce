@@ -1751,6 +1751,41 @@
       "when": 1795281300000,
       "tag": "0265_inbox_chat_emails",
       "breakpoints": true
+    },
+    {
+      "idx": 250,
+      "version": "7",
+      "when": 1795381300000,
+      "tag": "0266_discount_usage_counted",
+      "breakpoints": true
+    },
+    {
+      "idx": 251,
+      "version": "7",
+      "when": 1795381400000,
+      "tag": "0267_loyalty_points",
+      "breakpoints": true
+    },
+    {
+      "idx": 252,
+      "version": "7",
+      "when": 1795381500000,
+      "tag": "0268_whatsapp_delivery_reports",
+      "breakpoints": true
+    },
+    {
+      "idx": 253,
+      "version": "7",
+      "when": 1795900000000,
+      "tag": "0269_payment_choices",
+      "breakpoints": true
+    },
+    {
+      "idx": 254,
+      "version": "7",
+      "when": 1795950000000,
+      "tag": "0270_loyalty_v2",
+      "breakpoints": true
     }
   ]
 }

@@ -2,6 +2,12 @@
 export const snapmintAppContent = {
   connect: {
     title: 'Connect Snapmint',
+    /** The name in "Extra charge for Snapmint" and its default label. */
+    feeName: 'Snapmint',
+    /** The label shoppers see for a Snapmint fee: a platform fee, not part of the EMI (owner, 23 Nov 2026). */
+    feeLabel: 'Platform fee',
+    feeIntro:
+      'A platform fee for paying with Snapmint, separate from the no-cost EMI. Shoppers see it beside Snapmint at checkout, and it is added to the order total. A negative amount is a discount.',
     intro:
       'Let shoppers pay in monthly EMIs on UPI or a debit card, no credit card needed. Snapmint shows at checkout as its own way to pay, only to shoppers it can approve.',
     signupUrl: 'https://snapmint.com/',

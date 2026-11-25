@@ -1,8 +1,16 @@
-import { cart, cartLine, collectionProduct, discount, discountUsage, variant } from '@commerce/db'
-import { and, count, eq, inArray } from 'drizzle-orm'
+import {
+  cart,
+  cartLine,
+  collectionProduct,
+  discount,
+  discountUsage,
+  order,
+  variant,
+} from '@commerce/db'
+import { and, count, eq, inArray, or, type SQL } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { combineDiscounts } from './combine'
-import { firstOrderFor, shopperFor } from './eligibility'
+import { firstOrderFor, orderPhoneForms, shopperFor } from './eligibility'
 import {
   type DiscountCart,
   type DiscountContext,
@@ -123,18 +131,36 @@ export async function listAutomaticDiscounts(ctx: StoreContext): Promise<Discoun
     .where(and(eq(discount.kind, 'automatic'), eq(discount.status, 'active')))
 }
 
-/** Times this email already redeemed the discount; per-customer caps key on email. */
+/**
+ * Times this shopper already redeemed the discount: by the lower-cased email, or by the phone
+ * on the order that used it (owner, 24 Nov 2026: a new email per order must not reuse a
+ * one-per-customer code). An Indian mobile matches however it was written (+91, 0, spaces),
+ * the same spellings "first-time buyers only" tries (`orderPhoneForms`).
+ */
 export async function customerUsageCount(
   ctx: StoreContext,
   discountId: string,
   email: string | null | undefined,
+  phone?: string | null | undefined,
 ): Promise<number> {
-  if (!email) return 0
+  const who: SQL[] = []
+  const mail = email?.trim().toLowerCase()
+  if (mail) who.push(eq(discountUsage.email, mail))
+  const phones = orderPhoneForms(phone)
+  if (phones.length > 0) who.push(inArray(order.phone, phones))
+  if (who.length === 0) return 0
   const [row] = await ctx.tx
     .select({ n: count() })
     .from(discountUsage)
+    .innerJoin(order, eq(order.id, discountUsage.orderId))
     .where(
-      and(eq(discountUsage.discountId, discountId), eq(discountUsage.email, email.toLowerCase())),
+      and(
+        eq(discountUsage.discountId, discountId),
+        // An unpaid checkout draft's noted use does not count (discounts/usage.ts), nor does
+        // a cancelled order's (it gave the use back).
+        eq(discountUsage.counted, true),
+        or(...who),
+      ),
     )
   return row?.n ?? 0
 }
@@ -171,7 +197,7 @@ async function contextFor(
 ): Promise<DiscountContext> {
   return {
     now: opts.now,
-    customerUses: await customerUsageCount(ctx, rule.id, opts.email),
+    customerUses: await customerUsageCount(ctx, rule.id, opts.email, opts.phone),
     customer,
     firstOrder,
     stateCode: opts.stateCode,

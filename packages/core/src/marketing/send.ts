@@ -6,6 +6,7 @@ import type {
   SendResult,
 } from '@commerce/notifications'
 import { eq } from 'drizzle-orm'
+import { sendStatus } from '../email-suppression/guard'
 import { type ConsentChannel, hasMarketingConsent } from '../privacy/client'
 import { storeNotificationChannels } from '../sender-email/channels'
 import { StoreAddressSchema } from '../settings/general'
@@ -323,7 +324,7 @@ async function recordMarketingOutcome(
     .update(marketingMessage)
     .set({
       channel: channelId,
-      status: r.ok ? 'sent' : 'failed',
+      status: sendStatus(r),
       providerRef: r.ok ? r.providerRef : null,
       error: r.ok ? null : r.error.slice(0, 500),
       sentAt: r.ok ? new Date() : null,

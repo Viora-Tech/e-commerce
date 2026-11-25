@@ -186,6 +186,24 @@ describe('sendInboxChatEmails', () => {
     expect((await sweep(storeId, email)).staff).toBe(0)
   })
 
+  it('still finds a fresh missed reply on a day with more chats than one sweep scans', async () => {
+    const storeId = await seed()
+    // 200 quiet chats from earlier today (the shopper's last line, already read by staff).
+    await owner.insert(inboxConversation).values(
+      Array.from({ length: 200 }, (_, i) => ({
+        storeId,
+        contactEmail: `old${i}@example.com`,
+        lastMessageAt: ago(600 + i),
+        lastSender: 'shopper' as const,
+        createdAt: ago(600 + i),
+      })),
+    )
+    await chat(storeId, [{ sender: 'staff', body: 'Yes, ships today', at: ago(8) }])
+    const email = recorder()
+    expect((await sweep(storeId, email)).replies).toBe(1)
+    expect(email.sent[0]?.to.email).toBe('asha@example.com')
+  })
+
   it('does nothing when Inbox is not installed', async () => {
     const storeId = await seed()
     await owner.update(store).set({ apps: { installed: [], settings: {} } })

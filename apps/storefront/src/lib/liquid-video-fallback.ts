@@ -6,6 +6,8 @@
  * WHY: owner, 21 Nov 2026: a slide whose video does not load stayed a black box on phones; the
  * picture must show then. A video that plays never shows its cover (owner, 17 Nov 2026).
  * Themes that keep the picture in `data-poster` (Glide's hero carousel) are covered the same way.
+ * A first-frame poster the storefront added (`data-auto-poster`, `liquid-video-poster.ts`) gives
+ * way to the cover too.
  * WHERE: appended to the theme shim (`liquid-shim.ts`), so it runs on every Liquid page.
  */
 
@@ -21,7 +23,9 @@ export const VIDEO_FALLBACK_SCRIPT = `(function () {
     v.__coverWatch = true;
     var cover = v.getAttribute('data-cover') || v.getAttribute('data-poster');
     if (!cover) return;
-    function show() { if (!v.getAttribute('poster')) v.setAttribute('poster', cover); }
+    function show() {
+      if (!v.getAttribute('poster') || v.hasAttribute('data-auto-poster')) v.setAttribute('poster', cover);
+    }
     v.addEventListener('error', show);
     var sources = v.querySelectorAll('source');
     if (sources.length) sources[sources.length - 1].addEventListener('error', show);

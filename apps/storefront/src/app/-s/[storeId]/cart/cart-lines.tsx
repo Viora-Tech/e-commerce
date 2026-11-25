@@ -26,7 +26,14 @@ function badgeLook(l: CartLineView): { className: string; style: CSSProperties |
  * Figma Pages · Cart (704:117993): each line is the thumbnail, the name and variant over the
  * quantity stepper and Remove, and the line total at the right; hairlines between lines.
  */
-export default function CartLines({ lines }: { lines: CartLineView[] }) {
+export default function CartLines({
+  lines,
+  priceChangedNote,
+}: {
+  lines: CartLineView[]
+  /** The note under a line whose price went up since it was added, in the shopper's language. */
+  priceChangedNote: string
+}) {
   // Hooks
   const money = useFormatCart()
   const [pending, start] = useTransition()
@@ -62,6 +69,11 @@ export default function CartLines({ lines }: { lines: CartLineView[] }) {
               </span>
             ) : null}
             {l.preorderNote ? <p className="cart-line__preorder-note">{l.preorderNote}</p> : null}
+            {l.saleEndedFromPaise ? (
+              <p className="cart-line__preorder-note" role="status">
+                {priceChangedNote}
+              </p>
+            ) : null}
             <div className="cart-line__actions">
               <QuantityInput
                 value={l.quantity}

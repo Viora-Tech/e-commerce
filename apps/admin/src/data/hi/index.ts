@@ -6,6 +6,7 @@ import activityLog from './activity-log'
 import affiliateCreatives from './affiliate-creatives'
 import affiliateFilters from './affiliate-filters'
 import affiliates from './affiliates'
+import affiliatesLayout from './affiliates-layout'
 import agentReadiness from './agent-readiness'
 import ai from './ai'
 import analytics from './analytics'
@@ -81,6 +82,7 @@ import growthReport from './growth-report'
 import growthbook from './growthbook'
 import gstAlreadyInvoiced from './gst-already-invoiced'
 import gstInvoices from './gst-invoices'
+import gstListFilters from './gst-list-filters'
 import gstQueuePage from './gst-queue-page'
 import home from './home'
 import homeSections from './home-sections'
@@ -96,6 +98,13 @@ import labelSheet from './label-sheet'
 import layout from './layout'
 import localDelivery from './local-delivery'
 import login from './login'
+import loyalty from './loyalty'
+import loyaltyCustomer from './loyalty-customer'
+import loyaltyInsights from './loyalty-insights'
+import loyaltyPlacements from './loyalty-placements'
+import loyaltyProgram from './loyalty-program'
+import loyaltyReward from './loyalty-reward'
+import loyaltyRules from './loyalty-rules'
 import manifestSheet from './manifest-sheet'
 import marketingAutomations from './marketing-automations'
 import marketingCampaigns from './marketing-campaigns'
@@ -135,6 +144,7 @@ import profitCosts from './profit-costs'
 import profitReport from './profit-report'
 import purchaseDocuments from './purchase-documents'
 import purchasing from './purchasing'
+import rapidshyp from './rapidshyp'
 import razorpayWebsites from './razorpay-websites'
 import resourcePicker from './resource-picker'
 import returns from './returns'
@@ -152,6 +162,7 @@ import seoAssistant from './seo-assistant'
 import seoHealth from './seo-health'
 import seoKeywords from './seo-keywords'
 import seoReport from './seo-report'
+import sesSetup from './ses-setup'
 import settings from './settings'
 import settingsRows from './settings-rows'
 import shadowfax from './shadowfax'
@@ -161,6 +172,7 @@ import shipmentLost from './shipment-lost'
 import shipments from './shipments'
 import shipping from './shipping'
 import shippingRates from './shipping-rates'
+import shiprocket from './shiprocket'
 import shopifyAppInstall from './shopify-app-install'
 import shopifyImport from './shopify-import'
 import shopifyImportFiles from './shopify-import-files'
@@ -200,6 +212,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...activityLog,
   ...account,
   ...affiliates,
+  ...affiliatesLayout,
   ...affiliateCreatives,
   ...affiliateFilters,
   ...appInstall,
@@ -230,6 +243,13 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...checkoutRules,
   ...checkoutSettings,
   ...codRto,
+  ...loyalty,
+  ...loyaltyCustomer,
+  ...loyaltyInsights,
+  ...loyaltyPlacements,
+  ...loyaltyProgram,
+  ...loyaltyReward,
+  ...loyaltyRules,
   ...deliveryOptionQuestions,
   ...deliveryOptionSections,
   ...deliveryOptions,
@@ -275,6 +295,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...growthReport,
   ...gstAlreadyInvoiced,
   ...gstInvoices,
+  ...gstListFilters,
   ...gstQueuePage,
   ...home,
   ...homeSections,
@@ -375,7 +396,10 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...chatwoot,
   ...xpressbees,
   ...ekart,
+  ...rapidshyp,
+  ...shiprocket,
   ...emailSuppression,
+  ...sesSetup,
   ...shadowfax,
   ...snapmint,
   ...growthbook,

@@ -3,7 +3,7 @@ import { translation } from '@/lib/i18n'
 
 export default [
   translation(affiliateCreativesContent, {
-    title: 'क्रिएटिव',
+    title: 'प्रेरणा',
     subtitle:
       'तस्वीरें और कैप्शन जो आपके एफ़िलिएट अपने डैशबोर्ड पर देखते हैं, अपने लिंक के साथ सेव करके पोस्ट करने के लिए तैयार।',
     add: 'क्रिएटिव जोड़ें',

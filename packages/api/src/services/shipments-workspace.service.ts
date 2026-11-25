@@ -31,7 +31,8 @@ import {
   or,
   sql,
 } from 'drizzle-orm'
-import { pickupByCourier } from './courier-pickup'
+import { takeOverImportedForBooking } from './bulk-book-takeover'
+import { pickupHeldByCourier } from './courier-pickup'
 import { bookSavedRoute, parcelsToBook, ruleAllowedRows } from './delivery-booking.service'
 import { countReadyToShip, orderNumberIn } from './ready-to-ship.service'
 import { bookingFor, type OrderBookingOverride } from './shipment-choices'
@@ -184,8 +185,9 @@ export async function listShipments(
     daysWithoutScan: daysWithoutScan({ ...r, tracking }, now),
     labelUrl: shipmentLabelUrl(r),
     courierCancels: registry?.get(r.provider)?.capabilities.includes('cancel') ?? true,
-    /* The courier scheduled its own pickup at booking: no Move back to Booked, no Create pickup. */
-    pickupByCourier: pickupByCourier(registry, r.provider),
+    /* The courier scheduled the parcel's pickup at booking: no Move back to Booked, no Create
+       pickup. Null while it has no pickup (refused at booking), so Create pickup can ask again. */
+    pickupByCourier: pickupHeldByCourier(registry, r.provider, r.pickupId),
   }))
   return { items, total: countRow?.total ?? 0 }
 }
@@ -230,26 +232,57 @@ export async function shipmentCounts(tx: StoreTx, now = new Date(), provider?: s
   }
 }
 
+type BulkBookInput = {
+  orderIds: string[]
+  weightGrams?: number | undefined
+  dimensionsCm?: { length: number; width: number; height: number } | undefined
+  insured?: boolean | undefined
+  /** Merchant's per-row courier pick from the rate comparison table; orders not listed here
+   *  book with the store's default rule (`settings.courierRule`). */
+  courierOverrides?: Record<string, string> | undefined
+  /** The service picked with each override (`CourierRateRow.serviceId`). */
+  serviceOverrides?: Record<string, string> | undefined
+  /** orderId -> the parcel (fulfilment order) Create shipment quoted for it. */
+  parcelIds?: Record<string, string> | undefined
+  /** orderId -> that order's own weight, box, payment mode and insurance (bulk Edit popup). */
+  perOrder?: Record<string, OrderBookingOverride> | undefined
+  /** Who books: an imported order still open is taken over in their name first. */
+  author?: string | undefined
+}
+
+/**
+ * Bulk Create shipment. An imported order still open is taken over before it books
+ * (`takeOverImportedForBooking`), so it ends fulfilled like an order booked from its own page;
+ * one that cannot be (shipped or cancelled on the old platform) is refused, as on its page.
+ */
 export async function bulkBookShipments(
   tx: StoreTx,
   storeId: string,
   registry: ShippingRegistry,
   secret: string,
-  input: {
-    orderIds: string[]
-    weightGrams?: number | undefined
-    dimensionsCm?: { length: number; width: number; height: number } | undefined
-    insured?: boolean | undefined
-    /** Merchant's per-row courier pick from the rate comparison table; orders not listed here
-     *  book with the store's default rule (`settings.courierRule`). */
-    courierOverrides?: Record<string, string> | undefined
-    /** The service picked with each override (`CourierRateRow.serviceId`). */
-    serviceOverrides?: Record<string, string> | undefined
-    /** orderId -> the parcel (fulfilment order) Create shipment quoted for it. */
-    parcelIds?: Record<string, string> | undefined
-    /** orderId -> that order's own weight, box, payment mode and insurance (bulk Edit popup). */
-    perOrder?: Record<string, OrderBookingOverride> | undefined
-  },
+  input: BulkBookInput,
+) {
+  const refused = await takeOverImportedForBooking(
+    tx,
+    storeId,
+    input.orderIds,
+    input.author ?? 'Staff',
+  )
+  const skip = new Set(refused.map((r) => r.orderId))
+  const orderIds = input.orderIds.filter((id) => !skip.has(id))
+  const booked =
+    orderIds.length > 0
+      ? await bookOrders(tx, storeId, registry, secret, { ...input, orderIds })
+      : []
+  return [...booked, ...refused]
+}
+
+async function bookOrders(
+  tx: StoreTx,
+  storeId: string,
+  registry: ShippingRegistry,
+  secret: string,
+  input: BulkBookInput,
 ) {
   const settings = await loadShippingSettings(tx, storeId)
   const { providers } = resolveShippingProviders(registry, settings, secret)
@@ -343,7 +376,7 @@ export async function bulkBookShipments(
           ok: true,
           shipmentId: row.id,
           waybill: row.waybill,
-          labelUrl: row.labelUrl,
+          labelUrl: shipmentLabelUrl(row),
         })
       } catch (err) {
         results.push({

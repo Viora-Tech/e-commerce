@@ -29,6 +29,7 @@ import type { StoreContext } from '../context'
 import { newsletterConfirmToken, newsletterConfirmUrl } from '../customers/newsletter'
 import { phoneBlindIndex } from '../customers/phone-crypto'
 import { storefrontOriginFor } from '../domains/origin'
+import { isSuppressed, sendStatus } from '../email-suppression/guard'
 import { mayNudgeKnownContact, phoneLookupVariants } from '../marketing/recipient'
 import { isOpenCheckoutDraft } from '../order/checkout-draft'
 import { orderParcelsView } from '../order/parcel-view'
@@ -63,6 +64,8 @@ export type DeliveryResult = {
   to: string
   ok: boolean
   error?: string | undefined
+  /** Not sent because the address is on the suppression list: not a failure, never retried. */
+  skipped?: boolean | undefined
 }
 
 export type DeliverOptions = {
@@ -77,6 +80,11 @@ export type DeliverOptions = {
   channels?: NotificationChannel[] | undefined
   /** Send again even to channels that already sent this template (a copy on request). */
   resend?: boolean | undefined
+  /**
+   * Channel ids an earlier attempt of the same job already sent through (`deliverMessageTo`):
+   * a retry after one channel failed sends only the others, never a second copy.
+   */
+  skipChannels?: readonly string[] | undefined
   /** Only channels that need this recipient field, e.g. email for a file. */
   requires?: 'email' | 'phone' | undefined
   /** Extra template fields, e.g. the document label of a copy. */
@@ -250,7 +258,7 @@ export async function deliverNewsletterConfirm(
       channel: channel.id,
       template,
       to: signup.email,
-      status: r.ok ? 'sent' : 'failed',
+      status: sendStatus(r),
       providerRef: r.ok ? r.providerRef : null,
       error: r.ok ? null : r.error,
     })
@@ -259,6 +267,7 @@ export async function deliverNewsletterConfirm(
       to: signup.email,
       ok: r.ok,
       error: r.ok ? undefined : r.error,
+      ...(isSuppressed(r) ? { skipped: true } : {}),
     })
   }
   return results
@@ -378,7 +387,9 @@ export async function deliverCartRecovery(
     .select({ channel: notification.channel, status: notification.status })
     .from(notification)
     .where(and(eq(notification.cartId, input.cartId), eq(notification.template, template)))
-  const sent = new Set(already.filter((n) => n.status === 'sent').map((n) => n.channel))
+  const sent = new Set(
+    already.filter((n) => n.status === 'sent' || n.status === 'skipped').map((n) => n.channel),
+  )
 
   const results: DeliveryResult[] = []
   for (const channel of channels) {
@@ -397,7 +408,7 @@ export async function deliverCartRecovery(
         channel: channel.id,
         template,
         to,
-        status: r.ok ? 'sent' : 'failed',
+        status: sendStatus(r),
         providerRef: r.ok ? r.providerRef : null,
         error: r.ok ? null : r.error,
       })
@@ -405,12 +416,18 @@ export async function deliverCartRecovery(
         target: [notification.cartId, notification.channel, notification.template],
         targetWhere: sql`cart_id is not null`,
         set: {
-          status: r.ok ? 'sent' : 'failed',
+          status: sendStatus(r),
           providerRef: r.ok ? r.providerRef : null,
           error: r.ok ? null : r.error,
         },
       })
-    results.push({ channel: channel.id, to, ok: r.ok, error: r.ok ? undefined : r.error })
+    results.push({
+      channel: channel.id,
+      to,
+      ok: r.ok,
+      error: r.ok ? undefined : r.error,
+      ...(isSuppressed(r) ? { skipped: true } : {}),
+    })
   }
   return results
 }
@@ -623,7 +640,9 @@ export async function deliverNotification(
   const attachments = extras?.attachments.length ? extras.attachments : undefined
 
   const sent = new Set(
-    opts.resend ? [] : already.filter((n) => n.status === 'sent').map((n) => n.channel),
+    opts.resend
+      ? []
+      : already.filter((n) => n.status === 'sent' || n.status === 'skipped').map((n) => n.channel),
   )
 
   const results: DeliveryResult[] = []
@@ -642,19 +661,25 @@ export async function deliverNotification(
         channel: channel.id,
         template: input.template,
         to,
-        status: r.ok ? 'sent' : 'failed',
+        status: sendStatus(r),
         providerRef: r.ok ? r.providerRef : null,
         error: r.ok ? null : r.error,
       })
       .onConflictDoUpdate({
         target: [notification.orderId, notification.channel, notification.template],
         set: {
-          status: r.ok ? 'sent' : 'failed',
+          status: sendStatus(r),
           providerRef: r.ok ? r.providerRef : null,
           error: r.ok ? null : r.error,
         },
       })
-    results.push({ channel: channel.id, to, ok: r.ok, error: r.ok ? undefined : r.error })
+    results.push({
+      channel: channel.id,
+      to,
+      ok: r.ok,
+      error: r.ok ? undefined : r.error,
+      ...(isSuppressed(r) ? { skipped: true } : {}),
+    })
   }
   return results
 }

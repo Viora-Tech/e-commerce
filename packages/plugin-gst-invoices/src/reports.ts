@@ -8,7 +8,15 @@ import {
   gstr1CreditNote,
   gstr1Invoice,
 } from '@commerce/invoices'
-import { and, desc, eq, gte, ilike, inArray, lt, ne, or, type SQL, sql } from 'drizzle-orm'
+import { and, eq, gte, inArray, lt, ne, type SQL, sql } from 'drizzle-orm'
+import {
+  type DocumentSort,
+  type DocumentSource,
+  documentDateKey,
+  documentNumberKey,
+  documentOrderBy,
+  documentSearch,
+} from './list-query'
 import { documentSeriesKey } from './record-external'
 import { sameRegistration } from './registration'
 import { invoice } from './schema'
@@ -33,10 +41,11 @@ export type ListFilter = {
   gstRegistrationId?: string | null | undefined
   /** Only exports (zero-rated under LUT or with IGST paid): the Exports tab. */
   exportsOnly?: boolean | undefined
+  /** Issued here, or recorded as invoiced outside Koomerce. */
+  source?: DocumentSource | undefined
 }
 
 function where(filter: ListFilter): SQL | undefined {
-  const q = filter.q?.trim()
   // Drafts live in the queue, not in the issued list.
   return and(
     ne(invoice.status, 'draft'),
@@ -54,20 +63,19 @@ function where(filter: ListFilter): SQL | undefined {
     filter.exportsOnly ? ne(invoice.supplyType, 'domestic') : undefined,
     filter.from ? gte(invoice.invoiceDate, filter.from) : undefined,
     filter.to ? lt(invoice.invoiceDate, filter.to) : undefined,
-    q
-      ? or(
-          ilike(invoice.number, `%${q}%`),
-          ilike(invoice.buyerName, `%${q}%`),
-          ilike(invoice.buyerGstin, `%${q}%`),
-        )
-      : undefined,
+    filter.source ? eq(invoice.source, filter.source) : undefined,
+    documentSearch(filter.q),
   )
 }
 
 export async function listDocuments(
   tx: StoreTx,
-  filter: ListFilter & { limit: number; offset: number },
+  filter: ListFilter & { limit: number; offset: number; sort?: DocumentSort | undefined },
 ) {
+  const [counted] = await tx
+    .select({ n: sql<number>`count(*)::int` })
+    .from(invoice)
+    .where(where(filter))
   const rows = await tx
     .select({
       id: invoice.id,
@@ -87,24 +95,32 @@ export async function listDocuments(
       reportedPeriod: invoice.reportedPeriod,
       issuedAt: invoice.issuedAt,
       invoiceDate: invoice.invoiceDate,
+      fyStartYear: invoice.fyStartYear,
+      seq: invoice.seq,
       snapshot: invoice.snapshot,
     })
     .from(invoice)
     .where(where(filter))
-    // Recorded without details (no date) go last, not above this month's invoices.
-    .orderBy(sql`${invoice.invoiceDate} desc nulls last`, desc(invoice.seq), desc(invoice.id))
+    // Newest first by default; recorded without details (no date) go last (`documentOrderBy`).
+    .orderBy(...documentOrderBy(filter.sort))
     .limit(filter.limit + 1)
     .offset(filter.offset)
   return {
-    rows: rows.slice(0, filter.limit).map(({ snapshot, taxPaise, sgstPaise, igstPaise, ...r }) => {
-      const doc = DocumentSnapshotSchema.safeParse(snapshot)
-      return {
-        ...r,
-        taxPaise: taxPaise + sgstPaise + igstPaise,
-        orderName: doc.success ? doc.data.order.name : '',
-      }
-    }),
+    rows: rows
+      .slice(0, filter.limit)
+      .map(({ snapshot, taxPaise, sgstPaise, igstPaise, fyStartYear, seq, ...r }) => {
+        const doc = DocumentSnapshotSchema.safeParse(snapshot)
+        return {
+          ...r,
+          taxPaise: taxPaise + sgstPaise + igstPaise,
+          orderName: doc.success ? doc.data.order.name : '',
+          /** The server's sort as numbers, so the table's own sort of this page agrees. */
+          dateKey: documentDateKey(r),
+          numberKey: documentNumberKey({ fyStartYear, seq }),
+        }
+      }),
     hasMore: rows.length > filter.limit,
+    total: Number(counted?.n ?? 0),
   }
 }
 

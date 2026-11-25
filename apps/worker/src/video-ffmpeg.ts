@@ -63,6 +63,29 @@ export function ffmpegArgs(input: string, output: string): string[] {
   ]
 }
 
+/**
+ * ffmpeg's arguments for a video's first frame as a lossless PNG at its own size (the poster,
+ * `./video-poster.ts`, is sized and encoded from it by sharp). Reads only the start of the file.
+ */
+export function posterFrameArgs(input: string, output: string): string[] {
+  return [
+    '-hide_banner',
+    '-loglevel',
+    'error',
+    '-y',
+    '-i',
+    input,
+    '-map',
+    '0:v:0',
+    '-frames:v',
+    '1',
+    '-an',
+    '-threads',
+    '1',
+    output,
+  ]
+}
+
 /** ffprobe's arguments: the first video stream's width and the file's duration, as JSON. */
 export function ffprobeArgs(input: string): string[] {
   return [
@@ -100,7 +123,9 @@ export type RunResult = { code: number | null; stdout: string; stderr: string; t
 
 /** Appends `chunk` to `kept` up to the cap; the rest is dropped. */
 function capped(kept: string, chunk: Buffer): string {
-  return kept.length >= OUTPUT_CAP_BYTES ? kept : (kept + chunk.toString()).slice(0, OUTPUT_CAP_BYTES)
+  return kept.length >= OUTPUT_CAP_BYTES
+    ? kept
+    : (kept + chunk.toString()).slice(0, OUTPUT_CAP_BYTES)
 }
 
 /** Runs a program to the end (or the timeout), keeping only a capped slice of its output. */
@@ -157,6 +182,20 @@ export async function probeVideo(
   }
 }
 
+/** A frame grab reads a few megabytes at most; longer is a broken file. */
+const FRAME_TIMEOUT_MS = 2 * 60_000
+
+/** The first frame of `input` as a PNG at `output`, or throws with ffmpeg's error text. */
+export async function firstFrameFile(input: string, output: string): Promise<void> {
+  const run = await runProgram(ffmpegBin(), posterFrameArgs(input, output), {
+    timeoutMs: FRAME_TIMEOUT_MS,
+    nice: ENCODE_NICE,
+  })
+  if (run.timedOut) throw new Error('ffmpeg frame grab timed out')
+  if (run.code !== 0)
+    throw new Error(`ffmpeg exited ${run.code}: ${run.stderr.trim().slice(0, 500)}`)
+}
+
 /** Encodes `input` into the smaller copy at `output`, or throws with ffmpeg's error text. */
 export async function encodeVideoFile(input: string, output: string): Promise<void> {
   const run = await runProgram(ffmpegBin(), ffmpegArgs(input, output), {
@@ -164,5 +203,6 @@ export async function encodeVideoFile(input: string, output: string): Promise<vo
     nice: ENCODE_NICE,
   })
   if (run.timedOut) throw new Error(`ffmpeg stopped after ${ENCODE_TIMEOUT_MS / 60_000} minutes`)
-  if (run.code !== 0) throw new Error(`ffmpeg exited ${run.code}: ${run.stderr.trim().slice(0, 500)}`)
+  if (run.code !== 0)
+    throw new Error(`ffmpeg exited ${run.code}: ${run.stderr.trim().slice(0, 500)}`)
 }

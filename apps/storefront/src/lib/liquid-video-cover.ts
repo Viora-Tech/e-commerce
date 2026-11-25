@@ -13,6 +13,7 @@
  */
 
 import { attributes, openTag, tag } from './liquid-fold'
+import { AUTO_POSTER_ATTR } from './liquid-video-poster'
 
 const VIDEO = tag('video')
 
@@ -27,7 +28,8 @@ export function withoutVideoCovers(html: string): string {
     const attrs = attributes(source)
     const has = (n: string) => attrs.some((a) => a.name === n)
     const poster = attrs.find((a) => a.name === 'poster')
-    if (has('controls') || !poster) return whole
+    // A first-frame poster the storefront added (`./liquid-video-poster.ts`) is not a cover.
+    if (has('controls') || !poster || has(AUTO_POSTER_ATTR)) return whole
     const eq = poster.raw.indexOf('=')
     const value = eq < 0 ? '' : poster.raw.slice(eq + 1).trim()
     const kept = attrs.filter((a) => a !== poster && a.name !== COVER_ATTR)

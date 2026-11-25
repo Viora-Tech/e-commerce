@@ -81,8 +81,11 @@ import {
   type RateQuery,
   type RateQuote,
   type ReturnPickupInput,
+  type SchedulePickupInput,
+  type SchedulePickupResult,
   type Serviceability,
   type ServiceabilityQuery,
+  type ShippingLabelDocument,
   type ShippingProvider,
   type ShippingProviderFactory,
   type Tracking,
@@ -92,10 +95,14 @@ import { type BookingCalls, bookRapidshypShipment, pushRapidshypOrder } from './
 import { RAPIDSHYP_CAPABILITIES } from './client'
 import { eddDaysFromToday } from './edd'
 import { packageDetails } from './package'
+import { scheduleRapidshypPickups } from './pickup'
 import { explainRapidshypRemark, rapidshypRefusal } from './remarks'
 import { mapRapidshypStatus } from './status'
 
 export const RAPIDSHYP_BASE_URL = 'https://api.rapidshyp.com'
+
+/** A PDF starts `%PDF` (an S3 error page is XML). */
+const isPdf = (b: Uint8Array) => b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46
 
 export type RapidshypConfig = {
   /** Static per-account key from the RapidShyp dashboard (Settings > API), sent as
@@ -223,6 +230,8 @@ export class RapidshypProvider implements ShippingProvider {
    * booked shipment's charge, so the quote is never saved as the courier charge.
    */
   readonly quoteIsCharge = false
+  /** Its pickups go per shipment (`./pickup`): never joined to one already booked. */
+  readonly pickupPerParcel = true
 
   private readonly baseUrl: string
   private readonly fetchImpl: typeof fetch
@@ -463,12 +472,82 @@ export class RapidshypProvider implements ShippingProvider {
     })
   }
 
-  /** Label PDF API - explicit fallback for when a create call did not come back with a label. */
+  /** Create pickup for parcels whose pickup RapidShyp refused at booking (`./pickup`). */
+  async schedulePickup(input: SchedulePickupInput): Promise<SchedulePickupResult> {
+    return scheduleRapidshypPickups(
+      {
+        provider: this.id,
+        shipmentIdOf: (awb) => this.shipmentIdByAwb(awb),
+        schedulePickup: (shipmentId, awb) => this.schedulePickupForShipment(shipmentId, awb),
+      },
+      input,
+    )
+  }
+
+  /** RapidShyp's shipment id for an AWB, from Track Order (pickups and labels are asked by it). */
+  private async shipmentIdByAwb(awb: string): Promise<string | undefined> {
+    const data = await this.postJson<TrackOrderResponse>('/rapidshyp/apis/v1/track_order', {
+      awb,
+    })
+    const hit = data.records
+      ?.flatMap((r) => r.shipment_details ?? [])
+      .find((d) => d.shipment_id && (!d.awb || d.awb === awb))
+    return hit?.shipment_id ? String(hit.shipment_id) : undefined
+  }
+
+  /**
+   * Label PDF API: the label's link for a shipment id. Its docs call it a GET with a JSON body
+   * (`{ shipmentId: [...] }`), which `fetch` cannot send, so it is posted; a 404/405 answer
+   * (the POST not routed) asks once more as a GET with the id in the query.
+   */
   async generateLabel(shipmentIds: string[]): Promise<string | undefined> {
     const result = await this.postJson<LabelResponse>('/rapidshyp/apis/v1/generate_label', {
       shipmentId: shipmentIds,
+    }).catch((error: unknown) => {
+      if (!(error instanceof CourierError) || (error.status !== 404 && error.status !== 405)) {
+        throw error
+      }
+      const query = new URLSearchParams(shipmentIds.map((id) => ['shipmentId', id]))
+      return this.getJson<LabelResponse>(`/rapidshyp/apis/v1/generate_label?${query}`)
     })
-    return result.labelData?.[0]?.labelURL
+    return result.labelData?.find((l) => l.labelURL)?.labelURL
+  }
+
+  /**
+   * The label PDF for a booked AWB, asked fresh each time (Print label, label sheets): its
+   * shipment id by AWB, Label PDF API's link, then the file behind it. Shipments booked while
+   * RapidShyp gave no label link have none stored, so this is how they print (23 Nov 2026).
+   */
+  async getLabel(waybill: string): Promise<ShippingLabelDocument> {
+    const shipmentId = await this.shipmentIdByAwb(waybill)
+    if (!shipmentId) {
+      throw new CourierError(
+        'bad_response',
+        this.id,
+        `RapidShyp did not find a shipment for AWB ${waybill}.`,
+      )
+    }
+    const link = await this.generateLabel([shipmentId])
+    if (!link || !/^https:\/\//i.test(link)) {
+      throw new CourierError(
+        'bad_response',
+        this.id,
+        `RapidShyp gave no label for AWB ${waybill} yet.`,
+      )
+    }
+    const res = await courierFetch(this.id, link, {
+      fetchImpl: this.fetchImpl,
+      timeoutMs: COURIER_TIMEOUT_MS,
+    })
+    const body = new Uint8Array(await res.arrayBuffer())
+    if (!isPdf(body)) {
+      throw new CourierError(
+        'bad_response',
+        this.id,
+        `RapidShyp's label for AWB ${waybill} is not a PDF.`,
+      )
+    }
+    return { contentType: 'application/pdf', body }
   }
 
   /** Booking calls for `./booking`, which holds the create-shipment flow. */

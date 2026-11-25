@@ -8,6 +8,7 @@ import {
   type StoreTx,
 } from '@commerce/db'
 import { and, asc, desc, eq, inArray, lte, sql } from 'drizzle-orm'
+import { isSuppressed } from '../email-suppression/guard'
 import { campaignAudience } from './audience'
 import { type CampaignInput, campaignProblems, utmName } from './campaign-input'
 import { applyMergeTags, type EmailBlock, parseEmailBlocks, renderMarketingEmail } from './email'
@@ -355,7 +356,8 @@ export async function sendCampaignBatch(
             applyMergeTags,
           )
     if (result.ok) sent += 1
-    else failed += 1
+    // An address on the suppression list is skipped (its row says so), never a failure.
+    else if (!isSuppressed(result)) failed += 1
   }
 
   const [left] = await tx

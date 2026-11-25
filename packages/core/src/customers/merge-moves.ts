@@ -239,6 +239,16 @@ export async function moveMergedRows(ctx: StoreContext, keptId: string, mergedId
   await tx.execute(
     sql`update affiliate_commission set customer_id = ${keptId} where store_id = ${storeId} and customer_id = ${mergedId}`,
   )
+  // Loyalty points history (the points themselves move with the store credit above). A review or
+  // birthday entry the kept customer already has for the same product or year stays behind.
+  await tx.execute(sql`
+    update loyalty_entry m set customer_id = ${keptId}
+    where m.store_id = ${storeId} and m.customer_id = ${mergedId}
+      and not exists (
+        select 1 from loyalty_entry k
+        where k.store_id = ${storeId} and k.customer_id = ${keptId} and k.source = m.source
+          and ((m.source = 'review' and k.product_id = m.product_id)
+            or (m.source = 'birthday' and k.year = m.year)))`)
   // One affiliate record per customer: theirs moves only when the kept customer has none;
   // otherwise it stays as it is, without the account link.
   await tx.execute(sql`

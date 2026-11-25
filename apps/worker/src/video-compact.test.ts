@@ -10,6 +10,8 @@ const state = vi.hoisted(() => ({
   row: null as Record<string, unknown> | null,
   provider: null as unknown,
   marks: [] as { kind: string; id: string; copy?: unknown }[],
+  /** What `linkAutoPoster` answers: the poster id, or null when the video got one meanwhile. */
+  linked: 'p-auto' as string | null,
 }))
 
 vi.mock('@commerce/db', () => ({
@@ -25,6 +27,11 @@ vi.mock('@commerce/core', async () => {
   return {
     compactPlan: rules.compactPlan,
     compactVideoKey: rules.compactVideoKey,
+    videoPosterKey: rules.videoPosterKey,
+    linkAutoPoster: async (_tx: unknown, _storeId: string, id: string, poster: unknown) => {
+      state.marks.push({ kind: 'poster', id, copy: poster })
+      return state.linked
+    },
     isCompactableVideo: rules.isCompactableVideo,
     worthKeeping: rules.worthKeeping,
     storageForStore: async () => state.provider,
@@ -54,6 +61,10 @@ function tools(copyBytes: number, probe = { width: 1920, durationSec: 20 }) {
   return {
     probe: vi.fn(async () => probe),
     encode: vi.fn(async (_in: string, out: string) => writeFile(out, new Uint8Array(copyBytes))),
+    poster: vi.fn(async (_in: string, _frame: string, out: string) => {
+      await writeFile(out, new Uint8Array(40 * 1024))
+      return { width: 1280, height: 720, size: 40 * 1024 }
+    }),
   }
 }
 
@@ -67,8 +78,11 @@ beforeEach(() => {
     contentType: 'video/mp4',
     provider: 'memory',
     compactSize: null,
+    // Copy tests: the video already has a poster (the merchant's), so none is made.
+    posterMediaId: 'p-merchant',
   }
   state.marks = []
+  state.linked = 'p-auto'
 })
 
 describe('compactVideo', () => {
@@ -148,5 +162,74 @@ describe('downloadToFile', () => {
     await expect(downloadToFile(plain as never, KEY, path)).resolves.toBe(true)
     expect((await stat(path)).size).toBe(1024)
     await expect(downloadToFile(plain as never, 'missing', path)).resolves.toBe(false)
+  })
+})
+
+describe('first-frame poster', () => {
+  const POSTER_KEY = 'stores/s1/media/hero.poster.webp'
+  const posterMark = {
+    kind: 'poster',
+    id: 'm1',
+    copy: {
+      url: `https://cdn.test/${POSTER_KEY}`,
+      key: POSTER_KEY,
+      provider: 'memory',
+      size: 40 * 1024,
+      width: 1280,
+      height: 720,
+    },
+  }
+
+  it('makes the poster beside the video from the same download, then the copy', async () => {
+    const provider = await storeVideo(12 * MB)
+    state.row = { ...state.row, posterMediaId: null }
+    const t = tools(3 * MB)
+    await expect(run(t)).resolves.toBe('made')
+    expect(t.poster).toHaveBeenCalledTimes(1)
+    expect(provider.streamed).toEqual([POSTER_KEY, 'stores/s1/media/hero.small.mp4'])
+    expect(state.marks.map((m) => m.kind)).toEqual(['poster', 'copy'])
+    expect(state.marks[0]).toEqual(posterMark)
+  })
+
+  it('downloads a small video already looked at for its poster alone', async () => {
+    const provider = await storeVideo(2 * MB)
+    state.row = { ...state.row, compactSize: 0, posterMediaId: null }
+    const t = tools(1 * MB)
+    await expect(run(t)).resolves.toBe('poster')
+    expect(t.encode).not.toHaveBeenCalled()
+    expect(provider.streamed).toEqual([POSTER_KEY])
+    expect(state.marks).toEqual([posterMark])
+  })
+
+  it('links a poster already in the bucket instead of making it again', async () => {
+    const provider = await storeVideo(12 * MB)
+    await provider.put({ key: POSTER_KEY, body: new Uint8Array(500), contentType: 'image/webp' })
+    state.row = { ...state.row, compactSize: 0, posterMediaId: null }
+    const get = vi.spyOn(provider, 'getStream')
+    const t = tools(3 * MB)
+    await expect(run(t)).resolves.toBe('poster')
+    expect(get).not.toHaveBeenCalled()
+    expect(t.poster).not.toHaveBeenCalled()
+    expect(state.marks).toEqual([
+      { kind: 'poster', id: 'm1', copy: expect.objectContaining({ key: POSTER_KEY, size: 500 }) },
+    ])
+  })
+
+  it('never replaces a poster the video has, even forced', async () => {
+    await storeVideo(12 * MB)
+    state.row = { ...state.row, compactSize: 0 }
+    const t = tools(3 * MB)
+    await expect(run(t)).resolves.toBe('skipped')
+    await expect(run(t, true)).resolves.toBe('made')
+    expect(t.poster).not.toHaveBeenCalled()
+  })
+
+  it('a failed frame grab never fails the copy', async () => {
+    await storeVideo(12 * MB)
+    state.row = { ...state.row, posterMediaId: null }
+    const t = tools(3 * MB)
+    t.poster.mockRejectedValueOnce(new Error('ffmpeg exited 1'))
+    await expect(run(t)).resolves.toBe('made')
+    expect(state.marks.map((m) => m.kind)).toEqual(['copy'])
   })
 })

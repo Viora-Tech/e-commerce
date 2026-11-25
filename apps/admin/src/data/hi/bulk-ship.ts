@@ -113,21 +113,11 @@ export default [
       alreadyBooked: (time, ref) => `पिकअप पहले से बुक · ${time}${ref ? ` · ID ${ref}` : ''}`,
       newRequest: 'नई पिकअप रिक्वेस्ट',
       dropOff: 'खुद छोड़कर आएँ',
-      slotLabel: 'पिकअप का दिन और समय',
-      slot: (day, time) => `${day} · ${time} से`,
-      today: (date) => `आज, ${date}`,
-      tomorrow: (date) => `कल, ${date}`,
-      footnote: (fresh, joined) =>
-        `${[
-          fresh > 0 ? `${fresh} नई पिकअप रिक्वेस्ट` : null,
-          joined.length > 0 ? `${joined.join(', ')} के पार्सल पहले से बुक पिकअप में जुड़ेंगे` : null,
-        ]
-          .filter(Boolean)
-          .join('; ')}। पार्सल पिकअप होने वाले में चले जाएँगे।`,
+      onPickup: 'पिकअप पर',
+      footnote:
+        'अगले कदम में हर कूरियर का दिन और समय चुनें, या पार्सल पहले से बुक पिकअप में जोड़ें। फिर पार्सल पिकअप होने वाले में चले जाएँगे।',
       later: 'बाद में',
       create: 'पिकअप बनाएं',
-      created: 'पिकअप बन गए। पार्सल पिकअप होने वाले में चले गए।',
-      createFailed: 'पिकअप नहीं बन पाए।',
     },
     editPopup: {
       title: (n) => `शिपमेंट बदलें · #${n}`,
@@ -153,7 +143,11 @@ export default [
         [cheapest ? `सबसे सस्ता: ${cheapest}` : null, fastest ? `सबसे तेज़: ${fastest}` : null]
           .filter(Boolean)
           .join(' · '),
-      repriceNote: 'लागू करने पर इस पैकेट के लिए कूरियर से फिर पूछा जाएगा।',
+      pricing: {
+        updating: 'कीमतें अपडेट हो रही हैं…',
+        waiting: 'कीमतें अपडेट करने के लिए बॉक्स का पूरा साइज़ भरें।',
+        failed: 'नई कीमतें नहीं मिलीं। लागू करने पर कूरियर से फिर पूछा जाएगा।',
+      },
       noShopperChoice: 'चेकआउट पर कोई डिलीवरी विकल्प नहीं चुना गया',
       payment: 'भुगतान',
       prepaid: 'प्रीपेड',
@@ -162,6 +156,8 @@ export default [
       codHelp: 'यहाँ कोई कूरियर कैश नहीं लेता? ग्राहक से ऑनलाइन भुगतान करवाएँ, फिर इसे प्रीपेड करें।',
       insurance: 'इस ऑर्डर का इंश्योरेंस',
       insuranceCovers: (value) => `खोने या टूटने पर ${value} कवर`,
+      shieldFollowsSettings:
+        'RapidShyp Shield हर उस पार्सल का बीमा करता है जिसकी कीमत RapidShyp पर आपकी RapidShield सेटिंग वाली रकम से ज़्यादा है। यह स्विच इसे चालू या बंद नहीं करता।',
       charge: 'खर्च',
       chargeValue: (amount, insured) =>
         insured ? `${amount} GST + इंश्योरेंस सहित` : `${amount} GST सहित`,

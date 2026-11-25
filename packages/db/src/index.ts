@@ -17,6 +17,8 @@ export { isUniqueViolation } from './errors'
 export * from './finance-schema'
 export * from './home-card-schema'
 export * from './inbox-schema'
+export * from './loyalty-schema'
+export * from './loyalty-v2-schema'
 export * from './market-schema'
 export * from './marketing-schema'
 export * from './metafield-schema'
@@ -51,6 +53,7 @@ export {
   storesWithExpiredDraftHolds,
   storesWithHomeCardsDue,
   storesWithInboxChatEmails,
+  storesWithLoyaltyPoints,
   storesWithMarketingWork,
   storesWithMemberDailySummaries,
   storesWithMemberReports,

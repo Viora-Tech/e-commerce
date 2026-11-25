@@ -31,6 +31,7 @@ import {
   PriceNotSet,
   VariantHidden,
 } from '../errors'
+import { OVER_LIMIT_NOTE } from '../discounts/usage'
 import { setCartAttribution } from '../marketing/sessions'
 import { FakePaymentProvider, type PaymentProvider } from '../providers/payment'
 import { placeOrder, placeOrderAndPay } from './place-order'
@@ -657,9 +658,14 @@ describe('placeOrder discount limits under concurrency', () => {
 
     const results = await checkoutAll(first, cartIds, true)
 
+    // With checkout details these are online drafts: the code only counts once paid (a failed
+    // payment must not use it up), so all three priced with it. Each was paid at that price, so
+    // each is kept and counted; the two past the cap carry a timeline note for the merchant.
     const usage = await owner.select().from(discountUsage)
-    expect(usage).toHaveLength(1)
-    expect(usage[0]?.email).toBe('shopper@example.com')
+    expect(usage.filter((u) => u.counted)).toHaveLength(results.length)
+    expect(usage.every((u) => u.email === 'shopper@example.com')).toBe(true)
+    const flagged = await owner.select().from(orderNote).where(eq(orderNote.body, OVER_LIMIT_NOTE('FIRST')))
+    expect(flagged).toHaveLength(results.length - 1)
     for (const r of results) {
       // Lost the race for the last use, or found the use already taken: never placed at full price.
       if (r.status === 'rejected')

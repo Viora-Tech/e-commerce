@@ -34,13 +34,13 @@ export type PlatformWebhookConfig = {
 }
 
 export type PlatformWebhookHandlers = {
-  meta: (db: Db, payload: MetaWebhookPayload) => Promise<number>
+  meta: (db: Db, payload: MetaWebhookPayload, settingsSecret: string) => Promise<number>
   forgetMetaUser: (db: Db, userId: string) => Promise<number>
   shopify: typeof handleShopifyAppWebhook
 }
 
 const DEFAULT_HANDLERS: PlatformWebhookHandlers = {
-  meta: (db, payload) => handleMetaWebhook(db, payload),
+  meta: (db, payload, settingsSecret) => handleMetaWebhook(db, payload, new Date(), settingsSecret),
   forgetMetaUser: (db, userId) => forgetMetaUser(db, userId),
   shopify: handleShopifyAppWebhook,
 }
@@ -104,7 +104,7 @@ export function platformWebhooks(
     } catch {
       return reject(c, 'meta', 'not json')
     }
-    const recorded = await handlers.meta(db, payload)
+    const recorded = await handlers.meta(db, payload, config.settingsSecret)
     c.var.log?.set({ webhook: { platform: 'meta', object: payload.object, recorded } })
     // Always 200 once verified: Meta retries anything else for days.
     return c.json({ ok: true })

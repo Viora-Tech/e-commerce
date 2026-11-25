@@ -14,5 +14,7 @@ export default [
     hideSettings: 'सेटिंग्स छिपाएँ',
     noSettings: 'सेट करने को कुछ नहीं है।',
     hint: 'चालू किए एम्बेड सेव करने के बाद आपके स्टोर पर दिखेंगे।',
+    saveHintTitle: '“सेव” दबाएँ',
+    saveHintBody: (name: string) => `ऊपर दाईं ओर, ताकि ${name} चालू हो जाए।`,
   }),
 ]

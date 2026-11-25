@@ -99,8 +99,6 @@ export default function CreateShipmentPage({
   const [busy, setBusy] = useState(false)
   /** The Select courier drawer (Figma 898:7790). */
   const [drawer, setDrawer] = useState(false)
-  /** The merchant chose the courier in the drawer; until then Book shipment opens it. */
-  const [chosenByHand, setChosenByHand] = useState(false)
   /** Shipping insurance (the drawer's toggle); null follows what the shopper chose at checkout. */
   const [insuredChoice, setInsuredChoice] = useState<boolean | null>(null)
   /** The courier whose Ship now is booking. */
@@ -162,8 +160,7 @@ export default function CreateShipmentPage({
   }
   const handlePickupPlace = (pickupLocationId: string | null) =>
     form && setForm({ ...form, pickupLocationId })
-  /* Split, but the booking failed: reload the parcel (now only what ships now) so a retry
-     books it without splitting twice. */
+  /* Split, but booking failed: reload the parcel so a retry does not split twice. */
   const handleSplitKept = () => {
     toast.info(content.partial.splitKept)
     api.shipments.prepare({ orderIds: [orderId] }).then(
@@ -205,12 +202,9 @@ export default function CreateShipmentPage({
     if (!order || !parcel || !form || !parsed) return
     const key = optionKey ?? pick
     const chosen = quote?.options.find((o) => o.optionKey === key) ?? null
-    /* Booking always goes through the courier list (Figma 898:7790): Book shipment opens it
-       until the merchant picks a courier there, and Ship now books from it. */
-    if (
-      key !== MANUAL &&
-      (!chosen || chosen.problem || !pricesCurrent || (!optionKey && !chosenByHand))
-    ) {
+    /* A courier is only booked by its Ship now in the list (Figma 898:7790): Book shipment opens
+       the list, and a row picked then closed with × is not a choice (owner, 24 Nov 2026). */
+    if (key !== MANUAL && (!optionKey || !chosen || chosen.problem || !pricesCurrent)) {
       setDrawer(true)
       return
     }
@@ -423,10 +417,7 @@ export default function CreateShipmentPage({
               summary={drawerSummary}
               rows={options}
               pick={pick}
-              onPick={(key) => {
-                setPick(key)
-                setChosenByHand(true)
-              }}
+              onPick={setPick}
               onShipNow={pricesCurrent ? handleShipNow : undefined}
               shippingKey={shipping}
               insured={insured}

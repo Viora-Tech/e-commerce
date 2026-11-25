@@ -19,9 +19,19 @@ type AffiliateApplyFormProps = {
 
 const copy = affiliateContent.apply
 
+const LABEL = 'text-[0.75rem] font-semibold tracking-wide text-ink uppercase'
+
+/** "Asha Rao Iyer" → ["Asha", "Rao Iyer"]. */
+function splitName(name: string): [string, string] {
+  const [first = '', ...rest] = name.trim().split(/\s+/)
+  return [first, rest.join(' ')]
+}
+
 /**
- * The short application: name, where they post and how they will share, the program's own
- * questions, an optional UPI ID and the terms. The shopper's account supplies email and phone.
+ * The application, in UpPromote's order with uppercase labels and a red star on required
+ * fields: first and last name, the account's email, then where they post and how they will share, the program's own
+ * questions, an optional UPI ID and the terms, and a full-width JOIN. The shopper's account
+ * supplies the email and phone.
  */
 export default function AffiliateApplyForm({
   defaultName,
@@ -32,7 +42,8 @@ export default function AffiliateApplyForm({
 }: AffiliateApplyFormProps) {
   // Hooks
   const [pending, start] = useTransition()
-  const [name, setName] = useState(defaultName)
+  const [first, setFirst] = useState(() => splitName(defaultName)[0])
+  const [last, setLast] = useState(() => splitName(defaultName)[1])
   const [social, setSocial] = useState('')
   const [channels, setChannels] = useState<string[]>([])
   const [message, setMessage] = useState('')
@@ -48,6 +59,7 @@ export default function AffiliateApplyForm({
     e.preventDefault()
     setError(null)
     const upi = upiId.trim()
+    const name = `${first.trim()} ${last.trim()}`.trim()
     start(async () => {
       const r = await applyAffiliateAction({
         name,
@@ -65,27 +77,45 @@ export default function AffiliateApplyForm({
 
   // Render logic
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-5 rounded-[var(--radius-card)] bg-surface p-5 sm:p-6"
-    >
-      <div className="flex flex-col gap-1">
-        <h2 className="h3">{copy.title}</h2>
-        <p className="text-small text-muted">{email ? copy.as(email) : copy.lead}</p>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <div className="grid gap-5 sm:grid-cols-2">
+        <label className="field">
+          <span className={LABEL}>
+            {copy.firstName}
+            <Required />
+          </span>
+          <input
+            className="field__input"
+            autoComplete="given-name"
+            required
+            maxLength={60}
+            value={first}
+            onChange={(e) => setFirst(e.target.value)}
+          />
+        </label>
+        <label className="field">
+          <span className={LABEL}>{copy.lastName}</span>
+          <input
+            className="field__input"
+            autoComplete="family-name"
+            maxLength={60}
+            value={last}
+            onChange={(e) => setLast(e.target.value)}
+          />
+        </label>
       </div>
+      {email ? (
+        <label className="field">
+          <span className={LABEL}>
+            {copy.email}
+            <Required />
+          </span>
+          <input className="field__input text-muted" type="email" readOnly value={email} />
+          <span className="text-small text-muted">{copy.as}</span>
+        </label>
+      ) : null}
       <label className="field">
-        <span className="field__label text-small">{copy.name}</span>
-        <input
-          className="field__input"
-          autoComplete="name"
-          required
-          maxLength={120}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-      </label>
-      <label className="field">
-        <span className="field__label text-small">{copy.social}</span>
+        <span className={LABEL}>{copy.social}</span>
         <input
           className="field__input"
           maxLength={200}
@@ -96,7 +126,7 @@ export default function AffiliateApplyForm({
         <span className="text-small text-muted">{copy.socialHint}</span>
       </label>
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-2 text-small">{copy.channels}</legend>
+        <legend className={`mb-2 ${LABEL}`}>{copy.channels}</legend>
         <div className="flex flex-wrap gap-2">
           {PROMOTE_CHANNELS.map((c) => {
             const on = channels.includes(c)
@@ -120,7 +150,7 @@ export default function AffiliateApplyForm({
         </div>
       </fieldset>
       <label className="field">
-        <span className="field__label text-small">{copy.message}</span>
+        <span className={LABEL}>{copy.message}</span>
         <textarea
           className="field__input min-h-[5rem]"
           maxLength={2000}
@@ -135,7 +165,7 @@ export default function AffiliateApplyForm({
         onChange={(id, value) => setAnswers((a) => ({ ...a, [id]: value }))}
       />
       <label className="field">
-        <span className="field__label text-small">{copy.payoutTitle}</span>
+        <span className={LABEL}>{copy.payoutTitle}</span>
         <input
           className="field__input"
           autoComplete="off"
@@ -164,7 +194,10 @@ export default function AffiliateApplyForm({
           checked={accept}
           onChange={(e) => setAccept(e.target.checked)}
         />
-        {copy.terms}
+        <span>
+          {copy.terms}
+          <Required />
+        </span>
       </label>
       {error ? (
         <p className="text-small text-danger" role="alert">
@@ -173,11 +206,20 @@ export default function AffiliateApplyForm({
       ) : null}
       <button
         type="submit"
-        className={`btn btn--primary w-full${pending ? ' is-loading' : ''}`}
+        className={`btn btn--primary w-full uppercase${pending ? ' is-loading' : ''}`}
         disabled={pending}
       >
         <span className="btn__label">{pending ? copy.sending : copy.submit}</span>
       </button>
     </form>
+  )
+}
+
+/** The red star after a required field's label. */
+function Required() {
+  return (
+    <span aria-hidden className="text-danger">
+      {' *'}
+    </span>
   )
 }

@@ -10,8 +10,13 @@ import {
   thankYouPath,
   UnpaidTransferExists,
 } from '@commerce/core'
-import { checkoutRepeatContent as copy } from '@/data/checkout-repeat'
+import { checkoutRepeatContent } from '@/data/checkout-repeat'
+import { checkoutRepeatContentHi } from '@/data/hi/checkout-repeat'
 import type { CheckoutLink, CheckoutResult } from './checkout-result'
+
+/** The words in the shopper's language: Hindi over English, key by key; English otherwise. */
+const wordsFor = (locale: string) =>
+  locale === 'hi' ? { ...checkoutRepeatContent, ...checkoutRepeatContentHi } : checkoutRepeatContent
 
 /** The order's status page (it pays a transfer, retries a card, or offers paying online). */
 const statusPage = (o: { id: string; number: number }) =>
@@ -28,7 +33,11 @@ const refOf = (o: { number: number; draftNumber?: number | null | undefined }) =
 const mayLink = (o: { customerId: string | null }, viewerId: string | null, sameContact = false) =>
   (viewerId !== null && o.customerId === viewerId) || sameContact
 
-function duplicateResult(err: DuplicateCheckout, viewerId: string | null): CheckoutResult {
+function duplicateResult(
+  err: DuplicateCheckout,
+  viewerId: string | null,
+  copy: typeof checkoutRepeatContent,
+): CheckoutResult {
   const o: RecentCheckout = err.order
   const linked = mayLink(o, viewerId, err.sameContact)
   const href = linked ? statusPage(o) : null
@@ -47,9 +56,14 @@ function duplicateResult(err: DuplicateCheckout, viewerId: string | null): Check
   return { error: copy.unpaidDuplicate(refOf(o)), links }
 }
 
-/** The result for a repeated checkout, or null when `err` is not one. */
-export function repeatCheckoutResult(err: unknown, viewerId: string | null): CheckoutResult | null {
-  if (err instanceof DuplicateCheckout) return duplicateResult(err, viewerId)
+/** The result for a repeated checkout, or null when `err` is not one. `locale`: the market's. */
+export function repeatCheckoutResult(
+  err: unknown,
+  viewerId: string | null,
+  locale = 'en',
+): CheckoutResult | null {
+  const copy = wordsFor(locale)
+  if (err instanceof DuplicateCheckout) return duplicateResult(err, viewerId, copy)
   if (err instanceof UnpaidTransferExists) {
     const o = { id: err.orderId, number: err.orderNumber, customerId: err.customerId }
     return {
@@ -68,4 +82,6 @@ export function repeatCheckoutResult(err: unknown, viewerId: string | null): Che
 }
 
 /** The IP cap hit before the order was tried: same words, no order to link. */
-export const tooManyFromIp = (): CheckoutResult => ({ error: copy.tooMany })
+export const tooManyFromIp = (locale = 'en'): CheckoutResult => ({
+  error: wordsFor(locale).tooMany,
+})

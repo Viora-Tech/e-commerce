@@ -6,13 +6,16 @@
  * laptop or a box without the worker. One video at a time (an encode uses about two cores).
  * Safe to re-run and to stop part way: a video already looked at (a copy, or `compact_size` 0
  * for one that keeps its original) is skipped. `--force` (with `--store`) looks at that store's
- * videos again, failed and not-smaller ones included. Stores are found with the owner login
- * (`DATABASE_URL_OWNER`), as in `media-reprocess.ts`; rows are read and saved per store.
+ * videos again, failed and not-smaller ones included. A video without a poster gets its
+ * first-frame poster (`./video-poster.ts`) in the same run, so a plain run is also the backfill
+ * of posters for videos uploaded before them (25 Nov 2026); its copy is not made again.
+ * Stores are found with the owner login (`DATABASE_URL_OWNER`), as in `media-reprocess.ts`;
+ * rows are read and saved per store.
  */
 import { loadEnv } from '@commerce/config'
 import { isCompactableVideo } from '@commerce/core'
 import { createDb, media, store, withStore } from '@commerce/db'
-import { and, asc, eq, isNotNull, isNull, like } from 'drizzle-orm'
+import { and, asc, eq, isNotNull, isNull, like, or } from 'drizzle-orm'
 import { compactVideo } from './video-compact'
 
 function storeSlugArg(argv: string[]): string | null {
@@ -22,7 +25,7 @@ function storeSlugArg(argv: string[]): string | null {
 
 const notLookedAt = and(
   like(media.contentType, 'video/%'),
-  isNull(media.compactSize),
+  or(isNull(media.compactSize), isNull(media.posterMediaId)),
   isNotNull(media.key),
 )
 const anyVideo = and(like(media.contentType, 'video/%'), isNotNull(media.key))
@@ -45,6 +48,7 @@ async function main() {
 
   const db = createDb(env.DATABASE_URL)
   let made = 0
+  let posters = 0
   let failed = 0
   for (const { id: storeId } of stores) {
     const rows = await withStore(db, storeId, (tx) =>
@@ -58,6 +62,7 @@ async function main() {
       try {
         const result = await compactVideo(db, storeId, row.id, env.SETTINGS_SECRET, { force })
         if (result === 'made') made++
+        if (result === 'poster') posters++
         console.log(`${row.id} ${result}`)
       } catch (err) {
         failed++
@@ -66,7 +71,7 @@ async function main() {
     }
   }
   await db.$client.end()
-  console.log(`done: ${made} copies made, ${failed} failed`)
+  console.log(`done: ${made} copies made, ${posters} posters only, ${failed} failed`)
 }
 
 await main()

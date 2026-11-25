@@ -40,6 +40,11 @@ export type NotificationJob = {
   /** The commission (`sale`) or payout (`payout`) the message reports. */
   commissionId?: string | undefined
   payoutId?: string | undefined
+  /**
+   * Channels an earlier attempt of this job already delivered through (a message with no
+   * order, so no notification row to check): the retry skips them (`skipChannels`).
+   */
+  sentChannels?: string[] | undefined
 }
 
 /**

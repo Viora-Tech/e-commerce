@@ -14,7 +14,8 @@ export default async function PaymentsTestBanner() {
     <Alert
       tone="warning"
       role="status"
-      className="mb-4 items-center py-2.5 text-body *:[svg]:row-span-1 *:[svg]:translate-y-0"
+      // Same side gutter as the page body (page-body.tsx: px-4 md:px-6), not edge to edge.
+      className="mx-4 mb-4 w-auto items-center py-2.5 md:mx-6 text-body *:[svg]:row-span-1 *:[svg]:translate-y-0"
       action={
         <Link href={routes.settings.payments()} className="font-medium text-foreground underline">
           {copy.bannerLink}

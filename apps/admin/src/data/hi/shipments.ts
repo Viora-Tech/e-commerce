@@ -33,6 +33,7 @@ export default [
     trackingUpdated: 'ट्रैकिंग अपडेट हो गई',
     failed: 'कूरियर तक रिक्वेस्ट नहीं पहुंची। थोड़ी देर में फिर कोशिश करें।',
     pickupRefused: 'कूरियर ने पिकअप रिक्वेस्ट नहीं ली। फिर कोशिश करें, या उनके डैशबोर्ड पर बुक करें।',
+    pickupStaysBooked: 'पार्सल Booked में ही रहते हैं। दिक्कत ठीक करें, फिर पिकअप बनाएं दोबारा आज़माएं।',
   }),
   translation(shipmentCancelContent, {
     menu: 'रद्द करें…',

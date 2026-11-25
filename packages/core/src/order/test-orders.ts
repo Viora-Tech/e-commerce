@@ -162,11 +162,18 @@ export async function deleteTestOrders(ctx: StoreContext): Promise<number> {
       ),
     )
 
-  // A discount used on a test order gets that use back.
+  // A discount used on a test order gets that use back: only uses still counted (the cancel
+  // above already gave back a live order's, and a draft's noted use never counted).
   const usages = await tx
     .select({ discountId: discountUsage.discountId })
     .from(discountUsage)
-    .where(and(eq(discountUsage.storeId, storeId), inArray(discountUsage.orderId, ids)))
+    .where(
+      and(
+        eq(discountUsage.storeId, storeId),
+        inArray(discountUsage.orderId, ids),
+        eq(discountUsage.counted, true),
+      ),
+    )
   for (const [discountId, n] of discountReleases(usages)) {
     await tx
       .update(discount)

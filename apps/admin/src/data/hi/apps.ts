@@ -137,6 +137,7 @@ export default [
       label: 'लेबल लोड नहीं हो सका',
       option: 'यह डिलीवरी विकल्प लोड नहीं हो सका',
       reviews: 'रिव्यू लोड नहीं हो सके',
+      review: 'यह रिव्यू लोड नहीं हो सका',
     },
     installedToast: (name: string) => `${name} इंस्टॉल हो गया`,
     uninstalledToast: (name: string) => `${name} अनइंस्टॉल हो गया`,

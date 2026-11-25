@@ -101,7 +101,9 @@ export {
   reviewSummaryInstructions,
 } from './review-summary'
 export {
+  clampSectionProposal,
   proposalProps,
+  SECTION_WRITER_LIMITS,
   SECTION_WRITER_TYPES,
   type SectionProposal,
   SectionProposalSchema,
@@ -125,6 +127,7 @@ export {
 } from './seo-keywords/prompt'
 export {
   STORE_KNOWLEDGE_MARKER,
+  STORE_KNOWLEDGE_MAX_OUTPUT_TOKENS,
   type StoreKnowledgeDraft,
   type StoreKnowledgeInput,
   StoreKnowledgeSchema,

@@ -50,23 +50,26 @@ export async function schedulePickup(
   }
   const place = input.pickupLocationName || provider.defaultPickupLocationName || ''
 
-  const [open] = await ctx.tx
-    .select()
-    .from(shipmentPickup)
-    .where(
-      and(
-        eq(shipmentPickup.storeId, ctx.storeId),
-        eq(shipmentPickup.provider, provider.id),
-        eq(shipmentPickup.status, 'scheduled'),
-        ...(input.joinPickupId
-          ? [eq(shipmentPickup.id, input.joinPickupId)]
-          : [
-              eq(shipmentPickup.scheduledFor, input.date),
-              eq(shipmentPickup.pickupLocationName, place),
-            ]),
-      ),
-    )
-    .limit(1)
+  // A courier that books each parcel's pickup (RapidShyp) is always asked: nothing to join.
+  const [open] = provider.pickupPerParcel
+    ? []
+    : await ctx.tx
+        .select()
+        .from(shipmentPickup)
+        .where(
+          and(
+            eq(shipmentPickup.storeId, ctx.storeId),
+            eq(shipmentPickup.provider, provider.id),
+            eq(shipmentPickup.status, 'scheduled'),
+            ...(input.joinPickupId
+              ? [eq(shipmentPickup.id, input.joinPickupId)]
+              : [
+                  eq(shipmentPickup.scheduledFor, input.date),
+                  eq(shipmentPickup.pickupLocationName, place),
+                ]),
+          ),
+        )
+        .limit(1)
   if (open) {
     const attached = await attachToPickup(ctx, open.id, input.shipmentIds)
     const [joined] = await ctx.tx
@@ -91,6 +94,7 @@ export async function schedulePickup(
         timeFrom: input.timeFrom,
         timeTo: input.timeTo,
         expectedPackageCount: input.shipmentIds.length,
+        ...(provider.pickupPerParcel ? { parcels: await parcelsOf(ctx, input.shipmentIds) } : {}),
       })
       providerPickupId = r.providerPickupId
       status = 'scheduled'
@@ -129,6 +133,14 @@ export async function schedulePickup(
 
   if (status !== 'failed') await attachToPickup(ctx, row.id, input.shipmentIds)
   return row
+}
+
+/** These shipments' AWBs and courier refs, for a courier that books each parcel's pickup. */
+async function parcelsOf(ctx: StoreContext, shipmentIds: string[]) {
+  return ctx.tx
+    .select({ waybill: shipment.waybill, providerRef: shipment.providerRef })
+    .from(shipment)
+    .where(and(eq(shipment.storeId, ctx.storeId), inArray(shipment.id, shipmentIds)))
 }
 
 /**

@@ -236,9 +236,9 @@ describe('the same items, already paid', () => {
 })
 
 describe('unpaid checkouts per hour', () => {
-  it('is off by default (owner: no hard block)', async () => {
+  it('allows 5 unpaid checkouts an hour by default and refuses the 6th (owner, 24 Nov 2026)', async () => {
     const shop = await seedShop()
-    for (const q of [1, 2, 3, 4]) {
+    for (const q of [1, 2, 3, 4, 5]) {
       await place(
         shop,
         await cartWith(shop, [{ variantId: shop.mouse, quantity: q }]),
@@ -246,7 +246,64 @@ describe('unpaid checkouts per hour', () => {
         asha,
       )
     }
-    expect(await orderCount(shop.storeId)).toBe(4)
+    await expect(
+      place(shop, await cartWith(shop, [{ variantId: shop.pad, quantity: 1 }]), gateway(), asha),
+    ).rejects.toBeInstanceOf(TooManyUnpaidCheckouts)
+    expect(await orderCount(shop.storeId)).toBe(5)
+  })
+
+  it('a store that turns the cap off (0) is never blocked', async () => {
+    const shop = await seedShop({ unpaidCheckoutsPerHour: 0 })
+    for (const q of [1, 2, 3, 4, 5, 6]) {
+      await place(
+        shop,
+        await cartWith(shop, [{ variantId: shop.mouse, quantity: q }]),
+        gateway(),
+        asha,
+      )
+    }
+    expect(await orderCount(shop.storeId)).toBe(6)
+  })
+
+  it('counts by the checkout device too: new emails and phones on one device still trip it', async () => {
+    const shop = await seedShop({ unpaidCheckoutsPerHour: 2 })
+    const device = 'device-1'
+    const onDevice = async (q: number, who: { email: string; phone: string }, id = device) =>
+      placeOrderAndPay(app, shop.storeId, {
+        cartId: await cartWith(shop, [{ variantId: shop.mouse, quantity: q }]),
+        paymentProvider: gateway(),
+        checkout: checkout(who),
+        checkoutDeviceId: id,
+      })
+    await onDevice(1, asha)
+    await onDevice(2, ravi)
+    await expect(
+      onDevice(3, { email: 'third@example.com', phone: '9000000003' }),
+    ).rejects.toBeInstanceOf(TooManyUnpaidCheckouts)
+    // Another device with a fresh contact is not affected.
+    await onDevice(4, { email: 'fourth@example.com', phone: '9000000004' }, 'device-2')
+    expect(await orderCount(shop.storeId)).toBe(3)
+  })
+
+  it('trips on any one key reaching the cap, not on the keys added together', async () => {
+    const shop = await seedShop({ unpaidCheckoutsPerHour: 2 })
+    // One unpaid checkout by Asha's email, one by her phone (each with another contact).
+    await place(shop, await cartWith(shop, [{ variantId: shop.mouse, quantity: 1 }]), gateway(), {
+      email: asha.email,
+      phone: '9000000001',
+    })
+    await place(shop, await cartWith(shop, [{ variantId: shop.mouse, quantity: 2 }]), gateway(), {
+      email: 'other@example.com',
+      phone: asha.phone,
+    })
+    // Email 1, phone 1: neither reached 2, so Asha may still check out.
+    await place(
+      shop,
+      await cartWith(shop, [{ variantId: shop.mouse, quantity: 3 }]),
+      gateway(),
+      asha,
+    )
+    expect(await orderCount(shop.storeId)).toBe(3)
   })
 
   it('when turned on, refuses the 4th unpaid checkout in an hour and names the latest', async () => {

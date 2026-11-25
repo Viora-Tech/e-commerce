@@ -7,15 +7,17 @@ import { bulkShipContent } from '@/data/bulk-ship'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { EditForm } from './bulk-edit-state'
 import { type BulkLine, rulePick } from './bulk-ship-state'
-import { isBookable } from './flow-state'
+import { isBookable, type ParcelQuote } from './flow-state'
 import { insuredRows } from './insured-rows'
 
 type BulkEditShippingProps = {
   line: BulkLine
   form: EditForm
   onChange: (form: EditForm) => void
-  /** The package or payment was changed: the prices shown answer the old one until saved. */
-  repricing: boolean
+  /** The couriers' answer for the package as typed (`useBulkEditQuote`), else the row's own. */
+  quote: ParcelQuote | null
+  /** Where the live prices are: a new answer on its way, half a box size typed, or the ask failed. */
+  pricing: 'updating' | 'waiting' | 'failed' | null
 }
 
 const SHORT_DATE = { weekday: 'short', day: 'numeric', month: 'short' } as const
@@ -26,7 +28,8 @@ export default function BulkEditShipping({
   line,
   form,
   onChange,
-  repricing,
+  quote,
+  pricing,
 }: BulkEditShippingProps) {
   // Hooks
   const all = useCopy(bulkShipContent)
@@ -37,11 +40,11 @@ export default function BulkEditShipping({
 
   // Render logic
   const copy = all.editPopup
-  const rows = insuredRows(line.quote?.options ?? [], form.insured).filter(isBookable)
+  const rows = insuredRows(quote?.options ?? [], form.insured).filter(isBookable)
   const picked =
     rows.find((r) => r.optionKey === form.optionKey) ??
     rows.find((r) => r.optionKey === line.pick?.optionKey) ??
-    rulePick(rows, line.quote?.checkout ?? null, 'recommended', null)
+    rulePick(rows, quote?.checkout ?? null, 'recommended', null)
   const cheapest = rows.find((r) => r.badges.includes('cheapest'))
   const fastest = rows.find((r) => r.badges.includes('fastest'))
   const choice = line.order.deliveryChoice
@@ -79,8 +82,8 @@ export default function BulkEditShipping({
           }))}
           onChange={(optionKey) => onChange({ ...form, optionKey })}
           help={
-            repricing
-              ? copy.repriceNote
+            pricing
+              ? copy.pricing[pricing]
               : copy.alternatives(
                   cheapest ? `${cheapest.providerLabel} ${price(cheapest.pricePaise)}` : null,
                   fastest ? `${fastest.providerLabel} ${price(fastest.pricePaise)}` : null,
@@ -128,6 +131,11 @@ export default function BulkEditShipping({
           onCheckedChange={(insured) => onChange({ ...form, insured })}
         />
       </label>
+      {picked?.providerId === 'rapidshyp' ? (
+        <p role="status" className="text-caption text-muted-foreground">
+          {copy.shieldFollowsSettings}
+        </p>
+      ) : null}
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-body text-muted-foreground">{copy.charge}</span>
         <span className="font-semibold text-ink-strong tabular-nums">

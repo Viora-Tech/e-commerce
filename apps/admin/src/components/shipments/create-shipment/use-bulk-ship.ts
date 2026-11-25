@@ -121,11 +121,14 @@ export function useBulkShip(orderIds: string[], courier: string | undefined) {
   }
 
   // Event handlers
-  /** The row editor applied: a changed package or payment asks that order's couriers again. */
-  const handleSaveEdit = (orderId: string, next: OrderEdit) => {
+  /** The row editor applied: a changed package or payment keeps the prices the editor already
+   *  fetched for it (`fresh`), else asks that order's couriers again. */
+  const handleSaveEdit = (orderId: string, next: OrderEdit, fresh?: ParcelQuote | null) => {
     const before = edits[orderId]
     setEdits((e) => ({ ...e, [orderId]: next }))
-    if (repriced(before, next)) void askOne(orderId, next)
+    if (!repriced(before, next)) return
+    if (fresh) setQuotes((q) => ({ ...q, [orderId]: fresh }))
+    else void askOne(orderId, next)
   }
   const handleTick = (orderId: string, on: boolean) =>
     setUnticked((s) => {

@@ -131,10 +131,23 @@ export type StorePreferences = z.infer<typeof StorePreferencesSchema>
 
 export const defaultPreferences: StorePreferences = StorePreferencesSchema.parse({})
 
-/** Stored preferences, falling back to defaults for anything missing or invalid. */
+const PARTS = StorePreferencesSchema.shape
+
+/**
+ * Stored preferences, falling back to defaults for anything missing or invalid. Each part
+ * (seo, password, tracking…) falls back on its own: a tracking id a later rule refuses must not
+ * also switch the password page off or blank the store's search listing.
+ */
 export function parsePreferences(raw: unknown): StorePreferences {
-  const r = StorePreferencesSchema.safeParse(raw ?? {})
-  return r.success ? r.data : defaultPreferences
+  const whole = StorePreferencesSchema.safeParse(raw ?? {})
+  if (whole.success) return whole.data
+  const stored = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
+  const out: Record<string, unknown> = {}
+  for (const key of Object.keys(PARTS) as (keyof typeof PARTS)[]) {
+    const part = PARTS[key].safeParse(stored[key])
+    out[key] = part.success ? part.data : defaultPreferences[key]
+  }
+  return out as StorePreferences
 }
 
 /**

@@ -158,6 +158,50 @@ describe('BulkShipDrawer: editing a row in place', () => {
     expect((weightField() as HTMLInputElement).value).toBe('900')
   })
 
+  it('a typed weight or size re-prices the courier list before Apply (#bulk live quote)', async () => {
+    quote.mockImplementation(
+      ({ parcels }: { parcels: { orderId: string; weightGrams?: number }[] }) =>
+        Promise.resolve(
+          parcels.map((p) => {
+            const a = answer(p.orderId)
+            const heavy = (p.weightGrams ?? 0) >= 2000
+            return {
+              ...a,
+              options: a.options.map((o) => ({ ...o, pricePaise: heavy ? 31000 : 12550 })),
+            }
+          }),
+        ),
+    )
+    await open()
+    fireEvent.click(editButton(1042))
+    expect(within(editor()).getAllByText(/₹125\.50/).length).toBeGreaterThan(0)
+    fireEvent.change(weightField(), { target: { value: '2500' } })
+    expect(within(editor()).getByText('Updating prices…')).toBeTruthy()
+    // Asked once the merchant stops typing, with the typed weight; the editor shows the answer.
+    await waitFor(() => expect(quote).toHaveBeenCalledTimes(2), { timeout: 3000 })
+    const [{ parcels }] = quote.mock.calls[1] as [{ parcels: { orderId: string }[] }]
+    expect(parcels).toEqual([expect.objectContaining({ orderId: 'a', weightGrams: 2500 })])
+    await waitFor(() => expect(within(editor()).getAllByText(/₹310/).length).toBeGreaterThan(0))
+    // A box size re-prices too (half a size waits for the rest).
+    fireEvent.change(screen.getByRole('textbox', { name: 'Length in cm' }), {
+      target: { value: '' },
+    })
+    expect(within(editor()).getByText('Finish the box size to update the prices.')).toBeTruthy()
+    fireEvent.change(screen.getByRole('textbox', { name: 'Length in cm' }), {
+      target: { value: '50' },
+    })
+    await waitFor(() => expect(quote).toHaveBeenCalledTimes(3), { timeout: 3000 })
+    const [{ parcels: sized }] = quote.mock.calls[2] as [
+      { parcels: { dimensionsCm?: { length: number } }[] },
+    ]
+    expect(sized[0]?.dimensionsCm?.length).toBe(50)
+    await waitFor(() => expect(within(editor()).getAllByText(/₹310/).length).toBeGreaterThan(0))
+    // Apply keeps those prices: no extra ask, and the row's charge shows them.
+    fireEvent.click(within(editor()).getByRole('button', { name: 'Apply' }))
+    expect(quote).toHaveBeenCalledTimes(3)
+    expect(screen.getAllByText(/₹310/).length).toBeGreaterThan(0)
+  })
+
   it('Cancel closes the editor and changes nothing', async () => {
     await open()
     fireEvent.click(editButton(1042))

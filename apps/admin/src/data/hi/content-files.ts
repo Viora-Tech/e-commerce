@@ -310,6 +310,7 @@ export default [
       noResults: 'कुछ नहीं मिला',
       missingTitle: 'लिंक का नाम लिखें',
       missingValue: 'चुनें कि कहां ले जाए',
+      badUrl: 'स्टोर का पेज (/pages/about) या पूरा वेब पता (https://…) लिखें',
       edit: 'लिंक बदलें',
       remove: 'लिंक हटाएं',
       drag: (title) => `${title} को खिसकाएं`,

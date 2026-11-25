@@ -38,6 +38,7 @@ const REASONS: Partial<Record<TemplateId, Reason>> = {
   review_reminder: shopper,
   review_reply: shopper,
   review_reward: shopper,
+  points_expiring: (s) => `You get this email because you collect loyalty points at ${s}.`,
   question_answered: shopper,
   customer_message: shopper,
   affiliate_update: (s) => `You get this email because you joined the ${s} affiliate program.`,

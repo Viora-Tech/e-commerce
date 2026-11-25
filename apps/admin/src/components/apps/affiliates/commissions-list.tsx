@@ -1,6 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
+import { Inbox } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
@@ -9,11 +10,13 @@ import {
   type CommissionRow,
   commissionColumns,
 } from '@/components/apps/affiliates/commission-columns'
+import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import { affiliateFiltersContent } from '@/data/affiliate-filters'
 import { affiliatesContent } from '@/data/affiliates'
+import { affiliatesLayoutContent } from '@/data/affiliates-layout'
 import { appsContent } from '@/data/apps'
 import { filterPanelContent } from '@/data/filter-panel'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -29,7 +32,17 @@ import { routes } from '@/lib/routes'
 
 type Affiliate = { id: string; name: string }
 
-/** The commissions ledger: every order an affiliate brought and where its commission stands. */
+/** Rows placed in the current calendar month (the browser's), for "Referrals recorded this month". */
+const thisMonth = (rows: CommissionRow[], now = new Date()) =>
+  rows.filter((r) => {
+    const d = new Date(r.placedAt)
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+  }).length
+
+/**
+ * Affiliates › Referrals (UpPromote's name for the commissions ledger): every order an affiliate
+ * brought and where its commission stands, with this month's count under the title.
+ */
 export default function CommissionsList() {
   return (
     <Suspense>
@@ -41,6 +54,7 @@ export default function CommissionsList() {
 function CommissionsTable() {
   // Hooks
   const copy = useCopy(affiliatesContent)
+  const { referrals: layout } = useCopy(affiliatesLayoutContent)
   const apps = useCopy(appsContent)
   const filtersCopy = useCopy(affiliateFiltersContent)
   const panelCopy = useCopy(filterPanelContent)
@@ -120,40 +134,52 @@ function CommissionsTable() {
   )
   const applied = appliedFromGroups(groups, panelCopy)
   const filtered = applied.length > 0 || q.query.length > 0
+  const none = !filtered && !failed && rows !== null && rows.length === 0
+  // The count is of the whole ledger, so it shows only while nothing narrows the list.
+  const summary = rows && !filtered ? layout.thisMonth(thisMonth(rows)) : copy.commissions.subtitle
 
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
         title={copy.commissions.title}
-        summary={copy.commissions.subtitle}
+        summary={summary}
         actions={
           <Button variant="outline" onClick={handleApproveDue} disabled={busy || dueCount === 0}>
             {copy.commissions.approveDue}
           </Button>
         }
       />
-      <ResourceTable
-        resourceName={copy.commissions.resource}
-        columns={commissionColumns(copy, f, handleChanged, { withAffiliate: true })}
-        items={visible}
-        getId={(r) => r.id}
-        href={(r) => routes.orders.detail(r.orderId)}
-        selectable={false}
-        loading={rows === null && !failed}
-        error={
-          failed ? { heading: apps.couldNotLoad.commissions, onRetry: handleChanged } : undefined
-        }
-        query={q.query}
-        onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
-        onClearAll={() => setQ({ ...CLEAR_COMMISSION_FILTERS, query: '', page: 1 })}
-        filterGroups={groups}
-        page={q.page}
-        perPage={q.perPage}
-        total={matching.length}
-        onPageChange={(page) => setQ({ page })}
-        onPerPageChange={(perPage) => setQ({ perPage, page: 1 })}
-        empty={filtered ? filtersCopy.commissions.noResults : { heading: copy.commissions.empty }}
-      />
+      {none ? (
+        <EmptyState
+          variant="page"
+          icon={Inbox}
+          heading={layout.emptyTitle}
+          body={layout.emptyBody}
+        />
+      ) : (
+        <ResourceTable
+          resourceName={copy.commissions.resource}
+          columns={commissionColumns(copy, f, handleChanged, { withAffiliate: true })}
+          items={visible}
+          getId={(r) => r.id}
+          href={(r) => routes.orders.detail(r.orderId)}
+          selectable={false}
+          loading={rows === null && !failed}
+          error={
+            failed ? { heading: apps.couldNotLoad.commissions, onRetry: handleChanged } : undefined
+          }
+          query={q.query}
+          onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
+          onClearAll={() => setQ({ ...CLEAR_COMMISSION_FILTERS, query: '', page: 1 })}
+          filterGroups={groups}
+          page={q.page}
+          perPage={q.perPage}
+          total={matching.length}
+          onPageChange={(page) => setQ({ page })}
+          onPerPageChange={(perPage) => setQ({ perPage, page: 1 })}
+          empty={filtered ? filtersCopy.commissions.noResults : { heading: copy.commissions.empty }}
+        />
+      )}
     </div>
   )
 }

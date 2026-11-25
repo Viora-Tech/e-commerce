@@ -46,8 +46,8 @@ export type CheckoutContactKeys = {
   phone: string | null | undefined
 }
 
-/** Orders whose email or phone is this shopper's, normalised; null when there is nothing to match. */
-export function orderContactMatch(contact: CheckoutContactKeys): SQL | null {
+/** One condition per key the shopper gave (email, then phone), normalised; empty for none. */
+export function orderContactMatches(contact: CheckoutContactKeys): SQL[] {
   const email = emailKey(contact.email)
   const phone = phoneKey(contact.phone)
   const matches: SQL[] = []
@@ -55,6 +55,12 @@ export function orderContactMatch(contact: CheckoutContactKeys): SQL | null {
   if (phone) {
     matches.push(sql`right(regexp_replace(${order.phone}, '[^0-9]', '', 'g'), 10) = ${phone}`)
   }
+  return matches
+}
+
+/** Orders whose email or phone is this shopper's, normalised; null when there is nothing to match. */
+export function orderContactMatch(contact: CheckoutContactKeys): SQL | null {
+  const matches = orderContactMatches(contact)
   return matches.length > 0 ? (or(...matches) ?? null) : null
 }
 

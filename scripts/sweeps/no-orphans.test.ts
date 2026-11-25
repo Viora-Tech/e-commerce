@@ -1886,6 +1886,55 @@ const ALLOWLIST: AllowEntry[] = [
     reason:
       'the TTL is used in the module and app-bar-cache.test.ts steps the clock past it; clearAppBarCache resets the per-process cache between tests',
   },
+  {
+    file: 'packages/blocks/src/components/loyalty/loyalty-panel.tsx',
+    names: ['LoyaltyPanel'],
+    reason:
+      'the Loyalty widget panel is loaded by a dynamic import in loyalty-launcher.tsx (on first open), which the sweep does not follow',
+  },
+  {
+    file: 'packages/core/src/loyalty/referrals.ts',
+    names: ['inboxOf'],
+    reason: 'the pure fraud key, asserted directly by v2-rules.test.ts',
+  },
+  {
+    file: 'packages/core/src/loyalty/settings.ts',
+    names: ['ReferralRewardSchema'],
+    reason:
+      'browser-safe loyalty v2 helpers for the admin and storefront UI built next (docs/loyalty-v2-interfaces.md); ReferralRewardSchema also shapes the settings schema in the module',
+  },
+  {
+    file: 'packages/core/src/loyalty/schemas.ts',
+    names: ['LOYALTY_RULE_TYPES'],
+    reason:
+      'the lists the v2 admin pickers read (built next, docs/loyalty-v2-interfaces.md); used in the module by the input schemas',
+  },
+  {
+    file: 'packages/core/src/loyalty/notify.ts',
+    names: ['LOYALTY_TEMPLATES'],
+    reason:
+      'the loyalty email template ids the packages/notifications templates are added under next (docs/loyalty-v2-interfaces.md, Emails)',
+  },
+  {
+    file: 'packages/core/src/loyalty/campaigns.ts',
+    names: ['boostFrom'],
+    reason: 'pure step of campaignBoost, asserted directly by v2-rules.test.ts',
+  },
+  {
+    file: 'packages/core/src/loyalty/ledger.ts',
+    names: ['pointsHistory'],
+    reason: 'used in the module by customerPoints and shopperPoints (v1 loyalty, 23 Nov)',
+  },
+  {
+    file: 'packages/db/src/loyalty-schema.ts',
+    names: ['LOYALTY_SOURCES', 'LOYALTY_STATUSES'],
+    reason: 'used in the module as the loyalty_entry column enums (v1 loyalty, 23 Nov)',
+  },
+  {
+    file: 'packages/core/src/loyalty/fixtures.test-util.ts',
+    names: ['DAY', 'T0', 'settingsWith', 'addCustomer', 'signIn', 'deliveredOrder'],
+    reason: 'test-only fixtures shared by the loyalty v2 suites',
+  },
 ]
 
 function allowlistedNames(file: string): Set<string> {

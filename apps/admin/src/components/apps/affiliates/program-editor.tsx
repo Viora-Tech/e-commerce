@@ -3,16 +3,17 @@
 import type { ProgramRules } from '@commerce/plugin-affiliates/settings'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
-import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { AppPageProps } from '@/apps/registry'
 import ArchiveProgramDialog from '@/components/apps/affiliates/archive-program-dialog'
 import CommissionPreview from '@/components/apps/affiliates/commission-preview'
-import CommissionSettings from '@/components/apps/affiliates/commission-settings'
-import ProgramExcludesCard from '@/components/apps/affiliates/program-excludes-card'
-import ProgramLevelsCard from '@/components/apps/affiliates/program-levels-card'
+import ProgramCalculation from '@/components/apps/affiliates/program-calculation'
+import ProgramCommissionRules from '@/components/apps/affiliates/program-commission-rules'
+import ProgramIncentives from '@/components/apps/affiliates/program-incentives'
+import ProgramSignupCard from '@/components/apps/affiliates/program-signup-card'
+import ProgramSummaryCard from '@/components/apps/affiliates/program-summary-card'
 import SignupFormCard from '@/components/apps/affiliates/signup-form-card'
 import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import BackLink from '@/components/layout/back-link'
@@ -20,10 +21,12 @@ import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import PageHeader from '@/components/layout/page-header'
 import PageHeaderSkeleton from '@/components/layout/page-header-skeleton'
 import SaveBar from '@/components/layout/save-bar'
+import SectionHead from '@/components/layout/section-head'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsRow from '@/components/settings/settings-row'
 import { affiliatesContent } from '@/data/affiliates'
+import { affiliatesLayoutContent } from '@/data/affiliates-layout'
 import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -44,10 +47,15 @@ function cleanRules(rules: ProgramRules): ProgramRules {
   }
 }
 
-/** One program, full page: name and link, signup, commission, levels, exclusions and a preview. */
+/**
+ * Affiliates › Edit program, laid out like UpPromote's: General information, Commission rules,
+ * Customer incentives, Commission calculation and Other settings (signup page and questions) in
+ * the main column; the Summary in a sticky side column. Saved with the SaveBar.
+ */
 export default function ProgramEditor({ params }: AppPageProps) {
   // Hooks
   const copy = useCopy(affiliatesContent)
+  const { editor } = useCopy(affiliatesLayoutContent)
   const apps = useCopy(appsContent)
   const [program, setProgram] = useState<Program | null>(null)
   const [form, setForm] = useState<Form | null>(null)
@@ -56,6 +64,8 @@ export default function ProgramEditor({ params }: AppPageProps) {
   const [busy, setBusy] = useState(false)
   const [archiving, setArchiving] = useState(false)
   const [reload, setReload] = useState(0)
+  /** Bumped on save and discard, so the rules section drops its own picks (the Rule select). */
+  const [version, setVersion] = useState(0)
   /** The read failed: Try again instead of a blank page. */
   const [failed, setFailed] = useState(false)
 
@@ -104,6 +114,7 @@ export default function ProgramEditor({ params }: AppPageProps) {
       })
       setProgram(next)
       setForm({ name: next.name, slug: next.slug, rules: next.rules })
+      setVersion((n) => n + 1)
       toast.success(copy.program.saved)
     } catch (err) {
       toast.error(errorText(err, copy.failed))
@@ -111,8 +122,10 @@ export default function ProgramEditor({ params }: AppPageProps) {
       setBusy(false)
     }
   }
-  const handleDiscard = () =>
+  const handleDiscard = () => {
     setForm(program ? { name: program.name, slug: program.slug, rules: program.rules } : null)
+    setVersion((n) => n + 1)
+  }
   const handleRestore = async () => {
     if (!program) return
     await api.affiliates.programs.restore({ id: program.id })
@@ -146,7 +159,6 @@ export default function ProgramEditor({ params }: AppPageProps) {
 
   // Render logic
   const c = copy.program
-  const s = copy.settings
   const saved = { name: program.name, slug: program.slug, rules: program.rules }
   const dirty = JSON.stringify(form) !== JSON.stringify(saved)
   const path = program.isDefault ? '/affiliate' : `/affiliate?program=${form.slug}`
@@ -162,7 +174,8 @@ export default function ProgramEditor({ params }: AppPageProps) {
   )
 
   return (
-    <div className="flex flex-col gap-5">
+    // A wider centred column than Home's: UpPromote's editor has a main and a side column.
+    <div className="mx-auto flex w-full max-w-[64rem] flex-col gap-5">
       <SaveBar
         open={dirty}
         message={c.unsaved}
@@ -173,7 +186,7 @@ export default function ProgramEditor({ params }: AppPageProps) {
         saving={busy}
       />
       <PageHeader
-        title={program.name}
+        title={editor.title}
         back={{ label: c.back, href: routes.apps.page('affiliates', 'programs') }}
         badges={
           program.archivedAt ? (
@@ -187,79 +200,66 @@ export default function ProgramEditor({ params }: AppPageProps) {
       {program.archivedAt ? (
         <p className="text-body text-muted-foreground">{c.archivedNote}</p>
       ) : null}
-      <SettingsCard title={c.details}>
-        <SettingsRow label={c.name} htmlFor="aff-program-name">
-          <Input
-            id="aff-program-name"
-            maxLength={80}
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-          />
-        </SettingsRow>
-        {program.isDefault ? (
-          <SettingsRow label={c.link} description={c.defaultLink}>
-            <span className="break-all font-mono text-body">{link}</span>
-          </SettingsRow>
-        ) : (
-          <SettingsRow label={c.slug} description={c.slugHelp} htmlFor="aff-program-slug">
-            <div className="flex flex-col gap-1">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="flex min-w-0 flex-col gap-6">
+          <SettingsCard title={editor.general}>
+            <SettingsRow label={c.name} htmlFor="aff-program-name">
               <Input
-                id="aff-program-slug"
-                maxLength={40}
-                value={form.slug}
-                onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase() })}
+                id="aff-program-name"
+                maxLength={80}
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
-              <span className="break-all font-mono text-caption text-muted-foreground">{link}</span>
-            </div>
-          </SettingsRow>
-        )}
-        <SettingsRow label={s.approval} htmlFor="aff-approval">
-          <NativeSelect
-            id="aff-approval"
-            value={form.rules.approval}
-            onChange={(e) =>
-              handleRules({ approval: e.target.value === 'auto' ? 'auto' : 'manual' })
-            }
-          >
-            <NativeSelectOption value="manual">{s.approvalManual}</NativeSelectOption>
-            <NativeSelectOption value="auto">{s.approvalAuto}</NativeSelectOption>
-          </NativeSelect>
-        </SettingsRow>
-      </SettingsCard>
-      <CommissionSettings form={form.rules} onChange={handleRules} />
-      <ProgramLevelsCard
-        levels={form.rules.levels}
-        onChange={(levels) => handleRules({ levels })}
-      />
-      <ProgramExcludesCard
-        excludes={form.rules.excludes}
-        onChange={(excludes) => handleRules({ excludes })}
-      />
-      <CommissionPreview rules={form.rules} />
-      <SettingsCard title={s.page}>
-        <SettingsRow label={s.pitch} description={s.pitchHelp} htmlFor="aff-pitch">
-          <Textarea
-            id="aff-pitch"
-            rows={3}
-            maxLength={2000}
-            value={form.rules.pitch}
-            onChange={(e) => handleRules({ pitch: e.target.value })}
+            </SettingsRow>
+            <SettingsRow
+              label={editor.description}
+              description={editor.descriptionHelp}
+              htmlFor="aff-pitch"
+            >
+              <Textarea
+                id="aff-pitch"
+                rows={3}
+                maxLength={2000}
+                value={form.rules.pitch}
+                onChange={(e) => handleRules({ pitch: e.target.value })}
+              />
+            </SettingsRow>
+          </SettingsCard>
+          <ProgramCommissionRules key={version} rules={form.rules} onChange={handleRules} />
+          <ProgramIncentives
+            coupon={form.rules.coupon}
+            onChange={(coupon) => handleRules({ coupon })}
           />
-        </SettingsRow>
-        <SettingsRow label={s.terms} description={s.termsHelp} htmlFor="aff-terms">
-          <Textarea
-            id="aff-terms"
-            rows={6}
-            maxLength={10_000}
-            value={form.rules.terms}
-            onChange={(e) => handleRules({ terms: e.target.value })}
+          <ProgramCalculation
+            excludes={form.rules.excludes}
+            onChange={(excludes) => handleRules({ excludes })}
           />
-        </SettingsRow>
-      </SettingsCard>
-      <SignupFormCard
-        fields={form.rules.form}
-        onChange={(fields) => handleRules({ form: fields })}
-      />
+          <section className="flex flex-col gap-4">
+            <SectionHead title={editor.sections.other} />
+            <ProgramSignupCard
+              isDefault={program.isDefault}
+              link={link}
+              slug={form.slug}
+              rules={form.rules}
+              onSlug={(slug) => setForm({ ...form, slug })}
+              onChange={handleRules}
+            />
+            <SignupFormCard
+              fields={form.rules.form}
+              onChange={(fields) => handleRules({ form: fields })}
+            />
+            <CommissionPreview rules={form.rules} />
+          </section>
+        </div>
+        <div className="min-w-0 lg:sticky lg:top-4">
+          <ProgramSummaryCard
+            name={form.name}
+            isDefault={program.isDefault}
+            archived={Boolean(program.archivedAt)}
+            rules={form.rules}
+          />
+        </div>
+      </div>
       <ArchiveProgramDialog
         open={archiving}
         onOpenChange={setArchiving}

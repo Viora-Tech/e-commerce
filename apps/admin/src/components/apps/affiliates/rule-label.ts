@@ -11,3 +11,8 @@ export function ruleLabel(
     ? copy.percentRule(rule.bp / 100)
     : copy.flatRule(money(rule.paise))
 }
+
+/** The bare rate, "10%" or "₹150", for UpPromote's Amount column and "earn 10% commission". */
+export function rateText(rule: CommissionRule, money: (paise: number) => string): string {
+  return rule.type === 'percent' ? `${rule.bp / 100}%` : money(rule.paise)
+}

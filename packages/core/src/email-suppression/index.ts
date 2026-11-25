@@ -15,4 +15,10 @@ export {
   SOFT_BOUNCE_WINDOW_DAYS,
 } from './service'
 export { parseSesFeedback, type SesFeedback } from './ses-feedback'
-export { handleSesSnsWebhook, type SesWebhookDeps, type SesWebhookOutcome } from './webhook'
+export {
+  handleSesSnsWebhook,
+  handleStoreSesSnsWebhook,
+  type SesWebhookDeps,
+  type SesWebhookOutcome,
+  storeSesEventsTopic,
+} from './webhook'

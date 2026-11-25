@@ -8,8 +8,9 @@ const RECENT_USES = 10
 /**
  * What a discount has done, from its `discount_usage` rows (one per order that used it):
  * the orders, what they brought in and what the discount gave away, and the last use.
- * Test orders are left out; a cancelled order still counts as a use (it took one of the
- * limit) but adds nothing to revenue or the amount given.
+ * Test orders are left out; a cancelled order gave its use back (`uncountOrderDiscountUses`),
+ * so its row is no longer counted. An older cancelled order still counted adds nothing to
+ * revenue or the amount given.
  */
 export type DiscountUsageSummary = {
   orders: number
@@ -50,7 +51,13 @@ export async function usageOf(
     })
     .from(discountUsage)
     .innerJoin(order, eq(order.id, discountUsage.orderId))
-    .where(and(inArray(discountUsage.discountId, ids), eq(order.isTest, false)))
+    .where(
+      and(
+        inArray(discountUsage.discountId, ids),
+        eq(order.isTest, false),
+        eq(discountUsage.counted, true),
+      ),
+    )
     .groupBy(discountUsage.discountId)
   for (const r of rows) {
     byId.set(r.discountId, {
@@ -138,7 +145,13 @@ export async function recentUses(tx: StoreTx, id: string) {
     })
     .from(discountUsage)
     .innerJoin(order, eq(order.id, discountUsage.orderId))
-    .where(and(eq(discountUsage.discountId, id), eq(order.isTest, false)))
+    .where(
+      and(
+        eq(discountUsage.discountId, id),
+        eq(order.isTest, false),
+        eq(discountUsage.counted, true),
+      ),
+    )
     .orderBy(desc(discountUsage.createdAt))
     .limit(RECENT_USES)
 }

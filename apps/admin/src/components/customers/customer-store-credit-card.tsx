@@ -5,9 +5,10 @@ import { dayStart } from '@commerce/dates'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
+import HistoryPager from '@/components/layout/history-pager'
 import InlineState from '@/components/states/inline-state'
 import { customerStoreCreditContent } from '@/data/customer-store-credit'
 import { useCopy, useLocale } from '@/hooks/use-copy'
@@ -15,8 +16,10 @@ import { useLoad } from '@/hooks/use-load'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { formatDay, formatPattern } from '@/lib/format-date'
+import { HISTORY_PAGE, historyLimit, historyPage, nextShown } from '@/lib/history-page'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
+import { announceStoreCreditChanged, STORE_CREDIT_CHANGED_EVENT } from '@/lib/store-credit-events'
 import StoreCreditDialog from './store-credit-dialog'
 
 type CustomerStoreCreditCardProps = { customerId: string }
@@ -32,12 +35,25 @@ export default function CustomerStoreCreditCard({ customerId }: CustomerStoreCre
   const copy = useCopy(customerStoreCreditContent)
   const locale = useLocale()
   const { hasPermission } = usePermissions()
+  const [mode, setMode] = useState<'add' | 'remove' | null>(null)
+  const [shown, setShown] = useState(HISTORY_PAGE)
   const {
     data: account,
     failed,
+    loading,
     retry,
-  } = useLoad<Account>(() => api.storeCredit.get({ customerId }), [customerId])
-  const [mode, setMode] = useState<'add' | 'remove' | null>(null)
+  } = useLoad<Account>(
+    () => api.storeCredit.get({ customerId, limit: historyLimit(shown) }),
+    [customerId, shown],
+  )
+
+  // Effects
+  // The other card (points are store credit) changed the balance: read it again.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: retry only bumps a state counter
+  useEffect(() => {
+    window.addEventListener(STORE_CREDIT_CHANGED_EVENT, retry)
+    return () => window.removeEventListener(STORE_CREDIT_CHANGED_EVENT, retry)
+  }, [])
 
   // Helpers
   const money = (paise: number) => formatPaise(paise, locale)
@@ -47,13 +63,15 @@ export default function CustomerStoreCreditCard({ customerId }: CustomerStoreCre
   // Event handlers
   const handleDone = () => {
     setMode(null)
-    // Read the balance again; the old one stays on screen until the new one arrives.
-    retry()
+    // Both cards (this one and Loyalty points) read the balance again; the old one stays on
+    // screen until the new one arrives.
+    announceStoreCreditChanged()
   }
 
   // Render logic
   const canEdit = hasPermission(permissions.CUSTOMERS_WRITE)
   const balance = account?.balancePaise ?? 0
+  const { visible, hasMore } = historyPage(account?.entries ?? [], shown)
 
   return (
     <DataCard
@@ -99,7 +117,7 @@ export default function CustomerStoreCreditCard({ customerId }: CustomerStoreCre
             <EmptyState variant="inline" body={copy.empty} />
           ) : (
             <ul aria-label={copy.history} className="flex flex-col divide-y divide-line">
-              {account.entries.map((e) => (
+              {visible.map((e) => (
                 <li key={e.id} className="flex items-start justify-between gap-3 py-2">
                   <span className="min-w-0">
                     {e.orderId ? (
@@ -136,6 +154,15 @@ export default function CustomerStoreCreditCard({ customerId }: CustomerStoreCre
               ))}
             </ul>
           )}
+          <HistoryPager
+            hasMore={hasMore}
+            expanded={shown > HISTORY_PAGE}
+            loading={loading}
+            moreLabel={copy.more}
+            lessLabel={copy.less}
+            onMore={() => setShown(nextShown)}
+            onLess={() => setShown(HISTORY_PAGE)}
+          />
         </div>
       )}
       <StoreCreditDialog

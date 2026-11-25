@@ -1,161 +1,91 @@
 'use client'
 
-import type { DocumentKind } from '@commerce/invoices'
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  Download,
-  Printer,
-  RefreshCw,
-  Send,
-} from '@commerce/ui/icons'
-import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
-import { Checkbox } from '@commerce/ui/shadcn/checkbox'
-import { Input } from '@commerce/ui/shadcn/input'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@commerce/ui/shadcn/table'
-import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
-import TableFailedRow from '@/components/apps/shared/table-failed-row'
-import CopyButton from '@/components/fields/copy-button'
+import { siteConfig } from '@commerce/config/site'
+import { useQueryStates } from 'nuqs'
+import { Suspense, useEffect, useState } from 'react'
 import PageHeader from '@/components/layout/page-header'
-import PillTabs from '@/components/layout/pill-tabs'
-import RelativeTime from '@/components/layout/relative-time'
-import StatusChip from '@/components/layout/status-chip'
-import StatusLabel from '@/components/status/status-label'
-import TableEmptyRow from '@/components/table/table-empty-row'
-import TableSkeletonRows from '@/components/table/table-skeleton-rows'
+import ResourceTable from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
 import { appsContent } from '@/data/apps'
+import { filterPanelContent } from '@/data/filter-panel'
 import { gstAlreadyInvoicedContent } from '@/data/gst-already-invoiced'
-import { gstInvoiceBulkRefreshContent } from '@/data/gst-invoice-refresh'
 import { gstInvoicesContent } from '@/data/gst-invoices'
-import { tableContent } from '@/data/table'
+import { gstListFiltersContent } from '@/data/gst-list-filters'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { errorText } from '@/lib/api-errors'
-import { formatPattern } from '@/lib/format-date'
-import { formatPaise } from '@/lib/money'
+import {
+  CLEAR_INVOICE_FILTERS,
+  INVOICE_DEFAULT_SORT,
+  INVOICE_PARAMS,
+  INVOICE_TABS,
+  invoiceFilter,
+  invoiceFilterGroups,
+  invoiceInput,
+  parseInvoiceSort,
+  sortParam,
+} from '@/lib/gst-list-filters'
 import { routes } from '@/lib/routes'
-import GstNumberPicker from './gst-number-picker'
-import { saveFile } from './save-file'
-import { CELL, HEAD } from './table-classes'
+import { invoiceColumns } from './invoice-columns'
+import InvoicesBulkActions from './invoices-bulk-actions'
+import { useGstNumbers } from './use-gst-numbers'
 
 type Page = Awaited<ReturnType<typeof api.gstInvoices.list>>
 type Progress = { batchId: string; total: number; sent: number; failed: number }
-/** The list's tabs: GST returns treat invoices, notes and vouchers apart, and exports on their own. */
-const TABS = ['tax_invoice', 'credit_note', 'vouchers', 'exports', 'all'] as const
-type Tab = (typeof TABS)[number]
 
-const TAB_KINDS: Record<Tab, DocumentKind[] | undefined> = {
-  tax_invoice: ['tax_invoice'],
-  credit_note: ['credit_note'],
-  vouchers: ['receipt_voucher', 'refund_voucher'],
-  exports: undefined,
-  all: undefined,
-}
-
-/** A calendar month: GST is filed month by month. */
-type Month = { year: number; month: number }
-
-const thisMonth = (now = new Date()): Month => ({ year: now.getFullYear(), month: now.getMonth() })
-
-const shift = (m: Month, by: number): Month => {
-  const d = new Date(m.year, m.month + by, 1)
-  return { year: d.getFullYear(), month: d.getMonth() }
-}
-
-/** yyyy-mm-dd of the month's first and last day. */
-function monthRange(m: Month): { from: string; to: string } {
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const last = new Date(m.year, m.month + 1, 0).getDate()
-  return {
-    from: `${m.year}-${pad(m.month + 1)}-01`,
-    to: `${m.year}-${pad(m.month + 1)}-${pad(last)}`,
-  }
-}
-
-const monthLabel = (m: Month) =>
-  formatPattern(new Date(m.year, m.month, 15), { month: 'long', year: 'numeric' })
-
-/** Midnight IST at the start of a yyyy-mm-dd, and of the day after for an exclusive end. */
-const istStart = (day: string) => new Date(`${day}T00:00:00+05:30`)
-const istEnd = (day: string) => new Date(istStart(day).getTime() + 86_400_000)
-
-/** Which page of which view a response answers, so rows from another one never show as these. */
-const viewKey = (q: string, tab: Tab, month: Month, page: number, gst: string | undefined) =>
-  JSON.stringify([q.trim(), tab, month, page, gst ?? null])
-
-function filterOf(q: string, tab: Tab, month: Month, gst: string | undefined) {
-  const range = monthRange(month)
-  return {
-    q: q.trim() || undefined,
-    kind: TAB_KINDS[tab],
-    from: istStart(range.from),
-    to: istEnd(range.to),
-    gstRegistrationId: gst,
-    exportsOnly: tab === 'exports' ? true : undefined,
-  }
-}
-
-/** Issued documents by type and month, with search, bulk zip, print, email and GSTR-1 export. */
+/**
+ * Issued and cancelled documents in the shared table: document type views, search (invoice or
+ * order number, buyer, GSTIN), Filter (invoice date, GST number, source, status), sortable
+ * Number, Date and Total, rows per page; all on the server and kept in the URL. Ticked rows (or
+ * every match) download as a zip, print as one PDF, recalculate GST or email to their buyers.
+ */
 export default function InvoicesList() {
+  return (
+    <Suspense>
+      <InvoicesTable />
+    </Suspense>
+  )
+}
+
+function InvoicesTable() {
   // Hooks
   const copy = useCopy(gstInvoicesContent.list)
-  const refreshCopy = useCopy(gstInvoiceBulkRefreshContent)
-  const tableCopy = useCopy(tableContent)
-  const kindCopy = useCopy(gstInvoicesContent.kinds)
+  const kinds = useCopy(gstInvoicesContent.kinds)
+  const lists = useCopy(gstListFiltersContent)
+  const panel = useCopy(filterPanelContent)
   const apps = useCopy(appsContent)
   const recordCopy = useCopy(gstAlreadyInvoicedContent)
-  const [q, setQ] = useState('')
-  const [tab, setTab] = useState<Tab>('tax_invoice')
-  const [month, setMonth] = useState(thisMonth)
-  const [page, setPage] = useState(1)
+  const numbers = useGstNumbers()
+  const [q, setQ] = useQueryStates(INVOICE_PARAMS, { shallow: true })
+  const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
   const [data, setData] = useState<Page | null>(null)
-  /** The view `data` answers; until it matches the current one the list is still loading. */
-  const [loadedKey, setLoadedKey] = useState<string | null>(null)
-  /** The last read failed: the table says so with Try again (was a toast over an empty table). */
+  const [loading, setLoading] = useState(true)
+  /** The last read failed: the table says so with Try again. */
   const [failed, setFailed] = useState(false)
-  const [picked, setPicked] = useState<Set<string>>(new Set())
-  const [everything, setEverything] = useState(false)
-  const [busy, setBusy] = useState<string | null>(null)
   const [progress, setProgress] = useState<Progress | null>(null)
-  const [gst, setGst] = useState<string | undefined>(undefined)
   // Bumped after a bulk change so the open page reads its rows again.
   const [version, setVersion] = useState(0)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `version` re-runs the load after a bulk change
   useEffect(() => {
     let cancelled = false
-    const timer = setTimeout(() => {
-      const key = viewKey(q, tab, month, page, gst)
-      api.gstInvoices
-        .list({ ...filterOf(q, tab, month, gst), page })
-        .then((d) => {
+    setLoading(true)
+    api.gstInvoices
+      .list(invoiceInput(q, perPage))
+      .then(
+        (d) => {
           if (cancelled) return
           setData(d)
           setFailed(false)
-          setLoadedKey(key)
-        })
-        .catch(() => {
-          if (cancelled) return
-          setData(null)
-          setFailed(true)
-          setLoadedKey(key)
-        })
-    }, 250)
+        },
+        () => {
+          if (!cancelled) setFailed(true)
+        },
+      )
+      .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
-      clearTimeout(timer)
     }
-  }, [q, tab, month, page, gst, version])
+  }, [q, perPage, version])
 
   useEffect(() => {
     if (!progress || progress.sent + progress.failed >= progress.total) return
@@ -166,321 +96,69 @@ export default function InvoicesList() {
     return () => clearTimeout(timer)
   }, [progress])
 
-  // Derived
-  /** "invoices", for the shared table copy ("Loading invoices"). */
-  const listName = copy.title.toLowerCase()
-
-  // Helpers
-  const selection = () =>
-    everything ? { filter: filterOf(q, tab, month, gst) } : { ids: [...picked] }
-  const bulk = async (action: string, fn: () => Promise<void>) => {
-    setBusy(action)
-    const id = toast.loading(copy.working)
-    try {
-      await fn()
-      toast.dismiss(id)
-    } catch (err) {
-      toast.error(errorText(err, copy.failed), { id })
-    } finally {
-      setBusy(null)
-    }
-  }
-
   // Event handlers
+  const handleReload = () => setVersion((v) => v + 1)
   /** Try again: skeleton rows while the same view is read again. */
   const handleRetry = () => {
-    setLoadedKey(null)
-    setVersion((v) => v + 1)
+    setData(null)
+    handleReload()
   }
-  const handleToggle = (id: string, on: boolean) => {
-    setEverything(false)
-    setPicked((p) => {
-      const next = new Set(p)
-      if (on) next.add(id)
-      else next.delete(id)
-      return next
-    })
-  }
-  const handleGst = (id: string | undefined) => {
-    setGst(id)
-    setPage(1)
-    setPicked(new Set())
-    setEverything(false)
-  }
-  /** A new tab or month starts from page one with nothing picked. */
-  const handleView = (next: { tab?: Tab; month?: Month }) => {
-    if (next.tab) setTab(next.tab)
-    if (next.month) setMonth(next.month)
-    setPage(1)
-    setPicked(new Set())
-    setEverything(false)
-  }
-  const handleTogglePage = (on: boolean) => {
-    setEverything(false)
-    setPicked(on ? new Set(data?.rows.map((r) => r.id)) : new Set())
-  }
-  // Printing or downloading clears "Not printed": read the list again after.
-  const handleDownload = () =>
-    bulk('download', async () => {
-      saveFile(await api.gstInvoices.bulkDownload(selection()))
-      setVersion((v) => v + 1)
-    })
-  const handlePrint = () =>
-    bulk('print', async () => {
-      saveFile(await api.gstInvoices.bulkPrint(selection()), 'open')
-      setVersion((v) => v + 1)
-    })
-  const handleRecalculate = () =>
-    bulk('recalculate', async () => {
-      const r = await api.gstInvoices.bulkRefreshGst(selection())
-      toast.success(refreshCopy.done(r.updated, r.unchanged, r.skipped))
-      setVersion((v) => v + 1)
-    })
-  const handleEmail = () =>
-    bulk('email', async () => {
-      const r = await api.gstInvoices.bulkEmail(selection())
-      setProgress({ batchId: r.batchId, total: r.total, sent: 0, failed: 0 })
-      toast.success(copy.emailQueued(r.total))
-    })
 
   // Render logic
-  /* Skeleton rows until the response for this tab, month, search and page arrives; only then can
-     an empty answer read "Nothing issued in this range". */
-  const loading = loadedKey !== viewKey(q, tab, month, page, gst)
-  const rows = loading ? [] : (data?.rows ?? [])
-  const count = everything ? null : picked.size
-  const anySelected = everything || picked.size > 0
-  const allOnPage = rows.length > 0 && rows.every((r) => picked.has(r.id))
-  const latest = thisMonth()
-  const atLatest = month.year === latest.year && month.month === latest.month
+  const groups = invoiceFilterGroups(q, lists, panel, numbers, (patch) =>
+    setQ({ ...patch, page: 1 }),
+  )
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader
-        title={copy.title}
-        summary={copy.subtitle}
-        actions={<GstNumberPicker value={gst} onChange={handleGst} allowAll />}
-      />
-      <Card gap="none" inset="y-none" className="overflow-hidden">
-        <div className="flex flex-col gap-3 p-4">
-          <PillTabs<Tab>
-            value={tab}
-            onChange={(t) => handleView({ tab: t })}
-            tabs={TABS.map((t) => ({ value: t, label: copy.tabs[t] }))}
+      <PageHeader title={copy.title} summary={copy.subtitle} />
+      <ResourceTable
+        resourceName={lists.invoiceResource}
+        columns={invoiceColumns({ list: copy, kinds, lists, record: recordCopy })}
+        items={failed ? [] : (data?.rows ?? [])}
+        getId={(r) => r.id}
+        href={(r) => routes.apps.page('gst-invoices', 'invoices', r.id)}
+        loading={loading && data === null}
+        query={q.query}
+        onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
+        onClearAll={() => setQ({ ...CLEAR_INVOICE_FILTERS, page: 1 })}
+        views={
+          <ViewSelect
+            value={q.tab}
+            label={copy.kindFilter}
+            onChange={(tab) => setQ({ tab, page: 1 })}
+            options={INVOICE_TABS.map((t) => ({ value: t, label: copy.tabs[t] }))}
           />
-          <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-            <Input
-              size="lg"
-              placeholder={copy.search}
-              value={q}
-              onChange={(e) => {
-                setQ(e.target.value)
-                setPage(1)
-              }}
-            />
-            {/* One month at a time, the way GSTR-1 and GSTR-3B are filed. */}
-            <fieldset className="flex items-center gap-1" aria-label={copy.month}>
-              <Button
-                variant="outline"
-                size="icon"
-                aria-label={copy.previousMonth}
-                onClick={() => handleView({ month: shift(month, -1) })}
-              >
-                <ChevronLeftIcon />
-              </Button>
-              <span className="min-w-36 text-center text-body font-medium tabular-nums">
-                {monthLabel(month)}
-              </span>
-              <Button
-                variant="outline"
-                size="icon"
-                aria-label={copy.nextMonth}
-                disabled={atLatest}
-                onClick={() => handleView({ month: shift(month, 1) })}
-              >
-                <ChevronRightIcon />
-              </Button>
-            </fieldset>
-          </div>
-          {anySelected ? (
-            <div className="flex flex-wrap items-center gap-2 rounded-[0.5rem] bg-secondary px-3 py-2">
-              <span className="text-body">
-                {count === null ? copy.allSelected : copy.selected(count)}
-              </span>
-              {!everything && data?.hasMore ? (
-                <Button variant="link" size="sm" onClick={() => setEverything(true)}>
-                  {copy.selectAll}
-                </Button>
-              ) : null}
-              <span className="flex-1" />
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={busy !== null}
-                onClick={handleDownload}
-                loading={busy === 'download'}
-              >
-                <Download />
-                {copy.download}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={busy !== null}
-                onClick={handlePrint}
-                loading={busy === 'print'}
-              >
-                <Printer />
-                {copy.print}
-              </Button>
-              {tab === 'tax_invoice' ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={busy !== null}
-                  onClick={handleRecalculate}
-                  loading={busy === 'recalculate'}
-                >
-                  <RefreshCw />
-                  {refreshCopy.button}
-                </Button>
-              ) : null}
-              <Button
-                size="sm"
-                disabled={busy !== null}
-                onClick={handleEmail}
-                loading={busy === 'email'}
-              >
-                <Send />
-                {copy.email}
-              </Button>
-            </div>
-          ) : null}
-          {progress ? (
-            <p className="text-caption text-muted-foreground">
-              {copy.emailProgress(progress.sent, progress.failed, progress.total)}
-            </p>
-          ) : null}
-        </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className={`${HEAD} w-10`}>
-                <Checkbox
-                  checked={allOnPage || everything}
-                  onCheckedChange={(v) => handleTogglePage(Boolean(v))}
-                  aria-label={copy.selectAll}
-                />
-              </TableHead>
-              <TableHead className={HEAD}>{copy.columns.number}</TableHead>
-              <TableHead className={HEAD}>{copy.columns.kind}</TableHead>
-              <TableHead className={HEAD}>{copy.columns.order}</TableHead>
-              <TableHead className={HEAD}>{copy.columns.buyer}</TableHead>
-              <TableHead className={HEAD}>{copy.columns.date}</TableHead>
-              <TableHead className={`${HEAD} text-center`}>{copy.columns.status}</TableHead>
-              <TableHead className={`${HEAD} text-right`}>{copy.columns.tax}</TableHead>
-              <TableHead className={`${HEAD} text-right`}>{copy.columns.total}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableSkeletonRows
-                columns={9}
-                cellClassName={CELL}
-                label={tableCopy.loading(listName)}
-              />
-            ) : failed ? (
-              <TableFailedRow
-                colSpan={9}
-                heading={apps.couldNotLoad.invoices}
-                onRetry={handleRetry}
-              />
-            ) : rows.length === 0 ? (
-              <TableEmptyRow colSpan={9} message={copy.empty} />
-            ) : null}
-            {rows.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell className={CELL}>
-                  <Checkbox
-                    checked={everything || picked.has(r.id)}
-                    onCheckedChange={(v) => handleToggle(r.id, Boolean(v))}
-                    aria-label={r.number ?? r.orderName}
-                  />
-                </TableCell>
-                <TableCell className={`${CELL} font-medium`}>
-                  <span className="group/row flex items-center gap-1">
-                    <Link
-                      href={routes.apps.page('gst-invoices', 'invoices', r.id)}
-                      className="hover:underline"
-                    >
-                      {r.number ?? '-'}
-                    </Link>
-                    {r.number ? <CopyButton value={r.number} what={copy.columns.number} /> : null}
-                  </span>
-                </TableCell>
-                <TableCell className={CELL}>{kindCopy[r.kind]}</TableCell>
-                <TableCell className={CELL}>
-                  <Link href={routes.orders.detail(r.orderId)} className="hover:underline">
-                    {r.orderName}
-                  </Link>
-                </TableCell>
-                <TableCell className={CELL}>
-                  <span className="flex flex-col">
-                    {r.buyerName}
-                    {r.buyerGstin ? (
-                      <span className="text-caption text-muted-foreground">{r.buyerGstin}</span>
-                    ) : null}
-                  </span>
-                </TableCell>
-                <TableCell className={CELL}>
-                  {r.source === 'external' && !r.number ? (
-                    <span className="text-muted-foreground">{recordCopy.noDate}</span>
-                  ) : (
-                    <RelativeTime value={r.invoiceDate ?? r.issuedAt} />
-                  )}
-                </TableCell>
-                <TableCell className={`${CELL} text-center`}>
-                  {/* A recorded invoice has no PDF here: say so, so no one waits for a print. */}
-                  <span className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap">
-                    <StatusLabel kind="gstDoc" value={r.status} variant="soft" />
-                    {r.source === 'external' ? (
-                      <span title={r.number ? recordCopy.notPrintedHelp : recordCopy.noDetailsBody}>
-                        <StatusChip tone="neutral">{recordCopy.notPrinted}</StatusChip>
-                      </span>
-                    ) : r.status === 'issued' && !r.printedAt ? (
-                      <StatusChip tone="attention">{recordCopy.notPrintedYet}</StatusChip>
-                    ) : null}
-                  </span>
-                </TableCell>
-                <TableCell className={`${CELL} text-right tabular-nums`}>
-                  {formatPaise(r.taxPaise)}
-                </TableCell>
-                <TableCell className={`${CELL} text-right tabular-nums`}>
-                  {formatPaise(r.totalPaise)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <div className="flex justify-end gap-2 border-t border-line p-4">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page === 1}
-            onClick={() => setPage((p) => p - 1)}
-          >
-            {copy.previous}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!data?.hasMore}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            {copy.next}
-          </Button>
-        </div>
-      </Card>
+        }
+        filterGroups={groups}
+        defaultSort={INVOICE_DEFAULT_SORT}
+        sort={parseInvoiceSort(q.sort)}
+        onSortChange={(s) => setQ({ sort: sortParam(s, INVOICE_DEFAULT_SORT), page: 1 })}
+        page={q.page}
+        perPage={perPage}
+        onPerPageChange={(next) => {
+          setPerPage(next)
+          setQ({ page: 1 })
+        }}
+        total={data?.total ?? 0}
+        onPageChange={(page) => setQ({ page })}
+        loadAllIds={() => api.gstInvoices.listIds(invoiceFilter(q))}
+        bulkActions={(ids) => (
+          <InvoicesBulkActions
+            ids={ids}
+            taxInvoices={q.tab === 'tax_invoice'}
+            onChanged={handleReload}
+            onEmailQueued={(b) => setProgress({ ...b, sent: 0, failed: 0 })}
+          />
+        )}
+        empty={{ heading: copy.empty }}
+        error={failed ? { heading: apps.couldNotLoad.invoices, onRetry: handleRetry } : undefined}
+      />
+      {progress ? (
+        <p className="text-caption text-muted-foreground">
+          {copy.emailProgress(progress.sent, progress.failed, progress.total)}
+        </p>
+      ) : null}
     </div>
   )
 }

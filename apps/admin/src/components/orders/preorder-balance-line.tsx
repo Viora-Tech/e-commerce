@@ -20,7 +20,8 @@ function depositPaid(order: OrderDetail): number {
 
 /**
  * A deposit pre-order's balance at a glance, above the attempts on the payment
- * card: "Deposit paid ₹X · Balance due ₹Y (requested <date>, N reminders sent)".
+ * card: "Deposit paid ₹X · Balance due ₹Y (requested <date>, N reminders sent)", or
+ * "· Paid in full" when the deposit covered the whole order.
  */
 export default function PreorderBalanceLine({ order, onRequest, busy }: PreorderBalanceLineProps) {
   // Hooks
@@ -30,13 +31,16 @@ export default function PreorderBalanceLine({ order, onRequest, busy }: Preorder
   // Render logic
   const copy = detail.payment.preorder
   const owed = order.balanceDuePaise ?? 0
+  // Nothing owed and no balance ever paid: the deposit was the whole order, so no task to show.
   const state = order.balancePaidAt
     ? copy.balancePaid(fmt.when(order.balancePaidAt))
-    : `${copy.balanceDue(fmt.money(owed))} (${
-        order.balanceRequestedAt
-          ? copy.requested(fmt.when(order.balanceRequestedAt), order.balanceRemindersSent)
-          : copy.notRequested
-      })`
+    : owed <= 0
+      ? copy.paidInFull
+      : `${copy.balanceDue(fmt.money(owed))} (${
+          order.balanceRequestedAt
+            ? copy.requested(fmt.when(order.balanceRequestedAt), order.balanceRemindersSent)
+            : copy.notRequested
+        })`
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2">

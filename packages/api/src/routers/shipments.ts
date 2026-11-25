@@ -180,7 +180,10 @@ export const shipmentsRouter = {
     )
     .handler(async ({ context, input }) => {
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      return bulkBookShipments(context.tx, context.scope.storeId, shipping, settingsSecret(), input)
+      return bulkBookShipments(context.tx, context.scope.storeId, shipping, settingsSecret(), {
+        ...input,
+        author: context.session.user.email,
+      })
     }),
 
   /** Create shipment, step 1: each order's parcels (items, weight, box, pickup place, COD)

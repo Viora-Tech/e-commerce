@@ -7,7 +7,6 @@ import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
 import AdminFrame from '@/components/admin-frame'
 import AccentStyle from '@/components/layout/accent-style'
-import PaymentsTestBanner from '@/components/layout/payments-test-banner'
 import RefreshOnFocus from '@/components/layout/refresh-on-focus'
 import StorageScopeProvider from '@/components/layout/storage-scope-provider'
 import { billingContent } from '@/data/billing'
@@ -26,7 +25,6 @@ import {
   listStores,
   liveLogoUrl,
   ordersToShipCount,
-  paymentsTestMode,
   planUsageSummary,
   unseenDraftsCount,
 } from '@/lib/shell-data'
@@ -55,7 +53,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   // Everything else needs only the session, so it is read at once rather than one after
   // another. Store calls for a stale active id answer "no store" on their own and are dropped
   // below unless that store is one of the member's.
-  const [orgs, apps, logo, storefrontUrl, toShip, plan, testMode, approvals, drafts, bars] =
+  const [orgs, apps, logo, storefrontUrl, toShip, plan, approvals, drafts, bars] =
     await Promise.all([
       listStores(),
       activeId ? listApps().catch(() => []) : [],
@@ -63,7 +61,6 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       storefrontOrigin(),
       activeId ? ordersToShipCount() : null,
       activeId ? planUsageSummary() : null,
-      activeId ? paymentsTestMode() : false,
       activeId ? approvalsBadgeCount() : null,
       activeId ? unseenDraftsCount() : null,
       activeId ? listAppBars() : NO_APP_BARS,
@@ -160,7 +157,6 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             show the picker instead of letting every page below throw "Pick a store first". */}
           {active ? (
             <>
-              {testMode ? <PaymentsTestBanner /> : null}
               {children}
             </>
           ) : (

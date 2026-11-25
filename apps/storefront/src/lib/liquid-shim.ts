@@ -9,7 +9,8 @@
  * - `/cart/change.js`, `/cart/update.js`, `/cart/clear.js` → our cart page.
  * - `?section_id=` / `?sections=` (section rendering) → our renderer of the theme's
  *   own section (`/theme-actions/section`), so lazy tabs and carousels fill in: one section's
- *   HTML, or JSON keyed by every section asked for (`lib/section-rendering.ts`).
+ *   HTML, or JSON keyed by every section asked for (`lib/section-rendering.ts`). On a
+ *   previewed page, it and the two below carry `?theme-preview=` (a frame has no preview cookie).
  * - `Node#removeChild` / `Node#insertBefore` → follow a node a theme script moved, so React
  *   never throws over markup it draws that the theme rearranged (a heading's reveal span).
  * - `/search/suggest(.json)` → passed through untouched: our own predictive search answers it
@@ -48,6 +49,24 @@ export type LiquidShimConfig = {
    * their own, a cookie banner) and listen for the editor's section events.
    */
   designMode?: boolean
+  /**
+   * The verified theme preview this page renders (`x-theme-preview`, and `x-theme-version` for
+   * Versions › Preview). A frame (Customize's Theme scripts view, the Themes page preview) never
+   * holds the preview cookie, so the theme's calls that render theme code (section rendering,
+   * predictive search, recommendations) carry it as `?theme-preview=` instead; without it they
+   * render the live theme, and a section only the previewed theme has answers 404.
+   */
+  preview?: LiquidShimPreview | undefined
+}
+
+export type LiquidShimPreview = { token: string; version?: string }
+
+/** The shim's `preview` from the proxy's verified headers; none for a page that is not a preview. */
+export function shimPreview(headers: Headers | null): LiquidShimPreview | undefined {
+  const token = headers?.get('x-theme-preview')
+  if (!token) return undefined
+  const version = headers?.get('x-theme-version')
+  return version ? { token, version } : { token }
 }
 
 export function liquidShim(config: LiquidShimConfig): string {
@@ -113,6 +132,21 @@ const SHIM = `(function () {
     };
   }
   var nativeFetch = window.fetch.bind(window);
+  var preview = config.preview || null;
+  // A previewed page's calls carry the preview (a frame has no preview cookie): same-origin
+  // paths stay paths.
+  function previewed(href) {
+    if (!preview) return href;
+    var u = new URL(href, location.href);
+    u.searchParams.set('theme-preview', preview.token);
+    if (preview.version) u.searchParams.set('theme-version', preview.version);
+    return u.origin === location.origin ? u.pathname + u.search : u.href;
+  }
+  // A string or URL the theme passed, with the preview; a Request it built goes untouched.
+  function passOn(input, url) {
+    var request = input && typeof input === 'object' && typeof input.clone === 'function';
+    return preview && !request ? previewed(url.href) : input;
+  }
   var pending = function () { return new Promise(function () {}); };
   var reply = function (body, type) {
     return Promise.resolve(new Response(body, { status: 200, headers: { 'content-type': type } }));
@@ -152,17 +186,17 @@ const SHIM = `(function () {
     if (/^\\/cart\\/add(\\.js)?$/.test(path)) return addToCart(init);
     if (path === '/cart.js') return nativeFetch('/theme-actions/cart', { headers: { accept: 'application/json' } });
     if (/^\\/cart\\/(change|update|clear)(\\.js)?$/.test(path)) { location.href = prefix + '/cart'; return pending(); }
-    if (/^\\/search\\/suggest/.test(path)) return nativeFetch(input, init);
+    if (/^\\/search\\/suggest/.test(path)) return nativeFetch(passOn(input, url), init);
     if (/^\\/recommendations\\/products/.test(path)) {
       // Our route answers; a failure (unknown product, no such section) reads as an empty row.
       var json = /\\.json$/.test(path) || !url.searchParams.get('section_id');
-      return nativeFetch(input, init).then(function (res) {
+      return nativeFetch(passOn(input, url), init).then(function (res) {
         if (res.ok) return res;
         return json ? reply('{"intent":"related","products":[]}', 'application/json') : reply('', 'text/html');
       });
     }
     if (method === 'GET' && (url.searchParams.has('section_id') || url.searchParams.has('sections'))) {
-      return nativeFetch(sectionUrl(url), init);
+      return nativeFetch(previewed(sectionUrl(url)), init);
     }
     return nativeFetch(input, init);
   };

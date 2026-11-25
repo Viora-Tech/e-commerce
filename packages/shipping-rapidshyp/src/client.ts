@@ -18,6 +18,8 @@ export const RAPIDSHYP_CAPABILITIES: ShippingCapability[] = [
   'tracking',
   'cancel',
   'ndr',
+  // Create pickup, for a parcel whose pickup was refused at booking (`./pickup`).
+  'pickup',
   'reverse_pickup',
   'pickup_at_booking',
 ]

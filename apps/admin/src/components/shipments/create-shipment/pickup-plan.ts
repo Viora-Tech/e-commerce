@@ -79,11 +79,12 @@ export const PICKUP_TIMES = Array.from({ length: 21 }, (_, i) => {
 })
 
 /**
- * The day the drawer starts on: the first day a pickup is already booked (joining it sends no
- * new request), else the first day still open for a new one.
+ * The day the drawer starts on: the first open day a pickup is already booked (joining it sends
+ * no new request), else the first day still open for a new one.
  */
 export function startingPickupDay(days: PickupDay[], bookedOn: (date: string) => boolean): string {
-  const booked = days.find((d) => bookedOn(d.date))
+  // Today's pickup past the cut-off has gone: never start on it.
+  const booked = days.find((d) => !d.pastCutoff && bookedOn(d.date))
   const open = days.find((d) => !d.pastCutoff)
   return (booked ?? open ?? days[0])?.date ?? ''
 }

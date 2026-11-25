@@ -35,3 +35,13 @@ export function allCustomersSpentSql(): SQL<number> {
   return sql<number>`(select coalesce(sum(${sql.raw(ORDER_NET_PAID)}), 0)::bigint from "order" o
     where o.customer_id is not null and o.status <> 'draft' and not o.is_test)`
 }
+
+/**
+ * "Amount spent" counting only orders placed at or after `since` (loyalty VIP tiers over the
+ * last 12 months); the same per-order amount as `customerSpentSql`.
+ */
+export function customerSpentSinceSql(customerId: SQL, since: Date): SQL<number> {
+  return sql<number>`(select coalesce(sum(${sql.raw(ORDER_NET_PAID)}), 0)::int from "order" o
+    where o.customer_id = ${customerId} and o.status <> 'draft' and not o.is_test
+      and o.placed_at >= ${since.toISOString()}::timestamptz)`
+}

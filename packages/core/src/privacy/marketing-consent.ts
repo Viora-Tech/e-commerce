@@ -16,6 +16,8 @@ export type ConsentSource =
   | 'admin'
   | 'import'
   | 'erasure'
+  /** The shopper replied STOP to a WhatsApp message. */
+  | 'whatsapp_reply'
 
 export type ConsentChange = {
   customerId: string

@@ -18,6 +18,7 @@ import {
   reorderLines,
   requestLoginCode,
   revokeCustomerSession,
+  setCustomerBirthday,
   setDefaultAddress,
   updateAddress,
   updateProfile,
@@ -202,6 +203,23 @@ export async function saveProfileAction(input: Record<string, unknown>): Promise
   if (!r.ok) return r
   revalidatePath('/account', 'layout')
   return { ok: true }
+}
+
+/**
+ * Loyalty points: the shopper adds their birthday once (`YYYY-MM-DD` from the date field; only
+ * the month and day are kept), so it cannot be moved to collect birthday points again.
+ */
+export async function saveBirthdayAction(
+  birthday: string,
+): Promise<{ ok: true; birthday: string | null } | { ok: false; reason: string }> {
+  const sid = await storeId()
+  const c = await me(sid)
+  const r = await inStore(sid, (tx) =>
+    setCustomerBirthday({ storeId: sid, tx }, c.id, birthday, 'shopper'),
+  )
+  if (!r.ok) return { ok: false, reason: r.reason }
+  revalidatePath('/account/points')
+  return { ok: true, birthday: r.birthday }
 }
 
 /** How many left-out items the cart names before "and N more". */

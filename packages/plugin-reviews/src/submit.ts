@@ -1,6 +1,6 @@
 import { CommerceError } from '@commerce/core'
 import { media, order, product, type StoreTx } from '@commerce/db'
-import { and, eq, gt, inArray, isNull, sql } from 'drizzle-orm'
+import { and, eq, gt, inArray, isNull, or, sql } from 'drizzle-orm'
 import { purchaseOf, requestLinkBuyer } from './reviews'
 import { rewardPhotoReviews } from './rewards'
 import { review, reviewMedia, reviewRequest } from './schema'
@@ -85,7 +85,8 @@ async function buyerOf(tx: StoreTx, input: SubmitReviewInput) {
     const bought = o ? await requestLinkBuyer(tx, input.requestLink) : null
     if (o && bought) {
       return {
-        email: (o.email ?? input.email).toLowerCase() || null,
+        // A WhatsApp-only order has no email: the one they typed, else their account's.
+        email: (o.email || input.email || input.customer?.email || '').toLowerCase() || null,
         customerId: o.customerId,
         orderId: o.id,
       }
@@ -185,14 +186,18 @@ export async function submitReview(
       .insert(reviewMedia)
       .values(kept.map((mediaId, position) => ({ storeId, reviewId: row.id, mediaId, position })))
   }
-  // Reviewed: no request or reminder for this product goes to this person any more.
+  // Reviewed: no request or reminder for this product goes to this person any more, nor for
+  // the order behind it (a WhatsApp-only order has no email on its request).
   await tx
     .update(reviewRequest)
     .set({ reviewedAt: now })
     .where(
       and(
         eq(reviewRequest.productId, input.productId),
-        sql`lower(${reviewRequest.email}) = ${buyer.email}`,
+        or(
+          sql`lower(${reviewRequest.email}) = ${buyer.email}`,
+          buyer.orderId ? eq(reviewRequest.orderId, buyer.orderId) : undefined,
+        ),
         isNull(reviewRequest.reviewedAt),
       ),
     )

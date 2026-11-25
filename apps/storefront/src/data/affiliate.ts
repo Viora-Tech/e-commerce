@@ -3,30 +3,23 @@ export const affiliateContent = {
   metaTitle: 'Affiliate program',
   title: 'Affiliate program',
   intro: 'Share our products with your followers and earn on every order your link or code brings.',
-  landing: {
-    eyebrow: 'Affiliate program',
-    /** The headline from the program's default rule ("10%" or "₹150"). */
-    headline: (amount: string, percent: boolean) =>
-      percent ? `Earn ${amount} on every sale` : `Earn ${amount} on every order`,
-    upTo: (percent: string) => `Up to ${percent} as your sales grow.`,
-    perks: {
-      coupon: (percent: number) => `Your followers save ${percent}%`,
-      window: (days: number) => `${days}-day link window`,
-      payout: 'Paid by UPI or bank transfer',
-      free: 'Free to join',
-    },
-    stepsTitle: 'How it works',
-    steps: [
-      { title: 'Apply', body: 'Tell us where you post. It takes a minute.' },
-      {
-        title: 'Share',
-        body: 'Get your own link, discount code and QR. Share them anywhere.',
-      },
-      {
-        title: 'Get paid',
-        body: 'Earn on every order that is delivered and kept, paid to your UPI ID or bank.',
-      },
-    ],
+  /** The signup page, laid out like UpPromote's register page. */
+  register: {
+    partner: 'Become our partner',
+    heading: 'Join our affiliate program',
+    login: 'Login',
+    benefits: 'Benefits',
+    cookieDays: 'Cookie days',
+    cookieValue: (days: number) => `${days} ${days === 1 ? 'day' : 'days'}`,
+    type: 'Commission type',
+    percent: 'Percent of sale',
+    fixed: 'Fixed amount per order',
+    amount: 'Commission amount',
+    upTo: (percent: string) => `up to ${percent} as your sales grow`,
+    coupon: 'Customer discount',
+    couponValue: (percent: number) => `${percent}% off with your code`,
+    terms: 'Additional terms',
+    join: 'Join',
   },
   terms: {
     title: 'Program terms',
@@ -51,15 +44,13 @@ export const affiliateContent = {
   },
   closed: 'The affiliate program is not taking new members right now.',
   signIn: {
-    title: 'Ready to join?',
-    body: 'Sign in or create an account to apply. Your dashboard lives in the same account.',
-    button: 'Sign in to apply',
+    body: 'Sign in or create a free account to join. Your affiliate dashboard lives in the same account.',
   },
   apply: {
-    title: 'Apply to join',
-    lead: 'Takes about a minute. We reply by email.',
-    as: (email: string) => `We will email you at ${email}.`,
-    name: 'Your name',
+    as: 'We email you here once the store has looked at your application.',
+    firstName: 'First name',
+    lastName: 'Last name',
+    email: 'Email',
     social: 'Your main profile or website',
     socialHint: 'Instagram handle, YouTube channel or website link',
     channels: 'Where will you share?',
@@ -80,11 +71,11 @@ export const affiliateContent = {
     upiPlaceholder: 'name@bank',
     terms: 'I accept the program terms',
     termsTitle: 'Read the terms',
-    submit: 'Send application',
-    sending: 'Sending…',
+    submit: 'Join',
+    sending: 'Joining…',
     errors: {
       missing: 'Please answer the questions marked as required.',
-      name: 'Enter your name.',
+      name: 'Enter your first name.',
       terms: 'Please accept the program terms.',
       payout: 'Check your UPI ID. It looks like name@bank.',
       busy: 'Too many tries. Please wait a little and try again.',

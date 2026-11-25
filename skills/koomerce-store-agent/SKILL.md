@@ -1,6 +1,7 @@
 ---
 name: koomerce-store-agent
 description: Work safely in a Koomerce store through its MCP server - read orders, products, stock, sales and abandoned checkouts, and propose or run changes to products, prices, collections, discounts, order notes, shipments and other admin actions. Use when an AI client (Claude, ChatGPT, Cursor, VS Code) is connected to a Koomerce store's MCP endpoint, or when answering shopper questions through a store's public agent endpoint. Always confirm with the merchant before any change.
+license: MIT
 compatibility: Needs a Koomerce store connected over MCP (Settings, MCP & API) or a store's public /api/mcp endpoint.
 metadata:
   author: Viora-Tech

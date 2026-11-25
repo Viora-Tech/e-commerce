@@ -236,6 +236,8 @@ export const orderDetailContent = {
     groups: (n: number) => `${n} fulfilment ${n === 1 ? 'group' : 'groups'}`,
     subtotal: 'Subtotal',
     tax: 'Tax',
+    /** The one GST line on the Payment card; it opens to the CGST/SGST or IGST split. */
+    gstIncluded: 'GST (included)',
     cgst: (rate: number) => `CGST ${rate / 2}%`,
     sgst: (rate: number) => `SGST ${rate / 2}%`,
     igst: (rate: number) => `IGST ${rate}%`,
@@ -257,6 +259,8 @@ export const orderDetailContent = {
     heading: 'Payment',
     /** The gateway transactions card (the money side is the Payment card above it). */
     transactions: 'Transactions',
+    /** The folded section of the Payment card: attempts, references, refunds, gateway events. */
+    details: 'Payment details',
     /** "Payment due later" terms from the draft (#1029). */
     dueOn: (date: string) => `Payment due ${date}`,
     dueOnFulfilment: 'Payment due on fulfilment',
@@ -291,6 +295,7 @@ export const orderDetailContent = {
       requested: (when: string, reminders: number) =>
         `requested ${when}, ${reminders === 1 ? '1 reminder' : `${reminders} reminders`} sent`,
       notRequested: 'not requested yet',
+      paidInFull: 'Paid in full',
       request: 'Request balance',
       resend: 'Send balance request again',
       requestedToast: 'Balance request sent to the customer',
@@ -325,7 +330,8 @@ export const orderDetailContent = {
     today: 'Today',
     placed: 'Order placed',
     paymentCaptured: 'Payment captured',
-    paymentEvent: (type: string) => `Gateway: ${type}`,
+    /** "Razorpay: payment captured": which gateway sent the update, and what it said. */
+    paymentEvent: (gateway: string, type: string) => `${gateway}: ${type.replace(/[._]/g, ' ')}`,
     refund: (amount: string) => `Refund of ${amount}`,
     markedPaid: (amount: string, method: string) => `Marked as paid: ${amount} by ${method}`,
     markedPaidDetail: (parts: { reference?: string; receivedOn?: string; by?: string }) =>

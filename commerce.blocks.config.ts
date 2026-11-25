@@ -1,4 +1,5 @@
 import type { AppBlockSource } from '@commerce/blocks/puck'
+import { loyaltyBlocks, loyaltyEmbeds } from '@commerce/core/loyalty-blocks'
 import { preorderBlocks } from '@commerce/core/preorder-block'
 import { affiliateBlocks } from '@commerce/plugin-affiliates/blocks'
 import { backInStockBlocks } from '@commerce/plugin-back-in-stock/blocks'
@@ -28,6 +29,13 @@ export const APP_BLOCK_SOURCES: AppBlockSource[] = [
   { id: 'affiliates', name: 'Affiliates', icon: 'Users', blocks: affiliateBlocks },
   { id: 'emi-pay-later', name: 'EMI & pay later', icon: 'CreditCard', blocks: emiBlocks },
   { id: 'reviews', name: 'Reviews', icon: 'Star', embeds: reviewsEmbeds },
+  {
+    id: 'loyalty',
+    name: 'Loyalty points',
+    icon: 'Gift',
+    blocks: loyaltyBlocks,
+    embeds: loyaltyEmbeds,
+  },
   { id: 'delhivery', name: 'Delhivery', icon: 'Truck', blocks: delhiveryDeliveryCheckerBlocks },
   { id: 'shiprocket', name: 'Shiprocket', icon: 'Truck', blocks: shiprocketDeliveryCheckerBlocks },
 ]

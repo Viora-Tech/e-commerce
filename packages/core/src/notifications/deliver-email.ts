@@ -3,6 +3,7 @@ import { notification, store } from '@commerce/db'
 import type { TemplateData, TemplateId } from '@commerce/notifications'
 import { eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { isSuppressed, sendStatus } from '../email-suppression/guard'
 import { channelsFor, type DeliverOptions, type DeliveryResult, messageOn } from './deliver'
 
 /**
@@ -64,7 +65,7 @@ export async function deliverMessageTo(
   const results: DeliveryResult[] = []
   for (const channel of await channelsFor(ctx, opts)) {
     const address = channel.requires === 'email' ? to.email : to.phone
-    if (!address) continue
+    if (!address || opts.skipChannels?.includes(channel.id)) continue
     const r = await channel.send({
       to: channel.requires === 'email' ? { email: address } : { phone: address },
       template,
@@ -75,11 +76,25 @@ export async function deliverMessageTo(
       channel: channel.id,
       template,
       to: address,
-      status: r.ok ? 'sent' : 'failed',
+      status: sendStatus(r),
       providerRef: r.ok ? r.providerRef : null,
       error: r.ok ? null : r.error,
     })
-    results.push({ channel: channel.id, to: address, ok: r.ok, error: r.ok ? undefined : r.error })
+    results.push({
+      channel: channel.id,
+      to: address,
+      ok: r.ok,
+      error: r.ok ? undefined : r.error,
+      ...(isSuppressed(r) ? { skipped: true } : {}),
+    })
   }
   return results
+}
+
+/** The channels done after this attempt: those done before plus the ones that just sent. */
+export function sentChannelsAfter(
+  before: readonly string[] | undefined,
+  sent: readonly { channel: string; ok: boolean }[],
+): string[] {
+  return [...new Set([...(before ?? []), ...sent.filter((r) => r.ok).map((r) => r.channel)])]
 }

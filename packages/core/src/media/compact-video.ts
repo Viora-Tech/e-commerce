@@ -2,7 +2,7 @@
 import type { StoreTx } from '@commerce/db'
 import { media } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
-import { and, eq, inArray, isNotNull } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm'
 import type { MediaProcessJob, MediaProcessQueue } from './queue'
 
 /** The job name for a video's copy, on the video queue (and on the media queue before it existed). */
@@ -48,6 +48,94 @@ export function isVideoUrl(url: string): boolean {
 /** `stores/x/media/abc-hero.mp4` → `stores/x/media/abc-hero.small.mp4`. */
 export function compactVideoKey(key: string): string {
   return `${key.replace(/\.[a-z0-9]{2,5}$/i, '')}.small.mp4`
+}
+
+/**
+ * A video's first-frame poster (Shopify's `preview_images/<id>.thumbnail.0000000000.jpg`): a light
+ * WebP beside the video, made by the same worker job as the smaller copy. The storefront paints
+ * it before the video plays, so the hero's LCP is a ~50 KB picture instead of a 5-9 MB video
+ * (owner, 25 Nov 2026: LCP 5.1 s on www.waimers.in). It is the video's own poster row
+ * (`poster_media_id`) only when the merchant has none: a poster the merchant or the admin's
+ * upload grab chose always wins and is never replaced.
+ * `stores/x/media/abc-hero.mp4` → `stores/x/media/abc-hero.poster.webp`.
+ */
+export function videoPosterKey(key: string): string {
+  return `${key.replace(/\.[a-z0-9]{2,5}$/i, '')}.poster.webp`
+}
+
+/** A landscape (or square) video's poster is at most this wide: a full-bleed desktop hero. */
+export const POSTER_WIDTH = 1280
+
+/** A portrait video's poster (a phone's hero source) is at most this wide. */
+export const POSTER_PORTRAIT_WIDTH = 750
+
+/** How wide a poster is made for a frame of `width` × `height` (never wider than the frame). */
+export function posterWidthFor(width: number, height: number): number {
+  const cap = height > width ? POSTER_PORTRAIT_WIDTH : POSTER_WIDTH
+  return Math.min(cap, width)
+}
+
+/** A poster above this many bytes is encoded again at a lower quality (aim: 30-60 KB). */
+export const POSTER_MAX_BYTES = 60 * 1024
+
+/** WebP qualities tried in turn until the poster fits `POSTER_MAX_BYTES` (the last is kept). */
+export const POSTER_QUALITIES = [62, 48, 36] as const
+
+/**
+ * Saves a made poster as a picture in Files and links it to the video, only if the video still
+ * has no poster (a merchant's pick made meanwhile wins). A picture already at that address is
+ * reused, so a re-run adds no second row. Returns the poster's id, or null when the video already
+ * had a poster.
+ */
+export async function linkAutoPoster(
+  tx: StoreTx,
+  storeId: string,
+  videoId: string,
+  poster: {
+    url: string
+    key: string
+    provider: string
+    size: number
+    width: number | null
+    height: number | null
+  },
+): Promise<string | null> {
+  const [video] = await tx
+    .select({ posterId: media.posterMediaId })
+    .from(media)
+    .where(eq(media.id, videoId))
+  if (!video || video.posterId) return null
+  const [existing] = await tx
+    .select({ id: media.id })
+    .from(media)
+    .where(eq(media.url, poster.url))
+    .limit(1)
+  const posterId =
+    existing?.id ??
+    (
+      await tx
+        .insert(media)
+        .values({
+          storeId,
+          url: poster.url,
+          key: poster.key,
+          provider: poster.provider,
+          contentType: 'image/webp',
+          size: poster.size,
+          width: poster.width,
+          height: poster.height,
+          status: 'ready',
+          processedAt: new Date(),
+        })
+        .returning({ id: media.id })
+    )[0]?.id
+  if (!posterId) return null
+  const linked = await tx
+    .update(media)
+    .set({ posterMediaId: posterId })
+    .where(and(eq(media.id, videoId), isNull(media.posterMediaId)))
+    .returning({ id: media.id })
+  return linked.length > 0 ? posterId : null
 }
 
 /** Whether a copy of `compactBytes` is worth keeping next to an original of `originalBytes`. */

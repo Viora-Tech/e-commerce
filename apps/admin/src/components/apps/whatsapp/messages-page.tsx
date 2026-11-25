@@ -22,7 +22,17 @@ type Page = Awaited<ReturnType<typeof api.platformApps.whatsappMessages>>
 type Row = Page['rows'][number]
 type Status = 'sent' | 'failed' | 'queued' | null
 
-const TONE: Record<string, ChipTone> = { sent: 'success', failed: 'danger', queued: 'attention' }
+const TONE: Record<string, ChipTone> = {
+  sent: 'neutral',
+  delivered: 'success',
+  read: 'success',
+  failed: 'danger',
+  queued: 'attention',
+}
+
+/** What the log says: Meta's later delivery report when there is one, else the send itself. */
+const shownStatus = (r: Row) =>
+  r.status !== 'failed' && r.deliveryStatus ? r.deliveryStatus : r.status
 
 /**
  * Apps → WhatsApp → Messages: the WhatsApp side of the notification log every send writes
@@ -124,10 +134,10 @@ export default function WhatsappMessagesPage() {
     {
       id: 'status',
       title: copy.columns.status,
-      sortValue: (r) => r.status,
+      sortValue: (r) => shownStatus(r),
       render: (r) => (
-        <StatusChip tone={TONE[r.status] ?? 'neutral'}>
-          {copy.status[r.status] ?? r.status}
+        <StatusChip tone={TONE[shownStatus(r)] ?? 'neutral'}>
+          {copy.status[shownStatus(r)] ?? shownStatus(r)}
         </StatusChip>
       ),
     },

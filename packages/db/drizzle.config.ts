@@ -19,6 +19,8 @@ export default defineConfig({
     './src/finance-schema.ts',
     './src/inbox-schema.ts',
     './src/auth-schema.ts',
+    './src/loyalty-schema.ts',
+    './src/loyalty-v2-schema.ts',
     './src/market-schema.ts',
     './src/marketing-schema.ts',
     './src/metafield-schema.ts',

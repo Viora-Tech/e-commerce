@@ -183,6 +183,7 @@ export const menusContent = {
     noResults: 'Nothing matches',
     missingTitle: 'Give the item a title',
     missingValue: 'Choose a destination',
+    badUrl: 'Enter a page on your store (/pages/about) or a full web address (https://…)',
     edit: 'Edit item',
     remove: 'Remove item',
     drag: (title: string) => `Move ${title}`,

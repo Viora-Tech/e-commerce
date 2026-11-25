@@ -12,32 +12,19 @@ import {
   type LabelRow,
   type LabelSheetFormat,
   type LabelSheetSkip,
+  labelOnDemand,
   mergeLabelSheet,
   type ShippingRegistry,
+  shipmentLabelUrl,
   shippingLabelReader,
   shippingProviderById,
   storedLabelUrl,
 } from '@commerce/core'
-import { readCapped, safeFetch } from '@commerce/core/safe-fetch'
 import type { StoreTx } from '@commerce/db'
 import { order, shipment } from '@commerce/db'
 import { and, eq, inArray } from 'drizzle-orm'
+import { fetchPublicLabel } from './label-link'
 import { loadShippingSettings } from './shipping.service'
-
-/** One courier label's file at most (a label PDF is tens of KB). */
-const LABEL_MAX_BYTES = 10 * 1024 * 1024
-const LABEL_FETCH_TIMEOUT_MS = 15_000
-/** A courier's public label link (Shiprocket, Xpressbees…), fetched with the SSRF guard. */
-async function fetchPublicLabel(url: string): Promise<Uint8Array | null> {
-  const res = await safeFetch(url, { timeoutMs: LABEL_FETCH_TIMEOUT_MS })
-  if (!res.ok) {
-    await res.body?.cancel()
-    throw new Error(`Label link answered ${res.status}`)
-  }
-  const bytes = await readCapped(res, LABEL_MAX_BYTES)
-  if (!bytes) throw new Error('Label file too large')
-  return bytes
-}
 
 /**
  * The batch's labels as one PDF. Shipments are read with the caller's store in the filter (and
@@ -54,7 +41,7 @@ export async function printLabelSheet(
   ids: string[],
   format: LabelSheetFormat,
 ): Promise<{ pdf: Uint8Array | null; printed: number; skipped: LabelSheetSkip[] }> {
-  const rows = await tx
+  const found = await tx
     .select({
       id: shipment.id,
       orderNumber: order.number,
@@ -66,6 +53,10 @@ export async function printLabelSheet(
     .from(shipment)
     .leftJoin(order, eq(order.id, shipment.orderId))
     .where(and(eq(shipment.storeId, storeId), inArray(shipment.id, ids)))
+  /* Read-time, as the single Print label sees it: a courier that hands its label over on demand
+     (RapidShyp, often saved with no link) goes to `getLabel` instead of being skipped. */
+  const rows = found.map((r) => ({ ...r, labelUrl: shipmentLabelUrl(r) }))
+  const savedLink = new Map(found.map((r) => [r.id, r.labelUrl]))
 
   const readStored = await shippingLabelReader({ storeId, tx })
   let settings: Awaited<ReturnType<typeof loadShippingSettings>> | undefined
@@ -77,7 +68,15 @@ export async function printLabelSheet(
       settings ??= await loadShippingSettings(tx, storeId)
       const provider = shippingProviderById(registry, settings, secret, row.provider)
       if (!provider?.getLabel) return null
-      return (await provider.getLabel(row.waybill)).body
+      const saved = savedLink.get(row.id)
+      // An on-demand courier's own public link, kept from booking, is the fallback.
+      const fallback = saved?.startsWith('https://') && !isKeyedLabelUrl(saved) ? saved : null
+      try {
+        return (await provider.getLabel(row.waybill)).body
+      } catch (error) {
+        if (fallback && labelOnDemand(row.provider)) return fetchPublicLabel(fallback)
+        throw error
+      }
     }
     return fetchPublicLabel(url)
   }

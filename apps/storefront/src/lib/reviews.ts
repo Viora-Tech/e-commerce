@@ -122,7 +122,8 @@ export async function productReviews(
       verifiedOrder,
       requestToken: fromLink ? opts.requestToken : null,
       knownName: fromLink?.name || me?.name || '',
-      emailKnown: Boolean(fromLink || me?.email),
+      // A WhatsApp-only order has no email to take the review under: the form asks for one.
+      emailKnown: Boolean(fromLink?.hasEmail || me?.email),
       openForm: Boolean(fromLink) || (opts.openForm === true && write === 'open'),
       onlyVerified,
       showPhotos: settings.storefront.showPhotos,

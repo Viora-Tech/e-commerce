@@ -11,6 +11,7 @@ import {
 import { resetDb } from '@commerce/db/test'
 import type { Message, NotificationChannel } from '@commerce/notifications'
 import { sampleTemplateDataByTemplate } from '@commerce/notifications'
+import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { builtInNotificationRegistry } from '../notifications/settings'
 import { storeNotificationChannels } from '../sender-email/channels'
@@ -24,6 +25,7 @@ import {
   SOFT_BOUNCE_LIMIT,
 } from './service'
 import type { SesFeedback } from './ses-feedback'
+import { storeSesEventsTopic } from './webhook'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -209,5 +211,24 @@ describe('store sends skip suppressed addresses', () => {
     expect(results[0]?.ok ? '' : results[0]?.error).toMatch(/^suppressed: hard_bounce/)
     expect(results[1]).toMatchObject({ ok: true })
     expect(reached).toEqual(['ok@example.com'])
+  })
+})
+
+describe('storeSesEventsTopic', () => {
+  it("reads the store's own SES topic only while the SES app is on", async () => {
+    const topic = 'arn:aws:sns:ap-south-1:123456789012:shop-events'
+    const on = await seedStore('ses-on')
+    const off = await seedStore('ses-off')
+    await owner
+      .update(store)
+      .set({ notifications: { enabled: ['ses'], providers: { ses: { eventsTopicArn: topic } } } })
+      .where(eq(store.id, on))
+    await owner
+      .update(store)
+      .set({ notifications: { enabled: [], providers: { ses: { eventsTopicArn: topic } } } })
+      .where(eq(store.id, off))
+    expect(await storeSesEventsTopic(app, on)).toBe(topic)
+    expect(await storeSesEventsTopic(app, off)).toBeNull()
+    expect(await storeSesEventsTopic(app, 'not-a-store')).toBeNull()
   })
 })

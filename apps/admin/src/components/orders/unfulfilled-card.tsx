@@ -1,6 +1,6 @@
 'use client'
 
-import { PackageCheck, Printer } from '@commerce/ui/icons'
+import { CircleDashed, PackageCheck, Printer } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -11,6 +11,7 @@ import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
 import ProductThumb from '@/components/products/product-thumb'
+import { orderStatusCardsContent } from '@/data/order-cards'
 import { orderDetailContent } from '@/data/order-detail'
 import { sharedParcelContent } from '@/data/shared-parcel'
 import { useCopy } from '@/hooks/use-copy'
@@ -21,6 +22,7 @@ import { routes } from '@/lib/routes'
 import { type OrderDetail, unfulfilledLines } from './order-detail-types'
 import OrderLinesTable from './order-lines-table'
 import SameBoxField from './same-box-field'
+import StatusCardTitle from './status-card-title'
 import TrackingFields, {
   EMPTY_TRACKING,
   type TrackingDraft,
@@ -31,7 +33,8 @@ type UnfulfilledCardProps = {
   order: OrderDetail
   /** The card is open for fulfilling (its own button, or the next-step bar's). */
   fulfilling: boolean
-  /** Undefined while fulfilment is on hold (#1011): no Fulfil items until it is released. */
+  /** Undefined while fulfilment is on hold (#1011), or when the next-step banner right above
+   *  already offers Fulfil items: one button for one action. */
   onFulfil?: (() => void) | undefined
   onCancel: () => void
   onDone: () => void
@@ -52,6 +55,7 @@ export default function UnfulfilledCard({
   // Hooks
   const copy = useCopy(orderDetailContent)
   const shared = useCopy(sharedParcelContent)
+  const cards = useCopy(orderStatusCardsContent)
   const [picks, setPicks] = useState<Record<string, number>>({})
   const [unticked, setUnticked] = useState<Record<string, true>>({})
   const [tracking, setTracking] = useState<TrackingDraft>(EMPTY_TRACKING)
@@ -129,6 +133,20 @@ export default function UnfulfilledCard({
   const selected = rows.reduce((n, r) => n + quantityFor(r.line.id, r.remaining), 0)
   const tickedLines = rows.filter((r) => quantityFor(r.line.id, r.remaining) > 0).length
   const allTicked = tickedLines === rows.length
+  // One parcel and no stock to move first: the "Ships from" card is gone, its place is a line here.
+  const only = order.parcels.length === 1 ? order.parcels[0] : undefined
+  const shipsFrom =
+    only && !(only.needsTransfer && only.status === 'open')
+      ? [cards.shipsFrom(only.locationName), order.shippingRateName?.trim()]
+          .filter(Boolean)
+          .join(' · ')
+      : null
+  const title = (
+    <StatusCardTitle icon={<CircleDashed />} tone="attention">
+      {copy.unfulfilled.heading}
+      <StatusChip tone="attention">{copy.unfulfilled.itemsCount(count)}</StatusChip>
+    </StatusCardTitle>
+  )
 
   // Early returns
   if (rows.length === 0 || order.status === 'cancelled') return null
@@ -137,8 +155,7 @@ export default function UnfulfilledCard({
     return (
       <DataCard
         flush
-        title={copy.unfulfilled.heading}
-        icon={<StatusChip tone="attention">{copy.unfulfilled.itemsCount(count)}</StatusChip>}
+        title={title}
         action={
           onFulfil ? (
             <Button variant="ghost" size="sm" onClick={onFulfil}>
@@ -148,6 +165,11 @@ export default function UnfulfilledCard({
           ) : undefined
         }
       >
+        {shipsFrom ? (
+          <p className="border-border border-b px-4 pb-3 text-caption text-muted-foreground">
+            {shipsFrom}
+          </p>
+        ) : null}
         <OrderLinesTable
           rows={rows.map(({ line, remaining }) => ({ line, quantity: remaining }))}
         />
@@ -158,8 +180,7 @@ export default function UnfulfilledCard({
   return (
     <DataCard
       id="fulfil-items"
-      title={copy.unfulfilled.heading}
-      icon={<StatusChip tone="attention">{copy.unfulfilled.itemsCount(count)}</StatusChip>}
+      title={title}
       bodyClassName="flex flex-col gap-4"
       footer={
         <>

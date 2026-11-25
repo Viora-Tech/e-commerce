@@ -2,9 +2,7 @@ import { enqueueAppJob, listGstNumbers, permissions } from '@commerce/core'
 import { DocumentSnapshotSchema, InvoiceSettingsSchema } from '@commerce/invoices'
 import { zipFiles } from '@commerce/invoices/render'
 import {
-  buyerPlace,
   cancelInvoice,
-  defaultInvoiceDate,
   documentIssuer,
   documentsByIds,
   documentsForOrder,
@@ -14,11 +12,9 @@ import {
   issueCreditNotes,
   issueDocument,
   issueDrafts,
-  listDocuments,
   listPeriods,
   loadSettings,
   markFiled,
-  queueRows,
   queueStats,
   regenerateDocument,
   removeFromQueue,
@@ -38,6 +34,7 @@ import {
 } from '../services/gst-invoices.service'
 import { asOrpc, Gst, gstScope, Period, renderDeps, requireInstalled } from './gst-invoices-context'
 import { fileProcedures } from './gst-invoices-files'
+import { documentList, documentListIds, queueList } from './gst-invoices-lists'
 import {
   addToQueue,
   emailOrderInvoice,
@@ -46,7 +43,7 @@ import {
 } from './gst-invoices-order-actions'
 import { recordExternal, recordExternalMany, undoExternal } from './gst-invoices-record'
 import { returnsProcedures } from './gst-invoices-returns'
-import { Filter, Selection, selectedIds } from './gst-invoices-selection'
+import { Selection, selectedIds } from './gst-invoices-selection'
 import { seriesNext, seriesProcedures } from './gst-invoices-series'
 
 const IssueBatch = z.object({
@@ -158,41 +155,8 @@ export const gstInvoicesRouter = {
   emailInvoice: emailOrderInvoice,
 
   queue: {
-    list: can(permissions.ORDERS_READ)
-      .input(
-        z.object({
-          from: z.coerce.date().optional(),
-          to: z.coerce.date().optional(),
-          /** One GST number's drafts; omitted lists every GST number's. */
-          gstRegistrationId: Gst,
-        }),
-      )
-      .handler(async ({ context, input }) => {
-        await requireInstalled(context)
-        const rows = await queueRows(context.tx, context.scope.storeId, input)
-        return rows.map(({ row: r, doc, status, fix }) => ({
-          id: r.id,
-          orderId: r.orderId,
-          orderName: doc.order.name,
-          placedAt: doc.order.placedAt,
-          buyerName: r.buyerName,
-          buyerPlace: buyerPlace(doc),
-          /** What the invoice bills, for the Products column ("Glass mousepad × 1"). */
-          items: doc.lines.map((l) => ({ title: l.description, quantity: l.quantity })),
-          buyerGstin: r.buyerGstin,
-          export: doc.exportSupply?.countryName ?? null,
-          taxablePaise: r.taxablePaise,
-          gstPaise: r.cgstPaise + r.sgstPaise + r.igstPaise,
-          totalPaise: r.totalPaise,
-          eligibleAt: r.eligibleAt,
-          dispatchedAt: r.dispatchedAt,
-          defaultDate: defaultInvoiceDate(r),
-          /** Ready, Ready · B2B, Ready · Export, HSN missing, Buyer details missing. */
-          status,
-          /** Where the problem is fixed: a product's page or the order; null when ready. */
-          fix,
-        }))
-      }),
+    /** One page of the queue: search, filters, sort and the Ready / Needs fixing views. */
+    list: queueList,
     /**
      * The four figures above the queue: issued this month and its taxable value, credit notes
      * this month, and the next invoice number with the day its series starts again.
@@ -368,13 +332,9 @@ export const gstInvoicesRouter = {
       return { id: first?.id ?? '', number: first?.number ?? null }
     }),
 
-  list: can(permissions.ORDERS_READ)
-    .input(Filter.extend({ page: z.number().int().min(1).max(1000).default(1) }))
-    .handler(async ({ context, input }) => {
-      await requireInstalled(context)
-      const limit = 25
-      return listDocuments(context.tx, { ...input, limit, offset: (input.page - 1) * limit })
-    }),
+  /** The Invoices list: search, filters, sort and paging (`./gst-invoices-lists`). */
+  list: documentList,
+  listIds: documentListIds,
 
   ...invoiceFixProcedures,
   ...fileProcedures,

@@ -38,6 +38,7 @@ import { honoPreviewRouter } from './hono-preview'
 import { inboxRouter } from './inbox'
 import { inventoryRouter, purchaseOrdersRouter, transfersRouter } from './inventory'
 import { invitationsRouter } from './invitations'
+import { loyaltyRouter } from './loyalty'
 import { marketingRouter } from './marketing'
 import { marketsRouter } from './markets'
 import { mediaRouter } from './media'
@@ -139,6 +140,7 @@ export const appRouter = {
   affiliates: affiliatesRouter,
   pixels: pixelsRouter,
   codRto: codRtoRouter,
+  loyalty: loyaltyRouter,
   deliveryOptions: deliveryOptionsRouter,
   platformApps: platformAppsRouter,
   backInStock: backInStockRouter,

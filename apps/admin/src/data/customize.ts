@@ -283,6 +283,8 @@ export const customizeContent = {
     hideSettings: 'Hide settings',
     noSettings: 'Nothing to set up.',
     hint: 'Turned-on embeds show on your store after you save.',
+    saveHintTitle: 'Click “Save”',
+    saveHintBody: (name: string) => `in the top right to switch on ${name}.`,
   },
   templates: {
     label: 'Template',

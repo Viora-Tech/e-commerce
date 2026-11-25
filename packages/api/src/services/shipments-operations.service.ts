@@ -25,7 +25,7 @@ import {
 import type { NdrAction } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
 import { and, asc, desc, eq, gte, inArray, isNull, sql } from 'drizzle-orm'
-import { pickupByCourier } from './courier-pickup'
+import { pickupByCourier, pickupHeldByCourier } from './courier-pickup'
 import { courierToRpc, requireProvider, requireProviderById } from './shipments-provider.service'
 import { loadShippingSettings } from './shipping.service'
 
@@ -72,6 +72,7 @@ export async function schedulePickupForStore(
       provider: shipment.provider,
       pickup: location.courierPickup,
       booked: shipment.pickupLocationName,
+      pickupId: shipment.pickupId,
     })
     .from(shipment)
     .leftJoin(fulfillmentOrder, eq(fulfillmentOrder.id, shipment.fulfillmentOrderId))
@@ -79,11 +80,13 @@ export async function schedulePickupForStore(
     .where(inArray(shipment.id, input.shipmentIds))
   const fallbackName = settings.policy.warehouse.name || 'Warehouse'
   const groups = new Map<string, { providerId: string; place: string; ids: string[] }>()
-  // A courier that schedules its own pickup at booking (RapidShyp) is never asked again.
-  const byCourier = rows.map((r) => pickupByCourier(registry, r.provider)).find(Boolean)
+  // A parcel whose courier scheduled its pickup at booking (RapidShyp) and is on it is never
+  // asked again; one whose pickup the courier refused at booking (no pickup yet) is.
+  const held = (r: (typeof rows)[number]) => pickupHeldByCourier(registry, r.provider, r.pickupId)
+  const byCourier = rows.map(held).find(Boolean)
   for (const row of rows) {
     const provider = providers.find((p) => p.id === row.provider)
-    if (!provider || pickupByCourier(registry, row.provider)) continue
+    if (!provider || held(row)) continue
     const place = pickupPlaceName(row, provider, fallbackName)
     const key = `${row.provider}|${place}`
     const group = groups.get(key) ?? { providerId: row.provider, place, ids: [] }
@@ -123,14 +126,14 @@ export async function createManifestForStore(
   return createManifest({ storeId, tx }, provider, input)
 }
 
-/** Parcels for the Pickups page picker; a courier's that schedules its own pickup is left out. */
+/** Parcels for the Pickups page picker; one already on a pickup its courier set at booking is left out. */
 export async function listUnpickedForStore(
   tx: StoreTx,
   storeId: string,
   registry?: Pick<ShippingRegistry, 'get'>,
 ) {
   const rows = await listUnpickedShipments({ storeId, tx })
-  return rows.filter((r) => !pickupByCourier(registry, r.provider))
+  return rows.filter((r) => !pickupHeldByCourier(registry, r.provider, r.pickupId))
 }
 
 export async function listPickupsForStore(tx: StoreTx, storeId: string) {
@@ -294,8 +297,8 @@ export async function listPickupOptionsForStore(
     .select({ id: shipment.id, provider: shipment.provider })
     .from(shipment)
     .where(and(eq(shipment.storeId, storeId), inArray(shipment.id, shipmentIds)))
-  const providerIds = [...new Set(anchors.map((a) => a.provider))].filter(
-    (id) => providers.some((p) => p.id === id) && !pickupByCourier(registry, id),
+  const providerIds = [...new Set(anchors.map((a) => a.provider))].filter((id) =>
+    providers.some((p) => p.id === id),
   )
   if (providerIds.length === 0) return { today, groups: [] }
   const anchorIds = new Set(anchors.map((a) => a.id))
@@ -428,10 +431,12 @@ export async function listPickupOptionsForStore(
         pincode: where?.pincode ?? null,
         /** The anchors first, then the rest newest first. */
         parcels: g.parcels.toSorted((a, b) => Number(b.anchor) - Number(a.anchor)),
+        // A courier that books each parcel's pickup itself (RapidShyp) has none to join.
         pickups: open
           .filter(
             (p) =>
               p.provider === g.providerId &&
+              !pickupByCourier(registry, g.providerId) &&
               (p.place || provider?.defaultPickupLocationName || fallbackName) === g.place,
           )
           .map((p) => ({

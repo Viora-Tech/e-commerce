@@ -24,7 +24,7 @@ function variantOf(line: OrderLine): string {
 
 /**
  * The lines of an order section (Figma "Orders / Order detail" › Unfulfilled): one row per line,
- * no column header. A 36px thumb, the title over "variant · SKU", then "price × qty" muted and
+ * no column header. A 2.25rem thumb, the title over "variant · SKU", then the price with a "× qty" pill and
  * the line total on the right; rows split by the border colour, edge to edge in the card.
  */
 export default function OrderLinesTable({ rows, onUnfulfil }: OrderLinesTableProps) {
@@ -71,8 +71,13 @@ export default function OrderLinesTable({ rows, onUnfulfil }: OrderLinesTablePro
                 </span>
               ) : null}
             </span>
-            <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-              {fmt.money(line.unitPricePaise)} × {quantity}
+            {/* Shopify's order line: the price paid for one, then "× n" in a small pill. The
+                line stores no list price or share of the order discount, so nothing is struck. */}
+            <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
+              {fmt.money(line.unitPricePaise)}
+              <span className="rounded-[0.375rem] bg-muted px-1.5 py-0.5 text-foreground">
+                × {quantity}
+              </span>
             </span>
             <span className="w-20 shrink-0 text-right text-body font-medium text-ink-strong tabular-nums">
               {fmt.money(line.unitPricePaise * quantity)}

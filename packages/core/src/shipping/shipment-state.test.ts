@@ -27,9 +27,7 @@ describe('cancelBlock', () => {
       'not_supported',
     )
     // Already moving beats "no cancel": the parcel left either way.
-    expect(cancelBlock({ status: 'in_transit' }, { courierCancels: false })).toBe(
-      'picked_up',
-    )
+    expect(cancelBlock({ status: 'in_transit' }, { courierCancels: false })).toBe('picked_up')
   })
 })
 
@@ -43,8 +41,25 @@ describe('shipmentLabelUrl', () => {
     expect(shipmentLabelUrl({ id: 's1', labelUrl: keyed })).toBe(storedLabelUrl('s1'))
   })
 
+  it('asks RapidShyp for its label when printed, saved link or not', () => {
+    expect(shipmentLabelUrl({ id: 's1', labelUrl: null, provider: 'rapidshyp' })).toBe(
+      storedLabelUrl('s1'),
+    )
+    expect(
+      shipmentLabelUrl({
+        id: 's1',
+        labelUrl: 'https://rapidshyp_labels/L.pdf',
+        provider: 'rapidshyp',
+      }),
+    ).toBe(storedLabelUrl('s1'))
+    expect(
+      shipmentLabelUrl({ id: 's1', labelUrl: null, provider: 'rapidshyp', status: 'cancelled' }),
+    ).toBeNull()
+  })
+
   it('keeps every other link as stored', () => {
     expect(shipmentLabelUrl({ id: 's1', labelUrl: null })).toBeNull()
+    expect(shipmentLabelUrl({ id: 's1', labelUrl: null, provider: 'shiprocket' })).toBeNull()
     expect(shipmentLabelUrl({ id: 's1', labelUrl: '/api/shipments/s1/label' })).toBe(
       '/api/shipments/s1/label',
     )

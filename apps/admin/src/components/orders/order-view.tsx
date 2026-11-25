@@ -47,25 +47,14 @@ import PartlyShippedCard from './partly-shipped-card'
 import PaymentCard from './payment-card'
 import RefundDialog from './refund-dialog'
 import SendMessageDialog from './send-message-dialog'
-import type { ShipmentChoice } from './shipment-choice'
 import ShipmentPanel from './shipment-panel'
 import TimelineCard from './timeline-card'
 import UnfulfilledCard from './unfulfilled-card'
 import { useDuplicateOrder } from './use-duplicate-order'
+import { liveLabels } from './live-labels'
 import { useOrderAppActions } from './use-order-app-actions'
 import { useOrderMessages } from './use-order-messages'
 import { useOrderUndo } from './use-order-undo'
-
-/** Labels that can still be cancelled, newest first: Cancel shipment asks which (two or more). */
-function liveLabels(parts: OrderDetail['partShipping']): ShipmentChoice[] {
-  return (parts?.parcels ?? [])
-    .flatMap((p) => (p.shipment && p.shipment.status === 'created' ? [p.shipment] : []))
-    .sort((a, b) => new Date(b.bookedAt).getTime() - new Date(a.bookedAt).getTime())
-    .map((sh) => ({
-      id: sh.id,
-      label: `${sh.serviceLabel ?? sh.providerLabel} · AWB ${sh.waybill}`,
-    }))
-}
 
 type OrderViewProps = {
   order: OrderDetail
@@ -76,6 +65,9 @@ type OrderViewProps = {
   /** Back link override, e.g. to Shipments when the order was opened from there. */
   back?: { label: string; href: string }
 }
+
+/** On its way: Mark as delivered applies. */
+const ON_ITS_WAY = new Set(['fulfilled', 'shipped', 'partially_delivered'])
 
 export default function OrderView({ order, appCards = [], appActions = [], back }: OrderViewProps) {
   // Hooks
@@ -268,6 +260,10 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   // Orders: edit. Archive and Mark as not delivered need it (the row menu checks the same).
   const canArchive = hasPermission(permissions.ORDERS_WRITE)
   const canCapture = live && hasPermission(permissions.ORDERS_REFUND)
+  // The banner's main button is not repeated by the card right under it (Shopify review #4).
+  const banner = order.archivedAt || order.hold ? null : stepKind
+  const canDeliver =
+    live && ON_ITS_WAY.has(order.fulfillmentStatus) && canFulfilOrders && banner !== 'transit'
 
   return (
     <OrderPageFrame
@@ -371,7 +367,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
             <UnfulfilledCard
               order={order}
               fulfilling={fulfilling}
-              onFulfil={order.hold ? undefined : () => setFulfilling(true)}
+              onFulfil={order.hold || banner === 'ship' ? undefined : () => setFulfilling(true)}
               onCancel={() => setFulfilling(false)}
               onDone={closeAndRefresh(() => setFulfilling(false))}
             />
@@ -379,13 +375,14 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
           {readOnly || !parcelsFirst ? null : <ParcelsCard order={order} />}
           <LineItemsCard
             order={order}
-            payment={pay}
             unfulfilledShown={!readOnly && order.status !== 'cancelled'}
-            editHref={canEdit ? routes.orders.edit(order.id) : undefined}
             onUnfulfilLine={canFulfilOrders && !readOnly ? undo.markLineNotShipped : undefined}
+            onDelivered={canDeliver ? () => handleMove('delivered') : undefined}
           />
           <PaymentCard
             order={order}
+            payment={pay}
+            editHref={canEdit ? routes.orders.edit(order.id) : undefined}
             onRefund={canRefund ? setRefunding : undefined}
             onCapture={canCapture ? (p: OrderPayment) => undo.capture(p.id) : undefined}
             onCollect={canCollect ? () => setCollecting(true) : undefined}
@@ -393,13 +390,14 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
             onSendReminder={sendReminder}
             busy={busy}
           />
-          {/* An order shipping in parts shows each part's progress (Figma 918:10852). */}
+          {/* Parts: each part's progress (918:10852). One parcel: the Unfulfilled card's top line. */}
           {readOnly || parcelsFirst ? null : order.partShipping ? (
             <PartlyShippedCard order={order} canShip={canShip} />
-          ) : (
+          ) : order.parcels.length > 1 ? (
             <ParcelsCard order={order} />
-          )}
-          {readOnly ? null : (
+          ) : null}
+          {/* No shipment yet: no empty card, the next step and More actions offer Create shipment. */}
+          {readOnly || !order.shipment ? null : (
             <div id="order-shipment" className="scroll-mt-6">
               <ShipmentPanel
                 orderStatus={order.status === 'open' ? order.fulfillmentStatus : order.status}

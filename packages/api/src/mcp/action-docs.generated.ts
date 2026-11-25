@@ -320,10 +320,13 @@ export const ACTION_DOCS: Record<string, string> = {
     "The store's GST numbers for the picker at the top of the app, and which one is the default.",
   'gstInvoices.gstr1': "One GST number's GSTR-1 CSVs for [from, to) as a zip, one file per table.",
   'gstInvoices.issue': 'Packing slips and order confirmations: unnumbered, issued on the spot.',
+  'gstInvoices.list': 'The Invoices list: search, filters, sort and paging (./gst-invoices-lists).',
   'gstInvoices.queue.add':
     "Add orders by hand, or the Orders list's bulk action (./gst-invoices-order-actions).",
   'gstInvoices.queue.issue':
     'Review, Issue: numbers are assigned here and never change afterwards.',
+  'gstInvoices.queue.list':
+    'One page of the queue: search, filters, sort and the Ready / Needs fixing views.',
   'gstInvoices.queue.preview': 'The numbers a batch would get, in the order it would get them.',
   'gstInvoices.queue.recordExternal':
     '"Already invoiced", and its undo while the month is not filed (./gst-invoices-record).',
@@ -411,6 +414,55 @@ export const ACTION_DOCS: Record<string, string> = {
     'Signed in as the invited email: grants the invited role and joins the store.',
   'invitations.preview':
     'Public: the accept page shows the store, inviter and role before sign in.',
+  'loyalty.activity': 'Store-wide loyalty activity, newest first (points moves and tier changes).',
+  'loyalty.adjust': 'Add (positive) or remove (negative) points with a reason the history shows.',
+  'loyalty.analytics':
+    "The program's figures over a date range: member revenue, rewards, points, members.",
+  'loyalty.campaigns.list': 'Bonus campaigns, latest start first.',
+  'loyalty.campaigns.remove': 'Remove a bonus campaign; points already planned keep their boost.',
+  'loyalty.campaigns.save': 'Add a bonus campaign (no id) or change one.',
+  'loyalty.customer':
+    "One customer's v2 loyalty card: tier and progress, reward codes, referral code and friends.",
+  'loyalty.emails': 'Loyalty emails per template: waiting to go and sent.',
+  'loyalty.forCustomer':
+    "A customer's points, points expiring soon and on the way, birthday and history.",
+  'loyalty.insights.getRevenue':
+    'Member revenue per store day, and what non-members spent, over [from, to).',
+  'loyalty.insights.previewImport':
+    'Reads an import file and says what importing it would do; changes nothing.',
+  'loyalty.members.export':
+    'Every member as CSV (email, name, status, tier, points, lifetime_points, total_spent).',
+  'loyalty.members.import':
+    'Import points balances from CSV (email, points): set each balance, or add to it.',
+  'loyalty.members.list':
+    'One page of members: name, status, tier, points, lifetime points, total spent.',
+  'loyalty.members.resetAll': "Take every member's points to 0 and cancel points on the way.",
+  'loyalty.overview':
+    'Points given and taken back in the last days, customers with points and points on the way.',
+  'loyalty.redemptions.cancel':
+    'Cancel an unused reward code: the code stops working and the points come back.',
+  'loyalty.redemptions.list':
+    "Rewards members took, newest first: one customer's or the store's, by status.",
+  'loyalty.redemptions.redeemFor': 'Redeem a reward for a customer (staff, e.g.',
+  'loyalty.referrals.list': "The store's referrals newest first, refused ones with their reason.",
+  'loyalty.rewards.list': 'The rewards catalog in order, inactive ones included.',
+  'loyalty.rewards.remove': 'Remove a reward never redeemed, or switch off one that was.',
+  'loyalty.rewards.save':
+    'Add a reward (no id) or change one; codes already issued keep their terms.',
+  'loyalty.rules.list':
+    "The store's earning rules in order; a v1 store gets its rules made from its v1 numbers first.",
+  'loyalty.rules.remove': 'Remove an earning rule; points it gave stay.',
+  'loyalty.rules.save': 'Add an earning rule (no id) or change one.',
+  'loyalty.setBirthday': "Set or clear a customer's birthday (MM-DD) for birthday points.",
+  'loyalty.settings.get':
+    "The app's settings: v1 numbers (earn rate, expiry, review and birthday points, reminder) and v2 switches.",
+  'loyalty.settings.save': "Save the app's numbers.",
+  'loyalty.tiers.list': 'VIP tiers, lowest first.',
+  'loyalty.tiers.recalc': "Work out one customer's tier now (after a manual change).",
+  'loyalty.tiers.remove':
+    'Remove a tier; its members are placed again by the nightly recalculation.',
+  'loyalty.tiers.save':
+    'Add a tier (no id) or change one; members move on their next recalculation.',
   'marketing.automations.get': 'One automation with its stats and the latest runs.',
   'marketing.automations.mode':
     "Which runner owns the store's automations: after the cutover Growth opens the Automations app.",
@@ -666,6 +718,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'payments.razorpayOAuthComplete':
     "The OAuth callback route hands the code here; the state must be this store's, and fresh.",
   'payments.razorpayOAuthStart': 'Where "Connect Razorpay" sends the merchant.',
+  'payments.saveAdjustment':
+    'A payment app\'s "Extra charge" card: its fee or discount at checkout; null removes it.',
   'payments.saveCapture':
     '"Payment capture" (#150): automatic, or authorise now and capture from the order page.',
   'payments.saveManual':

@@ -124,6 +124,11 @@ export default function PaymentMethods({
                         {panel.recommended}
                       </span>
                     ) : null}
+                    {m.id === 'snapmint' ? (
+                      <span className="flex h-6 items-center rounded-[0.375rem] bg-ck-accent-lift px-2 text-[0.75rem] font-semibold text-ck-accent-ink">
+                        {content.methods.snapmintBadge}
+                      </span>
+                    ) : null}
                     {m.test ? (
                       <span
                         title={content.testModeHint}

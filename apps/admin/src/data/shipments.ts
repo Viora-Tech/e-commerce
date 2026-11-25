@@ -187,6 +187,8 @@ export const shipmentActionsContent = {
   /** A pickup request the courier refused without saying why (its words are shown when it does). */
   pickupRefused:
     "The courier didn't take the pickup request. Try again, or book it on their dashboard.",
+  /** Under a refused pickup: what happened to the parcels and what to do next. */
+  pickupStaysBooked: 'The parcels stay in Booked. Fix the problem, then try Create pickup again.',
 }
 
 /** The ⋯ → Cancel popup on a booked parcel (owner, 18 Nov 2026): the ways out depend on where it is. */

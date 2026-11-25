@@ -3,7 +3,16 @@ import type { TemplateData, TemplateId } from '../../types'
 import { sharedContent as shared, templateContent } from '../content'
 import { blockCopy2 } from '../content-blocks-2'
 import type { Composer } from './index'
-import { button, firstParagraph, itemCount, muted, orderItems, popular, present, shopButton } from './order'
+import {
+  button,
+  firstParagraph,
+  itemCount,
+  muted,
+  orderItems,
+  popular,
+  present,
+  shopButton,
+} from './order'
 
 /**
  * Batch 8, marketing and reviews: a basket, a product, a code or someone's words in a quote
@@ -118,6 +127,27 @@ const reviewReward: Composer = (d, action) => {
   }
 }
 
+const pointsExpiring: Composer = (d, action) => {
+  const p = d.points
+  return {
+    eyebrow: c().pointsKicker,
+    lead: c().pointsLead,
+    blocks: present([
+      p
+        ? {
+            kind: 'stats',
+            items: [
+              { label: c().pointsExpiring, value: c().pointsCount(p.expiringPoints), tone: 'bad' },
+              { label: c().pointsLastDay, value: p.lastDay },
+              { label: c().pointsBalance, value: c().pointsCount(p.balancePoints), tone: 'good' },
+            ],
+          }
+        : null,
+      button(action),
+    ]),
+  }
+}
+
 const questionAnswered: Composer = (d, action) => {
   const r = d.review
   return {
@@ -193,6 +223,7 @@ export const marketingComposers: Partial<Record<TemplateId, Composer>> = {
   review_reminder: reviewReminder,
   review_reply: reviewReply,
   review_reward: reviewReward,
+  points_expiring: pointsExpiring,
   question_answered: questionAnswered,
   customer_message: storeMessage,
   affiliate_update: affiliate,

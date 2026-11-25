@@ -28,8 +28,8 @@ describe('pickup day cards', () => {
   test('a day with a pickup already booked is where the drawer starts', () => {
     const days = pickupDays(new Date('2026-10-15T08:30:00Z'))
     expect(startingPickupDay(days, (d) => d === '2026-10-17')).toBe('2026-10-17')
-    // Booked today before the cut-off: joining it is still fine after 2 pm.
-    expect(startingPickupDay(days, (d) => d === '2026-10-15')).toBe('2026-10-15')
+    // Booked today, but it is past 2 pm: that pickup has gone, so start on tomorrow.
+    expect(startingPickupDay(days, (d) => d === '2026-10-15')).toBe('2026-10-16')
   })
 
   test('the third card skips a Sunday', () => {

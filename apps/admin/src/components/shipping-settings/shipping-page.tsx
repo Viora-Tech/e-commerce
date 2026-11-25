@@ -1,5 +1,6 @@
 'use client'
 
+import { useQueryState } from 'nuqs'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import AppStoreLink from '@/components/apps/app-store-link'
@@ -46,6 +47,9 @@ export default function ShippingPage() {
   const announceSetup = useSetupNext()
   const copy = useCopy(shippingSettingsContent)
   const rowsCopy = useCopy(settingsRowsContent)
+  // Create shipment's Ship from › Edit opens More options at the pickup address.
+  const [focus] = useQueryState('focus')
+  const focusAddress = focus === 'address'
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [form, setForm] = useState<Settings | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
@@ -203,7 +207,11 @@ export default function ShippingPage() {
           />
         </SettingsDrillPanel>
         <SettingsDrillPanel id="dispatch">
-          <ShippingPolicyFields value={form.policy} onChange={(policy) => patch({ policy })} />
+          <ShippingPolicyFields
+            value={form.policy}
+            onChange={(policy) => patch({ policy })}
+            focusAddress={focusAddress}
+          />
         </SettingsDrillPanel>
         <SettingsDrillPanel id="split">
           <SplitShippingCard
