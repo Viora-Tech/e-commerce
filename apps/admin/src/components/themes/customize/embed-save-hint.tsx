@@ -21,7 +21,7 @@ const askedEmbed = () =>
 /**
  * Shopify's "Click Save to enable" step: Customize opened from an app's "Enable app embed" link
  * (`?panel=apps&embed=loyalty/Widget`) switches that embed on, unsaved, and dims the canvas with
- * a note pointing at Save until the merchant clicks it away. Nothing is saved for them.
+ * a note pointing at Save until the next click (Save, or the note itself). Nothing is saved for them.
  */
 export default function EmbedSaveHint({ installed, theme, onChange }: EmbedSaveHintProps) {
   // Hooks
@@ -47,6 +47,13 @@ export default function EmbedSaveHint({ installed, theme, onChange }: EmbedSaveH
     setLabel(embed.appName)
     setHost(document.getElementById('main'))
   }, [installed, theme, onChange])
+  // Any click on the page (Save in the top bar most of all) closes the note, as Shopify's does.
+  useEffect(() => {
+    if (!label) return
+    const close = () => setLabel(null)
+    document.addEventListener('pointerdown', close, { once: true, capture: true })
+    return () => document.removeEventListener('pointerdown', close, { capture: true })
+  }, [label])
 
   // Event handlers
   const handleDismiss = () => setLabel(null)
