@@ -89,7 +89,7 @@ export default function LoyaltyAnalyticsPage() {
   // Early returns
   if (failed) {
     return (
-      <div className="flex flex-col gap-5">
+      <div className="mx-auto flex w-full max-w-[50rem] flex-col gap-5">
         {header}
         <LoadFailedState size="page" heading={a.loadFailed} failed={failed} onRetry={retry} />
       </div>
@@ -114,7 +114,8 @@ export default function LoyaltyAnalyticsPage() {
   const otherAov = data ? aovPaise(data.revenue.otherRevenuePaise, data.revenue.otherOrders) : null
 
   return (
-    <div className="flex flex-col gap-5">
+    // Essential Loyalty's column: about 50rem, centred (tables stay full width).
+    <div className="mx-auto flex w-full max-w-[50rem] flex-col gap-5">
       {header}
       <section className="flex flex-col gap-3">
         <SectionHead title={a.revenueSection} />

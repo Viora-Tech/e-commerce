@@ -186,7 +186,8 @@ export default function LoyaltyProgramPage() {
     ) : null
 
   return (
-    <div className="flex flex-col gap-5">
+    // Essential Loyalty's column: about 50rem, centred (tables stay full width).
+    <div className="mx-auto flex w-full max-w-[50rem] flex-col gap-5">
       <SaveBar
         open={dirty}
         message={copy.unsaved}

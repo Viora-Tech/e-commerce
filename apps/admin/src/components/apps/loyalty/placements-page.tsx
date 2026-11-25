@@ -74,7 +74,8 @@ export default function LoyaltyPlacementsPage() {
   const embeds = data.theme?.appEmbeds ?? null
 
   return (
-    <div className="flex flex-col gap-5">
+    // Essential Loyalty's column: about 50rem, centred (tables stay full width).
+    <div className="mx-auto flex w-full max-w-[50rem] flex-col gap-5">
       <PageHeader title={copy.title} summary={copy.subtitle} />
       {editor ? null : (
         <p className="rounded-lg border border-line bg-muted px-4 py-3 text-body text-muted-foreground">
