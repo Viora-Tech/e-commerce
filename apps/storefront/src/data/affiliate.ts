@@ -6,6 +6,7 @@ export const affiliateContent = {
   /** The signup page, laid out like UpPromote's register page. */
   register: {
     partner: 'Become our partner',
+    panelRate: (rate: string) => `Earn ${rate} on every order you bring`,
     heading: 'Join our affiliate program',
     login: 'Login',
     benefits: 'Benefits',

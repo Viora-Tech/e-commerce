@@ -11,6 +11,7 @@ import AffiliateDashboard from '@/components/affiliate/affiliate-dashboard'
 import AffiliateSignIn from '@/components/affiliate/affiliate-sign-in'
 import AffiliateStatus from '@/components/affiliate/affiliate-status'
 import { affiliateContent as copy } from '@/data/affiliate'
+import { ruleAmount } from '@/lib/affiliate-rate'
 import { loadAffiliatePortal } from '@/lib/affiliates'
 import { currentCustomer } from '@/lib/customer-session'
 import { requestOrigin } from '@/lib/seo'
@@ -35,11 +36,11 @@ function storeName(storeId: string) {
 }
 
 /**
- * The Affiliates app's storefront page. Before approval it is laid out like UpPromote's register
- * page: the store's name on a brand-colour panel on the left; on the right Login (signed out),
- * "Join our affiliate program", the Benefits box and the application form (or the sign-in
- * JOIN, or their status while it is reviewed). The dashboard once approved. Not found when the
- * store does not have the app.
+ * The Affiliates app's storefront page. Before approval it is laid out like the shadcn login
+ * block: the form half (Login when signed out, "Join our affiliate program", the Benefits box
+ * and the application form, or the sign-in JOIN, or their status while it is reviewed) beside
+ * the store's brand panel. The dashboard once approved. Not found when the store does not have
+ * the app.
  */
 export default async function AffiliatePage({ params, searchParams }: AffiliatePageProps) {
   const { storeId } = await params
@@ -70,43 +71,48 @@ export default async function AffiliatePage({ params, searchParams }: AffiliateP
   const here = p.isDefault ? '/affiliate' : `/affiliate?program=${p.slug}`
 
   const signIn = `/account/login?return_to=${encodeURIComponent(here)}`
+  // The shadcn login block (login-02): the form half centred both ways at a reading width, the
+  // brand half beside it; on a phone the brand is a short band above the form.
   return (
-    <section className="grid lg:min-h-[44rem] lg:grid-cols-[minmax(0,35fr)_minmax(0,65fr)]">
-      <AffiliateBrandPanel storeName={name} />
-      <div className="flex flex-col gap-6 px-4 py-6 sm:px-8 lg:px-16 lg:py-10">
+    <section className="grid lg:min-h-[48rem] lg:grid-cols-2">
+      <AffiliateBrandPanel storeName={name} rate={ruleAmount(p.rate.rule)} />
+      <div className="flex flex-col gap-6 px-4 py-8 sm:px-8 lg:order-first lg:px-12 lg:py-12">
         {me ? null : (
           <div className="flex justify-end">
-            <Link
-              href={signIn}
-              className="rounded-full border border-ink px-5 py-2 text-small font-semibold text-ink no-underline"
-            >
-              {copy.register.login}
+            <Link href={signIn} className="btn btn--secondary">
+              <span className="btn__label">{copy.register.login}</span>
             </Link>
           </div>
         )}
-        <div className="mx-auto flex w-full max-w-[36rem] flex-col gap-6">
-          <header className="flex flex-col gap-3 text-center">
-            <h1 className="h3 font-bold tracking-wide uppercase">{copy.register.heading}</h1>
-            {p.pitch ? <p className="text-body text-muted whitespace-pre-line">{p.pitch}</p> : null}
-          </header>
-          <AffiliateBenefits program={p} />
-          {a ? (
-            <AffiliateStatus affiliate={a} />
-          ) : !p.active ? (
-            <p className="rounded-[var(--radius-card)] bg-surface p-6 text-body text-muted">
-              {copy.closed}
-            </p>
-          ) : me ? (
-            <AffiliateApplyForm
-              defaultName={me.name ?? ''}
-              email={me.email ?? null}
-              terms={p.terms}
-              program={p.isDefault ? undefined : p.slug}
-              fields={p.form}
-            />
-          ) : (
-            <AffiliateSignIn returnTo={here} />
-          )}
+        <div className="flex flex-1 items-center justify-center">
+          <div className="flex w-full max-w-[28rem] flex-col gap-6">
+            <header className="flex flex-col gap-2 text-center">
+              <h1 className="m-0! text-[1.5rem]! leading-tight! font-bold! normal-case! tracking-normal! text-ink sm:text-[1.75rem]!">
+                {copy.register.heading}
+              </h1>
+              {p.pitch ? (
+                <p className="m-0! text-body text-muted whitespace-pre-line">{p.pitch}</p>
+              ) : null}
+            </header>
+            <AffiliateBenefits program={p} />
+            {a ? (
+              <AffiliateStatus affiliate={a} />
+            ) : !p.active ? (
+              <p className="rounded-[var(--radius-card)] bg-surface p-6 text-body text-muted">
+                {copy.closed}
+              </p>
+            ) : me ? (
+              <AffiliateApplyForm
+                defaultName={me.name ?? ''}
+                email={me.email ?? null}
+                terms={p.terms}
+                program={p.isDefault ? undefined : p.slug}
+                fields={p.form}
+              />
+            ) : (
+              <AffiliateSignIn returnTo={here} />
+            )}
+          </div>
         </div>
       </div>
     </section>
