@@ -37,7 +37,39 @@ export async function listRedirects(tx: StoreTx, input: RedirectList) {
   return { items, total: total?.n ?? 0 }
 }
 
-/** Create or edit one redirect. A second redirect from the same path is refused. */
+export class RedirectLoop extends CommerceError {
+  constructor(path: string, target: string) {
+    super(
+      'CONFLICT',
+      `${target} already redirects back to ${path}, so shoppers would go round in a loop`,
+    )
+  }
+}
+
+/** How many existing hops the loop check follows from a new redirect's target. */
+const LOOP_HOPS = 10
+
+/** Whether following redirects from `target` leads back to `path` (a store path target only). */
+async function leadsBack(tx: StoreTx, path: string, target: string, id?: string): Promise<boolean> {
+  const back = normaliseRedirectPath(path)
+  let at = target
+  for (let hop = 0; hop < LOOP_HOPS && at.startsWith('/'); hop++) {
+    const from = normaliseRedirectPath(at)
+    if (from === back) return true
+    const [next] = await tx
+      .select({ target: urlRedirect.target })
+      .from(urlRedirect)
+      .where(and(eq(urlRedirect.path, from), id ? ne(urlRedirect.id, id) : undefined))
+    if (!next) return false
+    at = next.target
+  }
+  return false
+}
+
+/**
+ * Create or edit one redirect. A second redirect from the same path is refused, and so is one
+ * whose target already redirects (directly or down a chain) back to its path.
+ */
 export async function saveRedirect(
   tx: StoreTx,
   storeId: string,
@@ -50,6 +82,9 @@ export async function saveRedirect(
       and(eq(urlRedirect.path, input.path), input.id ? ne(urlRedirect.id, input.id) : undefined),
     )
   if (clash) throw new DuplicateRedirect(input.path)
+  if (await leadsBack(tx, input.path, input.target, input.id)) {
+    throw new RedirectLoop(input.path, input.target)
+  }
   if (input.id) {
     const [row] = await tx
       .update(urlRedirect)
@@ -146,6 +181,65 @@ export async function allRedirects(tx: StoreTx, limit = 50_000) {
     .from(urlRedirect)
     .orderBy(asc(urlRedirect.path))
     .limit(limit)
+}
+
+/** A CSV row left out because, with the file written, it would send shoppers round in a loop. */
+export type RedirectCsvLoop = { line: number; path: string; target: string }
+
+/**
+ * The rows of a redirects CSV that would make a loop once the file is written (each path takes
+ * the file's target, others keep the stored one). In each loop the row furthest down the file is
+ * left out, then the check runs again, so the rest of a file always imports.
+ */
+export async function redirectCsvLoops(
+  tx: StoreTx,
+  rows: readonly { line: number; path: string; target: string }[],
+): Promise<RedirectCsvLoop[]> {
+  const stored = new Map<string, string | null>()
+  const storedTarget = async (path: string): Promise<string | null> => {
+    if (stored.has(path)) return stored.get(path) ?? null
+    const [row] = await tx
+      .select({ target: urlRedirect.target })
+      .from(urlRedirect)
+      .where(eq(urlRedirect.path, path))
+    stored.set(path, row?.target ?? null)
+    return row?.target ?? null
+  }
+  // One read for the first hop of every row; longer chains read as they go.
+  const firstHops = [
+    ...new Set(
+      rows.filter((r) => r.target.startsWith('/')).map((r) => normaliseRedirectPath(r.target)),
+    ),
+  ]
+  for (let i = 0; i < firstHops.length; i += 500) {
+    const chunk = firstHops.slice(i, i + 500)
+    const found = await tx
+      .select({ path: urlRedirect.path, target: urlRedirect.target })
+      .from(urlRedirect)
+      .where(inArray(urlRedirect.path, chunk))
+    for (const p of chunk) stored.set(p, null)
+    for (const f of found) stored.set(f.path, f.target)
+  }
+  const kept = new Map(rows.map((r) => [r.path, r]))
+  const skipped: RedirectCsvLoop[] = []
+  for (;;) {
+    const next = async (path: string) => kept.get(path)?.target ?? (await storedTarget(path))
+    let worst: { line: number; path: string; target: string } | null = null
+    for (const row of kept.values()) {
+      let at: string | null = row.target
+      for (let hop = 0; hop < LOOP_HOPS && at?.startsWith('/'); hop++) {
+        const from = normaliseRedirectPath(at)
+        if (from === row.path) {
+          if (!worst || row.line > worst.line) worst = row
+          break
+        }
+        at = await next(from)
+      }
+    }
+    if (!worst) return skipped.sort((a, b) => a.line - b.line)
+    kept.delete(worst.path)
+    skipped.push({ line: worst.line, path: worst.path, target: worst.target })
+  }
 }
 
 export type RedirectImportResult = { created: number; updated: number; unchanged: number }

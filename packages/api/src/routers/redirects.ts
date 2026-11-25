@@ -8,7 +8,9 @@ import {
   listRedirects,
   parseRedirectsCsv,
   permissions,
+  RedirectLoop,
   RedirectWriteSchema,
+  redirectCsvLoops,
   redirectsToCsv,
   saveRedirect,
 } from '@commerce/core'
@@ -47,7 +49,7 @@ export const redirectsRouter = {
           id: input.id,
         })
       } catch (err) {
-        if (err instanceof DuplicateRedirect) {
+        if (err instanceof DuplicateRedirect || err instanceof RedirectLoop) {
           throw new ORPCError('CONFLICT', { message: err.message })
         }
         throw err
@@ -94,7 +96,18 @@ export const redirectsRouter = {
     .use(heavy('import'))
     .input(z.object({ csv: z.string().max(MAX_CSV_CHARS), dryRun: z.boolean().default(false) }))
     .handler(async ({ context, input }) => {
-      const { rows, problems } = parseRedirectsCsv(input.csv)
+      const parsed = parseRedirectsCsv(input.csv)
+      // Rows that would loop are left out and named with the file's other problems.
+      const loops = await redirectCsvLoops(context.tx, parsed.rows)
+      const looped = new Set(loops.map((l) => l.line))
+      const rows = parsed.rows.filter((r) => !looped.has(r.line))
+      const problems = [
+        ...parsed.problems,
+        ...loops.map((l) => ({
+          line: l.line,
+          reason: `${l.target} leads back to ${l.path}, so shoppers would go round in a loop; row skipped`,
+        })),
+      ].sort((a, b) => a.line - b.line)
       if (input.dryRun) return { rows: rows.length, problems, created: 0, updated: 0, unchanged: 0 }
       const written = await importRedirectsCsv(context.tx, context.scope.storeId, rows)
       return { rows: rows.length, problems, ...written }

@@ -14,7 +14,7 @@ import {
 import { Input } from '@commerce/ui/shadcn/input'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import type { CSSProperties } from 'react'
-import { type DragEvent, useId, useState } from 'react'
+import { type DragEvent, useEffect, useId, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import MediaPickDialog, { type PickedMedia } from '@/components/media/media-pick-dialog'
 import type { MediaVariants } from '@/components/media/media-pick-types'
@@ -42,10 +42,13 @@ const NO_PREVIEW: Preview = { variants: null, thumbhash: null }
 
 const asImage = (value: unknown) => (value ?? {}) as ImageValue
 
-/** The value with a new picture: the old focal point belonged to the old picture, so it goes. */
+/**
+ * The value with a new picture. The old focal point and alt text belonged to the old picture, so
+ * the new one brings its own alt (empty when it has none).
+ */
 function withPicture(image: ImageValue, url: string, alt: string | null): ImageValue {
   const { focal: _drop, ...rest } = image
-  return { ...rest, url, alt: image.alt || alt || '' }
+  return { ...rest, url, alt: alt ?? '' }
 }
 
 /**
@@ -62,9 +65,17 @@ export default function ImageField({ value, onChange }: ImageFieldProps) {
   const [progress, setProgress] = useState<number | null>(null)
   const [preview, setPreview] = useState<Preview>(NO_PREVIEW)
   const altId = useId()
+  /** The value as last rendered or set: an upload that finishes later builds on it, not on a stale copy. */
+  const latest = useRef(value)
+  useEffect(() => {
+    latest.current = value
+  }, [value])
 
   // Helpers
-  const set = (next: ImageValue) => onChange(next)
+  const set = (next: ImageValue) => {
+    latest.current = next
+    onChange(next)
+  }
 
   // Event handlers
   const handlePick = (media: PickedMedia | null) => {
@@ -85,10 +96,14 @@ export default function ImageField({ value, onChange }: ImageFieldProps) {
       return
     }
     setProgress(0)
+    const altBefore = asImage(value).alt ?? ''
     try {
       const done = await uploadFile(file, setProgress)
       setPreview(NO_PREVIEW)
-      set(withPicture(asImage(value), done.url, done.alt))
+      // Anything changed while the file uploaded is kept; alt typed meanwhile is for this picture.
+      const now = asImage(latest.current)
+      const typed = (now.alt ?? '') !== altBefore ? (now.alt ?? '') : null
+      set(withPicture(now, done.url, typed ?? done.alt))
     } catch {
       toast.error(copy.uploadFailed)
     } finally {

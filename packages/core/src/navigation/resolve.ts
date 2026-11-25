@@ -38,6 +38,16 @@ const FIXED: Partial<Record<NavigationItemType, string>> = {
 }
 
 /**
+ * A web address a browser would run as code (`javascript:`, `data:`, `vbscript:`). Browsers drop
+ * tabs, newlines and control characters inside a scheme, so `java\tscript:` counts too.
+ */
+export function isScriptUrl(value: string): boolean {
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: browsers ignore these in a scheme
+  const bare = value.replace(/[\u0000-\u0020]/g, '').toLowerCase()
+  return /^(javascript|data|vbscript):/.test(bare)
+}
+
+/**
  * The public path for a type and value, or null when a typed item has no
  * destination. Public paths carry no store prefix, the proxy adds it. The admin
  * menu editor shows the same string as "links to".
@@ -47,7 +57,8 @@ export function itemPath(type: NavigationItemType, value: string | undefined): s
   if (fixed) return fixed
   const v = value?.trim()
   if (!v) return null
-  return type === 'url' ? v : `${PREFIX[type as keyof typeof PREFIX]}${v}`
+  if (type === 'url') return isScriptUrl(v) ? null : v
+  return `${PREFIX[type as keyof typeof PREFIX]}${v}`
 }
 
 /** The public path an item points at, or null when it cannot resolve. */

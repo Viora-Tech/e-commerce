@@ -4,6 +4,7 @@ import type { AlternateKind, TemplateAssignments } from '@commerce/core/theme'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { errorText } from '@/lib/api-errors'
 import { api } from './api-client'
 
@@ -16,11 +17,12 @@ export type TemplateChange =
 /** The alternate a rename or delete dialog is open for. */
 export type PendingTemplate = { action: 'rename' | 'delete'; kind: AlternateKind; suffix: string }
 
-const copy = customizeContent.templates
+/** Template names are slugs, so the copy suffix stays English whatever the admin language. */
+const names = customizeContent.templates
 
 /** First free `<suffix>-copy`, `<suffix>-copy-2`… among the theme's alternates of that kind. */
 export function copyName(suffix: string, taken: string[]): string {
-  const base = copy.copySuffix(suffix).slice(0, 40)
+  const base = names.copySuffix(suffix).slice(0, 40)
   if (!taken.includes(base)) return base
   for (let n = 2; n < 100; n++) {
     const next = `${base.slice(0, 37)}-${n}`
@@ -38,6 +40,7 @@ export function useTemplateManager(input: {
   alternates: { template: string; suffix: string }[]
   onChanged: (change: TemplateChange) => void
 }) {
+  const copy = useCopy(customizeContent.templates)
   const [assignments, setAssignments] = useState<TemplateAssignments | null>(null)
   const [pending, setPending] = useState<PendingTemplate | null>(null)
   const [busy, setBusy] = useState(false)

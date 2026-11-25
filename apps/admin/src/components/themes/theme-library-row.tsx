@@ -14,10 +14,12 @@ import { routes } from '@/lib/routes'
 import { useShownPicture } from '@/lib/use-shown-picture'
 import ThemeActionsMenu, { type ThemeAction } from './theme-actions-menu'
 import ThemeSwatch from './theme-swatch'
-import { savedLine, type ThemeItem } from './theme-types'
+import { previewUrl, savedLine, type ThemeItem } from './theme-types'
 
 type ThemeLibraryRowProps = {
   theme: ThemeItem
+  /** The storefront origin, for the menu's Preview of this theme. */
+  origin: string
   /** The unended rollout that will publish this theme. */
   hold?: RolloutHold | undefined
   busy: boolean
@@ -37,6 +39,7 @@ const ACTIONS = ['duplicate', 'rename', 'versions', 'download', 'delete'] as con
  */
 export default function ThemeLibraryRow({
   theme,
+  origin,
   hold,
   busy,
   publishing = false,
@@ -113,6 +116,7 @@ export default function ThemeLibraryRow({
           variant="plain"
           customizeHref={routes.onlineStore.themeEditor(theme.id)}
           codeHref={routes.onlineStore.themeCode(theme.id)}
+          previewHref={previewUrl(origin, theme.previewToken)}
           disabled={busy}
           onAction={onAction}
         />

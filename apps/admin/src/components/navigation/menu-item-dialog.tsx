@@ -20,6 +20,7 @@ import {
 } from '@/data/menus'
 import { useCopy } from '@/hooks/use-copy'
 import { focusField } from '@/lib/api-errors'
+import { normalisePastedUrl } from '@/lib/customize-links'
 import DestinationPicker from './destination-picker'
 
 type MenuItemDialogProps = {
@@ -77,11 +78,18 @@ export default function MenuItemDialog({
       focusField('menu-item-url')
       return
     }
+    // A typed address: a bare domain gets https://, a script or half path is refused.
+    const url = type === 'url' ? normalisePastedUrl(value) : null
+    if (type === 'url' && !url) {
+      toast.error(copy.badUrl)
+      focusField('menu-item-url')
+      return
+    }
     onSave({
       id: initial?.id ?? newItemId(),
       title: title.trim(),
       type,
-      value: isValueless(type) ? undefined : value.trim(),
+      value: isValueless(type) ? undefined : (url ?? value.trim()),
     })
     onOpenChange(false)
   }

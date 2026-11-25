@@ -14,6 +14,7 @@ import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { publishTheme } from '../theme/library'
 import { mainThemeId } from '../theme/templates'
+import { snapshotTheme } from '../theme/versions'
 
 /** One change as stored. */
 export type StoredRolloutChange = {
@@ -73,6 +74,16 @@ const canonical = (v: unknown): unknown =>
 const same = (a: unknown, b: unknown): boolean =>
   JSON.stringify(canonical(a)) === JSON.stringify(canonical(b))
 
+/**
+ * Puts a theme live and, when it was not live already, records it in Version history as
+ * Publish does (`themes.publish`), so a rollout's swap shows up there too.
+ */
+async function publishLogged(ctx: StoreContext, themeId: string): Promise<void> {
+  if ((await mainThemeId(ctx.tx)) === themeId) return
+  await publishTheme(ctx.tx, themeId)
+  await snapshotTheme(ctx.tx, ctx.storeId, { themeId, reason: 'publish' })
+}
+
 /** Applies one change and records what it replaced. Throws `RolloutChangeError` when it cannot. */
 export async function applyRolloutChange(
   ctx: StoreContext,
@@ -87,7 +98,7 @@ export async function applyRolloutChange(
       .where(eq(theme.id, change.targetId as string))
     if (!target) throw new RolloutChangeError('The theme this rollout publishes was deleted.')
     previous = { themeId: await mainThemeId(ctx.tx) }
-    await publishTheme(ctx.tx, target.id)
+    await publishLogged(ctx, target.id)
   } else if (change.kind === 'checkout_branding') {
     previous = { branding: await storedBranding(ctx) }
     await setBranding(ctx, CheckoutBrandingSchema.parse(change.value))
@@ -132,7 +143,7 @@ export async function revertRolloutChange(
         .from(theme)
         .where(eq(theme.id, prev.themeId))
       if (back) {
-        await publishTheme(ctx.tx, back.id)
+        await publishLogged(ctx, back.id)
         reverted = true
       }
     }

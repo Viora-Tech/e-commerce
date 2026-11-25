@@ -32,8 +32,8 @@ export type PreviewContext = {
 /** The resource the merchant chose to preview a product, collection or page template with. */
 export type PreviewResource =
   | { kind: 'product'; product: ProductDetail }
-  | { kind: 'collection'; title: string; cards: CardProduct[] }
-  | { kind: 'page'; title: string; body: unknown }
+  | { kind: 'collection'; title: string; handle?: string; cards: CardProduct[] }
+  | { kind: 'page'; title: string; handle?: string; body: unknown }
   | null
 
 type PreviewOptions = {

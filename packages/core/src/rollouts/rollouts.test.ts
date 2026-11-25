@@ -1,10 +1,11 @@
 /** SOURCE OF TRUTH: rollout tests — WHAT: saving (draft or scheduled, validation, conflicts), starting (every change in one go, launch ends at once, a deleted theme fails cleanly), ending (roll back or keep), pause and resume, edits made by hand during an event survive the roll back, the worker tick, store isolation, what the admin pages read (labels, holds, picker lists) / WHY: a sale weekend must start and end on time and leave the store exactly as the merchant expects */
-import { createDb, discount, rollout, store, theme, withStore } from '@commerce/db'
+import { createDb, discount, rollout, store, theme, themeTemplate, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { StoreContext } from '../context'
 import { defaultTheme } from '../theme/schema'
+import { listThemeVersions } from '../theme/versions'
 import { activeAbTests, recordAbExposure, rolloutAbResults } from './ab-service'
 import { runRolloutsTick } from './job'
 import { RolloutError, type RolloutSaveInput } from './schema'
@@ -187,6 +188,22 @@ describe('starting and ending', () => {
     expect(await accent(s.storeId)).toBe('#111111')
     expect(await statusOf(s.storeId, s.on)).toBe('disabled')
     expect(await statusOf(s.storeId, s.off)).toBe('active')
+  })
+
+  it('adds a Version history entry each time it puts a theme live, as Publish does', async () => {
+    const s = await seed()
+    const home = { root: { props: {} }, content: [], zones: {} }
+    await owner.insert(themeTemplate).values([
+      { storeId: s.storeId, themeId: s.sale, template: 'home', suffix: '', sections: home },
+      { storeId: s.storeId, themeId: s.live, template: 'home', suffix: '', sections: home },
+    ])
+    const r = await inStore(s.storeId, (ctx) => createRollout(ctx, diwali(s)))
+    await inStore(s.storeId, (ctx) => startRollout(ctx, r.id, at(0)))
+    const sale = await inStore(s.storeId, (ctx) => listThemeVersions(ctx.tx, s.sale))
+    expect(sale.map((v) => v.reason)).toEqual(['publish'])
+    await inStore(s.storeId, (ctx) => endRollout(ctx, r.id, 'rollback', at(72)))
+    const back = await inStore(s.storeId, (ctx) => listThemeVersions(ctx.tx, s.live))
+    expect(back.map((v) => v.reason)).toEqual(['publish'])
   })
 
   it('keeps everything when the event ends with apply', async () => {
