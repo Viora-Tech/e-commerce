@@ -55,19 +55,19 @@ export default function InstallStorePicker({
   }
 
   return (
-    <PageBody width="narrow">
+    <PageBody>
       <PageHeader title={copy.title(appName)} subtitle={copy.intro} />
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
         {stores.map((s) => {
           const installed = installedStoreIds.includes(s.id)
           return (
             <Card key={s.id}>
-              <CardContent className="flex items-center gap-4">
+              <CardContent className="flex flex-wrap items-center gap-4">
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
                   <Store className="size-5" />
                 </span>
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate text-card-title">{s.name}</span>
+                <div className="flex min-w-[10rem] flex-1 flex-col">
+                  <span className="text-card-title wrap-break-word">{s.name}</span>
                   {installed ? (
                     <span className="flex items-center gap-1 text-caption text-muted-foreground-soft">
                       <CheckIcon className="size-3.5" />
@@ -80,6 +80,7 @@ export default function InstallStorePicker({
                   )}
                 </div>
                 <Button
+                  className="shrink-0"
                   loading={busyId === s.id}
                   type="button"
                   variant={installed ? 'outline' : 'default'}
