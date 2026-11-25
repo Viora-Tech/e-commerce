@@ -67,14 +67,16 @@ export default function DefaultProgramCard({
           <span className="flex min-w-0 flex-1 items-center gap-1 px-3 py-2">
             <span className="min-w-0 flex-1 truncate font-mono text-body">{link}</span>
             <CopyButton value={link} what={c.registration} visible />
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={handleShare}
               aria-label={c.share}
-              className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="shrink-0 text-muted-foreground"
             >
-              <SocialMedia className="size-4" />
-            </button>
+              <SocialMedia />
+            </Button>
           </span>
         </div>
         <div className="rounded-lg bg-muted px-3 py-2">

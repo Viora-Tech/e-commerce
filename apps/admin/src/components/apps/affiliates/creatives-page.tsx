@@ -2,7 +2,6 @@
 
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
-import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useEffect, useState } from 'react'
@@ -22,6 +21,7 @@ import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
+import ChoiceSelect from './choice-select'
 
 type Creative = Awaited<ReturnType<typeof api.affiliates.creatives.list>>[number]
 type Draft = {
@@ -153,18 +153,15 @@ export default function CreativesPage() {
                 value={draft.caption}
                 onChange={(e) => setDraft({ ...draft, caption: e.target.value })}
               />
-              <NativeSelect
+              <ChoiceSelect
                 aria-label={copy.program}
                 value={draft.programId ?? ''}
-                onChange={(e) => setDraft({ ...draft, programId: e.target.value || null })}
-              >
-                <NativeSelectOption value="">{copy.allPrograms}</NativeSelectOption>
-                {programs.map((p) => (
-                  <NativeSelectOption key={p.id} value={p.id}>
-                    {p.name}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
+                options={[
+                  { value: '', label: copy.allPrograms },
+                  ...programs.map((p) => ({ value: p.id, label: p.name })),
+                ]}
+                onChange={(programId) => setDraft({ ...draft, programId: programId || null })}
+              />
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setDraft(null)} disabled={busy}>
                   {copy.cancel}

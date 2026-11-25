@@ -1,7 +1,6 @@
 'use client'
 
 import type { StoreAffiliateSettings } from '@commerce/plugin-affiliates/settings'
-import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useEffect, useState } from 'react'
 import NumberField from '@/components/apps/affiliates/number-field'
@@ -10,6 +9,7 @@ import SettingsRow from '@/components/settings/settings-row'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import ChoiceSelect from './choice-select'
 
 type AutoEnrol = StoreAffiliateSettings['autoEnrol']
 
@@ -48,17 +48,15 @@ export default function ShareAndEarnCard({ value, onChange }: ShareAndEarnCardPr
       </SettingsRow>
       {on ? (
         <SettingsRow label={e.program} description={e.programHelp} htmlFor="aff-enrol-program">
-          <NativeSelect
+          <ChoiceSelect
             id="aff-enrol-program"
             value={value.programId ?? ''}
-            onChange={(ev) => onChange({ ...value, programId: ev.target.value || null })}
-          >
-            {programs.map((p) => (
-              <NativeSelectOption key={p.id} value={p.isDefault ? '' : p.id}>
-                {p.isDefault ? e.defaultProgram(p.name) : p.name}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
+            options={programs.map((p) => ({
+              value: p.isDefault ? '' : p.id,
+              label: p.isDefault ? e.defaultProgram(p.name) : p.name,
+            }))}
+            onChange={(programId) => onChange({ ...value, programId: programId || null })}
+          />
         </SettingsRow>
       ) : null}
       {on ? (

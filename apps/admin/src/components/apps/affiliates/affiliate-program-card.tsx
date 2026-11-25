@@ -3,7 +3,6 @@
 import type { CommissionRule } from '@commerce/plugin-affiliates/settings'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
-import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -14,6 +13,7 @@ import { affiliatesContent } from '@/data/affiliates'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
+import ChoiceSelect from './choice-select'
 
 type AffiliateProgramCardProps = {
   affiliateId: string
@@ -85,17 +85,12 @@ export default function AffiliateProgramCard({
       }
     >
       <SettingsRow label={d.programLabel} htmlFor="aff-program">
-        <NativeSelect
+        <ChoiceSelect
           id="aff-program"
           value={current}
-          onChange={(e) => handleProgram(e.target.value)}
-        >
-          {programs.map((p) => (
-            <NativeSelectOption key={p.id} value={p.id}>
-              {p.name}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
+          options={programs.map((p) => ({ value: p.id, label: p.name }))}
+          onChange={handleProgram}
+        />
       </SettingsRow>
       <SettingsRow label={d.ownRateOn} description={d.ownRateHelp} htmlFor="aff-own-rate">
         <Switch id="aff-own-rate" checked={own} onCheckedChange={setOwn} />

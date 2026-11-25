@@ -4,7 +4,6 @@ import { quarterOf, type TdsQuarter } from '@commerce/plugin-affiliates/tds'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Label } from '@commerce/ui/shadcn/label'
-import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import DialogContent from '@/components/layout/dialog-content'
@@ -14,6 +13,7 @@ import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
+import ChoiceSelect from './choice-select'
 
 type TdsReportDialogProps = {
   open: boolean
@@ -60,31 +60,21 @@ export default function TdsReportDialog({ open, onOpenChange, onDownload }: TdsR
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-2">
             <Label htmlFor="aff-tds-fy">{copy.fy}</Label>
-            <NativeSelect
+            <ChoiceSelect
               id="aff-tds-fy"
               value={String(pick.fy)}
-              onChange={(e) => setPick({ ...pick, fy: Number(e.target.value) })}
-            >
-              {years.map((y) => (
-                <NativeSelectOption key={y} value={String(y)}>
-                  {copy.fyLabel(y)}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+              options={years.map((y) => ({ value: String(y), label: copy.fyLabel(y) }))}
+              onChange={(fy) => setPick({ ...pick, fy: Number(fy) })}
+            />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="aff-tds-quarter">{copy.quarter}</Label>
-            <NativeSelect
+            <ChoiceSelect
               id="aff-tds-quarter"
               value={String(pick.quarter)}
-              onChange={(e) => setPick({ ...pick, quarter: Number(e.target.value) as Quarter })}
-            >
-              {copy.quarters.map((label, i) => (
-                <NativeSelectOption key={label} value={String(i + 1)}>
-                  {label}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+              options={copy.quarters.map((label, i) => ({ value: String(i + 1), label }))}
+              onChange={(q) => setPick({ ...pick, quarter: Number(q) as Quarter })}
+            />
           </div>
         </div>
         <p className="text-caption text-muted-foreground">{copy.note}</p>
