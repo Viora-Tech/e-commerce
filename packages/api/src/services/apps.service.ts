@@ -1,6 +1,7 @@
 import {
   type AppsSettings,
   installApp,
+  LOYALTY_APP_ID,
   lockStoreApps,
   parseAppsSettings,
   parseNotificationSettings,
@@ -9,6 +10,7 @@ import {
   parseStorageSettings,
   recordAppInstall,
   removeAppInstall,
+  seedLoyaltyOnInstall,
   uninstallApp,
 } from '@commerce/core'
 import { pauseWorkflowsForRemovedApp } from '@commerce/core/automations/server'
@@ -69,6 +71,9 @@ export async function installStoreApp(
   const next = installApp(await lockStoreApps(tx, storeId), pluginId)
   await tx.update(store).set({ apps: next }).where(eq(store.id, storeId))
   await recordAppInstall(tx, storeId, pluginId, userId)
+  // Loyalty points starts with referrals on, its earning rules and two rewards (a reinstall
+  // keeps what the store has), so the storefront widget is full from the first open.
+  if (pluginId === LOYALTY_APP_ID) await seedLoyaltyOnInstall({ tx, storeId })
   return next
 }
 
