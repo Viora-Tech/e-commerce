@@ -19,6 +19,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
+import { customizeHref } from '@/lib/loyalty-placements'
 import {
   changedTiers,
   type ProgramDraft,
@@ -166,7 +167,7 @@ export default function LoyaltyProgramPage() {
   const ratePercent = ratePercentOf(draft)
   const setup = { live, placementsOn: data.placementsOn, ratePercent }
   const step = setupStepOf(setup)
-  const embedHref = data.editor ? `${data.editor}?panel=apps` : null
+  const embedHref = data.editor ? customizeHref(data.editor, 'embed', 'loyalty/Widget') : null
   const dirty =
     settingsChanged(draft.settings, saved.settings) ||
     spendChanged(draft.spend, saved.spend) ||

@@ -88,7 +88,10 @@ export default function LoyaltyPlacementsPage() {
         ratePercent={data.ratePercent}
         action={
           editor ? (
-            <Button nativeButton={false} render={<Link href={customizeHref(editor, 'embed')} />}>
+            <Button
+              nativeButton={false}
+              render={<Link href={customizeHref(editor, 'embed', 'loyalty/Widget')} />}
+            >
               {copy.enableEmbed}
             </Button>
           ) : null
@@ -116,7 +119,7 @@ export default function LoyaltyPlacementsPage() {
                           variant="outline"
                           size="sm"
                           nativeButton={false}
-                          render={<Link href={customizeHref(editor, p.kind)} />}
+                          render={<Link href={customizeHref(editor, p.kind, p.type)} />}
                         >
                           {copy.open}
                           <ExternalLink />

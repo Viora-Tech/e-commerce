@@ -32,7 +32,12 @@ export function placementStatus(
   return appEmbeds[p.type]?.enabled ? 'ready' : 'off'
 }
 
-/** Customize for a theme, opened on a rail panel (`apps`: App embeds; `sections`: the blocks). */
-export function customizeHref(editorPath: string, kind: Placement['kind']): string {
+/**
+ * Customize for a theme, opened on a rail panel (`apps`: App embeds; `sections`: the blocks). An
+ * embed's type switches it on there, unsaved, with a "Click Save" hint (`EmbedSaveHint`).
+ */
+export function customizeHref(editorPath: string, kind: Placement['kind'], embed?: string): string {
+  if (kind === 'embed' && embed)
+    return `${editorPath}?panel=apps&embed=${encodeURIComponent(embed)}`
   return `${editorPath}?panel=${kind === 'embed' ? 'apps' : 'sections'}`
 }

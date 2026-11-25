@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronDown, ChevronRight, ExternalLink } from '@commerce/ui/icons'
+import { ChevronDown, ChevronRight, ExternalLink, MoreHorizontal } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import {
   DropdownMenu,
@@ -275,7 +275,7 @@ export default function NavSection({ item, pathname, count = 0, counts = {} }: N
                   <span className="min-w-0 flex-1 truncate text-left">
                     {layoutCopy.viewMorePages(hidden)}
                   </span>
-                  <ChevronDown aria-hidden="true" className="size-3.5 shrink-0" />
+                  <MoreHorizontal aria-hidden="true" className="size-3.5 shrink-0" />
                 </button>
               </li>
             ) : null}

@@ -22,6 +22,7 @@ import {
   CHROME_META,
 } from '@/lib/customize-chrome'
 import { FIELD_INPUT } from '@/lib/customize-field-styles'
+import EmbedSaveHint from './embed-save-hint'
 import ImportedAppEmbedsList from './imported-app-embeds-list'
 import InboxEmbedCard from './inbox-embed-card'
 
@@ -93,6 +94,7 @@ export default function AppsPanel({ installed, theme, onChange, imported = [] }:
   // Render logic
   return (
     <div className="flex flex-col gap-4 px-4 pb-4">
+      <EmbedSaveHint installed={installed} theme={theme} onChange={onChange} />
       <p className={cn(CHROME_BODY, 'text-muted-foreground')}>{copy.intro}</p>
       <Input
         value={query}

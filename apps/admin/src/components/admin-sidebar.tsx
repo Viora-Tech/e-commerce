@@ -110,7 +110,10 @@ function withAppRows(
       label: a.name,
       icon: appIcon(a.icon),
       base: routes.apps.page(a.id),
-      ...(a.id === openId && (a.pages?.length ?? 0) >= 2 ? { children: a.pages } : {}),
+      // An app's own pages: the first three, the rest behind "View more" (owner, 25 Nov 2026).
+      ...(a.id === openId && (a.pages?.length ?? 0) >= 2
+        ? { children: a.pages, childLimit: 3 }
+        : {}),
     })),
     {
       href: routes.apps.list(),
