@@ -40,7 +40,7 @@ type Extra = {
 const DEFAULT_EXPIRY_MINUTES = 30
 /** Core `PaymentSettingsSchema` defaults, shown while the settings load. */
 const DEFAULT_DUPLICATE_HOURS = 24
-const DEFAULT_UNPAID_PER_HOUR = 3
+const DEFAULT_UNPAID_PER_HOUR = 5
 
 /** Methods that confirm through the Razorpay webhook. */
 const RAZORPAY_WEBHOOK_METHODS = new Set(['razorpay', 'razorpay_upi'])

@@ -44,6 +44,7 @@ import {
   preorderCap,
   storeCartLimit,
 } from './cart-room'
+import { repriceCartLines } from './reprice'
 
 export type CartLineView = {
   id: string
@@ -70,6 +71,8 @@ export type CartLineView = {
   preorderBadge?: string | null | undefined
   /** The campaign's colours (hex, checked); null keys use the theme's. */
   preorderColours?: CampaignColours | null | undefined
+  /** The price it was added at, when its sale ended since (it now costs `unitPricePaise`). */
+  saleEndedFromPaise?: number | null | undefined
 }
 
 export type CartView = {
@@ -111,12 +114,15 @@ export async function productFirstImages(
 export async function getCart(ctx: StoreContext, cartId: string): Promise<CartView | null> {
   const [c] = await ctx.tx.select().from(cart).where(eq(cart.id, cartId))
   if (!c) return null
+  // The live price, never the one the line was added at (a sale that ended, `reprice.ts`).
+  if (c.status === 'open') await repriceCartLines(ctx, cartId)
   const rows = await ctx.tx
     .select({
       id: cartLine.id,
       variantId: cartLine.variantId,
       quantity: cartLine.quantity,
       unitPricePaise: cartLine.unitPricePaise,
+      saleEndedFromPaise: cartLine.saleEndedFromPaise,
       preorder: cartLine.preorder,
       campaignId: cartLine.preorderCampaignId,
       productId: product.id,
@@ -215,6 +221,7 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
     preorderNote: noteOf(r),
     preorderBadge: badgeOf(r),
     preorderColours: badgeOf(r) ? campaignColours(campaignOf(r)?.design) : null,
+    saleEndedFromPaise: r.saleEndedFromPaise,
   }))
   return {
     id: c.id,
@@ -306,6 +313,8 @@ export async function addToCart(
       .set({
         quantity: Math.max(existing.quantity, next),
         unitPricePaise,
+        // Added again at the price it shows now: no "sale ended" note any more.
+        saleEndedFromPaise: null,
         preorder,
         preorderCampaignId,
       })

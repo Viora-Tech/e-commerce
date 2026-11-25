@@ -1776,6 +1776,13 @@
     {
       "idx": 253,
       "version": "7",
+      "when": 1795900000000,
+      "tag": "0269_payment_choices",
+      "breakpoints": true
+    },
+    {
+      "idx": 254,
+      "version": "7",
       "when": 1795950000000,
       "tag": "0270_loyalty_v2",
       "breakpoints": true

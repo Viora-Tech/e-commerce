@@ -1,5 +1,5 @@
 /** SOURCE OF TRUTH: discount use bookkeeping — WHAT: claim a use of each applied discount under a row lock, record it per order (an unpaid checkout draft only notes it; counted when paid), and give the uses back when the order is undone / WHY: usage limits and per-customer caps must hold however many checkouts race, combined discounts each count a use, and a failed payment must not use up a shopper's code */
-import { discount, discountUsage, orderNote } from '@commerce/db'
+import { discount, discountUsage, order, orderNote } from '@commerce/db'
 import { and, eq, isNull, lt, or, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { DiscountUnavailable } from '../errors'
@@ -19,7 +19,7 @@ import { customerUsageCount, type ResolvedDiscount } from './resolve'
 async function claimDiscountUse(
   ctx: StoreContext,
   discountId: string,
-  email: string | null,
+  who: { email: string | null; phone?: string | null | undefined },
 ): Promise<void> {
   const [d] = await ctx.tx
     .select({ usagePerCustomer: discount.usagePerCustomer })
@@ -28,7 +28,7 @@ async function claimDiscountUse(
     .for('update')
   if (!d) throw new DiscountUnavailable(discountId, ctx.storeId)
   if (d.usagePerCustomer !== null) {
-    const uses = await customerUsageCount(ctx, discountId, email)
+    const uses = await customerUsageCount(ctx, discountId, who.email, who.phone)
     if (uses >= d.usagePerCustomer) throw new DiscountUnavailable(discountId, ctx.storeId)
   }
   const claimed = await ctx.tx
@@ -48,6 +48,8 @@ type UseOrder = {
   id: string
   customerId: string | null
   email: string | null
+  /** The checkout's phone: a one-per-customer cap also counts earlier uses by it. */
+  phone?: string | null | undefined
   discountPaise: number
 }
 
@@ -100,7 +102,10 @@ export async function recordDiscountUse(
   discountId: string,
   order: UseOrder,
 ): Promise<void> {
-  await claimDiscountUse(ctx, discountId, order.email?.toLowerCase() ?? null)
+  await claimDiscountUse(ctx, discountId, {
+    email: order.email?.toLowerCase() ?? null,
+    phone: order.phone,
+  })
   await insertUse(ctx, discountId, order, true)
 }
 
@@ -114,6 +119,7 @@ export const OVER_LIMIT_NOTE = (label: string) =>
  * a timeline note says so when it went past the store's limit or the shopper's cap.
  */
 export async function countDraftDiscountUses(ctx: StoreContext, orderId: string): Promise<void> {
+  const [o] = await ctx.tx.select({ phone: order.phone }).from(order).where(eq(order.id, orderId))
   const uses = await ctx.tx
     .update(discountUsage)
     .set({ counted: true })
@@ -135,7 +141,7 @@ export async function countDraftDiscountUses(ctx: StoreContext, orderId: string)
     const overLimit = d.usageLimit !== null && d.usedCount > d.usageLimit
     const overCap =
       d.usagePerCustomer !== null &&
-      (await customerUsageCount(ctx, u.discountId, u.email)) > d.usagePerCustomer
+      (await customerUsageCount(ctx, u.discountId, u.email, o?.phone)) > d.usagePerCustomer
     if (overLimit || overCap) {
       await ctx.tx.insert(orderNote).values({
         storeId: ctx.storeId,
@@ -159,6 +165,26 @@ export async function releaseOrderDiscountUses(ctx: StoreContext, orderId: strin
     .returning({ discountId: discountUsage.discountId, counted: discountUsage.counted })
   for (const u of uses) {
     if (!u.counted) continue
+    await ctx.tx
+      .update(discount)
+      .set({ usedCount: sql`greatest(${discount.usedCount} - 1, 0)` })
+      .where(eq(discount.id, u.discountId))
+  }
+}
+
+/**
+ * The order was cancelled: its counted uses stop counting (owner, 24 Nov 2026), so the code's
+ * total and the shopper's one-per-customer cap get the use back. The rows stay, so the code's
+ * usage still lists the order. Only rows still counted are flipped, so a second cancel (or a
+ * cancel after a refund) gives nothing back twice; a draft's noted use never counted.
+ */
+export async function uncountOrderDiscountUses(ctx: StoreContext, orderId: string): Promise<void> {
+  const uses = await ctx.tx
+    .update(discountUsage)
+    .set({ counted: false })
+    .where(and(eq(discountUsage.orderId, orderId), eq(discountUsage.counted, true)))
+    .returning({ discountId: discountUsage.discountId })
+  for (const u of uses) {
     await ctx.tx
       .update(discount)
       .set({ usedCount: sql`greatest(${discount.usedCount} - 1, 0)` })

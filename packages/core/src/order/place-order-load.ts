@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: placeOrder's first step — WHAT: loadCart (the open cart, its lines as they sell now, pre-order campaigns and their stock) and the mixed-cart rule / WHY: split out of place-order.ts by step (#973) */
 import { cart, cartLine, product, sellableStock, variant } from '@commerce/db'
 import { eq } from 'drizzle-orm'
+import { repriceCartLines } from '../cart/reprice'
 import { effectiveGstRatePercent, effectiveHsCode } from '../catalog/effective-tax'
 import type { StoreContext } from '../context'
 import {
@@ -35,6 +36,9 @@ export const loadCart: WorkflowStep<State> = {
   async run({ ctx, input }) {
     const [c] = await ctx.tx.select().from(cart).where(eq(cart.id, input.cartId))
     if (c?.status !== 'open') throw new CartNotOpen(input.cartId, ctx.storeId)
+    // The live price, never the one a line was added at (a sale that ended since): the
+    // discount, GST and shipping below read the cart lines too.
+    await repriceCartLines(ctx, input.cartId)
     const rows = await ctx.tx
       .select({
         variantId: cartLine.variantId,

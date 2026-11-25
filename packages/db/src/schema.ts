@@ -1316,6 +1316,11 @@ export const cartLine = pgTable(
     preorderCampaignId: uuid('preorder_campaign_id').references(() => preorderCampaign.id, {
       onDelete: 'set null',
     }),
+    /**
+     * The price the line was added at, kept when the live price went up since (a sale ended):
+     * the line is re-priced (`cart/reprice.ts`) and the cart says the sale ended. Null otherwise.
+     */
+    saleEndedFromPaise: integer('sale_ended_from_paise'),
   },
   (t) => [
     /* Every storefront page reads the cart for the header count (layout `requestCart`). */
@@ -1352,6 +1357,8 @@ export const order = pgTable(
     customerId: uuid('customer_id').references(() => customer.id),
     email: text('email'),
     phone: text('phone'),
+    /** The checkout device cookie it was placed from; the hourly unpaid-checkout cap counts by it. */
+    checkoutDeviceId: text('checkout_device_id'),
     /** Business buyer's GSTIN from checkout (Settings → Checkout), validated; the GST invoice prints it. */
     buyerGstin: text('buyer_gstin'),
     /** Business name typed beside the GSTIN; the GST invoice bills to it. */

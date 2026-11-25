@@ -6,6 +6,7 @@ import { CommerceError } from '../errors'
 import {
   type CheckoutContactKeys,
   orderContactMatch,
+  orderContactMatches,
   sameEmailAndPhone,
 } from '../payments/manual-unpaid'
 import { parsePaymentSettings } from '../payments/settings'
@@ -201,15 +202,23 @@ export async function findRecentDuplicateCheckout(
 
 /**
  * The shopper's checkouts placed in the last hour that never got their money (cancelled ones
- * too: a failed card retry is cancelled after 30 minutes), cash on delivery left out. The
- * newest still-unpaid one comes back to link.
+ * too: a failed card retry is cancelled after 30 minutes), cash on delivery left out, counted
+ * per key: by email, by phone and by checkout device (`deviceId`, a first-party cookie). The
+ * highest of the three comes back (owner, 24 Nov 2026: any one key reaching the cap trips it).
+ * The newest still-unpaid one comes back to link.
  */
 export async function recentUnpaidCheckouts(
   ctx: StoreContext,
-  input: { contact: CheckoutContactKeys; now?: Date | undefined },
+  input: {
+    contact: CheckoutContactKeys
+    deviceId?: string | null | undefined
+    now?: Date | undefined
+  },
 ): Promise<{ count: number; latest: RecentCheckout | null }> {
-  const match = orderContactMatch(input.contact)
-  if (!match) return { count: 0, latest: null }
+  const keys = orderContactMatches(input.contact)
+  const device = input.deviceId?.trim()
+  if (device) keys.push(eq(order.checkoutDeviceId, device))
+  if (keys.length === 0) return { count: 0, latest: null }
   const since = new Date((input.now ?? new Date()).getTime() - HOUR_MS)
   // Checkout drafts count, expired ones too (a failed card retry used to be cancelled the same way).
   const where: SQL | undefined = and(
@@ -219,15 +228,24 @@ export async function recentUnpaidCheckouts(
     ne(order.paymentStatus, 'authorized'),
     isNull(order.importedFrom),
     activeSince(since),
-    match,
+    or(...keys),
   )
-  const rows: RecentRow[] = await ctx.tx
-    .select(recentColumns)
+  const rows = await ctx.tx
+    .select({
+      ...recentColumns,
+      keys: sql<boolean[]>`array[${sql.join(
+        keys.map((k) => sql`coalesce((${k}), false)`),
+        sql`, `,
+      )}]`,
+    })
     .from(order)
     .where(where)
     .orderBy(desc(sql`coalesce(${order.lastActivityAt}, ${order.placedAt})`))
-  const latest = rows.find(isUnpaid)
-  return { count: rows.length, latest: latest ? pick(latest) : null }
+  const count = Math.max(...keys.map((_, i) => rows.filter((r) => r.keys[i]).length))
+  const found = rows.find(isUnpaid)
+  if (!found) return { count, latest: null }
+  const { keys: _keys, ...latest } = found
+  return { count, latest: pick(latest) }
 }
 
 /** The store's cap of unpaid checkouts per hour (0: none), for the storefront's per-IP count. */
@@ -252,6 +270,8 @@ export async function enforceCheckoutRepeats(
     paymentMethod: string
     windowHours: number
     unpaidPerHour: number
+    /** The checkout device cookie: the hourly cap counts by it as well. */
+    deviceId?: string | null | undefined
     orderAgain?: boolean | undefined
     now?: Date | undefined
   },
@@ -266,7 +286,11 @@ export async function enforceCheckoutRepeats(
     })
   }
   if (input.paymentMethod === 'cod' || input.unpaidPerHour <= 0) return
-  const recent = await recentUnpaidCheckouts(ctx, { contact: input.contact, now })
+  const recent = await recentUnpaidCheckouts(ctx, {
+    contact: input.contact,
+    deviceId: input.deviceId,
+    now,
+  })
   if (recent.count >= input.unpaidPerHour) {
     throw new TooManyUnpaidCheckouts(recent.latest, ctx.storeId)
   }

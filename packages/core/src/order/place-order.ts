@@ -189,6 +189,7 @@ const enforceCheckoutRules: WorkflowStep<State> = {
         paymentMethod: input.paymentProvider.id,
         windowHours: payments.duplicateCheckoutHours,
         unpaidPerHour: payments.unpaidCheckoutsPerHour,
+        deviceId: input.checkoutDeviceId,
         orderAgain: input.orderAgain,
       })
       // No hard block on other unpaid orders (owner, 8 Nov 2026): the same items bring the

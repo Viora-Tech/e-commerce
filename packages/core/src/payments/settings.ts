@@ -60,8 +60,11 @@ export const PaymentSettingsSchema = z.object({
    * default; read it through `checkoutDraftsOn` (./checkout-drafts), never on its own.
    */
   unpaidAsDrafts: z.enum(['on', 'off']).optional(),
-  /** Most unpaid checkouts one shopper (email, phone or IP) may start in an hour; 0 is no cap. */
-  unpaidCheckoutsPerHour: z.number().int().min(0).max(50).default(0),
+  /**
+   * Most unpaid checkouts one shopper (email, phone, checkout device or IP) may start in an
+   * hour; 0 is no cap. 5 unless the store chose otherwise (owner, 24 Nov 2026).
+   */
+  unpaidCheckoutsPerHour: z.number().int().min(0).max(50).default(5),
   /**
    * "Shoppers can pay with": UPI, cards, netbanking, wallets, EMI and COD, each
    * on or off, in checkout order. Unset on stores saved before it existed;
@@ -95,7 +98,7 @@ export const defaultPaymentSettings: PaymentSettings = {
   expireUnpaidAfterMinutes: 30,
   manualCancelAfterHours: 0,
   duplicateCheckoutHours: 24,
-  unpaidCheckoutsPerHour: 0,
+  unpaidCheckoutsPerHour: 5,
 }
 
 /** Auto-cancel window for unpaid manual transfer orders, in hours. */

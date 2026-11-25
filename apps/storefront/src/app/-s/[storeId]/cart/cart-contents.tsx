@@ -11,6 +11,7 @@ import { readCartId } from '@/lib/cart-cookie'
 import { cartDiscountView } from '@/lib/discount-view'
 import { MARKET_HEADERS, marketPath } from '@/lib/markets'
 import { storeCartMethods, storeUpiDiscount } from '@/lib/payments'
+import { priceChangedNote } from '@/lib/price-changed'
 import { cartShippingHint } from '@/lib/shipping'
 import { storeRead } from '@/lib/store-cache'
 import { inStore } from '@/lib/store-context'
@@ -117,7 +118,10 @@ export default async function CartContents({ storeId, reorderSkipped }: CartCont
       ) : null}
       <div className="cart-layout">
         <div className="cart-layout__lines">
-          <CartLines lines={lines} />
+          <CartLines
+            lines={lines}
+            priceChangedNote={priceChangedNote(requestHeaders.get(MARKET_HEADERS.locale))}
+          />
         </div>
         <aside className="cart-layout__summary">
           <div className="cart-summary">

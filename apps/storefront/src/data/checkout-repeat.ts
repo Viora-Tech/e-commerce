@@ -16,6 +16,8 @@ export const checkoutRepeatContent = {
   unpaidTransfer: (n: number | string) =>
     `You already have an unpaid order #${n}. Pay for it, or choose another payment method.`,
   payForIt: 'Pay for order',
-  tooMany: 'Too many unpaid orders. Please complete one first.',
+  /** The hourly cap of unpaid checkouts (5 by default; by email, phone, device or IP). */
+  tooMany:
+    'You have started a few checkouts in the last hour without paying. Please pay for one of them, or try again in an hour.',
   latestOrder: 'Open my latest unpaid order',
 }

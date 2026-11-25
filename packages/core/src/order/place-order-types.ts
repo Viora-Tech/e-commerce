@@ -65,6 +65,11 @@ export type PlaceOrderInput = {
   paymentFallbacks?: FallbackTry<PaymentProvider>[] | undefined
   /** The shopper's IP, for gateways that need it on the payment (Snapmint). */
   shopperIp?: string | undefined
+  /**
+   * The storefront's checkout device cookie: kept on the order, and the hourly cap of unpaid
+   * checkouts counts by it as well as by email and phone (`enforceCheckoutRepeats`).
+   */
+  checkoutDeviceId?: string | null | undefined
   /** Optional in tests; required by the storefront checkout. */
   checkout?: CheckoutDetails
   /**
