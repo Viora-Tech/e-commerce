@@ -95,7 +95,8 @@ export default function PageHeader({
   const line = summary ?? subtitle
 
   return (
-    <div className="flex flex-col gap-3">
+    // `data-page-header`: an app page's shell leaves room beside it for its floating actions.
+    <div data-page-header="" className="flex flex-col gap-3">
       {back ? (
         'href' in back ? (
           <BackLink href={back.href} label={back.label} />

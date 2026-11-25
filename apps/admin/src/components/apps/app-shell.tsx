@@ -11,6 +11,7 @@ import { getCopy, getLocale } from '@/lib/copy-server'
 import { formatAgo } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
 import AppNav from './app-nav'
+import AppShellActions from './app-shell-actions'
 import AppUninstallButton from './app-uninstall-button'
 
 type AppShellProps = {
@@ -74,9 +75,11 @@ export default async function AppShell({
   return (
     <PageBody>
       {/* No app title row and no gap (owner, 25 Nov 2026): the sidebar names the open app and
-          each page has its own title. The app's status pill, action and "…" menu float top right. */}
-      <div className="relative mt-4 flex flex-col gap-5">
-        <div className="absolute top-0 right-0 z-10 flex items-center gap-2">
+          each page has its own title. The app's status pill, action and "…" menu float top right;
+          only the first heading leaves room for them (AppShellActions), so tables and cards keep
+          the page's full width like Orders (owner, 26 Nov 2026). */}
+      <div className="relative flex flex-col gap-5">
+        <AppShellActions>
           {pillText && statusPill ? (
             <span title={pillText} className="flex max-w-[22rem] min-w-0">
               <StatusChip tone={statusPill.tone} variant="outline" className="min-w-0">
@@ -90,7 +93,7 @@ export default async function AppShell({
             name={name}
             settingsHref={hasSettings ? hrefFor(appId, 'settings') : undefined}
           />
-        </div>
+        </AppShellActions>
         {status === 'needsSetup' || status === 'error' ? (
           // Figma "WhatsApp · Needs setup": the raised card with what is wrong and the way out.
           <NextStepBanner
@@ -121,7 +124,7 @@ export default async function AppShell({
             }
           />
         ) : null}
-        <div className="flex flex-col gap-5 md:flex-row md:items-start md:gap-8 md:pr-12">
+        <div className="flex flex-col gap-5 md:flex-row md:items-start md:gap-8">
           {showNav ? (
             // Desktop: the open app's pages sit under its row in the main sidebar (owner, 14 Nov
             // 2026); the in-page menu is for phones only, where the sidebar is closed.
