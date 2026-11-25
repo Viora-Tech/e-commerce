@@ -1,5 +1,7 @@
 import {
   deliveryRouteCardContent,
+  orderNotesCardContent,
+  orderStatusCardsContent,
   parcelsCardContent,
   partlyShippedContent,
   profitCardContent,
@@ -108,5 +110,18 @@ export default [
     readyWhen: (orderNumber, n, of) =>
       `सामान आने पर तैयार; फिर यह शिपमेंट › भेजना है में #${orderNumber} · ${of} में से हिस्सा ${n} के रूप में दिखेगा।`,
     told: (date, parts) => `ग्राहक को ${date} को बताया गया कि ऑर्डर ${parts} हिस्सों में जाएगा।`,
+  }),
+  translation(orderStatusCardsContent, {
+    parcelNumber: (orderNumber, position) => `#${orderNumber}-F${position}`,
+    shipped: (date) => `${date} को भेजा`,
+    awb: (waybill) => `AWB ${waybill}`,
+    trackHint: 'कूरियर की साइट पर ट्रैकिंग खोलें',
+    markDelivered: 'डिलीवर हुआ मार्क करें',
+    shipsFrom: (place) => `${place} से जाएगा`,
+    gstSplit: 'GST का बंटवारा देखें',
+  }),
+  translation(orderNotesCardContent, {
+    title: 'नोट',
+    empty: 'ग्राहक का कोई नोट नहीं',
   }),
 ]

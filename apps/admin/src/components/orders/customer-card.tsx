@@ -11,7 +11,6 @@ import CopyButton from '@/components/fields/copy-button'
 import ActionMenu from '@/components/layout/action-menu'
 import ContactActions from '@/components/layout/contact-actions'
 import DataCard from '@/components/layout/data-card'
-import KeyValueList, { type KeyValueRow } from '@/components/layout/key-value-list'
 import LabeledGroup from '@/components/layout/labeled-group'
 import { orderCustomerContent } from '@/data/customer-merge'
 import { stateName } from '@/data/india'
@@ -58,6 +57,20 @@ function linesOf(x: PostalAddress): string[] {
   ].filter((l): l is string => Boolean(l?.trim()))
 }
 
+type ContactLineProps = { value: string; href: string; what: string }
+
+/** Email or phone as a plain line, its copy button showing on hover. */
+function ContactLine({ value, href, what }: ContactLineProps) {
+  return (
+    <div className="group/row flex min-w-0 items-center gap-1">
+      <a href={href} className="min-w-0 truncate text-link underline-offset-2 hover:underline">
+        {value}
+      </a>
+      <CopyButton value={value} what={what} />
+    </div>
+  )
+}
+
 type AddressBlockProps = { lines: string[]; what: string }
 
 /** A postal address as lines, with one copy button for all of it. */
@@ -99,21 +112,6 @@ export default function CustomerCard({ order }: CustomerCardProps) {
   const a = order.shippingAddress
   const name = a?.name || order.customer?.name || ''
   const phone = order.phone || a?.phone || ''
-  const contact: KeyValueRow[] = [
-    { label: c.name, value: name, copy: true },
-    {
-      label: c.email,
-      value: order.email ?? '',
-      href: order.email ? `mailto:${order.email}` : undefined,
-      copy: true,
-    },
-    {
-      label: c.phone,
-      value: phone ? phoneForDisplay(phone) : '',
-      href: phone ? `tel:${phone}` : undefined,
-      copy: true,
-    },
-  ]
   // An address reads as a block, as on a parcel: one row per labelled field made the card very
   // tall (audit #13). One copy button takes the whole address.
   const bill = order.billingAddress
@@ -161,8 +159,9 @@ export default function CustomerCard({ order }: CustomerCardProps) {
         </div>
       }
     >
-      {/* Figma "Orders / Order detail" › Customer: who, then the fields one per line (label over
-          value, a copy button each), Copy all for courier, and Call / WhatsApp at the bottom. */}
+      {/* Figma "Orders / Order detail" › Customer: who, then email and phone, the addresses
+          under small headings, Copy all for courier, and Call / WhatsApp at the bottom. The
+          customer's note is the Notes card's. */}
       <div className="flex flex-col gap-4 text-body">
         <div className="flex items-center gap-2.5">
           <CustomerAvatar
@@ -196,9 +195,17 @@ export default function CustomerCard({ order }: CustomerCardProps) {
           </div>
         </div>
 
-        <LabeledGroup label={c.contact}>
-          <KeyValueList rows={contact} />
-        </LabeledGroup>
+        {/* The name is the line above; email and phone are plain lines, copied on hover. */}
+        {order.email || phone ? (
+          <LabeledGroup label={c.contact}>
+            {order.email ? (
+              <ContactLine value={order.email} href={`mailto:${order.email}`} what={c.email} />
+            ) : null}
+            {phone ? (
+              <ContactLine value={phoneForDisplay(phone)} href={`tel:${phone}`} what={c.phone} />
+            ) : null}
+          </LabeledGroup>
+        ) : null}
         <LabeledGroup label={c.address}>
           {a ? (
             <AddressBlock lines={linesOf(a)} what={c.address} />
@@ -221,11 +228,6 @@ export default function CustomerCard({ order }: CustomerCardProps) {
               <span className="font-mono">{order.buyerGstin}</span>
               <CopyButton value={order.buyerGstin} what={c.gstin} visible />
             </div>
-          </LabeledGroup>
-        ) : null}
-        {order.customerNote ? (
-          <LabeledGroup label={c.note}>
-            <p className="whitespace-pre-line">{order.customerNote}</p>
           </LabeledGroup>
         ) : null}
 
