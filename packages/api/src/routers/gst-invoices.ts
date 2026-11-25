@@ -32,7 +32,15 @@ import {
   orderRefunds,
   storeName,
 } from '../services/gst-invoices.service'
-import { asOrpc, Gst, gstScope, Period, renderDeps, requireInstalled } from './gst-invoices-context'
+import {
+  asOrpc,
+  Gst,
+  gstScope,
+  Period,
+  queueChanged,
+  renderDeps,
+  requireInstalled,
+} from './gst-invoices-context'
 import { fileProcedures } from './gst-invoices-files'
 import { documentList, documentListIds, queueList } from './gst-invoices-lists'
 import {
@@ -181,6 +189,7 @@ export const gstInvoicesRouter = {
       .input(z.object({ ids: z.array(z.uuid()).min(1).max(BULK_MAX) }))
       .handler(async ({ context, input }) => {
         await requireInstalled(context)
+        queueChanged(context)
         return { removed: await removeFromQueue(context.tx, input.ids) }
       }),
     /** The numbers a batch would get, in the order it would get them. Nothing is written. */
@@ -201,6 +210,7 @@ export const gstInvoicesRouter = {
       .input(IssueBatch)
       .handler(async ({ context, input }) => {
         await requireInstalled(context)
+        queueChanged(context)
         try {
           const plan = await issueDrafts(context.tx, context.scope.storeId, input.items, {
             commit: true,
@@ -236,6 +246,7 @@ export const gstInvoicesRouter = {
     .input(z.object({ id: z.uuid(), reason: z.string().trim().min(3).max(200) }))
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
+      queueChanged(context)
       try {
         const row = await cancelInvoice(context.tx, input.id, input.reason)
         return { id: row.id, number: row.number }

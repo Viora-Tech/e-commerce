@@ -25,11 +25,11 @@ import { latestIssuedDate, peekNext, startOfIstDay } from './next-number'
 import { takeNumber } from './numbers'
 import { invoiceParcels } from './parcels'
 import { assertPeriodOpen, PeriodError } from './periods'
-import { queuedInvoiceDrafts } from './queue-list'
+import { queueConditions } from './queue-list'
 import { gstToken, orderIssuer } from './registration'
 import { invoice, invoiceSettings } from './schema'
 
-export { listQueue, type QueueFilter, queuedInvoiceDrafts } from './queue-list'
+export { listQueue, type QueueFilter, queueConditions, queuedInvoiceDrafts } from './queue-list'
 
 /**
  * The invoice queue. Orders wait here as unnumbered drafts; a GST number is
@@ -451,7 +451,8 @@ export async function cancelInvoice(
 /** The app bar's one statement (`./app-bar`): queued tax invoices (when `count`) and the seller GSTIN. */
 export async function queueBarRead(tx: StoreTx, storeId: string, count: boolean) {
   const waiting = count
-    ? sql`(select count(*)::int from ${invoice} where ${and(eq(invoice.storeId, storeId), queuedInvoiceDrafts())})`
+    ? // The Queue page's own conditions with no filter picked, so "Queue N" is its row count.
+      sql`(select count(*)::int from ${invoice} where ${and(eq(invoice.storeId, storeId), queueConditions({}))})`
     : sql`0`
   const [row] = await tx.execute<{ waiting: number; gstin: string | null }>(sql`
     select ${waiting} as waiting, coalesce(

@@ -85,6 +85,8 @@ export function useOrderAppActions(
       })
       states.forget(orderIds)
       onDone()
+      // App counts in the sidebar (GST "Queue N") come from the server layout: read it again.
+      router.refresh()
     } catch (err) {
       toast.error(errorText(err, copy.failed))
     } finally {

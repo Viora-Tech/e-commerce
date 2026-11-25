@@ -31,8 +31,9 @@ export const queuedInvoiceDrafts = (): SQL =>
     sql`not exists (select 1 from ${order} where ${order.id} = ${invoice.orderId} and ${order.status} = 'cancelled')`,
   ) as SQL
 
-export async function listQueue(tx: StoreTx, filter: QueueFilter) {
-  const conds: (SQL | undefined)[] = [
+/** The Queue page's conditions: what `listQueue` lists and `queueBarRead` counts. */
+export function queueConditions(filter: QueueFilter): SQL | undefined {
+  return and(
     queuedInvoiceDrafts(),
     filter.gstRegistrationId === undefined
       ? undefined
@@ -41,16 +42,15 @@ export async function listQueue(tx: StoreTx, filter: QueueFilter) {
     filter.to ? lt(invoice.eligibleAt, filter.to) : undefined,
     queueSearch(filter.q),
     paymentCondition(filter.payment),
-  ]
-  return tx
-    .select()
-    .from(invoice)
-    .where(and(...conds))
-    .orderBy(
-      // By day, then order number: the order the batch is numbered in (`issueDrafts`).
-      sql`date_trunc('day', ${invoice.eligibleAt} at time zone 'Asia/Kolkata')`,
-      sql`(select ${order.number} from ${order} where ${order.id} = ${invoice.orderId})`,
-      asc(invoice.eligibleAt),
-      asc(invoice.createdAt),
-    )
+  )
+}
+
+export async function listQueue(tx: StoreTx, filter: QueueFilter) {
+  return tx.select().from(invoice).where(queueConditions(filter)).orderBy(
+    // By day, then order number: the order the batch is numbered in (`issueDrafts`).
+    sql`date_trunc('day', ${invoice.eligibleAt} at time zone 'Asia/Kolkata')`,
+    sql`(select ${order.number} from ${order} where ${order.id} = ${invoice.orderId})`,
+    asc(invoice.eligibleAt),
+    asc(invoice.createdAt),
+  )
 }

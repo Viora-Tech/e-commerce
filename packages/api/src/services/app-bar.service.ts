@@ -54,6 +54,15 @@ export function clearAppBarCache(): void {
   barCache.clear()
 }
 
+/**
+ * Drops one app's cached extras for a store, so the next shell read counts afresh. Call it after
+ * the change commits (`context.afterCommit`): a read between the change and its commit would
+ * cache the old count again. The GST invoices Queue does, so its sidebar count follows an issue.
+ */
+export function forgetAppBar(storeId: string, appId: string): void {
+  barCache.delete(`${storeId}:${appId}`)
+}
+
 function cachedBar(key: string, can: (permission: Permission) => boolean, now: number) {
   const hit = barCache.get(key)
   if (!hit || now - hit.at > APP_BAR_TTL_MS) return undefined

@@ -23,7 +23,7 @@ import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { BULK_MAX, can } from '../procedures'
 import { createEmailBatch, orderIdsByNumber } from '../services/gst-invoices.service'
-import { asOrpc, renderDeps, requireInstalled } from './gst-invoices-context'
+import { asOrpc, queueChanged, renderDeps, requireInstalled } from './gst-invoices-context'
 import { Selection, selectedIds } from './gst-invoices-selection'
 
 /** Add orders by hand, e.g. a pre-order the merchant wants invoiced now. */
@@ -42,6 +42,7 @@ export const addToQueue = can(permissions.ORDERS_WRITE)
   )
   .handler(async ({ context, input }) => {
     await requireInstalled(context)
+    queueChanged(context)
     try {
       const byNumber = await orderIdsByNumber(context.tx, input.orderNumbers)
       let added = 0
@@ -89,6 +90,7 @@ export const generateInvoice = can(permissions.ORDERS_WRITE)
   .input(z.object({ orderId: z.uuid() }))
   .handler(async ({ context, input }) => {
     await requireInstalled(context)
+    queueChanged(context)
     try {
       const queued = await enqueueOrderParcels(
         context.tx,

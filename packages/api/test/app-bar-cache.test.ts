@@ -20,7 +20,7 @@ vi.mock('@commerce/core/registries', () => ({
   }),
 }))
 
-const { APP_BAR_TTL_MS, clearAppBarCache, installedAppBars } = await import(
+const { APP_BAR_TTL_MS, clearAppBarCache, forgetAppBar, installedAppBars } = await import(
   '../src/services/app-bar.service'
 )
 
@@ -64,5 +64,14 @@ describe('app bar cache', () => {
     fail = false
     await installedAppBars(tx, 's1', installed, owner, 1)
     expect(reads).toBe(4)
+  })
+
+  it('reads again after the app forgets its answer (a queue change), for that store only', async () => {
+    await installedAppBars(tx, 's1', installed, owner, 0)
+    await installedAppBars(tx, 's2', installed, owner, 0)
+    forgetAppBar('s1', 'demo')
+    await installedAppBars(tx, 's1', installed, owner, 10)
+    await installedAppBars(tx, 's2', installed, owner, 10)
+    expect(reads).toBe(3)
   })
 })
