@@ -40,6 +40,7 @@ export default function RewardsCard({ rewards, tiers }: RewardsCardProps) {
         <Button
           size="sm"
           variant="outline"
+          nativeButton={false}
           render={<Link href={routes.apps.page('loyalty', 'rewards', 'new')} />}
         >
           <Plus />

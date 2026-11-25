@@ -74,6 +74,7 @@ export default function LoyaltyPlacementsPage() {
                     <Button
                       variant="outline"
                       size="sm"
+                      nativeButton={false}
                       render={<Link href={customizeHref(editor, p.kind)} />}
                     >
                       {copy.open}
