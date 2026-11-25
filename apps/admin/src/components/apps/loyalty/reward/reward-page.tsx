@@ -12,6 +12,7 @@ import DetailPageSkeleton from '@/components/layout/detail-page-skeleton'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import StatusChip from '@/components/layout/status-chip'
 import { appsContent } from '@/data/apps'
 import { loyaltyRewardContent } from '@/data/loyalty-reward'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -27,6 +28,7 @@ import {
 } from '@/lib/loyalty-reward-form'
 import { routes } from '@/lib/routes'
 import RewardDetailsCard from './reward-details-card'
+import RewardLimitsCard from './reward-limits-card'
 import RewardRulesCard from './reward-rules-card'
 import RewardSummary from './reward-summary'
 import RewardTypeCard from './reward-type-card'
@@ -34,8 +36,10 @@ import RewardTypeCard from './reward-type-card'
 type Loaded = { reward: RewardRow | null; tiers: TierRow[]; form: RewardForm }
 
 /**
- * New reward (`rewards/new`) or one to change (`rewards/<id>`), full page: the type, what
- * members see, who can redeem and for how many points, requirements and limits, with a summary.
+ * New reward (`rewards/new`) or one to change (`rewards/<id>`), laid out like Essential
+ * Loyalty's reward page: type and customer title, the reward's value, eligibility,
+ * requirements, usage limit and the discount code on the left; the shopper preview and a
+ * summary on the right. Disable / Delete / Save sit in the header.
  */
 export default function LoyaltyRewardPage({ params }: AppPageProps) {
   // Hooks
@@ -139,17 +143,29 @@ export default function LoyaltyRewardPage({ params }: AppPageProps) {
       <PageHeader
         title={data.reward ? data.reward.title : copy.newTitle}
         back={back}
-        actions={
-          data.reward ? (
-            <Button
-              variant="outline"
-              className="text-destructive"
-              onClick={() => setRemoving(true)}
-            >
-              {copy.remove}
-            </Button>
-          ) : null
+        summary={copy.types[form.type]}
+        badges={
+          <StatusChip tone={form.active ? 'success' : 'neutral'}>
+            {form.active ? copy.enabled : copy.disabled}
+          </StatusChip>
         }
+        actions={
+          <>
+            <Button variant="outline" onClick={() => set({ active: !form.active })}>
+              {form.active ? copy.disable : copy.enable}
+            </Button>
+            {data.reward ? (
+              <Button
+                variant="outline"
+                className="text-destructive"
+                onClick={() => setRemoving(true)}
+              >
+                {copy.remove}
+              </Button>
+            ) : null}
+          </>
+        }
+        save={{ dirty: dirty || !data.reward, saving: busy, onSave: handleSave, label: copy.save }}
       />
       <PageColumns
         main={
@@ -157,6 +173,11 @@ export default function LoyaltyRewardPage({ params }: AppPageProps) {
             <RewardTypeCard form={form} onChange={setForm} />
             <RewardDetailsCard form={form} onChange={set} />
             <RewardRulesCard form={form} tiers={data.tiers} onChange={set} />
+            <RewardLimitsCard
+              form={form}
+              used={data.reward ? data.reward.usedCount : null}
+              onChange={set}
+            />
           </div>
         }
         side={<RewardSummary form={form} reward={data.reward} tiers={data.tiers} />}

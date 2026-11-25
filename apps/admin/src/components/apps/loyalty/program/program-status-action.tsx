@@ -14,10 +14,16 @@ type ProgramStatusActionProps = {
   /** The saved settings: only the status changes, never unsaved edits on the page. */
   settings: LoyaltySettings
   onChanged: (next: LoyaltySettings) => void
+  /** The go-live button's text when it is not the header's "Enable" (the setup bar's step). */
+  goLiveLabel?: string
 }
 
 /** Go live at once, or pause after a confirm (only test accounts keep the program). */
-export default function ProgramStatusAction({ settings, onChanged }: ProgramStatusActionProps) {
+export default function ProgramStatusAction({
+  settings,
+  onChanged,
+  goLiveLabel,
+}: ProgramStatusActionProps) {
   // Hooks
   const copy = useCopy(loyaltyProgramContent)
   const [confirming, setConfirming] = useState(false)
@@ -49,7 +55,7 @@ export default function ProgramStatusAction({ settings, onChanged }: ProgramStat
         </Button>
       ) : (
         <Button onClick={() => handleSet('live')} loading={busy}>
-          {copy.status.goLive}
+          {goLiveLabel ?? copy.status.enable}
         </Button>
       )}
       <ConfirmDialog
