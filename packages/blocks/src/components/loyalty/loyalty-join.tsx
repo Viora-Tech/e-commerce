@@ -1,6 +1,7 @@
 'use client'
 
 import { loyaltyWidgetContent as copy } from '../../data/loyalty-widget'
+import { ACCENT_BUTTON } from './loyalty-styles'
 
 /** Sign-in path that comes back to this page. */
 function signInHref(): string {
@@ -9,18 +10,15 @@ function signInHref(): string {
 }
 
 /**
- * "Join now" and "Already have an account? Sign in" for a visitor: both go to the store's
- * sign-in, which creates the account (and the membership) on the way.
+ * "Join now" (in the merchant's colour) and "Already have an account? Sign in" for a visitor:
+ * both go to the store's sign-in, which creates the account (and the membership) on the way.
  */
 export default function LoyaltyJoin() {
   // Render logic
   const href = signInHref()
   return (
     <div className="flex flex-col gap-2">
-      <a
-        href={href}
-        className="inline-flex h-11 items-center justify-center rounded-lg bg-(--kl-ink) px-5 font-semibold text-(--kl-surface) no-underline"
-      >
+      <a href={href} className={ACCENT_BUTTON}>
         {copy.guest.join}
       </a>
       <p className="m-0 text-center text-[0.875rem] text-(--kl-muted)">

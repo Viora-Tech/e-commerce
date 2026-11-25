@@ -33,6 +33,8 @@ export const loyaltyWidgetContent = {
     body: 'Collect points for the things you do here, then swap them for rewards.',
     earn: 'Ways to earn',
     redeem: 'Ways to redeem',
+    earnMeta: (n: number) => (n === 1 ? '1 way to collect points' : `${n} ways to collect points`),
+    redeemMeta: (n: number) => (n === 1 ? '1 reward to choose' : `${n} rewards to choose`),
   },
   worth: (money: string) => `Worth ${money}`,
   expiring: (points: string, day: string) => `${points} run out after ${day}`,
@@ -120,8 +122,8 @@ export const loyaltyWidgetContent = {
     earned: (points: string) => `${points} added`,
   },
   codes: {
-    title: 'My discounts',
-    empty: 'Rewards you claim show here.',
+    title: 'Your rewards',
+    empty: 'Rewards you claim show here, ready to use at checkout.',
     status: {
       issued: 'Ready to use',
       used: 'Used',
@@ -131,9 +133,10 @@ export const loyaltyWidgetContent = {
   },
   referral: {
     title: 'Refer a friend',
-    teaser: (offer: string) => `Give friends ${offer} on their first order.`,
-    you: (offer: string) => `You get ${offer} when they order`,
-    friend: (offer: string) => `They get ${offer}`,
+    intro: 'Share the store with a friend. You both get something for it.',
+    give: 'They get',
+    get: 'You get',
+    joinForLink: 'Join to get your own link to share.',
     yourLink: 'Your link',
     copy: 'Copy link',
     copied: 'Copied',

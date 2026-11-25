@@ -6,6 +6,7 @@ import LoyaltyCard from './loyalty-card'
 import { claimWayToEarn } from './loyalty-client'
 import { wayGlyph, wayPoints, wayTitle } from './loyalty-format'
 import LoyaltyIcon from './loyalty-icon'
+import { ICON_TILE } from './loyalty-styles'
 import type { LoyaltyPointsName, LoyaltyWayToEarn } from './loyalty-types'
 
 type LoyaltyEarnListProps = {
@@ -62,7 +63,7 @@ export default function LoyaltyEarnList({
               key={w.id}
               className="flex items-center gap-3 border-t border-(--kl-line) py-3 first:border-t-0"
             >
-              <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-(--kl-soft) text-(--kl-ink)">
+              <span className={ICON_TILE}>
                 <LoyaltyIcon name={wayGlyph(w.type)} className="size-[1.125rem]" />
               </span>
               <span className="flex min-w-0 flex-1 flex-col">

@@ -58,7 +58,7 @@ export default function LoyaltyTierCard({ tiers, tier, names }: LoyaltyTierCardP
         aria-valuenow={pct}
         className="h-2 overflow-hidden rounded-full bg-(--kl-soft)"
       >
-        <div className="h-full rounded-full bg-(--kl-head-solid)" style={{ width: `${pct}%` }} />
+        <div className="h-full rounded-full bg-(--kl-accent)" style={{ width: `${pct}%` }} />
       </div>
       <span className="text-[0.8125rem] text-(--kl-muted)">
         {next ? copy.tier.toNext(amount(tier.toNext), next.name) : copy.tier.top}

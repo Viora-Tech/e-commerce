@@ -77,13 +77,41 @@ export function resolveLoyaltyWidgetSettings(
   }
 }
 
-/** The widget's CSS custom properties: the header colours and the fixed palette. */
+/** `#rgb` or `#rrggbb` to 0..255 channels. */
+function channels(hex: string): [number, number, number] {
+  const h = hex.replace('#', '')
+  const full = h.length === 3 ? [...h].map((c) => c + c).join('') : h
+  return [0, 2, 4].map((i) => Number.parseInt(full.slice(i, i + 2), 16)) as [number, number, number]
+}
+
+/** Relative brightness 0 (black) to 1 (white), for picking a readable accent. */
+export function brightness(hex: string): number {
+  const [r, g, b] = channels(hex)
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+}
+
+/**
+ * The widget's CSS custom properties: the header colours and the fixed palette.
+ * `--kl-head` paints the launcher (one colour unless the merchant set a gradient); `--kl-hero`
+ * paints the panel header, always a gradient: the merchant's, or one made from their colour
+ * (Essential Loyalty's look). `--kl-accent` (icons, the Join button, progress) is the merchant
+ * colour, or the ink colour when theirs is too pale to read on white; `--kl-tint` is a soft
+ * wash of it behind the row icons.
+ */
 export function loyaltyStyleVars(s: LoyaltyWidgetSettings): Record<string, string> {
   const head = s.headerGradient
     ? `linear-gradient(135deg, ${s.headerColor}, ${s.headerGradient})`
     : s.headerColor
+  const hero = s.headerGradient
+    ? head
+    : `linear-gradient(135deg, ${s.headerColor} 0%, color-mix(in srgb, ${s.headerColor} 72%, #ffffff) 100%)`
+  const accent = brightness(s.headerColor) > 0.8 ? LOYALTY_PALETTE.ink : s.headerColor
   return {
     '--kl-head': head,
+    '--kl-hero': hero,
+    '--kl-accent': accent,
+    '--kl-accent-text': accent === s.headerColor ? s.headerText : LOYALTY_PALETTE.surface,
+    '--kl-tint': `color-mix(in srgb, ${accent} 12%, #ffffff)`,
     '--kl-head-solid': s.headerColor,
     '--kl-head-text': s.headerText,
     '--kl-surface': LOYALTY_PALETTE.surface,

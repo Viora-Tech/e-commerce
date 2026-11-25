@@ -28,10 +28,10 @@ type Screen = 'home' | 'earn' | 'redeem'
 
 /**
  * The rewards panel the launcher opens (loaded on the first open), laid out like Essential
- * Loyalty's: a solid header in the merchant's colours ("Welcome to" over the program's name),
+ * Loyalty's: a gradient header in the merchant's colours ("Welcome to" over the program's name),
  * white cards overlapping its bottom edge, then the guest view (Become a member, Points with
- * Ways to earn / Ways to redeem, referral teaser) or the member view (balance, Points, tier,
- * codes, referral). Ways to earn and Ways to redeem open as their own screens with a back arrow;
+ * Ways to earn / Ways to redeem, Refer a friend's Give / Get) or the member view (balance,
+ * Points, tier, Your rewards, referral). Ways to earn and Ways to redeem open as their own screens with a back arrow;
  * a guest gets Join now pinned under them. A pop-up above the launcher or a full-height side
  * panel, as the embed settings say. Escape closes it.
  */
@@ -135,10 +135,10 @@ export default function LoyaltyPanel({
           <LoyaltyPanelHeader
             title={title}
             welcome={member ? copy.welcomeBack : copy.welcome}
-            points={member && view ? copy.points(member.points, view.pointsName) : undefined}
+            storeName={view?.storeName || storeName}
             onClose={handleClose}
           />
-          <div className="relative -mt-10 flex flex-col gap-3 px-4 pb-4">
+          <div className="relative -mt-11 flex flex-col gap-3 px-4 pb-5">
             {!view ? (
               <LoyaltyCard>
                 {load.status === 'failed' ? (

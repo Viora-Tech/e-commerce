@@ -89,7 +89,7 @@ function wayToEarn(r: EarnRuleRow): WayToEarn {
   }
 }
 
-/** The program for a signed-out visitor: names, ways to earn, rewards, tiers, the friend's referral reward. */
+/** The program for a signed-out visitor: names, ways to earn, rewards, tiers, both referral rewards (the widget's Give / Get card). */
 export async function publicLoyaltyProgram(ctx: StoreContext, settings: LoyaltySettings) {
   const rules = (await listEarnRules(ctx)).filter((r) => r.enabled && r.points > 0)
   return {
@@ -101,7 +101,12 @@ export async function publicLoyaltyProgram(ctx: StoreContext, settings: LoyaltyS
       .filter((r) => r.pointsCost > 0)
       .map(publicReward),
     tiers: (await listTiers(ctx)).map(publicTier),
-    referral: settings.referrals.enabled ? { friendReward: settings.referrals.friendReward } : null,
+    referral: settings.referrals.enabled
+      ? {
+          friendReward: settings.referrals.friendReward,
+          referrerReward: settings.referrals.referrerReward,
+        }
+      : null,
   }
 }
 

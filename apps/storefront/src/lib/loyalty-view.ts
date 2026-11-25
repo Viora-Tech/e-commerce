@@ -97,7 +97,8 @@ function guestView(cached: Cached, signedIn: boolean): LoyaltyView {
     referral: program.referral
       ? {
           friendReward: program.referral.friendReward,
-          referrerReward: null,
+          // What a member gets for a referral: the guest's Give / Get card shows it too.
+          referrerReward: program.referral.referrerReward ?? null,
           url: null,
           completed: 0,
           shareChannels,
