@@ -4,6 +4,7 @@ import { type Db, notification, outboxEvent, pixelConnection, withStore } from '
 import type { NotificationChannel, NotificationRegistry } from '@commerce/notifications'
 import { and, eq } from 'drizzle-orm'
 import { ownerEmails } from '../automations/engine/owner-alerts'
+import { sendStatus } from '../email-suppression/guard'
 import { escapeHtml } from '../marketing/email'
 import { marketingChannels } from '../marketing/send'
 import type { OutboxPayload } from '../outbox/types'
@@ -66,7 +67,7 @@ export async function deliverPixelAlertRow(
         channel: email.id,
         template: TEMPLATE,
         to,
-        status: r.ok ? 'sent' : 'failed',
+        status: sendStatus(r),
         providerRef: r.ok ? r.providerRef : null,
         error: r.ok ? null : r.error,
       })

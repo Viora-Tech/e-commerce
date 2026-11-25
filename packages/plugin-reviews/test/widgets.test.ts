@@ -3,6 +3,7 @@ import { resetDb } from '@commerce/db/test'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { review, reviewMedia } from '../src/schema'
 import { defaultReviewsSettings, type ReviewsSettings } from '../src/settings'
+import { storeReviewFeed, storeReviewTotals } from '../src/storefront'
 import { storeWidgetReviews, WIDGET_REVIEWS_MAX, widgetQuery } from '../src/widgets'
 import { addProduct, app, owner, seedStore } from './helpers'
 
@@ -109,6 +110,24 @@ describe('store widget reviews', () => {
     expect(
       (await read(defaultReviewsSettings, { limit: 10, productHandles: ['gone'] })).reviews,
     ).toEqual([])
+  })
+
+  it('leaves out reviews of draft and archived products, in the wall and the store totals', async () => {
+    const storeId = await seedStore()
+    const live = await addProduct(storeId, 'glide-pad')
+    const draft = await addProduct(storeId, 'secret-pad', { status: 'draft' })
+    await addReview(storeId, { productId: live.productId, title: 'Live', rating: 5 })
+    await addReview(storeId, { productId: draft.productId, title: 'Draft', rating: 1 })
+    await addReview(storeId, { title: 'Store review', rating: 5 })
+    const out = await withStore(app, storeId, (tx) =>
+      storeWidgetReviews(tx, defaultReviewsSettings, { limit: 10 }),
+    )
+    expect(out.reviews.map((r) => r.title).sort()).toEqual(['Live', 'Store review'])
+    expect(out.summary).toMatchObject({ count: 2, rating: 5 })
+    const totals = await withStore(app, storeId, (tx) => storeReviewTotals(tx))
+    expect(totals).toMatchObject({ count: 2, average: 5 })
+    const feed = await withStore(app, storeId, (tx) => storeReviewFeed(tx, defaultReviewsSettings))
+    expect(feed.map((r) => r.title).sort()).toEqual(['Live', 'Store review'])
   })
 
   it("never shows another store's reviews", async () => {

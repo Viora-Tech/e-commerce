@@ -140,6 +140,7 @@ export const appsContent = {
     label: 'Could not load the label',
     option: 'Could not load this delivery option',
     reviews: 'Could not load the reviews',
+    review: 'Could not load this review',
   },
   installedToast: (name: string) => `${name} installed`,
   uninstalledToast: (name: string) => `${name} uninstalled`,

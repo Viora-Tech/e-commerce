@@ -25,7 +25,15 @@ export type SesConfig = {
   configurationSetName?: string | undefined
   /** Message tags (`EmailTags`), echoed back on bounce and complaint events, e.g. `store-id`. */
   tags?: Readonly<Record<string, string>> | undefined
+  /**
+   * A store's own account: the SNS topic its configuration set publishes bounces and
+   * complaints to. The platform's webhook accepts that topic for this store only.
+   */
+  eventsTopicArn?: string | undefined
 }
+
+/** The tag every store send carries, so a bounce event names its store. */
+export const STORE_TAG = 'store-id'
 
 /** Lets the platform's own sender reuse this channel under its own id and label. */
 export type SesChannelOptions = { id?: string | undefined; label?: string | undefined }
@@ -129,6 +137,15 @@ export class SesChannel implements NotificationChannel {
     this.client = client ?? makeSesClient(config)
   }
 
+  /** The same channel with the store's tag on every send (bounces then name the store). */
+  forStore(storeId: string): SesChannel {
+    return new SesChannel(
+      { ...this.config, tags: { ...this.config.tags, [STORE_TAG]: storeId } },
+      this.client,
+      { id: this.id, label: this.label },
+    )
+  }
+
   async send(message: Message): Promise<SendResult> {
     const to = message.to.email
     if (!to) return { ok: false, error: 'recipient has no email' }
@@ -206,6 +223,9 @@ export class SesChannel implements NotificationChannel {
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+/** SES configuration set names: letters, digits, `_` and `-`, up to 64. */
+const CONFIG_SET = /^[A-Za-z0-9_-]{1,64}$/
+const SNS_TOPIC_ARN = /^arn:aws:sns:[a-z]{2}(-[a-z]+)+-\d:\d{12}:[A-Za-z0-9_-]{1,256}$/
 
 export const sesFactory: NotificationChannelFactory<SesConfig> = {
   id: 'ses',
@@ -221,6 +241,16 @@ export const sesFactory: NotificationChannelFactory<SesConfig> = {
       help: 'Must be verified in SES (the address or its domain).',
     },
     { key: 'fromName', label: 'From name', help: 'e.g. Waimers' },
+    {
+      key: 'configurationSetName',
+      label: 'Configuration set',
+      help: 'For bounces and complaints: a configuration set whose event destination is the SNS topic below.',
+    },
+    {
+      key: 'eventsTopicArn',
+      label: 'SNS topic ARN',
+      help: 'The topic that configuration set sends bounces and complaints to, subscribed to the address shown on this page.',
+    },
   ],
   validateConfig(raw) {
     const r = (raw ?? {}) as Partial<SesConfig>
@@ -229,6 +259,17 @@ export const sesFactory: NotificationChannelFactory<SesConfig> = {
     if (!r.accessKeyId) errors.push('access key ID is required')
     if (!r.secretAccessKey) errors.push('secret access key is required')
     if (!r.fromEmail || !EMAIL.test(r.fromEmail)) errors.push('from address must be an email')
+    const configurationSetName = r.configurationSetName?.trim() || undefined
+    const eventsTopicArn = r.eventsTopicArn?.trim() || undefined
+    if (configurationSetName && !CONFIG_SET.test(configurationSetName)) {
+      errors.push('configuration set: letters, digits, _ and - only')
+    }
+    if (eventsTopicArn && !SNS_TOPIC_ARN.test(eventsTopicArn)) {
+      errors.push('SNS topic ARN should look like arn:aws:sns:ap-south-1:123456789012:ses-events')
+    }
+    if (eventsTopicArn && !configurationSetName) {
+      errors.push('the SNS topic needs the configuration set that publishes to it')
+    }
     if (errors.length > 0) return { ok: false, errors }
     return {
       ok: true,
@@ -238,6 +279,8 @@ export const sesFactory: NotificationChannelFactory<SesConfig> = {
         secretAccessKey: r.secretAccessKey as string,
         fromEmail: r.fromEmail as string,
         fromName: r.fromName || undefined,
+        configurationSetName,
+        eventsTopicArn,
       },
     }
   },

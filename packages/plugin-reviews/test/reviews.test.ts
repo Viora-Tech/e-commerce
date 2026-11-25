@@ -6,6 +6,7 @@ import {
   getReview,
   listReviews,
   ratingSummaries,
+  replyEmailData,
   replyToReview,
   reviewStats,
   setReviewStatus,
@@ -245,6 +246,18 @@ describe('moderation and ratings', () => {
     )
     expect(first.emailed).toBe(true)
     expect(again.emailed).toBe(false)
+  })
+
+  it('never emails a reply to a hidden review', async () => {
+    const storeId = await seedStore()
+    const { productId } = await addProduct(storeId, 'veil')
+    const r = await withStore(app, storeId, (tx) =>
+      submitReview(tx, storeId, form({ productId }), anyone),
+    )
+    await withStore(app, storeId, (tx) => setReviewStatus(tx, [r.id], 'hidden'))
+    const sent = await withStore(app, storeId, (tx) => replyToReview(tx, storeId, r.id, 'Sorry!'))
+    expect(sent.emailed).toBe(false)
+    expect(await withStore(app, storeId, (tx) => replyEmailData(tx, r.id))).toBeNull()
   })
 })
 

@@ -304,7 +304,12 @@ export default [
         document_copy: 'इनवॉइस की कॉपी',
         customer_message: 'आपका ईमेल',
       },
-      status: { queued: 'कतार में', sent: 'भेजा गया', failed: 'फ़ेल' },
+      status: {
+        queued: 'कतार में',
+        sent: 'भेजा गया',
+        failed: 'फ़ेल',
+        skipped: 'नहीं भेजा: पता बाउंस हुआ या शिकायत आई',
+      },
       via: (channel: string) => `${channel} से`,
     },
     tags: {

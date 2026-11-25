@@ -27,10 +27,10 @@ import { and, asc, desc, eq, ilike, inArray, isNotNull, ne, or } from 'drizzle-o
 import { admitAiCall } from '../ai/quota'
 import { recordAiUsage } from '../ai/usage'
 import { POLICY_TYPES, policyHandle } from '../policies/client'
+import { publishedFactEntries } from '../sales-channels/knowledge-service'
 import { aiMayAnswer, asksForHuman } from './ai-rules'
 import { messageEvents, statusEvents } from './events'
 import { publishedKnowledge } from './knowledge'
-import { publishedFactEntries } from '../sales-channels/knowledge-service'
 import { asksForRefundOrCancel, pickKnowledge, questionWords } from './knowledge-rules'
 import { appendMessage, type InboxConversationRow, type InboxMessageRow } from './messages'
 import { productCards } from './panel'
@@ -340,6 +340,17 @@ async function logEvent(
     .onConflictDoNothing()
 }
 
+/** Whether the AI may speak in this chat now (mode, staff online, hand-off, take-over). */
+const mayAnswerNow = (l: Loaded, now: Date) =>
+  aiMayAnswer({
+    mode: l.state.settings.ai.mode,
+    staffAvailable: isInboxAvailable(l.state.settings, l.state.timeZone, now),
+    status: l.conversation.status,
+    needsHuman: l.conversation.needsHuman,
+    staffReplied: l.staffReplied,
+    aiPaused: l.conversation.aiPausedAt !== null,
+  })
+
 export type RunInboxAiOptions = {
   db: Db
   job: InboxAiJob
@@ -360,15 +371,7 @@ export async function runInboxAiReply(opts: RunInboxAiOptions): Promise<InboxAiR
   const loaded = await withStore(db, job.storeId, (tx) => load(tx, job.storeId, job))
   if (typeof loaded === 'string') return { done: 'skipped', why: loaded }
   const l = loaded
-  const mayAnswer = aiMayAnswer({
-    mode: l.state.settings.ai.mode,
-    staffAvailable: isInboxAvailable(l.state.settings, l.state.timeZone, now),
-    status: l.conversation.status,
-    needsHuman: l.conversation.needsHuman,
-    staffReplied: l.staffReplied,
-    aiPaused: l.conversation.aiPausedAt !== null,
-  })
-  if (!mayAnswer) return { done: 'skipped', why: 'not_allowed' }
+  if (!mayAnswerNow(l, now)) return { done: 'skipped', why: 'not_allowed' }
 
   // Asking for a person never waits for a model.
   if (asksForHuman(l.question.body)) {
@@ -463,6 +466,9 @@ export async function runInboxAiReply(opts: RunInboxAiOptions): Promise<InboxAiR
       { storeId: job.storeId, tx },
       { month: admission.month, feature: 'assistant', tier: admission.tier, ...usage },
     )
+    // The model took a while: a person may have replied, closed the chat or taken over meanwhile.
+    const fresh = await load(tx, job.storeId, job)
+    if (typeof fresh === 'string' || !mayAnswerNow(fresh, now)) return null
     const sent = handoff
       ? await handOff(
           tx,
@@ -480,5 +486,6 @@ export async function runInboxAiReply(opts: RunInboxAiOptions): Promise<InboxAiR
     })
     return sent
   })
+  if (!events) return { done: 'skipped', why: 'changed_meanwhile' }
   return handoff ? { done: 'handed_off', reason, events } : { done: 'answered', events }
 }

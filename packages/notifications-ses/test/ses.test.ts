@@ -28,6 +28,33 @@ describeNotificationChannel('ses', {
 })
 
 describe('ses specifics', () => {
+  it("a store's own account names its configuration set and tags each send with the store", async () => {
+    const parsed = sesFactory.validateConfig({
+      ...config,
+      configurationSetName: 'shop-events',
+      eventsTopicArn: 'arn:aws:sns:ap-south-1:123456789012:ses-events',
+    })
+    if (!parsed.ok) throw new Error(parsed.errors.join())
+    const rec: Recorder = { sent: [] }
+    await new SesChannel(parsed.config, fakeClient(rec)).forStore('store-1').send({
+      to: { email: 'asha@example.com' },
+      template: 'order_placed',
+      data: sampleTemplateData,
+    })
+    expect(rec.sent[0]?.input.ConfigurationSetName).toBe('shop-events')
+    expect(rec.sent[0]?.input.EmailTags).toEqual([{ Name: 'store-id', Value: 'store-1' }])
+  })
+
+  it('refuses a bad configuration set or topic, and a topic without its set', () => {
+    const bad = (extra: Record<string, string>) => {
+      const r = sesFactory.validateConfig({ ...config, ...extra })
+      return r.ok ? [] : r.errors
+    }
+    expect(bad({ configurationSetName: 'has space' })).toHaveLength(1)
+    expect(bad({ configurationSetName: 'ok', eventsTopicArn: 'not-an-arn' })).toHaveLength(1)
+    expect(bad({ eventsTopicArn: 'arn:aws:sns:ap-south-1:123456789012:t' })).toHaveLength(1)
+  })
+
   it('sends subject, text and html to the recipient from the display name', async () => {
     const rec: Recorder = { sent: [] }
     const r = await new SesChannel(config, fakeClient(rec)).send({

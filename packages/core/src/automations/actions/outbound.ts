@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: outbound message steps in two phases — WHAT: the shape every email and WhatsApp action plans in (a claimed message row plus the provider messages, or a result with nothing to send), sending with no transaction open, and recording the outcome on the message row / WHY: a provider call must never hold a database transaction (design §8.5); one implementation keeps the once-per-step `marketing_message` guarantee for every message action. Server-only. */
 import type { StoreTx } from '@commerce/db'
 import type { MarketingSend, NotificationChannel, SendResult } from '@commerce/notifications'
+import { isSuppressed } from '../../email-suppression/guard'
 import { deliverMarketing } from '../../marketing/send'
 import {
   type ActionExecutor,
@@ -57,6 +58,17 @@ async function recordPlanned(tx: StoreTx, plan: Planned, sent: Sent): Promise<Ac
   }
   const results = sent?.results ?? []
   const failed = results.find((r) => !r.ok)
+  // An address on the suppression list: recorded as skipped, the step goes on, no retry.
+  if (failed && isSuppressed(failed)) {
+    await recordMessage(tx, plan.messageId, {
+      ok: false,
+      skipped: true,
+      channel: plan.channel.id,
+      error: failed.ok ? '' : failed.error,
+    })
+    await plan.after?.(tx)
+    return plan.done
+  }
   if (failed && !failed.ok) {
     await recordMessage(tx, plan.messageId, {
       ok: false,

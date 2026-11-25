@@ -1,5 +1,6 @@
 import { product, type StoreTx } from '@commerce/db'
 import { and, asc, desc, eq, type SQL, sql } from 'drizzle-orm'
+import { onLiveProductSql } from './live-product'
 import {
   emptySummary,
   photoCopy,
@@ -8,7 +9,6 @@ import {
   type ReviewPhoto,
   ratingSummaries,
 } from './reviews'
-
 import { review } from './schema'
 import type { ReviewSort, ReviewsSettings } from './settings'
 
@@ -99,7 +99,7 @@ export async function productReviewsFor(
   return { summary, reviews: reviews.map(({ productId: _p, ...r }) => r) }
 }
 
-/** The store-wide average and counts of published reviews (themes' review showcases). */
+/** The store-wide average and counts of published reviews (themes' review showcases), live products only. */
 export async function storeReviewTotals(tx: StoreTx) {
   const [t] = await tx
     .select({
@@ -108,7 +108,7 @@ export async function storeReviewTotals(tx: StoreTx) {
       verified: sql<number>`count(*) filter (where ${review.verifiedBuyer})::int`,
     })
     .from(review)
-    .where(eq(review.status, 'published'))
+    .where(and(eq(review.status, 'published'), onLiveProductSql))
   const count = t?.count ?? 0
   return {
     count,
@@ -137,7 +137,7 @@ export async function storeReviewFeed(tx: StoreTx, settings: ReviewsSettings, li
     })
     .from(review)
     .leftJoin(product, eq(product.id, review.productId))
-    .where(eq(review.status, 'published'))
+    .where(and(eq(review.status, 'published'), onLiveProductSql))
     .orderBy(desc(review.featured), desc(review.createdAt))
     .limit(limit)
   const photos = settings.storefront.showPhotos

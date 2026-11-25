@@ -2,9 +2,10 @@
 import { formatInZone } from '@commerce/dates'
 import { customer, inboxConversation, inboxMessage, notification, type StoreTx } from '@commerce/db'
 import type { ChatEmailMessage, ChatWaitingThread, TemplateData } from '@commerce/notifications'
-import { and, count, desc, eq, gt, isNull, ne, notInArray, or } from 'drizzle-orm'
+import { and, count, desc, eq, gt, isNull, ne, notInArray, or, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { storefrontOriginFor } from '../domains/origin'
+import { isSuppressed, sendStatus } from '../email-suppression/guard'
 import { alertMembers, deliverToMember } from '../member-account/alerts'
 import {
   channelsFor,
@@ -140,11 +141,17 @@ async function sendToShopper(
       channel: channel.id,
       template,
       to,
-      status: r.ok ? 'sent' : 'failed',
+      status: sendStatus(r),
       providerRef: r.ok ? r.providerRef : null,
       error: r.ok ? null : r.error,
     })
-    results.push({ channel: channel.id, to, ok: r.ok, error: r.ok ? undefined : r.error })
+    results.push({
+      channel: channel.id,
+      to,
+      ok: r.ok,
+      error: r.ok ? undefined : r.error,
+      ...(isSuppressed(r) ? { skipped: true } : {}),
+    })
   }
   return results
 }
@@ -180,7 +187,13 @@ export async function sendInboxChatEmails(
         or(gt(inboxConversation.lastMessageAt, since), gt(inboxConversation.closedAt, since)),
       ),
     )
-    .orderBy(inboxConversation.lastMessageAt)
+    // Newest first: what is due now is the latest activity, so a busy day's older chats never
+    // crowd it out of the scan.
+    .orderBy(
+      desc(
+        sql`greatest(${inboxConversation.lastMessageAt}, coalesce(${inboxConversation.closedAt}, ${inboxConversation.lastMessageAt}))`,
+      ),
+    )
     .limit(SCAN_LIMIT)
 
   const storeName = state.storeName

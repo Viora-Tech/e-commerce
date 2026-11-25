@@ -4,6 +4,7 @@ import { type Db, notification, outboxEvent, withStore } from '@commerce/db'
 import type { NotificationChannel, NotificationRegistry } from '@commerce/notifications'
 import { eq } from 'drizzle-orm'
 import { ownerEmails } from '../automations/engine/owner-alerts'
+import { sendStatus } from '../email-suppression/guard'
 import { escapeHtml } from '../marketing/email'
 import { marketingChannels } from '../marketing/send'
 import type { OutboxPayload } from '../outbox/types'
@@ -65,7 +66,7 @@ export async function deliverGatewayAlertRow(
         channel: email.id,
         template: TEMPLATE,
         to,
-        status: r.ok ? 'sent' : 'failed',
+        status: sendStatus(r),
         providerRef: r.ok ? r.providerRef : null,
         error: r.ok ? null : r.error,
       })

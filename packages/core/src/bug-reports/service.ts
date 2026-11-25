@@ -2,6 +2,7 @@
 import { authSchema, bugReport, notification, type StoreTx, store } from '@commerce/db'
 import type { NotificationChannel, TemplateData } from '@commerce/notifications'
 import { and, desc, eq, gt, inArray, isNotNull, sql } from 'drizzle-orm'
+import { sendStatus } from '../email-suppression/guard'
 import { loadMemberAlertPrefs } from '../member-account/alerts'
 import { memberAccess } from '../permissions/service'
 import { getPlatformEmail, type PlatformEmail } from '../sender-email/platform'
@@ -282,7 +283,7 @@ export async function notifyBugReportUpdate(
         channel: channel.id,
         template: 'bug_report_update',
         to: phone,
-        status: r.ok ? 'sent' : 'failed',
+        status: sendStatus(r),
         providerRef: r.ok ? r.providerRef : null,
         error: r.ok ? null : r.error,
       })

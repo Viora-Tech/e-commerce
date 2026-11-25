@@ -24,6 +24,12 @@ import { insertOutboxEvent } from '../outbox/write'
 import { channelState, isLive, type SalesChannelId } from '../sales-channels/client'
 import { loadSalesChannelSettings, patchChannelStates } from '../sales-channels/service'
 import { recordPlatformEvent, unlinkPlatformAccount } from './accounts'
+import {
+  applyWhatsappOptOuts,
+  applyWhatsappReports,
+  whatsappOptOutsOf,
+  whatsappStatusReports,
+} from './whatsapp-reports'
 
 /* ---------- WhatsApp webhooks ---------- */
 
@@ -83,24 +89,45 @@ export function whatsappEventUpdate(
   }
 }
 
-/** Applies a verified WhatsApp webhook; answers how many account updates it recorded. */
+/**
+ * Applies a verified WhatsApp webhook: account updates on the linked store's account row,
+ * delivery reports on the messages they are about, STOP replies on the shopper's consent
+ * (phones are looked up by blind index, so `settingsSecret` is needed for those). Answers how
+ * many account updates, messages and consents it changed.
+ */
 export async function handleMetaWebhook(
   db: Db,
   payload: MetaWebhookPayload,
   now = new Date(),
+  settingsSecret?: string | undefined,
 ): Promise<number> {
   if (payload.object !== 'whatsapp_business_account') return 0
   let recorded = 0
   for (const entry of payload.entry ?? []) {
     if (!entry.id) continue
-    const updates = (entry.changes ?? []).map(whatsappEventUpdate).filter((u) => u !== null)
-    if (!updates.length) continue
+    const changes = entry.changes ?? []
+    const updates = changes.map(whatsappEventUpdate).filter((u) => u !== null)
+    const reports = changes.flatMap((c) => whatsappStatusReports(c, now))
+    const optOuts = settingsSecret ? changes.flatMap(whatsappOptOutsOf) : []
+    if (!updates.length && !reports.length && !optOuts.length) continue
     const merged = updates.reduce<{ status?: string | undefined; detail: Record<string, string> }>(
       (acc, u) => ({ status: u.status ?? acc.status, detail: { ...acc.detail, ...u.detail } }),
       { detail: {} },
     )
     for (const storeId of await storesForPlatformAccount(db, 'whatsapp', entry.id)) {
-      if (await recordPlatformEvent(db, storeId, 'whatsapp', entry.id, merged, now)) recorded += 1
+      if (
+        updates.length &&
+        (await recordPlatformEvent(db, storeId, 'whatsapp', entry.id, merged, now))
+      )
+        recorded += 1
+      if (!reports.length && !optOuts.length) continue
+      recorded += await withStore(db, storeId, async (tx) => {
+        const saved = await applyWhatsappReports(tx, reports)
+        const stopped = settingsSecret
+          ? await applyWhatsappOptOuts({ tx, storeId }, optOuts, settingsSecret, now)
+          : 0
+        return saved + stopped
+      })
     }
   }
   return recorded

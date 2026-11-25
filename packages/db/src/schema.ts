@@ -2080,15 +2080,19 @@ export const notification = pgTable(
     template: text('template').notNull(),
     /** Email address or phone the message went to. */
     to: text('to').notNull(),
-    status: text('status', { enum: ['queued', 'sent', 'failed'] })
+    status: text('status', { enum: ['queued', 'sent', 'failed', 'skipped'] })
       .notNull()
       .default('queued'),
     providerRef: text('provider_ref'),
     error: text('error'),
+    /** What the provider reported after the send (WhatsApp: delivered, read or failed). */
+    deliveryStatus: text('delivery_status', { enum: ['delivered', 'read', 'failed'] }),
+    deliveryAt: timestamp('delivery_at', { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [
     uniqueIndex('notification_order_channel_template').on(t.orderId, t.channel, t.template),
+    index('notification_provider_ref').on(t.providerRef).where(sql`provider_ref is not null`),
     uniqueIndex('notification_cart_channel_template')
       .on(t.cartId, t.channel, t.template)
       .where(sql`cart_id is not null`),

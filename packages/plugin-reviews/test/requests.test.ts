@@ -9,6 +9,7 @@ import {
   reviewRequestEmail,
   scheduleReviewRequests,
 } from '../src/requests'
+import { requestLinkBuyer } from '../src/reviews'
 import { reviewRequest } from '../src/schema'
 import { defaultReviewsSettings, type ReviewsSettings } from '../src/settings'
 import { submitReview } from '../src/submit'
@@ -211,5 +212,49 @@ describe('review requests', () => {
         reviewRequestEmail(tx, storeId, o.orderId, 'request', settings, opts),
       ),
     ).toBeNull()
+  })
+  it('a review from a WhatsApp request link stops the reminder, though the order has no email', async () => {
+    const storeId = await seedStore()
+    const a = await addProduct(storeId, 'veil')
+    const whatsapp: ReviewsSettings = {
+      ...settings,
+      requestEmail: { ...settings.requestEmail, channel: 'whatsapp' },
+    }
+    const o = await addOrder(storeId, {
+      email: '',
+      phone: '+91 98765 43210',
+      variantIds: [a.variantId],
+    })
+    const link = { orderId: o.orderId, productId: a.productId }
+    // No email on the order: the form must ask for one rather than hide the field.
+    expect((await withStore(app, storeId, (tx) => requestLinkBuyer(tx, link)))?.hasEmail).toBe(
+      false,
+    )
+    await withStore(app, storeId, async (tx) => {
+      await scheduleReviewRequests(tx, storeId, o.orderId, whatsapp, t0)
+      await queueDueReviewRequests(tx, storeId, whatsapp, at(7))
+      await submitReview(
+        tx,
+        storeId,
+        {
+          productId: a.productId,
+          rating: 5,
+          title: '',
+          body: 'Lovely veil',
+          name: 'Asha',
+          email: 'asha@example.com',
+          photoMediaIds: [],
+          requestLink: link,
+        },
+        whatsapp,
+        at(8),
+      )
+    })
+    const [row] = await owner.select().from(reviewRequest)
+    expect(row?.reviewedAt).not.toBeNull()
+    const later = await withStore(app, storeId, (tx) =>
+      queueDueReviewRequests(tx, storeId, whatsapp, at(20)),
+    )
+    expect(later.reminders).toBe(0)
   })
 })

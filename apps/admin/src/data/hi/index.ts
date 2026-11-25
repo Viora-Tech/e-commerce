@@ -161,6 +161,7 @@ import seoAssistant from './seo-assistant'
 import seoHealth from './seo-health'
 import seoKeywords from './seo-keywords'
 import seoReport from './seo-report'
+import sesSetup from './ses-setup'
 import settings from './settings'
 import settingsRows from './settings-rows'
 import shadowfax from './shadowfax'
@@ -396,6 +397,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...rapidshyp,
   ...shiprocket,
   ...emailSuppression,
+  ...sesSetup,
   ...shadowfax,
   ...snapmint,
   ...growthbook,

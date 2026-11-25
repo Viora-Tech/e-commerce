@@ -295,6 +295,7 @@ export const marketingMessage = pgTable(
       .where(sql`automation_run_id is not null`),
     index('marketing_message_store_created').on(t.storeId, t.createdAt),
     index('marketing_message_campaign').on(t.campaignId, t.status),
+    index('marketing_message_provider_ref').on(t.providerRef).where(sql`provider_ref is not null`),
   ],
 )
 

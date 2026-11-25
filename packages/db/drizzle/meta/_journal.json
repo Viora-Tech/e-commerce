@@ -1769,6 +1769,13 @@
     {
       "idx": 252,
       "version": "7",
+      "when": 1795381500000,
+      "tag": "0268_whatsapp_delivery_reports",
+      "breakpoints": true
+    },
+    {
+      "idx": 253,
+      "version": "7",
       "when": 1795950000000,
       "tag": "0270_loyalty_v2",
       "breakpoints": true

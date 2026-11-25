@@ -2,6 +2,7 @@ import {
   checkRateLimit,
   clientIp,
   handleSesSnsWebhook,
+  handleStoreSesSnsWebhook,
   type RateLimitStore,
   rateLimitKey,
   retryAfterSeconds,
@@ -51,6 +52,35 @@ export function emailFeedbackWebhooks(
       })
     }
     const outcome = await handleSesSnsWebhook(db, await c.req.text(), deps)
+    if (outcome.status === 'rejected') {
+      return rejectWebhook(c, 'ses-feedback', NO_STORE, outcome.reason)
+    }
+    c.var.log?.set({
+      ...(outcome.status === 'recorded' ? { storeId: outcome.storeId } : {}),
+      webhook: { provider: 'ses', outcome: outcome.status },
+    })
+    return c.json({ ok: true })
+  })
+  // A store's own SES account: its SNS topic (saved on the SES app) posts here, for that store only.
+  app.post('/webhooks/email/ses/:storeId', limitBody, async (c) => {
+    const ip = clientIp(c.req.raw.headers, { peer: peerAddress(c) })
+    const limit = await checkRateLimit(
+      rateLimitStore,
+      rateLimitKey('email-feedback-webhook:ip', ip),
+      WEBHOOK_IP_RULE,
+    )
+    if (!limit.ok) {
+      return c.json({ ok: false, reason: 'rate limited' }, 429, {
+        'retry-after': String(retryAfterSeconds(limit)),
+      })
+    }
+    const { topicArn: _platform, ...storeDeps } = deps
+    const outcome = await handleStoreSesSnsWebhook(
+      db,
+      c.req.param('storeId'),
+      await c.req.text(),
+      storeDeps,
+    )
     if (outcome.status === 'rejected') {
       return rejectWebhook(c, 'ses-feedback', NO_STORE, outcome.reason)
     }

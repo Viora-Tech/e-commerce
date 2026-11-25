@@ -17,6 +17,10 @@ type ChannelConnectPageProps = {
   channelId: ChannelId
   /** Above the guide, e.g. WhatsApp's "Connect with Facebook". */
   lead?: ReactNode
+  /** Under the app's fields, e.g. SES's connection check. */
+  hint?: ReactNode
+  /** After a successful Save (SES checks the saved keys again). */
+  onSaved?: (() => void) | undefined
 }
 
 /** The per-message switches ride along in the same blob untouched. */
@@ -54,10 +58,22 @@ function guide(copy: typeof messageAppsContent, channelId: ChannelId) {
  * fields and on/off switch, from the same notifications settings Settings →
  * Notifications reads. Only this app's channel is shown.
  */
-export default function ChannelConnectPage({ channelId, lead }: ChannelConnectPageProps) {
+export default function ChannelConnectPage({
+  channelId,
+  lead,
+  hint,
+  onSaved,
+}: ChannelConnectPageProps) {
   // Hooks
   const apps = useCopy(appsContent)
   const copy = useCopy(messageAppsContent)
+
+  // Event handlers
+  const handleSave = async (next: Parameters<typeof save>[0]) => {
+    const saved = await save(next)
+    if (saved) onSaved?.()
+    return saved
+  }
 
   // Render logic
   const words = copy[channelId]
@@ -68,7 +84,8 @@ export default function ChannelConnectPage({ channelId, lead }: ChannelConnectPa
       intro={words.intro}
       icon={<Bell aria-hidden="true" />}
       load={LOADERS[channelId]}
-      save={save}
+      save={handleSave}
+      renderHint={hint ? () => hint : undefined}
       emptyExtra={{}}
       renderDescription={() => (
         <div className="flex flex-col gap-4">

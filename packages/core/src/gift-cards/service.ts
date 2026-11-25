@@ -17,6 +17,7 @@ import type {
 } from '@commerce/notifications'
 import { and, desc, eq, gte, ilike, inArray, isNull, lt, lte, or, type SQL, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { sendStatus } from '../email-suppression/guard'
 import { CommerceError } from '../errors'
 import { recomputeOrderStatuses } from '../order/recompute'
 import { decryptSecret, encryptSecret } from '../secrets'
@@ -700,7 +701,7 @@ export async function deliverGiftCard(
       channel: channel.id,
       template: 'gift_card_issued',
       to,
-      status: r.ok ? 'sent' : 'failed',
+      status: sendStatus(r),
       providerRef: r.ok ? r.providerRef : null,
       error: r.ok ? null : r.error,
     })

@@ -7,16 +7,20 @@ import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import PageHeader from '@/components/layout/page-header'
 import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
+import { appsContent } from '@/data/apps'
 import { filterPanelContent } from '@/data/filter-panel'
 import { reviewToolsContent } from '@/data/review-tools'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
+import type { LoadFailure } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
+import { isForbidden } from '@/lib/forbidden'
 import {
   CLEAR_REVIEW_FILTERS,
   REVIEW_FILTER_PARAMS,
@@ -49,6 +53,7 @@ function ReviewsList() {
   const copy = useCopy(reviewsContent)
   const panelCopy = useCopy(filterPanelContent)
   const toolsCopy = useCopy(reviewToolsContent)
+  const apps = useCopy(appsContent)
   const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
@@ -61,6 +66,8 @@ function ReviewsList() {
   const [result, setResult] = useState<ListResult | null>(null)
   const [products, setProducts] = useState<Products>([])
   const [loading, setLoading] = useState(true)
+  // A failed read shows "Could not load the reviews" with Try again, never "No reviews yet".
+  const [failed, setFailed] = useState<LoadFailure | false>(false)
   const [version, setVersion] = useState(0)
   const [busy, setBusy] = useState(false)
   const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
@@ -77,8 +84,17 @@ function ReviewsList() {
         status: q.status ?? undefined,
         ...reviewFilterInput(q),
       })
-      .then((r) => !cancelled && setResult(r))
-      .catch((err: unknown) => toast.error(errorText(err, copy.list.failed)))
+      .then((r) => {
+        if (cancelled) return
+        setResult(r)
+        setFailed(false)
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return
+        setFailed(isForbidden(err) ? 'no-access' : 'error')
+        // Rows from an earlier read stay on screen; the toast says this one failed.
+        toast.error(errorText(err, copy.list.failed))
+      })
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
@@ -123,6 +139,7 @@ function ReviewsList() {
   )
   const applied = appliedFromGroups(groups, panelCopy)
   const filtered = applied.length > 0 || q.query !== '' || q.status !== null
+  const loadFailed = failed !== false && !result
 
   return (
     <div className="flex flex-col gap-5">
@@ -159,81 +176,97 @@ function ReviewsList() {
           </>
         }
       />
-      {result ? (
-        <ReviewTiles
-          stats={stats}
-          status={q.status}
-          onStatus={(status) => setQ({ status, page: 1 })}
+      {loadFailed ? (
+        <LoadFailedState
+          size="page"
+          heading={apps.couldNotLoad.reviews}
+          failed={failed || undefined}
+          onRetry={reload}
         />
       ) : (
-        <div className="h-[6.5rem]" />
-      )}
-      <ResourceTable
-        resourceName={copy.list.resource}
-        columns={reviewColumns(copy)}
-        items={result?.rows ?? []}
-        getId={(r) => r.id}
-        href={(r) => routes.apps.page('reviews', 'reviews', r.id)}
-        loading={loading && !result}
-        query={q.query}
-        onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
-        onClearAll={() => setQ({ ...CLEAR_REVIEW_FILTERS, query: '', status: null, page: 1 })}
-        views={
-          <ViewSelect
-            value={q.status}
-            onChange={(status) => setQ({ status, page: 1 })}
-            options={[
-              { value: null, label: copy.list.tabs.all, count: stats.all },
-              ...STATUSES.map((s) => ({ value: s, label: copy.list.tabs[s], count: stats[s] })),
-            ]}
+        <>
+          {result ? (
+            <ReviewTiles
+              stats={stats}
+              status={q.status}
+              onStatus={(status) => setQ({ status, page: 1 })}
+            />
+          ) : (
+            <div className="h-[6.5rem]" />
+          )}
+          <ResourceTable
+            resourceName={copy.list.resource}
+            columns={reviewColumns(copy)}
+            items={result?.rows ?? []}
+            getId={(r) => r.id}
+            href={(r) => routes.apps.page('reviews', 'reviews', r.id)}
+            loading={loading && !result}
+            query={q.query}
+            onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
+            onClearAll={() => setQ({ ...CLEAR_REVIEW_FILTERS, query: '', status: null, page: 1 })}
+            views={
+              <ViewSelect
+                value={q.status}
+                onChange={(status) => setQ({ status, page: 1 })}
+                options={[
+                  { value: null, label: copy.list.tabs.all, count: stats.all },
+                  ...STATUSES.map((s) => ({ value: s, label: copy.list.tabs[s], count: stats[s] })),
+                ]}
+              />
+            }
+            filterGroups={groups}
+            page={q.page}
+            perPage={perPage}
+            onPerPageChange={(next) => {
+              setPerPage(next)
+              setQ({ page: 1 })
+            }}
+            total={result?.total ?? 0}
+            onPageChange={(page) => setQ({ page })}
+            bulkActions={(ids, clear) => (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => runBulk(ids, clear, 'published')}
+                >
+                  <CircleCheck />
+                  {copy.list.bulk.approve}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => runBulk(ids, clear, 'hidden')}
+                >
+                  <EyeOff />
+                  {copy.list.bulk.hide}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-destructive"
+                  disabled={busy}
+                  onClick={() => setDeleting({ ids, clear })}
+                >
+                  <Trash2 />
+                  {copy.list.bulk.delete}
+                </Button>
+              </>
+            )}
+            rowActions={(r) => (
+              <ReviewRowActions
+                id={r.id}
+                status={r.status}
+                featured={r.featured}
+                onChanged={reload}
+              />
+            )}
+            empty={filtered ? copy.list.emptyFiltered : copy.list.empty}
           />
-        }
-        filterGroups={groups}
-        page={q.page}
-        perPage={perPage}
-        onPerPageChange={(next) => {
-          setPerPage(next)
-          setQ({ page: 1 })
-        }}
-        total={result?.total ?? 0}
-        onPageChange={(page) => setQ({ page })}
-        bulkActions={(ids, clear) => (
-          <>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={busy}
-              onClick={() => runBulk(ids, clear, 'published')}
-            >
-              <CircleCheck />
-              {copy.list.bulk.approve}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={busy}
-              onClick={() => runBulk(ids, clear, 'hidden')}
-            >
-              <EyeOff />
-              {copy.list.bulk.hide}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-destructive"
-              disabled={busy}
-              onClick={() => setDeleting({ ids, clear })}
-            >
-              <Trash2 />
-              {copy.list.bulk.delete}
-            </Button>
-          </>
-        )}
-        rowActions={(r) => (
-          <ReviewRowActions id={r.id} status={r.status} featured={r.featured} onChanged={reload} />
-        )}
-        empty={filtered ? copy.list.emptyFiltered : copy.list.empty}
-      />
+        </>
+      )}
       <DeleteReviewsDialog
         ids={deleting?.ids ?? []}
         open={deleting !== null}

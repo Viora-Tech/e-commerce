@@ -3,7 +3,7 @@ import type { EmailSuppressionReason } from '@commerce/db'
 import type { MarketingSend, Message, NotificationChannel } from '@commerce/notifications'
 import { sampleTemplateDataByTemplate } from '@commerce/notifications'
 import { describe, expect, it } from 'vitest'
-import { SUPPRESSED_PREFIX, withSuppressionGuard } from './guard'
+import { SUPPRESSED_PREFIX, sendStatus, suppressedError, withSuppressionGuard } from './guard'
 
 /** A channel that records what reached the provider. */
 class Recorder implements NotificationChannel {
@@ -74,5 +74,13 @@ describe('withSuppressionGuard', () => {
     expect(p).toBe(phone)
     const [e] = withSuppressionGuard([email], new Map())
     expect(e).toBe(email)
+  })
+})
+
+describe('sendStatus', () => {
+  it('records a suppressed send as skipped, never failed', () => {
+    expect(sendStatus({ ok: true, providerRef: 'x' })).toBe('sent')
+    expect(sendStatus({ ok: false, error: 'timeout' })).toBe('failed')
+    expect(sendStatus(suppressedError('complaint'))).toBe('skipped')
   })
 })

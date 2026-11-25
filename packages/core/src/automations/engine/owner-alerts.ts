@@ -15,6 +15,7 @@ import {
 } from '@commerce/db'
 import type { NotificationChannel, NotificationRegistry } from '@commerce/notifications'
 import { and, eq, isNull } from 'drizzle-orm'
+import { sendStatus } from '../../email-suppression/guard'
 import { escapeHtml } from '../../marketing/email'
 import { marketingChannels } from '../../marketing/send'
 import type { OutboxPayload } from '../../outbox/types'
@@ -163,7 +164,7 @@ export async function deliverOwnerAlertRow(
         channel: email.id,
         template: OWNER_ALERT_TEMPLATE,
         to,
-        status: r.ok ? 'sent' : 'failed',
+        status: sendStatus(r),
         providerRef: r.ok ? r.providerRef : null,
         error: r.ok ? null : r.error,
       })
