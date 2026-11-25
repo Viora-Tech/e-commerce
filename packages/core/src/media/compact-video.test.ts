@@ -7,7 +7,11 @@ import {
   compactVideoKey,
   enqueueCompactVideo,
   isVideoUrl,
+  POSTER_PORTRAIT_WIDTH,
+  POSTER_WIDTH,
+  posterWidthFor,
   SMALL_VIDEO_BYTES,
+  videoPosterKey,
   videoSources,
   withCompactVideos,
   worthKeeping,
@@ -97,5 +101,23 @@ describe('enqueueCompactVideo', () => {
     await expect(
       enqueueCompactVideo(queue, { storeId: 's1', mediaId: 'm1' }),
     ).resolves.toBeUndefined()
+  })
+})
+
+describe('first-frame posters', () => {
+  it('keys the poster beside the video, like its smaller copy', () => {
+    expect(videoPosterKey('stores/s/media/abc-hero.mp4')).toBe(
+      'stores/s/media/abc-hero.poster.webp',
+    )
+    expect(videoPosterKey('stores/s/media/abc-hero.MOV')).toBe(
+      'stores/s/media/abc-hero.poster.webp',
+    )
+  })
+
+  it('sizes a desktop poster 1280 wide and a phone (portrait) one 750, never upscaled', () => {
+    expect(posterWidthFor(1920, 1080)).toBe(POSTER_WIDTH)
+    expect(posterWidthFor(1080, 1920)).toBe(POSTER_PORTRAIT_WIDTH)
+    expect(posterWidthFor(640, 360)).toBe(640)
+    expect(posterWidthFor(1000, 1000)).toBe(POSTER_WIDTH > 1000 ? 1000 : POSTER_WIDTH)
   })
 })

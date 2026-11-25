@@ -12,6 +12,10 @@
  * Work happens outside any database transaction (a long encode must not hold a connection):
  * read the row, download, encode, upload, then save the result in a second short transaction.
  * The original is never changed or deleted: a video without a copy plays its original.
+ *
+ * The same job makes the video's first-frame poster (`./video-poster.ts`) when it has none, from
+ * the same download (a small video is downloaded for that alone). A failed poster is logged and
+ * never fails the copy; the storefront then simply has no poster to paint first.
  */
 import { createReadStream, createWriteStream } from 'node:fs'
 import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
@@ -24,9 +28,11 @@ import {
   compactPlan,
   compactVideoKey,
   isCompactableVideo,
+  linkAutoPoster,
   markVideoCompact,
   markVideoNoCopy,
   storageForStore,
+  videoPosterKey,
   worthKeeping,
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
@@ -35,17 +41,27 @@ import { logger } from '@commerce/observability/logging'
 import type { StorageProvider } from '@commerce/storage'
 import { eq } from 'drizzle-orm'
 import { encodeVideoFile, probeVideo } from './video-ffmpeg'
+import { makePosterFile, type PosterFile } from './video-poster'
 
-/** What one run did: `small`/`lean`/`not-smaller` keep the original (marked, never retried). */
-export type CompactResult = 'made' | 'skipped' | 'small' | 'lean' | 'not-smaller'
+/**
+ * What one run did: `small`/`lean`/`not-smaller` keep the original (marked, never retried);
+ * `poster` made only the first-frame poster (the copy was looked at before, or is not needed).
+ */
+export type CompactResult = 'made' | 'skipped' | 'small' | 'lean' | 'not-smaller' | 'poster'
 
 /** The ffmpeg side, swappable in tests (no ffmpeg there). */
 export type VideoTools = {
   probe: (input: string) => Promise<{ width: number | null; durationSec: number | null }>
   encode: (input: string, output: string) => Promise<void>
+  /** The first-frame poster of `input` at `output` (`frame` is a scratch PNG). */
+  poster: (input: string, frame: string, output: string) => Promise<PosterFile>
 }
 
-const defaultTools: VideoTools = { probe: probeVideo, encode: encodeVideoFile }
+const defaultTools: VideoTools = {
+  probe: probeVideo,
+  encode: encodeVideoFile,
+  poster: makePosterFile,
+}
 
 /** The object at `key` into the file at `path`, streamed when the provider can. False: missing. */
 export async function downloadToFile(
@@ -81,8 +97,58 @@ export async function uploadFromFile(
 }
 
 /**
- * Makes and saves the smaller copy of one video row. A row already looked at (`compact_size`
- * set) is skipped unless `force`; a re-run overwrites the copy at the same key.
+ * Makes the video's first-frame poster from the downloaded `input` and links it (only while the
+ * video has no poster). Never throws: a missing poster only means the video paints later.
+ */
+async function makePoster(
+  db: Db,
+  ctx: PosterContext,
+  input: string,
+  dir: string,
+  tools: VideoTools,
+): Promise<boolean> {
+  const posterKey = videoPosterKey(ctx.key)
+  const output = join(dir, 'poster.webp')
+  try {
+    const file = await tools.poster(input, join(dir, 'frame.png'), output)
+    await uploadFromFile(ctx.provider, posterKey, output, 'image/webp')
+    return await linkPoster(db, ctx, posterKey, file)
+  } catch (err) {
+    logger.warn('video poster not made', { storeId: ctx.storeId, mediaId: ctx.mediaId, error: err })
+    return false
+  }
+}
+
+type PosterContext = { storeId: string; mediaId: string; key: string; provider: StorageProvider }
+
+/** Links the poster object at `posterKey` to the video (a picture row in Files). */
+async function linkPoster(
+  db: Db,
+  ctx: PosterContext,
+  posterKey: string,
+  file: { size: number; width?: number | null; height?: number | null },
+): Promise<boolean> {
+  const url = ctx.provider.publicUrl(posterKey)
+  const id = await withStore(db, ctx.storeId, (tx) =>
+    linkAutoPoster(tx, ctx.storeId, ctx.mediaId, {
+      url,
+      key: posterKey,
+      provider: ctx.provider.id,
+      size: file.size,
+      width: file.width ?? null,
+      height: file.height ?? null,
+    }),
+  )
+  if (id) logger.info('video poster made', { storeId: ctx.storeId, mediaId: ctx.mediaId, url })
+  return id !== null
+}
+
+/**
+ * Makes and saves the smaller copy of one video row, and its first-frame poster when it has
+ * none. A row already looked at for a copy (`compact_size` set) gets no copy unless `force`; a
+ * re-run overwrites the copy at the same key. The poster is made whenever the video has no
+ * poster (`poster_media_id` null), force or not, and never replaces one; a poster object
+ * already in the bucket (an earlier run that stopped before linking it) is linked, not remade.
  */
 export async function compactVideo(
   db: Db,
@@ -95,30 +161,56 @@ export async function compactVideo(
   const found = await withStore(db, storeId, async (tx) => {
     const [row] = await tx.select().from(media).where(eq(media.id, mediaId))
     if (!row?.key || !isCompactableVideo(row.contentType)) return null
-    if (row.compactSize !== null && !opts.force) return null
+    const needCopy = row.compactSize === null || Boolean(opts.force)
+    const needPoster = !row.posterMediaId
+    if (!needCopy && !needPoster) return null
     const { storage } = await registriesForStore(tx, storeId)
     const provider = await storageForStore(tx, storeId, storage, settingsSecret)
     if (row.provider && row.provider !== provider.id) return null // file lives in an older bucket
-    return { key: row.key, provider }
+    return { key: row.key, provider, needCopy, needPoster }
   })
   if (!found) return 'skipped'
   const { key, provider } = found
+  const ctx: PosterContext = { storeId, mediaId, key, provider }
   const keep = async (result: CompactResult, facts: Record<string, unknown>) => {
     await withStore(db, storeId, (tx) => markVideoNoCopy(tx, mediaId))
     logger.info('video keeps its original', { storeId, mediaId, result, ...facts })
     return result
   }
 
-  // Size first, from the bucket's metadata: a small video is never downloaded.
+  // Size first, from the bucket's metadata: a small video is never downloaded for its copy.
   const head = await provider.head(key)
   if (!head) throw new Error(`object missing at ${key}`)
-  if (compactPlan({ bytes: head.size }) === 'small') return keep('small', { original: head.size })
+  let result: CompactResult = 'skipped'
+  let needCopy = found.needCopy
+  if (needCopy && compactPlan({ bytes: head.size }) === 'small') {
+    result = await keep('small', { original: head.size })
+    needCopy = false
+  }
+  let needPoster = found.needPoster
+  if (needPoster) {
+    const posterKey = videoPosterKey(key)
+    const made = await provider.head(posterKey)
+    if (made) {
+      if ((await linkPoster(db, ctx, posterKey, { size: made.size })) && result === 'skipped') {
+        result = 'poster'
+      }
+      needPoster = false
+    }
+  }
+  if (!needCopy && !needPoster) return result
 
   const dir = await mkdtemp(join(tmpdir(), 'video-'))
   const input = join(dir, 'in')
   const output = join(dir, 'out.mp4')
   try {
     if (!(await downloadToFile(provider, key, input))) throw new Error(`object missing at ${key}`)
+    // The poster first: a frame is quick, and it is what the hero paints first.
+    if (needPoster && (await makePoster(db, ctx, input, dir, tools)) && result === 'skipped') {
+      result = 'poster'
+    }
+    if (!needCopy) return result
+
     const original = (await stat(input)).size
     const probe = await tools.probe(input)
     const plan = compactPlan({ bytes: original, ...probe })
