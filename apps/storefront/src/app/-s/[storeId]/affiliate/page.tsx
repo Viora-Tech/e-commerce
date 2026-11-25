@@ -1,16 +1,20 @@
+import { store } from '@commerce/db'
 import { portalRange } from '@commerce/plugin-affiliates/server'
+import { eq } from 'drizzle-orm'
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import AffiliateApplyForm from '@/components/affiliate/affiliate-apply-form'
+import AffiliateBenefits from '@/components/affiliate/affiliate-benefits'
+import AffiliateBrandPanel from '@/components/affiliate/affiliate-brand-panel'
 import AffiliateDashboard from '@/components/affiliate/affiliate-dashboard'
-import AffiliateLanding from '@/components/affiliate/affiliate-landing'
 import AffiliateSignIn from '@/components/affiliate/affiliate-sign-in'
 import AffiliateStatus from '@/components/affiliate/affiliate-status'
-import ProgramTerms from '@/components/affiliate/program-terms'
 import { affiliateContent as copy } from '@/data/affiliate'
 import { loadAffiliatePortal } from '@/lib/affiliates'
 import { currentCustomer } from '@/lib/customer-session'
 import { requestOrigin } from '@/lib/seo'
+import { storeRead } from '@/lib/store-cache'
 
 type AffiliatePageProps = {
   params: Promise<{ storeId: string }>
@@ -22,19 +26,30 @@ export const metadata: Metadata = {
   robots: { index: false, follow: true },
 }
 
+/** The store's name for the signup page's brand panel, cached per store version. */
+function storeName(storeId: string) {
+  return storeRead(storeId, 'store-name', async (tx) => {
+    const [s] = await tx.select({ name: store.name }).from(store).where(eq(store.id, storeId))
+    return s?.name ?? ''
+  })
+}
+
 /**
- * The Affiliates app's storefront page: the program's pitch and terms with an application form
- * for a signed-in shopper, their status while it is reviewed, and the dashboard once approved.
- * Not found when the store does not have the app.
+ * The Affiliates app's storefront page. Before approval it is laid out like UpPromote's register
+ * page: the store's name on a brand-colour panel on the left; on the right Login (signed out),
+ * "Join our affiliate program", the Benefits box and the application form (or the sign-in
+ * JOIN, or their status while it is reviewed). The dashboard once approved. Not found when the
+ * store does not have the app.
  */
 export default async function AffiliatePage({ params, searchParams }: AffiliatePageProps) {
   const { storeId } = await params
   const { program: wanted, range } = await searchParams
   const slug = typeof wanted === 'string' ? wanted : undefined
   const me = await currentCustomer(storeId)
-  const [portal, origin] = await Promise.all([
+  const [portal, origin, name] = await Promise.all([
     loadAffiliatePortal(storeId, me, slug, portalRange(range)),
     requestOrigin(),
+    storeName(storeId),
   ])
 
   // Early returns
@@ -54,14 +69,27 @@ export default async function AffiliatePage({ params, searchParams }: AffiliateP
   const p = portal.program
   const here = p.isDefault ? '/affiliate' : `/affiliate?program=${p.slug}`
 
+  const signIn = `/account/login?return_to=${encodeURIComponent(here)}`
   return (
-    <section className="page-width py-8 md:py-14">
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:items-start lg:gap-12">
-        <div className="flex flex-col gap-8">
-          <AffiliateLanding program={p} />
-          <ProgramTerms program={p} />
-        </div>
-        <div className="lg:sticky lg:top-24">
+    <section className="grid lg:min-h-[44rem] lg:grid-cols-[minmax(0,35fr)_minmax(0,65fr)]">
+      <AffiliateBrandPanel storeName={name} />
+      <div className="flex flex-col gap-6 px-4 py-6 sm:px-8 lg:px-16 lg:py-10">
+        {me ? null : (
+          <div className="flex justify-end">
+            <Link
+              href={signIn}
+              className="rounded-full border border-ink px-5 py-2 text-small font-semibold text-ink no-underline"
+            >
+              {copy.register.login}
+            </Link>
+          </div>
+        )}
+        <div className="mx-auto flex w-full max-w-[36rem] flex-col gap-6">
+          <header className="flex flex-col gap-3 text-center">
+            <h1 className="h3 font-bold tracking-wide uppercase">{copy.register.heading}</h1>
+            {p.pitch ? <p className="text-body text-muted whitespace-pre-line">{p.pitch}</p> : null}
+          </header>
+          <AffiliateBenefits program={p} />
           {a ? (
             <AffiliateStatus affiliate={a} />
           ) : !p.active ? (

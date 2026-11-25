@@ -6,20 +6,22 @@ type AffiliateSignInProps = {
   returnTo: string
 }
 
-const copy = affiliateContent.signIn
+const copy = affiliateContent
 
-/** The shopper login in front of the application form. */
+/**
+ * Where the form sits for a visitor who is not signed in: joining needs the store account, so
+ * the full-width JOIN goes to the store's sign-in (which creates the account) and comes back.
+ */
 export default function AffiliateSignIn({ returnTo }: AffiliateSignInProps) {
   // Render logic
   return (
-    <div className="flex flex-col items-start gap-4 rounded-[var(--radius-card)] bg-surface p-6">
-      <h2 className="h3">{copy.title}</h2>
-      <p className="text-body text-muted">{copy.body}</p>
+    <div className="flex flex-col gap-4">
+      <p className="text-small text-muted">{copy.signIn.body}</p>
       <Link
-        className="btn btn--primary w-full sm:w-auto"
+        className="btn btn--primary w-full uppercase"
         href={`/account/login?return_to=${encodeURIComponent(returnTo)}`}
       >
-        <span className="btn__label">{copy.button}</span>
+        <span className="btn__label">{copy.register.join}</span>
       </Link>
     </div>
   )

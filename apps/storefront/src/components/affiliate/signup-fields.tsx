@@ -8,13 +8,24 @@ type SignupFieldsProps = {
   onChange: (id: string, value: string | boolean) => void
 }
 
-/** A program's own signup questions, after name and where they post. */
+const LABEL = 'text-[0.75rem] font-semibold tracking-wide text-ink uppercase'
+
+/** A program's own signup questions, after name and where they post, with the form's uppercase labels. */
 export default function SignupFields({ fields, values, onChange }: SignupFieldsProps) {
   // Render logic
   return (
     <>
       {fields.map((f) => {
-        const label = `${f.label}${f.required ? ' *' : ''}`
+        const label = (
+          <>
+            {f.label}
+            {f.required ? (
+              <span aria-hidden className="text-danger">
+                {' *'}
+              </span>
+            ) : null}
+          </>
+        )
         const value = values[f.id]
         if (f.kind === 'checkbox')
           return (
@@ -30,7 +41,7 @@ export default function SignupFields({ fields, values, onChange }: SignupFieldsP
           )
         return (
           <div key={f.id} className="field">
-            <label htmlFor={`aff-q-${f.id}`} className="field__label text-small">
+            <label htmlFor={`aff-q-${f.id}`} className={LABEL}>
               {label}
             </label>
             {f.kind === 'textarea' ? (
