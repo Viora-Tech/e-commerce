@@ -38,7 +38,11 @@ export type BrowseFacets = {
   /** How many are gift cards; the kind filter shows only when a listing mixes them with products. */
   giftCards: number
   products: number
-  /** Lowest and highest product price in the listing, paise; null when empty. */
+  /**
+   * Lowest and highest variant price in the listing, paise; null when empty. The highest is the
+   * dearest variant's, not the dearest "from" price, so the price filter's top reaches every
+   * price a card can show (a ₹26,899 variant of a product from ₹22,999).
+   */
   priceMin: number | null
   priceMax: number | null
   productTypes: FacetValue[]
@@ -133,6 +137,7 @@ function baseQuery(
       ${relevance} as relevance,
       ${boost?.pin ?? sql`null::int`} as pin,
       (select min(v.price_paise) from variant v where v.product_id = p.id and v.archived_at is null and v.hidden_on_store = false) as min_price,
+      (select max(v.price_paise) from variant v where v.product_id = p.id and v.archived_at is null and v.hidden_on_store = false) as max_price,
       exists (
         select 1 from variant v
         left join inventory_level il on il.variant_id = v.id and il.fulfils_online
@@ -234,7 +239,7 @@ async function runBrowse(
     with b as (${base})
     select count(*) filter (where in_stock) as in_stock, count(*) filter (where not in_stock) as out_stock,
       count(*) filter (where is_gift_card) as gift_cards, count(*) filter (where not is_gift_card) as products,
-      min(min_price) as price_min, max(min_price) as price_max from b`)
+      min(min_price) as price_min, max(max_price) as price_max from b`)
   const facetRows = await tx.execute<Row>(sql`
     with b as (${base})
     select 'type' as kind, null as name, product_type as value, count(*) as n from b

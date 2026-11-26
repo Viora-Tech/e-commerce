@@ -11,6 +11,7 @@ import {
   MAX_BAR_SHARE,
   SAMPLE_ROWS,
 } from '../launcher-lift'
+import { PHONE_QUERY, SCROLL_SLOP, TOP_ZONE, TUCK_SELECTOR } from '../launcher-tuck'
 import { islandModuleUrl } from './modules'
 
 /**
@@ -75,7 +76,10 @@ function css(w: InboxWidget): string {
     '#wc-chat .wc-chat-icons-open{display:none!important}',
     '#wc-chat.is-open .wc-chat-icons-open{display:grid!important}',
     '@media (prefers-reduced-motion:no-preference){#wc-chat.is-open .wc-chat-main{rotate:-20deg;scale:0.9}#wc-chat:not(.is-open) .wc-chat-chevron{rotate:20deg;scale:0.9}}',
-    '#wc-chat.is-covered:not(.is-open){visibility:hidden!important;opacity:0!important}',
+    '#wc-chat:is(.is-covered,.is-tucked):not(.is-open){visibility:hidden!important;opacity:0!important;pointer-events:none!important}',
+    // Phones: a 2.75rem button 0.75rem off the edge; a labelled pill shrinks to its icon
+    // (`lib/launcher-tuck.ts` for when it tucks away).
+    `@media ${PHONE_QUERY}{#wc-chat{height:2.75rem!important;min-width:2.75rem!important;${w.horizontal === 'left' ? 'left:0.75rem!important;' : w.horizontal === 'right' ? 'right:0.75rem!important;' : ''}}#wc-chat svg,#wc-chat .wc-chat-icons{width:1.25rem!important;height:1.25rem!important}${w.activatorIcon === 'none' ? '' : '#wc-chat:has(.wc-chat-label){padding:0!important;width:2.75rem!important}#wc-chat .wc-chat-label>span{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip-path:inset(50%)!important;white-space:nowrap!important}'}}`,
     `#wc-chat .wc-chat-badge{position:absolute!important;top:-0.25rem!important;right:-0.25rem!important;display:flex!important;align-items:center!important;justify-content:center!important;height:1.25rem!important;min-width:1.25rem!important;padding:0 0.375rem!important;box-sizing:border-box!important;border-radius:9999px!important;background:var(--color-bg,Canvas)!important;color:var(--color-ink,CanvasText)!important;font-size:0.6875rem!important;font-weight:600!important;font-variant-numeric:tabular-nums!important;box-shadow:0 0 0 1px rgb(0 0 0/0.08)!important}`,
     '#wc-chat .wc-chat-badge[hidden],#wc-chat.is-open .wc-chat-badge{display:none!important}',
     // The card's frame: as `ChatWidget` places its card (float above the button, docked to a side,
@@ -116,6 +120,10 @@ export function chatModuleSpec(w: InboxWidget, storeName: string) {
       rows: [...SAMPLE_ROWS],
       share: MAX_BAR_SHARE,
       root: CHAT_ROOT_ATTR,
+      phone: PHONE_QUERY,
+      tuck: TUCK_SELECTOR,
+      slop: SCROLL_SLOP,
+      top: TOP_ZONE,
     },
   }
 }

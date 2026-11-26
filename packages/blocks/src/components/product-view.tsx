@@ -196,9 +196,11 @@ function ProductViewBody({
               ) : null}
             </div>
           ) : null}
+          {/* Nothing to buy (sold out): no "₹X with UPI" offer for a price no one can pay. */}
           {s.showPaymentSignals &&
           !launching &&
-          variant?.pricePaise != null &&
+          variant?.purchasable &&
+          variant.pricePaise != null &&
           hasCopy(s.paymentNote) ? (
             <ProductPaymentSignals
               note={s.paymentNote}
