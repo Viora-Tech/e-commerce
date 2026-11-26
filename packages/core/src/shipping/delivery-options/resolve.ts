@@ -8,7 +8,7 @@
 import type { DeliveryOption } from './config'
 import { courierList } from './courier-list'
 import { optionCardTitle } from './labels'
-import { alternativesFor, optionAllows, pickFor } from './pick'
+import { alternativesFor, optionCandidates, pickFor } from './pick'
 import { cartProtect, cheapestZoneRate, datesFor } from './price'
 import type {
   DeliveryResolveResult,
@@ -118,10 +118,8 @@ export function resolveDeliveryOptions(
       ? allRoutes
       : allRoutes.map((r) => ({ ...r, showCarrier: false }))
     const listed = option.couriers.show === 'list'
-    const candidates = routes.filter(
-      (r) => optionAllows(option, r) && (listed || r.speed === option.speed),
-    )
     const match = matchRules(config.rules, option.id, cart.items)
+    const candidates = optionCandidates(routes, option, listed, match.winners)
     const pool = rulePool(match.winners, candidates, match.outranked)
     const ins = option.insurance
     const offered =
