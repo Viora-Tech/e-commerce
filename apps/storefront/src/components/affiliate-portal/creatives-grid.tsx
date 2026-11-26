@@ -70,7 +70,7 @@ export default function CreativesGrid({ creatives }: CreativesGridProps) {
   return (
     <div className="flex flex-col gap-4 px-4 lg:px-6">
       <Tabs value={kind} onValueChange={(v) => setKind(v as Kind)}>
-        <TabsList>
+        <TabsList className="gap-1">
           {tabs.map((t) => (
             <TabsTrigger key={t.id} value={t.id}>
               {t.label}
