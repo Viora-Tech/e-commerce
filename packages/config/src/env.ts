@@ -205,6 +205,12 @@ export const shape = z.object({
    */
   STOREFRONT_CACHE_MB: z.coerce.number().int().min(0).max(4096).optional(),
   /**
+   * Cache-miss theme renders one storefront process runs at once; the rest wait in line, shoppers
+   * first and crawlers last (`apps/storefront/src/lib/render-gate.ts`). Unset is 4; 0 turns the
+   * limit off.
+   */
+  STOREFRONT_RENDER_SLOTS: z.coerce.number().int().min(0).max(64).optional(),
+  /**
    * How long a shared cache (Cloudflare, a CDN) may keep a page for visitors without cookies,
    * in seconds (`s-maxage`); unset is 30. 0 keeps every page private.
    */

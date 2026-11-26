@@ -4,6 +4,8 @@ import {
   keepable,
   type LiquidRenderScope,
   layoutCacheKey,
+  liquidRequestPath,
+  MISSING_PAGE_PATH,
   NONCE_MARK,
   newTrace,
   renderTtl,
@@ -149,6 +151,34 @@ describe('cart and clock tracing', () => {
     )
     expect(renderTtl({ cart: false, customer: false, clock: false, failed: true }, hour)).toBe(
       30_000,
+    )
+  })
+})
+
+describe('the 404 page of unrouted paths', () => {
+  const at = (pathname: string, missing: boolean): LiquidRenderScope => ({
+    ...scope,
+    path: liquidRequestPath(pathname, missing),
+    template: '404',
+  })
+
+  it('renders every path no route serves under one key, so a scan costs one render', () => {
+    const a = at('/.env.production', true)
+    const b = at('/backup/db.sql', true)
+    expect(a.path).toBe(MISSING_PAGE_PATH)
+    expect(layoutCacheKey(a)).toBe(layoutCacheKey(b))
+    expect(sectionCacheKey(a, { id: 'main-404' })).toBe(sectionCacheKey(b, { id: 'main-404' }))
+  })
+
+  it('still keys a new theme version apart, so a publish shows on the 404 page', () => {
+    const a = at('/nope', true)
+    expect(layoutCacheKey(a)).not.toBe(layoutCacheKey({ ...a, themeVersion: 'next' }))
+  })
+
+  it('keeps a routed page on its own path', () => {
+    expect(liquidRequestPath('/policies/refund-policy', false)).toBe('/policies/refund-policy')
+    expect(layoutCacheKey(at('/policies/a', false))).not.toBe(
+      layoutCacheKey(at('/policies/b', false)),
     )
   })
 })

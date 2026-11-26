@@ -41,6 +41,19 @@ export type LiquidRenderScope = {
   market?: string | undefined
 }
 
+/** The one path every unrouted request renders under (Liquid's `request.path`, the cache keys). */
+export const MISSING_PAGE_PATH = '/404'
+
+/**
+ * The path a page's Liquid is rendered and cached for. A path no route serves (the proxy's
+ * `x-missing-route`) gives the theme's 404 page, the same for every such path: rendering it as
+ * `/404` lets one render of its layout, header, footer and 404 sections per theme version
+ * answer a scanner's hundreds of different paths, instead of rendering each one afresh.
+ */
+export function liquidRequestPath(pathname: string, missingRoute: boolean): string {
+  return missingRoute ? MISSING_PAGE_PATH : pathname
+}
+
 function scopeKey(scope: LiquidRenderScope): string {
   return [
     scope.themeId,

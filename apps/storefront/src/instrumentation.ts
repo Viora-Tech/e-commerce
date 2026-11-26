@@ -37,6 +37,8 @@ export async function register() {
 
 /** A render or route error no handler caught: to Sentry, and as an error event to the logs. */
 export const onRequestError: Instrumentation.onRequestError = async (error, request, context) => {
+  // A render stopped because its visitor left (`lib/render-gate.ts`): nothing went wrong.
+  if (error instanceof Error && error.name === 'RenderAborted') return
   Sentry.captureRequestError(error, request, context)
   await logs?.onRequestError(
     error instanceof Error ? error : new Error(String(error)),
