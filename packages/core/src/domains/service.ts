@@ -270,6 +270,15 @@ export async function setPrimaryDomain(
       .update(storeDomain)
       .set({ redirectToPrimary: true })
       .where(and(eq(storeDomain.kind, 'platform'), eq(storeDomain.isPrimary, false)))
+    // Its www/apex twin, when connected, redirects straight to it (one hop, path kept) rather
+    // than serving a copy of the store. The merchant can switch it back on the twin's page.
+    const twin = wwwCounterpart(row.hostname)
+    if (twin) {
+      await tx
+        .update(storeDomain)
+        .set({ redirectToPrimary: true })
+        .where(and(eq(storeDomain.kind, 'custom'), eq(storeDomain.hostname, twin)))
+    }
   }
   return row
 }

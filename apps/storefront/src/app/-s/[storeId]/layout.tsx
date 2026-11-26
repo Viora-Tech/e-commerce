@@ -15,7 +15,6 @@ import { richtextNode } from '@commerce/blocks/richtext-node'
 import { loadEnv } from '@commerce/config'
 import {
   CONSENT_COOKIE,
-  currentConsent,
   decodeConsent,
   getTheme,
   grievanceOfficerOf,
@@ -61,6 +60,7 @@ import { addLineAction } from '@/lib/cart-actions'
 import { chatwootChatFor } from '@/lib/chatwoot'
 import { liquidLayoutForPath } from '@/lib/checkout-path'
 import { listCollections } from '@/lib/collections'
+import { requestRegion, shimConsentOf } from '@/lib/consent-cookie'
 import { COOKIE_SETTINGS_HASH } from '@/lib/cookie-settings'
 import { NONCE_HEADER } from '@/lib/csp'
 import { requestExperiments } from '@/lib/experiments'
@@ -322,6 +322,8 @@ export default async function StoreLayout({ children, params }: Props) {
     bannerMessage: privacy.bannerMessage,
     bannerVersion: privacy.bannerVersion,
     initial: decodeConsent(jar.get(CONSENT_COOKIE)?.value),
+    // Shopify's model: the banner only where the visitor's region requires consent.
+    region: await requestRegion(storeId, await headers()),
     nonce,
     // The Pixels app's pixels (null without the app); never in a theme preview.
     pixels: preview ? null : await storePixels(storeId, current.apps),
@@ -415,7 +417,7 @@ export default async function StoreLayout({ children, params }: Props) {
         </head>
         <body {...reactAttrs(liquid.bodyAttrs)} suppressHydrationWarning>
           <LiquidHtml
-            html={`<script${nonce ? ` nonce="${nonce}"` : ''}>${liquidShim({ askConsent: currentConsent(consent.initial, consent.bannerVersion) === null, prefix: (await headers()).get(MARKET_HEADERS.prefix) ?? '', designMode, preview: shimPreview(preview && (await headers())) })}</script>${liquid.head}`}
+            html={`<script${nonce ? ` nonce="${nonce}"` : ''}>${liquidShim({ ...shimConsentOf(consent.initial, consent.bannerVersion, consent.region), prefix: (await headers()).get(MARKET_HEADERS.prefix) ?? '', designMode, preview: shimPreview(preview && (await headers())) })}</script>${liquid.head}`}
           />
           {previewName && !preview?.inFrame ? <PreviewBar themeName={previewName} /> : null}
           {preview ? null : <StaffSignInBar storeId={storeId} />}

@@ -181,6 +181,21 @@ export default async function CartContents({ storeId, reorderSkipped }: CartCont
           </div>
         </aside>
       </div>
+      {/* Phones: the total and Check out pinned above the mobile dock, so the button shows on
+          first view however long the cart is (section-cart.css hides the summary's own button
+          there). `data-chat-tuck` keeps the chat button off it (`lib/launcher-tuck.ts`). */}
+      <div className="cart-checkout-bar" data-chat-tuck="">
+        <div className="cart-checkout-bar__total">
+          <span className="cart-checkout-bar__label">{content.total}</span>
+          <span className="cart-checkout-bar__amount">
+            <Money paise={total} cart={priced} />
+          </span>
+        </div>
+        <CartCheckoutLink className="btn btn--primary cart-checkout-bar__button">
+          {content.checkout}
+          <Icon name="arrow-right" size={16} />
+        </CartCheckoutLink>
+      </div>
     </section>
   )
 }

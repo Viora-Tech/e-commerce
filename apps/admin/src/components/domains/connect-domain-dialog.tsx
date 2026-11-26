@@ -1,6 +1,11 @@
 'use client'
 
-import { isApex, normaliseHostname, wwwCounterpart } from '@commerce/core/domains'
+import {
+  type DomainTargets,
+  isApex,
+  normaliseHostname,
+  wwwCounterpart,
+} from '@commerce/core/domains'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Field, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -15,12 +20,15 @@ import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
+import BareDomainGuide from './bare-domain-guide'
 
 type ConnectDomainDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   /** An apex only redirects on this server: its www always comes with it. */
   apexRedirectOnly: boolean
+  /** Where records point, so a bare domain sees its A and www CNAME before the next screen. */
+  targets: DomainTargets
 }
 
 /** Step one of connecting: the hostname, then on to its DNS records. */
@@ -28,6 +36,7 @@ export default function ConnectDomainDialog({
   open,
   onOpenChange,
   apexRedirectOnly,
+  targets,
 }: ConnectDomainDialogProps) {
   // Hooks
   const copy = useCopy(domainsContent)
@@ -80,7 +89,8 @@ export default function ConnectDomainDialog({
   // Render logic
   const parsed = normaliseHostname(value)
   const twin = parsed.ok ? wwwCounterpart(parsed.hostname) : null
-  const twinRequired = apexRedirectOnly && parsed.ok && isApex(parsed.hostname)
+  const bare = parsed.ok && isApex(parsed.hostname)
+  const twinRequired = apexRedirectOnly && bare
   const error = touched && !parsed.ok ? parsed.error : null
 
   return (
@@ -121,6 +131,13 @@ export default function ConnectDomainDialog({
           />
           <span>{copy.dialog.twin(twin)}</span>
         </Label>
+      ) : null}
+      {bare && parsed.ok ? (
+        <BareDomainGuide
+          apex={parsed.hostname}
+          targets={targets}
+          apexRedirectOnly={apexRedirectOnly}
+        />
       ) : null}
     </FormDialog>
   )

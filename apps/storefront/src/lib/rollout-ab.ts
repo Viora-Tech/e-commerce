@@ -7,7 +7,6 @@ import {
   recordAbPurchase,
 } from '@commerce/core'
 import { isBotUserAgent } from '@commerce/core/marketing'
-import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { type Arm, assignArm } from '@commerce/core/rollout-ab'
 import { logger } from '@commerce/observability/logging'
 import { cookies, headers } from 'next/headers'
@@ -43,10 +42,10 @@ export function runningAbTests(storeId: string): Promise<ActiveAbTest[]> {
 export type RequestRolloutArm = { rolloutId: string; arm: Arm; themeId: string | null }
 
 /** The anonymous visitor id, when the shopper allowed analytics and is not a crawler. */
-async function measuredVisitor(): Promise<string | null> {
+async function measuredVisitor(storeId: string): Promise<string | null> {
   try {
     const jar = await cookies()
-    if (!analyticsAllowed(jar.get(CONSENT_COOKIE)?.value)) return null
+    if (!(await analyticsAllowed(storeId))) return null
     if (isBotUserAgent((await headers()).get('user-agent'))) return null
     return parseVisitorId(jar.get(VISITOR_COOKIE)?.value)
   } catch {
@@ -84,7 +83,7 @@ export const requestRolloutArm = cache(
   async (storeId: string): Promise<RequestRolloutArm | null> => {
     const tests = await runningAbTests(storeId)
     if (tests.length === 0) return null
-    const visitorId = await measuredVisitor()
+    const visitorId = await measuredVisitor(storeId)
     if (!visitorId) return null
     const marketId = await requestMarketId()
     for (const test of tests) {
@@ -107,7 +106,7 @@ export async function abThemeId(storeId: string): Promise<string | null> {
 /** The visitor's first add to cart, for the tests they are in (after the response). */
 export async function noteAbAddToCart(storeId: string): Promise<void> {
   if ((await runningAbTests(storeId)).length === 0) return
-  const visitorId = await measuredVisitor()
+  const visitorId = await measuredVisitor(storeId)
   if (!visitorId) return
   after(() =>
     inStore(storeId, (tx) => recordAbAddToCart(tx, storeId, visitorId)).catch((err) =>
@@ -118,7 +117,7 @@ export async function noteAbAddToCart(storeId: string): Promise<void> {
 
 /** Whether a thank-you page should report its order for the store's A/B rollouts. */
 export async function abPurchaseMeasured(storeId: string): Promise<boolean> {
-  return (await runningAbTests(storeId)).length > 0 && (await measuredVisitor()) !== null
+  return (await runningAbTests(storeId)).length > 0 && (await measuredVisitor(storeId)) !== null
 }
 
 /** An order the visitor's thank-you page reported, for the tests they were drawn in. */

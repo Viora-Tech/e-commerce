@@ -108,6 +108,8 @@ export const SECTION_PATH_HEADER = 'x-section-path'
 export const DERIVED_HEADERS = [
   'x-store-id',
   'x-visitor-country',
+  // A page drawn without the visitor's consent region (`lib/consent-cookie.ts`).
+  'x-consent-pending',
   'x-theme-preview',
   'x-theme-version',
   // Customize's design-mode frame (`?theme-design-mode=1` with a valid preview, in a frame).
@@ -135,7 +137,7 @@ export const DERIVED_HEADERS = [
 export const THEME_VERSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /** Cloudflare's edge country, forwarded for region defaults. Absent when not behind Cloudflare. */
-export function visitorCountry(headers: Headers): string | null {
+export function visitorCountry(headers: Pick<Headers, 'get'>): string | null {
   const c = headers.get('cf-ipcountry')?.trim().toUpperCase()
   return c && /^[A-Z]{2}$/.test(c) ? c : null
 }

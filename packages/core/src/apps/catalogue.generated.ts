@@ -1262,7 +1262,7 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
       {
         question: 'Can I change the alert message?',
         answer:
-          'Not yet. The confirm email and the alert use a standard template with your store’s name, the product and a link to buy it. Settings chooses the channels and how fast alerts go out.',
+          'Yes. Campaign › Email opens the alert and the confirm email in your store’s email editor. Campaign › Button and Pop up change the button and the signup form.',
       },
     ],
     icon: 'Bell',
@@ -1286,7 +1286,7 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
       ],
       shares: [],
     },
-    adminPages: ['Overview', 'Signups', 'Settings'],
+    adminPages: ['Overview', 'Campaign', 'Signups'],
     themeBlocks: ['Notify me'],
     credits: [],
   },

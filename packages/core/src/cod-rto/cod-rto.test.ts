@@ -242,6 +242,28 @@ describe('RTO risk from the store’s history', () => {
     expect(overview.openByLevel.high).toBe(1)
     expect(overview.pincodes[0]).toMatchObject({ pincode: PIN, rto: 2, shipments: 5 })
   })
+
+  it('the Medium tab lists only medium-risk orders, High only high', async () => {
+    const s = await seedStore()
+    const scored = async (level: 'low' | 'medium' | 'high') => {
+      const o = await seedOrder(s, { phone: `90000001${level.length}0` })
+      await owner
+        .update(order)
+        .set({ rtoRisk: { score: 50, level, factors: [], scoredAt: new Date().toISOString() } })
+        .where(eq(order.id, o.id))
+      return o.id
+    }
+    const low = await scored('low')
+    const medium = await scored('medium')
+    const high = await scored('high')
+    const ids = (filter: 'medium' | 'high' | 'all') =>
+      inStore(s.storeId, (ctx) =>
+        listRiskOrders(ctx, { filter, openOnly: true, page: 1, perPage: 25 }),
+      ).then((l) => l.items.map((i) => i.id))
+    expect(await ids('medium')).toEqual([medium])
+    expect(await ids('high')).toEqual([high])
+    expect((await ids('all')).sort()).toEqual([low, medium, high].sort())
+  })
 })
 
 describe('COD confirmation', () => {

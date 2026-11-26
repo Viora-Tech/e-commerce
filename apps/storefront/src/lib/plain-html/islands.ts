@@ -1,4 +1,10 @@
-import { CONSENT_COOKIE, CONSENT_MAX_AGE } from '@commerce/core/consent'
+import {
+  CONSENT_COOKIE,
+  CONSENT_MAX_AGE,
+  type PageConsentRegion,
+  REGION_CHECK_TIMEOUT_MS,
+  REGION_FALLBACK,
+} from '@commerce/core/consent'
 import { marketSuggestionContent } from '@/data/markets'
 import { consentContent } from '@/data/online-store'
 import type { ChatwootChat } from '../chatwoot'
@@ -45,6 +51,11 @@ import { islandModuleUrl } from './modules'
 export type IslandConfig = {
   /** Settings › Customer privacy: answers for an older banner version do not count. */
   bannerVersion: number
+  /**
+   * Shopify's model (`lib/consent-cookie.ts`): `ask` waits for a yes on the banner, `open` runs
+   * everything until a no, `pending` (a page a shared cache may keep) asks `/api/consent-region`.
+   */
+  region: PageConsentRegion
   /** Validated tag ids from Preferences (empty when unset). */
   tracking: { ga4: string; gtm: string; metaPixel: string; googleAds: string }
   /** The Umami app's tracker, when installed and set up. */
@@ -68,6 +79,9 @@ export function islandScript(config: IslandConfig): string {
   const t = config.tracking
   const data = {
     v: config.bannerVersion,
+    region: config.region,
+    fallback: REGION_FALLBACK,
+    regionTimeout: REGION_CHECK_TIMEOUT_MS,
     cookie: CONSENT_COOKIE,
     maxAge: CONSENT_MAX_AGE,
     ga4: t.ga4 || null,
@@ -140,7 +154,9 @@ const ISLANDS = `(function () {
   function readConsent() {
     var raw = (new RegExp('(?:^|;\\\\s*)' + c.cookie + '=([^;]*)').exec(document.cookie) || [])[1] || '';
     var p = /^a([01])m([01])(?:\\.v(\\d{1,6})\\.t(\\d{1,12}))?$/.exec(raw);
-    if (!p || (p[3] ? Number(p[3]) : 0) < c.v) return null;
+    // Where the banner does not ask, a saved answer of any version stands, else all is allowed.
+    if (c.region === 'open') return p ? { analytics: p[1] === '1', marketing: p[2] === '1' } : { analytics: true, marketing: true };
+    if (c.region !== 'ask' || !p || (p[3] ? Number(p[3]) : 0) < c.v) return null;
     return { analytics: p[1] === '1', marketing: p[2] === '1' };
   }
   function idle(fn) {
@@ -251,9 +267,9 @@ const ISLANDS = `(function () {
     }
   }
 
-  // Our cookie banner (a theme without its own): at once while unanswered, or from Cookie settings.
+  // Our cookie banner (a theme without its own): from Cookie settings, and at once while
+  // unanswered where the banner asks (start, below).
   if (c.consentBanner) {
-    if (readConsent() === null) { c.consentBanner.config.ask = true; load('consent', c.consentBanner); }
     var reopen = function () {
       if (location.hash !== '#cookie-settings' || modules.consent) return;
       history.replaceState(null, '', location.pathname + location.search);
@@ -279,16 +295,42 @@ const ISLANDS = `(function () {
   // "Experiment viewed": the server only assigns shoppers who said yes to analytics.
   if (c.experiments) send('/api/experiments', { seen: c.experiments });
 
-  var current = readConsent();
-  if (current === null) {
-    try {
-      if (!sessionStorage.getItem('wc_banner_shown')) {
-        sessionStorage.setItem('wc_banner_shown', '1');
-        navigator.sendBeacon('/api/consent-shown');
-      }
-    } catch (e) {}
+  function start() {
+    var current = readConsent();
+    if (window.__commerceConsentRegion) window.__commerceConsentRegion(current === null);
+    if (current === null) {
+      if (c.consentBanner && !modules.consent) { c.consentBanner.config.ask = true; load('consent', c.consentBanner); }
+      try {
+        if (!sessionStorage.getItem('wc_banner_shown')) {
+          sessionStorage.setItem('wc_banner_shown', '1');
+          navigator.sendBeacon('/api/consent-shown');
+        }
+      } catch (e) {}
+    }
+    apply(current);
   }
-  apply(current);
+  // A page a shared cache may keep was drawn without the region: learn it once per tab.
+  if (c.region === 'pending') {
+    var known = null;
+    try { known = sessionStorage.getItem('wc_consent_region'); } catch (e) {}
+    if (known === 'open' || known === 'ask') { c.region = known; start(); }
+    else {
+      // A failed, odd or slow answer: no banner (REGION_FALLBACK), not saved for the tab.
+      var settled = false;
+      var settle = function (region, save) {
+        if (settled) return;
+        settled = true;
+        c.region = region;
+        if (save) { try { sessionStorage.setItem('wc_consent_region', region); } catch (e) {} }
+        start();
+      };
+      setTimeout(function () { settle(c.fallback, false); }, c.regionTimeout);
+      fetch('/api/consent-region', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (b) {
+        if (b && (b.region === 'open' || b.region === 'ask')) settle(b.region, true);
+        else settle(c.fallback, false);
+      }, function () { settle(c.fallback, false); });
+    }
+  } else start();
   function onConsent(event) {
     window.__commerceConsentAnswer = null;
     var d = (event && event.detail) || {};

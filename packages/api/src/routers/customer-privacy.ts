@@ -2,6 +2,7 @@ import { settingsSecret } from '@commerce/config'
 import {
   anonymiseCustomer,
   askConsentAgain,
+  BANNER_REGIONS,
   CONSENT_CHANNELS,
   cookieBannerShown,
   cookieConsentSummary,
@@ -97,6 +98,8 @@ export const customerPrivacyRouter = {
           .int()
           .min(PRIVACY_LIMITS.minDueDays)
           .max(PRIVACY_LIMITS.maxDueDays),
+        /** Who sees the cookie banner; left out keeps what the store has. */
+        bannerRegions: z.enum(BANNER_REGIONS).optional(),
       }),
     )
     .handler(({ context, input }) =>

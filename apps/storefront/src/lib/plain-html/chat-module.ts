@@ -3,6 +3,8 @@
  * as plain JS, around the button the server drew (`chat-launcher.ts`). Loaded when the browser is
  * idle, or by the first tap.
  *
+ * - On a phone, tucks the button away while the page scrolls down or a buying bar is on screen,
+ *   the rule of `lib/launcher-tuck.ts` (`nextTucked`), with its numbers from the config.
  * - Keeps the button clear of a theme's bars pinned to the bottom of the window (a mobile dock, a
  *   sticky add-to-cart, a cookie banner) and hides it under an open theme overlay (a cart
  *   drawer): the same rules as `lib/launcher-lift.ts`, kept in step by `chat-module.test.ts`.
@@ -80,11 +82,35 @@ export const CHAT_MODULE = `window.__commerceIsland && window.__commerceIsland('
       button.classList.toggle('is-covered', overlayOver(box));
     });
   }
+  // Phones: tucked while scrolling down or while a buying bar is on screen (lib/launcher-tuck.ts).
+  var phone = window.matchMedia(c.phone);
+  var lastY = window.scrollY;
+  var scrolledAway = false;
+  function barShown() {
+    var shown = false;
+    document.querySelectorAll(c.tuck).forEach(function (el) {
+      var box = el.getBoundingClientRect();
+      if (box.height > 0 && box.bottom > 0 && box.top < window.innerHeight) shown = true;
+    });
+    return shown;
+  }
+  function tuck() {
+    var y = window.scrollY;
+    var moved = y - lastY;
+    if (y <= c.top) scrolledAway = false;
+    else if (moved > c.slop) scrolledAway = true;
+    else if (moved < -c.slop) scrolledAway = false;
+    lastY = y;
+    button.classList.toggle('is-tucked', phone.matches && (scrolledAway || barShown()));
+  }
   measure();
+  tuck();
   setTimeout(measure, 1500);
-  new MutationObserver(measure).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'open', 'hidden'] });
+  new MutationObserver(function () { measure(); tuck(); }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'open', 'hidden'] });
   window.addEventListener('resize', measure);
   window.addEventListener('load', measure);
+  window.addEventListener('scroll', tuck, { passive: true });
+  document.addEventListener('transitionend', measure);
 
   function post(message) {
     if (!frame) return;

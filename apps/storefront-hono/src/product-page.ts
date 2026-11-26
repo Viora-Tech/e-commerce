@@ -3,7 +3,6 @@ import { withImportedDefaults } from '@commerce/blocks/imported-defaults'
 import { createBlocksConfig, type PageData, type SectionMetadata } from '@commerce/blocks/puck'
 import { renderBlock } from '@commerce/blocks/slots'
 import {
-  currentConsent,
   decodeConsent,
   liveThemeSettings,
   loadProductPageExtras,
@@ -25,6 +24,7 @@ import { backInStockContext } from '@/lib/back-in-stock-context'
 import { addLineAction } from '@/lib/cart-actions'
 import type { ProductDetail } from '@/lib/catalog'
 import { chatwootChatFor } from '@/lib/chatwoot'
+import { requestRegion, shimConsentOf } from '@/lib/consent-cookie'
 import { NONCE_HEADER } from '@/lib/csp'
 import { storeEmiOffers } from '@/lib/emi-offers'
 import { requestExperiments } from '@/lib/experiments'
@@ -166,7 +166,9 @@ export async function renderProductPage(storeId: string, handle: string): Promis
     ),
     storeRead(storeId, 'upi-discount', (tx) => storeUpiDiscount(tx, storeId)),
     storeRead(storeId, 'emi-offers', (tx) => storeEmiOffers(tx, storeId)),
-    storeRead(storeId, 'back-in-stock', (tx) => backInStockContext(tx, storeId)),
+    storeRead(storeId, `back-in-stock|${product.id}`, (tx) =>
+      backInStockContext(tx, storeId, product.id),
+    ),
     storeRead(storeId, 'policy-panels', (tx) => policyPanels(tx)),
     storeRead(storeId, 'offer-policies', (tx) => productOfferPolicies(tx, storeId)),
   ])
@@ -290,7 +292,14 @@ export async function renderProductPage(storeId: string, handle: string): Promis
     policyPanels: policies,
     underPrice,
     emiConfig: emiApp.config ?? null,
-    notifyMe: bis.installed ? { whatsappEnabled: bis.whatsappEnabled } : null,
+    notifyMe: bis.installed
+      ? {
+          whatsappEnabled: bis.whatsappEnabled,
+          buttonText: bis.buttonText,
+          widget: bis.widget,
+          productTitle: product.title,
+        }
+      : null,
     moneyFormat: current.moneyFormat ?? null,
     pricing: await requestMarketPricing(storeId),
     cartHref: `${h.get(MARKET_HEADERS.prefix) ?? ''}/cart`,
@@ -343,6 +352,8 @@ export async function renderProductPage(storeId: string, handle: string): Promis
   const viewport = themeViewport(theme, mode)
   const privacy = parseCustomerPrivacySettings(current.preferences)
   const consent = decodeConsent(jar.get(CONSENT_COOKIE)?.value)
+  // Shopify's model: the banner only where the visitor's region requires consent.
+  const consentRegionNow = await requestRegion(storeId, h)
   const nonce = h.get(NONCE_HEADER) ?? ''
   const n = nonce ? ` nonce="${escapeHtml(nonce)}"` : ''
   const lang = h.get(MARKET_HEADERS.locale) ?? 'en'
@@ -401,7 +412,7 @@ export async function renderProductPage(storeId: string, handle: string): Promis
       // The gallery's first image, which React asked to preload (Next hoists it here too).
       drawnIsland.preloads,
       `<script${n}>${liquidShim({
-        askConsent: currentConsent(consent, privacy.bannerVersion) === null,
+        ...shimConsentOf(consent, privacy.bannerVersion, consentRegionNow),
         prefix: h.get(MARKET_HEADERS.prefix) ?? '',
       })}</script>`,
       layout.head,
@@ -419,6 +430,7 @@ export async function renderProductPage(storeId: string, handle: string): Promis
   const chatwoot = inboxChat ? null : await chatwootChatFor(storeId, current.apps)
   const plainIsland = `<script${n}>${islandScript({
     bannerVersion: privacy.bannerVersion,
+    region: consentRegionNow,
     tracking: {
       ga4: prefs.tracking.ga4,
       gtm: prefs.tracking.gtm,

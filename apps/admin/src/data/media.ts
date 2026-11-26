@@ -141,6 +141,10 @@ export const mediaContent = {
       ready: 'Ready',
       failed: 'Failed',
     } as Record<string, string>,
+    /** A background sweep found the file gone from storage (`markMediaMissing`). */
+    missing: 'File missing from storage',
+    missingHint:
+      'This file is no longer in your storage, so it cannot be shown or played. Delete it, or upload it again and pick the new one where it was used.',
     link: 'Link',
     linkLabel: 'Public link',
     linkHint: 'Public address of the file. Paste it anywhere the file is needed.',

@@ -1,0 +1,147 @@
+/**
+ * Phone layout fixes found on a 24.4rem-wide phone (26 Nov 2026), kept in one file so they read
+ * together: the cart's checkout bar, the search field, the card price row, and tap targets.
+ * Rules that touch an imported theme's classes (the hero dots, the announcement links) only
+ * grow the hit area with a transparent edge; nothing a shopper sees changes size.
+ */
+
+/* ------------------------------------------------------------------ */
+/* Cart: checkout bar above the mobile dock                            */
+/* ------------------------------------------------------------------ */
+/* The summary's Check out sat about 51rem down, under the dock, on a one-line
+   cart. Under 750px the cart page pins the total and Check out in a bar just
+   above the dock (a floating dock's gutter included), hides the summary's own
+   button, and pads the section so the bar never covers its last row. */
+.cart-checkout-bar {
+  display: none;
+}
+
+@media screen and (max-width: 749px) {
+  .cart-checkout-bar {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 44;
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+    border-top: 0.0625rem solid var(--color-line);
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+  }
+
+  body:has(.mobile-dock) .cart-checkout-bar {
+    bottom: calc(var(--mobile-dock-height, 0px) + var(--rv-gutter, 0px));
+    padding-bottom: var(--space-3);
+  }
+
+  .cart-checkout-bar__total {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .cart-checkout-bar__label {
+    color: var(--color-muted);
+    font-size: 0.75rem;
+  }
+
+  .cart-checkout-bar__amount {
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .cart-checkout-bar__button {
+    flex: 1 1 auto;
+    min-height: 3rem;
+  }
+
+  .section-cart:has(.cart-checkout-bar) {
+    padding-bottom: 5.5rem;
+  }
+
+  .section-cart:has(.cart-checkout-bar) .cart-summary__checkout {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Search: one box, not two                                            */
+/* ------------------------------------------------------------------ */
+/* The field (`.search-page__field`) is the box. A theme rule written for a
+   bare input (`html body .search-page__input`, a border, a background and
+   3.25rem of height) drew a second box inside it. Two classes outrank it. */
+.search-page__field .search-page__input:not(:where(.shopify-section *)),
+.search-page__field .search-page__input:focus:not(:where(.shopify-section *)) {
+  min-height: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  outline: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Card price row                                                      */
+/* ------------------------------------------------------------------ */
+/* The row is one line by design (component-product-card.css). "Save
+   Rs. 1,000.00" never fits beside the price in a phone's half-width card and
+   ran out of it; the sale colour still marks the price, and the product page
+   shows the saving. */
+.product-card__price .price__save {
+  white-space: nowrap;
+}
+
+@media screen and (max-width: 749px) {
+  .product-card__price .price__save {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Tap targets on touch screens                                        */
+/* ------------------------------------------------------------------ */
+/* About 2.75rem to tap, the visible mark unchanged. */
+@media (pointer: coarse) {
+  /* Hero slide dots: a transparent border makes the button 2.75rem tall; the
+     negative margin keeps the pill around them the same size. The border sits
+     outside the padding box, so the progress fill and the clip stay 0.25rem. */
+  .hero-carousel__dot {
+    box-sizing: content-box;
+    border-block: 1.25rem solid transparent;
+    border-inline: 0.25rem solid transparent;
+    margin: -1.25rem -0.25rem;
+    background-clip: padding-box;
+  }
+
+  /* Product image dots (0.375rem): a 2.75rem-tall hit strip as wide as the gap
+     between dots allows. */
+  .product-gallery__dot {
+    position: relative;
+  }
+
+  .product-gallery__dot::after {
+    content: '';
+    position: absolute;
+    inset: -1.1875rem -0.25rem;
+  }
+
+  /* Cart line Remove, breadcrumb links and announcement links: small text
+     links, grown with a transparent edge. */
+  .cart-line__remove,
+  .breadcrumbs__link,
+  .announcement-bar__link {
+    position: relative;
+  }
+
+  .cart-line__remove::after,
+  .breadcrumbs__link::after,
+  .announcement-bar__link::after {
+    content: '';
+    position: absolute;
+    inset: -0.875rem -0.5rem;
+  }
+}

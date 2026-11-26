@@ -30,6 +30,8 @@ import {
   isCompactableVideo,
   linkAutoPoster,
   markVideoCompact,
+  MEDIA_MISSING_ERROR,
+  markMediaMissing,
   markVideoNoCopy,
   storageForStore,
   videoPosterKey,
@@ -46,8 +48,17 @@ import { makePosterFile, type PosterFile } from './video-poster'
 /**
  * What one run did: `small`/`lean`/`not-smaller` keep the original (marked, never retried);
  * `poster` made only the first-frame poster (the copy was looked at before, or is not needed).
+ * `missing`: the original is gone from the bucket; the row is marked (`markMediaMissing`) and no
+ * sweep retries it.
  */
-export type CompactResult = 'made' | 'skipped' | 'small' | 'lean' | 'not-smaller' | 'poster'
+export type CompactResult =
+  | 'made'
+  | 'skipped'
+  | 'small'
+  | 'lean'
+  | 'not-smaller'
+  | 'poster'
+  | 'missing'
 
 /** The ffmpeg side, swappable in tests (no ffmpeg there). */
 export type VideoTools = {
@@ -161,13 +172,16 @@ export async function compactVideo(
   const found = await withStore(db, storeId, async (tx) => {
     const [row] = await tx.select().from(media).where(eq(media.id, mediaId))
     if (!row?.key || !isCompactableVideo(row.contentType)) return null
+    // Marked missing before: only a forced run looks again (the file may have been put back).
+    if (row.processError === MEDIA_MISSING_ERROR && !opts.force) return null
     const needCopy = row.compactSize === null || Boolean(opts.force)
     const needPoster = !row.posterMediaId
     if (!needCopy && !needPoster) return null
     const { storage } = await registriesForStore(tx, storeId)
     const provider = await storageForStore(tx, storeId, storage, settingsSecret)
     if (row.provider && row.provider !== provider.id) return null // file lives in an older bucket
-    return { key: row.key, provider, needCopy, needPoster }
+    const wasMissing = row.processError === MEDIA_MISSING_ERROR
+    return { key: row.key, provider, needCopy, needPoster, wasMissing }
   })
   if (!found) return 'skipped'
   const { key, provider } = found
@@ -177,10 +191,22 @@ export async function compactVideo(
     logger.info('video keeps its original', { storeId, mediaId, result, ...facts })
     return result
   }
+  // The object is gone: marked once, so no sweep tries it again every hour (26 Nov 2026).
+  const missing = async (): Promise<CompactResult> => {
+    await withStore(db, storeId, (tx) => markMediaMissing(tx, mediaId))
+    logger.warn('video file missing from storage', { storeId, mediaId, key })
+    return 'missing'
+  }
 
   // Size first, from the bucket's metadata: a small video is never downloaded for its copy.
   const head = await provider.head(key)
-  if (!head) throw new Error(`object missing at ${key}`)
+  if (!head) return await missing()
+  if (found.wasMissing) {
+    // A forced run found it back: the file is no longer reported missing.
+    await withStore(db, storeId, (tx) =>
+      tx.update(media).set({ processError: null }).where(eq(media.id, mediaId)),
+    )
+  }
   let result: CompactResult = 'skipped'
   let needCopy = found.needCopy
   if (needCopy && compactPlan({ bytes: head.size }) === 'small') {
@@ -204,7 +230,7 @@ export async function compactVideo(
   const input = join(dir, 'in')
   const output = join(dir, 'out.mp4')
   try {
-    if (!(await downloadToFile(provider, key, input))) throw new Error(`object missing at ${key}`)
+    if (!(await downloadToFile(provider, key, input))) return await missing()
     // The poster first: a frame is quick, and it is what the hero paints first.
     if (needPoster && (await makePoster(db, ctx, input, dir, tools)) && result === 'skipped') {
       result = 'poster'

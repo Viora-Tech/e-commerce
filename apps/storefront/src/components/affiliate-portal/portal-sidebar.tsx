@@ -100,13 +100,13 @@ export default function PortalSidebar({ store, affiliate, base, storeOrigin }: P
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu>{menu(PAGES)}</SidebarMenu>
+            <SidebarMenu className="gap-1">{menu(PAGES)}</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>{copy.nav.account}</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>{menu(ACCOUNT)}</SidebarMenu>
+            <SidebarMenu className="gap-1">{menu(ACCOUNT)}</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

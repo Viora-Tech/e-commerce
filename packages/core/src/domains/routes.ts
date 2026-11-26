@@ -15,6 +15,7 @@ import { and, eq } from 'drizzle-orm'
 import { insertOutboxEvent } from '../outbox/write'
 import type { DokployClient } from './dokploy'
 import { isApex, isPlatformHostname, normaliseHostname } from './hostname'
+import { ensureOneHopApex } from './one-hop-apex'
 
 type DomainRow = typeof storeDomain.$inferSelect
 
@@ -206,11 +207,36 @@ export async function runDomainRouteJob(
     return 'skipped'
   }
   if (job.reregister) await removeRoute(client, row.hostname)
-  const r = await ensureRoute(client, row.hostname, routeMiddlewares(client, row))
+  const middlewares = routeMiddlewares(client, row)
+  const r = await ensureRoute(client, row.hostname, middlewares)
   await setRouteStatus(deps.db, job, row, job.reregister === true)
   if (r.created) deps.log?.(`[domains] added the HTTPS route for ${row.hostname}`)
+  if (client.apexMiddleware && middlewares.includes(client.apexMiddleware)) {
+    await oneHop(deps, client, row.hostname, client.apexMiddleware)
+  }
   if (job.reregister) await deps.afterReregister?.(job.storeId, job.domainId)
   return r.created ? 'created' : 'exists'
+}
+
+/**
+ * Send a redirect-only apex's plain http straight to the www (one-hop-apex.ts). The route works
+ * without it (two hops), so a failure is logged and never fails or retries the job.
+ */
+async function oneHop(
+  deps: DomainRouteDeps,
+  client: DokployClient,
+  hostname: string,
+  middleware: string,
+): Promise<void> {
+  try {
+    if (await ensureOneHopApex(client, hostname, middleware)) {
+      deps.log?.(`[domains] ${hostname} now redirects to www in one hop over http too`)
+    }
+  } catch (err) {
+    deps.log?.(
+      `[domains] could not make ${hostname}'s http redirect one hop: ${err instanceof Error ? err.message : err}`,
+    )
+  }
 }
 
 /**

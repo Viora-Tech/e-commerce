@@ -1,5 +1,4 @@
 import { decodeReferral } from '@commerce/core/marketing'
-import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { cookies, headers } from 'next/headers'
 import { type NextRequest, NextResponse } from 'next/server'
 import { REFERRAL_COOKIE } from '@/lib/attribution-cookie'
@@ -23,7 +22,7 @@ async function readBody(request: Request): Promise<unknown> {
 }
 
 /**
- * The shopper said yes to marketing cookies after opening an affiliate link: the banner sends
+ * Marketing is allowed now (a yes on the banner, or a region where the banner does not ask) after opening an affiliate link: the banner sends
  * the landing it kept in the tab (`lib/referral-pending.ts`), and the referral cookie is set
  * now, dated at the click. Nothing is set without the yes in the consent cookie, from another
  * site, or over a newer referral (last click wins). The click itself was counted on landing.
@@ -34,7 +33,7 @@ export const POST = withEvlog(async (request: NextRequest) => {
   const origin = request.headers.get('origin')
   if (!storeId || (origin && !origin.endsWith(`//${h.get('host')}`))) return done()
   const jar = await cookies()
-  if (!marketingAllowed(jar.get(CONSENT_COOKIE)?.value)) return done()
+  if (!(await marketingAllowed(storeId))) return done()
   const limited = await rateLimited('referral:ip', clientIp(h), REFERRAL_IP_RULE)
   if (!limited.ok) return done()
   const now = new Date()

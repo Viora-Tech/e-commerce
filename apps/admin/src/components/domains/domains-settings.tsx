@@ -1,6 +1,7 @@
 'use client'
 
 import type { DomainView } from '@commerce/core'
+import type { DomainTargets } from '@commerce/core/domains'
 import { permissions } from '@commerce/core/permissions'
 import { Globe, PlugConnect } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -24,10 +25,16 @@ type DomainsSettingsProps = {
   domains: DomainView[]
   /** An apex only redirects to its www on this server, so connecting one brings the www. */
   apexRedirectOnly: boolean
+  /** Where records point, for the connect dialog's bare-domain guide. */
+  targets: DomainTargets
 }
 
 /** Settings → Domains: the primary domain, every hostname, and connecting a new one. */
-export default function DomainsSettings({ domains, apexRedirectOnly }: DomainsSettingsProps) {
+export default function DomainsSettings({
+  domains,
+  apexRedirectOnly,
+  targets,
+}: DomainsSettingsProps) {
   // Hooks
   const copy = useCopy(domainsContent)
   const { hasPermission } = usePermissions()
@@ -147,6 +154,7 @@ export default function DomainsSettings({ domains, apexRedirectOnly }: DomainsSe
         open={connectOpen}
         onOpenChange={setConnectOpen}
         apexRedirectOnly={apexRedirectOnly}
+        targets={targets}
       />
       <ChangePrimaryDialog
         open={primaryOpen}

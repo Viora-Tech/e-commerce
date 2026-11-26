@@ -7,8 +7,8 @@ import {
   CONSENT_MAX_AGE,
   type Consent,
   type ConsentPreferences,
-  currentConsent,
   encodeConsent,
+  type PageConsentRegion,
   type StoredConsent,
 } from '@commerce/core/consent'
 import {
@@ -17,7 +17,7 @@ import {
   chatwootAllowed,
 } from '@commerce/plugin-chatwoot/widget'
 import { syncUmamiOptOut, type UmamiTracker, umamiAllowed } from '@commerce/plugin-umami/tracker'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import DiscoveryTracker from '@/components/analytics/discovery-tracker'
 import PixelEvents from '@/components/analytics/pixel-events'
 import TrackingTags from '@/components/analytics/tracking-tags'
@@ -27,6 +27,7 @@ import WebVitalsBeacon from '@/components/analytics/web-vitals-beacon'
 import CookieBanner from '@/components/privacy/cookie-banner'
 import ChatwootWidget from '@/components/support/chatwoot-widget'
 import { consentContent } from '@/data/online-store'
+import { useConsentState } from '@/hooks/use-consent-state'
 import { usePendingReferral } from '@/hooks/use-pending-referral'
 import { COOKIE_SETTINGS_HASH } from '@/lib/cookie-settings'
 import type { BrowserPixel } from '@/lib/pixels/track'
@@ -45,6 +46,12 @@ type ConsentManagerProps = {
   pixels?: BrowserPixel[] | null | undefined
   /** The choice read from the cookie on the server; null until the shopper decides. */
   initial: StoredConsent | null
+  /**
+   * Shopify's model (`lib/consent-cookie.ts`): `ask` shows the banner and waits for a yes,
+   * `open` (a region that does not require consent) runs everything until the shopper says no,
+   * `pending` (a page a shared cache may keep) asks `/api/consent-region` first.
+   */
+  region: PageConsentRegion
   /** This request's script CSP nonce; the tracking tags need it to run. */
   nonce?: string | undefined
   /**
@@ -96,34 +103,22 @@ function localStore(): Storage | null {
   }
 }
 
-const SHOWN_KEY = 'wc_banner_shown'
-
-/** Counts the banner once per tab: `/api/consent-shown` keeps a plain daily number. */
-function reportBannerShown(): void {
-  try {
-    if (sessionStorage.getItem(SHOWN_KEY)) return
-    sessionStorage.setItem(SHOWN_KEY, '1')
-    navigator.sendBeacon('/api/consent-shown')
-  } catch {
-    // Blocked storage: this visit goes uncounted.
-  }
-}
-
 /**
- * The cookie banner (DPDP: necessary always on, analytics and marketing only
- * after a yes) and everything it gates: our own visit beacon, GA4, Tag Manager and
- * the Umami app's tracker (analytics) and the Meta pixel (marketing). Nothing
- * optional renders before consent, except Umami (cookieless) when the store chose
- * not to wait; each loads the moment its category is allowed, without a reload,
- * and a no stops them all. A choice made for an older banner version does not count.
- * The Chatwoot app's chat waits for the category its store picked (none by default: a
- * chat is something the shopper asks for).
+ * The cookie banner and everything it gates: our own visit beacon, GA4, Tag Manager and
+ * the Umami app's tracker (analytics) and the Meta pixel (marketing), as Shopify's customer
+ * privacy works. In a region that requires consent (or when the store asks everyone) the banner
+ * asks and nothing optional renders before a yes, except Umami (cookieless) when the store chose
+ * not to wait; a choice made for an older banner version does not count there. Elsewhere there
+ * is no banner and everything runs from the first page; Cookie settings in the footer still
+ * opens the choice, and a saved no stops it all. Each tag loads the moment its category is
+ * allowed, without a reload. The Chatwoot app's chat waits for the category its store picked.
  */
 export default function ConsentManager({
   tracking,
   bannerMessage,
   bannerVersion,
   initial,
+  region: drawnRegion,
   nonce,
   pixels,
   appearance,
@@ -132,9 +127,13 @@ export default function ConsentManager({
   chatwoot,
 }: ConsentManagerProps) {
   // Hooks
-  const [consent, setConsent] = useState<Consent | null>(currentConsent(initial, bannerVersion))
+  const { region, consent, unanswered, choose } = useConsentState({
+    initial,
+    bannerVersion,
+    region: drawnRegion,
+    themeBanner: themeBanner === true,
+  })
   const [reopened, setReopened] = useState(false)
-  const initialUnanswered = useRef(consent === null)
 
   useEffect(() => {
     const check = () => {
@@ -148,10 +147,6 @@ export default function ConsentManager({
     return () => window.removeEventListener('hashchange', check)
   }, [])
 
-  useEffect(() => {
-    if (initialUnanswered.current) reportBannerShown()
-  }, [])
-
   // A loaded Umami keeps counting page views by itself: a no must also flip its own off switch.
   useEffect(() => {
     if (umami) syncUmamiOptOut(localStore(), umamiAllowed(umami, consent))
@@ -163,7 +158,7 @@ export default function ConsentManager({
       window.__commerceConsentAnswer = null
       const next = { analytics: detail?.analytics === true, marketing: detail?.marketing === true }
       remember(next, bannerVersion)
-      setConsent(next)
+      choose(next)
       void recordConsentAction(next).catch(() => undefined)
     }
     const handleThemeChoice = (event: Event) => take((event as CustomEvent<ThemeAnswer>).detail)
@@ -172,15 +167,15 @@ export default function ConsentManager({
     // given before React hydrated waits on the shim.
     if (window.__commerceConsentAnswer) take(window.__commerceConsentAnswer)
     return () => window.removeEventListener(THEME_CONSENT_EVENT, handleThemeChoice)
-  }, [themeBanner, bannerVersion])
+  }, [themeBanner, bannerVersion, choose])
 
-  // The affiliate referral cookie waits for a yes to marketing (`hooks/use-pending-referral.ts`).
+  // The affiliate referral cookie waits until marketing is allowed (`hooks/use-pending-referral.ts`).
   usePendingReferral(consent?.marketing === true)
 
   // Event handlers
   const handleChoose = (next: Consent) => {
     remember(next, bannerVersion)
-    setConsent(next)
+    choose(next)
     setReopened(false)
     // The proof row; the cookie above already works if this fails.
     void recordConsentAction(next).catch(() => undefined)
@@ -190,13 +185,14 @@ export default function ConsentManager({
   const tags = allowedTags({ tracking }, consent)
   // With the Pixels app, its pixels replace the old single one.
   const appPixels = pixels && consent?.marketing ? pixels : null
-  const asking = !themeBanner && (consent === null || reopened)
+  const asking = !themeBanner && (unanswered || reopened)
   const current = consent ?? { analytics: false, marketing: false }
 
   return (
     <>
-      {/* Every visit counts: without a yes the server counts it cookieless (totals only). */}
-      <VisitBeacon consented={consent?.analytics === true} />
+      {/* Every visit counts: without a yes the server counts it cookieless (totals only). Once
+          the region is known, so a pending page sends one beacon, not an anonymous one first. */}
+      {region === 'pending' ? null : <VisitBeacon consented={consent?.analytics === true} />}
       {consent?.analytics ? <DiscoveryTracker /> : null}
       {/* Anonymous page speed (no cookies, no ids): reported whatever the consent. */}
       <WebVitalsBeacon />

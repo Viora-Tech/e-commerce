@@ -5,6 +5,7 @@ import { islandScript } from './islands'
 
 const base = {
   bannerVersion: 2,
+  region: 'ask' as const,
   tracking: { ga4: '', gtm: '', metaPixel: '', googleAds: '' },
   umami: null,
 }
@@ -42,5 +43,15 @@ describe('banner and Chatwoot island modules', () => {
     })
     expect(code).toContain('"consent":"analytics"')
     expect(code).toContain('/api/islands/chatwoot.js?v=')
+  })
+})
+
+describe('plain page region check', () => {
+  it('falls back to no banner when the check fails or is slow', () => {
+    const code = islandScript({ ...base, region: 'pending' })
+    expect(() => new Function(code)).not.toThrow()
+    expect(code).toContain('"fallback":"open"')
+    expect(code).toContain('"regionTimeout":3000')
+    expect(code).toContain('settle(c.fallback, false)')
   })
 })

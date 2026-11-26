@@ -17,7 +17,6 @@ import {
   setLineQuantity,
 } from '@commerce/core'
 import { checkoutCountry, isAbroad } from '@commerce/core/checkout-address'
-import { CONSENT_COOKIE, currentConsent, decodeConsent } from '@commerce/core/consent'
 import {
   collectorStore,
   FBC_COOKIE,
@@ -40,6 +39,7 @@ import { redirectAfterCheckout } from './checkout-redirect'
 import { repeatCheckoutResult, tooManyFromIp } from './checkout-repeat'
 import type { CheckoutResult } from './checkout-result'
 import { checkoutDeviceId, tooManyUnpaidFromIp } from './checkout-unpaid-cap'
+import { requestConsent } from './consent-cookie'
 import { currentCustomer } from './customer-session'
 import { db } from './db'
 import { cleanParcelKeys, deliveryForOrder, type ParcelKeysForm } from './delivery-options'
@@ -100,7 +100,7 @@ export async function addLineAction(
   // A/B rollouts: the visitor's first add to cart counts for the arm they are in.
   await noteAbAddToCart(storeId)
   // Search & discovery: an add after a search result or recommendation click, after the response.
-  const visitor = await discoveryVisitor()
+  const visitor = await discoveryVisitor(storeId)
   if (visitor) after(() => recordDiscoveryCartAdd(storeId, visitor, variantId))
   revalidatePath('/', 'layout')
   return undefined
@@ -279,7 +279,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
      marketing touch rides along so the order credits the email or ad that closed it. */
   const attribution = await readAttribution()
   const jar = await cookies()
-  const consent = decodeConsent(jar.get(CONSENT_COOKIE)?.value)
+  const shopperConsent = await requestConsent(storeId)
   const ua = (await headers()).get('user-agent')
   await inStore(storeId, async (tx) => {
     await captureCartContact({ storeId, tx }, cartId, {
@@ -291,14 +291,14 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
     // Pixels: the order copies the cart's tracking. The answer on the banner now decides: a yes
     // taken back keeps the server Purchase off, a yes the collector never stamped (blocked or
     // late beacon) is recorded with this request's browser details, a no records only the no.
-    const { installed, bannerVersion } = await collectorStore(tx, storeId)
+    const { installed } = await collectorStore(tx, storeId)
     if (installed) {
-      const answer = currentConsent(consent, bannerVersion)
+      const { consent: answer, stored, bannerVersion } = shopperConsent
       await syncCartMarketingConsent(
         tx,
         cartId,
         {
-          consent: answer && consent ? { ...answer, version: consent.version } : null,
+          consent: answer ? { ...answer, version: stored?.version ?? bannerVersion } : null,
           fbp: jar.get(FBP_COOKIE)?.value,
           fbc: jar.get(FBC_COOKIE)?.value,
           ip,

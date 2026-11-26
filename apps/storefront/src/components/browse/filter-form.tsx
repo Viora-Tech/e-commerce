@@ -93,7 +93,7 @@ export default function FilterForm({
     g.values.map((v) => (
       <label
         key={`${g.id}-${v.value}`}
-        className="flex cursor-pointer items-center gap-3 py-1 text-small text-ink"
+        className="flex min-h-11 cursor-pointer items-center gap-3 py-1 text-small text-ink md:min-h-0"
       >
         <input
           type="checkbox"
@@ -164,19 +164,24 @@ export default function FilterForm({
       {q ? <input type="hidden" name="q" value={q} /> : null}
       {sort ? <input type="hidden" name="sort_by" value={sort} /> : null}
       {groups.map((g) => (
-        <details key={g.key} open={g.open} className="group border-b border-line py-4">
-          <summary className="flex cursor-pointer list-none items-center justify-between text-body font-medium text-ink [&::-webkit-details-marker]:hidden">
+        <details key={g.key} open={g.open} className="group/filter border-b border-line py-2">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-body font-medium text-ink [&::-webkit-details-marker]:hidden">
             {g.title}
-            <span aria-hidden="true" className="transition-transform group-open:rotate-180">
+            {/* Named group: the phone's drawer is an open <details> too, and a plain
+                `group-open` flipped every chevron inside it. */}
+            <span aria-hidden="true" className="transition-transform group-open/filter:rotate-180">
               <Icon name="chevron-down" size={16} />
             </span>
           </summary>
-          <div className="flex flex-col gap-1 pt-3">{g.body}</div>
+          <div className="flex flex-col gap-1 pt-1 pb-2">{g.body}</div>
         </details>
       ))}
-      <button type="submit" className="btn btn--secondary btn--small mt-6 w-full">
-        {copy.apply}
-      </button>
+      {/* Phones: pinned to the foot of the drawer while the groups scroll under it. */}
+      <div className="mt-6 max-md:sticky max-md:bottom-0 max-md:z-10 max-md:bg-bg max-md:py-3">
+        <button type="submit" className="btn btn--secondary btn--small w-full">
+          {copy.apply}
+        </button>
+      </div>
     </form>
   )
 }
