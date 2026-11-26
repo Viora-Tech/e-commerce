@@ -1,11 +1,11 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
-import { Input } from '@commerce/ui/shadcn/input'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { usePathname, useRouter } from 'next/navigation'
 import { affiliateContent } from '@/data/affiliate'
 import { affiliatePortalContent } from '@/data/affiliate-portal'
+import DateRangeFilter from './date-range-filter'
 
 type Filters = { source?: string | undefined; from?: string | undefined; to?: string | undefined }
 
@@ -15,8 +15,8 @@ const copy = affiliatePortalContent.commissions.filters
 const sources = affiliateContent.dashboard.sale.source
 
 /**
- * The Commission table's toolbar filters: source and dates, small controls in one row like
- * dashboard-01's. They live in the URL, so the page loads those rows and Export follows them.
+ * The Commission table's toolbar filters: source and a shadcn date range picker, small controls
+ * in one row like dashboard-01's. They live in the URL, so the page loads those rows and Export follows them.
  */
 export default function CommissionFilters({ value }: CommissionFiltersProps) {
   // Hooks
@@ -33,6 +33,7 @@ export default function CommissionFilters({ value }: CommissionFiltersProps) {
 
   // Event handlers
   const handleChange = (key: keyof Filters, v: string) => go({ ...value, [key]: v || undefined })
+  const handleDates = (r: Pick<Filters, 'from' | 'to'>) => go({ ...value, ...r })
   const handleClear = () => go({})
 
   // Render logic
@@ -53,24 +54,7 @@ export default function CommissionFilters({ value }: CommissionFiltersProps) {
           </NativeSelectOption>
         ))}
       </NativeSelect>
-      <Input
-        type="date"
-        aria-label={copy.from}
-        title={copy.from}
-        className="h-8 w-36"
-        value={value.from ?? ''}
-        max={value.to}
-        onChange={(e) => handleChange('from', e.target.value)}
-      />
-      <Input
-        type="date"
-        aria-label={copy.to}
-        title={copy.to}
-        className="h-8 w-36"
-        value={value.to ?? ''}
-        min={value.from}
-        onChange={(e) => handleChange('to', e.target.value)}
-      />
+      <DateRangeFilter value={value} onApply={handleDates} />
       {any ? (
         <Button variant="ghost" size="sm" onClick={handleClear}>
           {copy.clear}

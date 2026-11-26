@@ -16,8 +16,6 @@ type SectionCardsProps = {
   current: ActivityTotals
   /** The same span just before, for the trend badges; null for "since you joined". */
   previous: ActivityTotals | null
-  /** "Last 30 days", for the footers. */
-  rangeLabel: string
 }
 
 const copy = affiliatePortalContent.dashboard.cards
@@ -33,9 +31,10 @@ const conversion = (t: ActivityTotals) => (t.clicks > 0 ? (t.referrals / t.click
 
 /**
  * dashboard-01's SectionCards: commission, referrals, clicks and conversion for the range, each
- * with its change against the period before and a plain line about what it counts.
+ * with a trend badge and a two-line footer (the trend, then what it counts). The range itself is
+ * named once, on the chart below, not on every card.
  */
-export default function SectionCards({ current, previous, rangeLabel }: SectionCardsProps) {
+export default function SectionCards({ current, previous }: SectionCardsProps) {
   // Render logic
   const cards = [
     {
@@ -64,12 +63,12 @@ export default function SectionCards({ current, previous, rangeLabel }: SectionC
     },
   ]
   return (
-    <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4 dark:*:data-[slot=card]:bg-card">
       {cards.map((c) => (
         <Card key={c.label} className="@container/card">
           <CardHeader>
             <CardDescription>{c.label}</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums @[15.625rem]/card:text-3xl">
+            <CardTitle className="text-2xl font-semibold tracking-tight tabular-nums @[15.625rem]/card:text-3xl">
               {c.value}
             </CardTitle>
             {c.delta !== null ? (
@@ -82,10 +81,17 @@ export default function SectionCards({ current, previous, rangeLabel }: SectionC
             ) : null}
           </CardHeader>
           <CardFooter className="flex-col items-start gap-1.5 border-t-0 bg-transparent pt-0 text-sm">
-            <div className="line-clamp-1 font-medium">
-              {c.delta === null ? rangeLabel : c.delta >= 0 ? copy.up : copy.down}
-            </div>
-            <div className="text-muted-foreground">{c.note}</div>
+            {c.delta === null ? (
+              <div className="line-clamp-1 font-medium">{c.note}</div>
+            ) : (
+              <>
+                <div className="line-clamp-1 flex items-center gap-2 font-medium">
+                  {c.delta >= 0 ? copy.up : copy.down}
+                  {c.delta >= 0 ? <ArrowUp className="size-4" /> : <ArrowDown className="size-4" />}
+                </div>
+                <div className="line-clamp-1 text-muted-foreground">{c.note}</div>
+              </>
+            )}
           </CardFooter>
         </Card>
       ))}

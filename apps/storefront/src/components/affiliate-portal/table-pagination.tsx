@@ -12,6 +12,8 @@ type TablePaginationProps = {
   pageSize: number
   onPage: (page: number) => void
   onPageSize: (size: number) => void
+  /** Inside a card: no page gutter of its own. */
+  flush?: boolean | undefined
 }
 
 const copy = affiliatePortalContent.table
@@ -24,11 +26,12 @@ export default function TablePagination({
   pageSize,
   onPage,
   onPageSize,
+  flush = false,
 }: TablePaginationProps) {
   // Render logic
   const pages = Math.max(1, Math.ceil(total / pageSize))
   return (
-    <div className="flex items-center justify-between px-4 lg:px-6">
+    <div className={`flex items-center justify-between ${flush ? '' : 'px-4 lg:px-6'}`}>
       <div className="hidden flex-1 text-sm text-muted-foreground lg:flex">{copy.rows(total)}</div>
       <div className="flex w-full items-center gap-8 lg:w-fit">
         <div className="hidden items-center gap-2 lg:flex">

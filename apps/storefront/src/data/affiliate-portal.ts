@@ -105,6 +105,8 @@ export const affiliatePortalContent = {
       qrAlt: 'QR code for your link',
       qrDownload: 'Download PNG',
       share: 'Share',
+      shareNative: 'More apps…',
+      linkLabel: 'Link',
       coupon: 'Your discount code',
       couponHint: (percent: number | null) =>
         percent
@@ -133,6 +135,7 @@ export const affiliatePortalContent = {
       emptyTitle: 'No clicks yet',
     },
     recent: 'Latest commissions',
+    recentHelp: 'The newest orders your link or code brought.',
     seeAll: 'See all',
   },
   table: {
@@ -160,6 +163,10 @@ export const affiliatePortalContent = {
       to: 'To',
       any: 'All sources',
       clear: 'Clear filters',
+      dates: 'Dates',
+      anyDate: 'Any date',
+      reset: 'Reset',
+      apply: 'Apply',
     },
     columns: {
       date: 'Date',

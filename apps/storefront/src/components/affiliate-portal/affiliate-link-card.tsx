@@ -1,5 +1,12 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
-import { Separator } from '@commerce/ui/shadcn/separator'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@commerce/ui/shadcn/card'
 import { affiliateContent } from '@/data/affiliate'
 import { affiliatePortalContent } from '@/data/affiliate-portal'
 import { referralLink } from '@/lib/portal-format'
@@ -21,8 +28,9 @@ type AffiliateLinkCardProps = {
 const copy = affiliatePortalContent.dashboard.link
 
 /**
- * Their affiliate link with Copy, "Get product link", "Get link with source", a QR code and share
- * buttons, and their discount code below, like UpPromote's dashboard card.
+ * Their affiliate link and discount code, each with Copy; the QR code in the header's corner;
+ * "Get product link", "Get link with source" and one Share menu in the footer, which is pinned to
+ * the bottom so it lines up with the Balance card beside it.
  */
 export default function AffiliateLinkCard({
   origin,
@@ -44,29 +52,30 @@ export default function AffiliateLinkCard({
       <CardHeader>
         <CardTitle>{copy.title}</CardTitle>
         <CardDescription>{affiliateContent.dashboard.share.help}</CardDescription>
+        <CardAction>
+          <QrDialog link={link} code={code} />
+        </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <CopyField value={link} label={copy.title} />
-        <div className="flex flex-wrap gap-2">
-          <ProductLinkDialog origin={origin} code={code} />
-          <SourceLinkDialog origin={origin} code={code} />
-          <QrDialog link={link} code={code} />
-        </div>
         <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium">{copy.share}</span>
-          <ShareRow text={text} url={link} />
+          <span className="text-sm font-medium">{copy.linkLabel}</span>
+          <CopyField value={link} label={copy.title} />
         </div>
         {couponCode ? (
-          <>
-            <Separator />
-            <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium">{copy.coupon}</span>
-              <CopyField value={couponCode} label={copy.coupon} />
-              <p className="text-sm text-muted-foreground">{copy.couponHint(couponPercent)}</p>
-            </div>
-          </>
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium">{copy.coupon}</span>
+            <CopyField value={couponCode} label={copy.coupon} />
+            <p className="text-sm text-muted-foreground">{copy.couponHint(couponPercent)}</p>
+          </div>
         ) : null}
       </CardContent>
+      <CardFooter className="mt-auto min-h-20 flex-wrap gap-2">
+        <ProductLinkDialog origin={origin} code={code} />
+        <SourceLinkDialog origin={origin} code={code} />
+        <div className="ml-auto">
+          <ShareRow text={text} url={link} />
+        </div>
+      </CardFooter>
     </Card>
   )
 }

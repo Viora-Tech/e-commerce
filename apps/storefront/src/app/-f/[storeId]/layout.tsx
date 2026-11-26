@@ -47,7 +47,11 @@ export default async function PortalLayout({ children, params }: Props) {
   // The store's brand colour through the admin's accent tokens (buttons, rings, chart, nav).
   const brand = accentCss(store.brand)
   return (
-    <html lang="en" className={`${sans.variable} ${theme ?? ''}`} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${sans.variable} ${theme ?? ''} [scrollbar-gutter:stable]`}
+      suppressHydrationWarning
+    >
       <head>
         {theme === null ? (
           // biome-ignore lint/security/noDangerouslySetInnerHtml: a fixed string, no input

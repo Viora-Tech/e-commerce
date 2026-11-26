@@ -3,13 +3,21 @@ import { Button } from '@commerce/ui/shadcn/button'
 import {
   Card,
   CardAction,
+  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from '@commerce/ui/shadcn/card'
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from '@commerce/ui/shadcn/item'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import PageHeading from '@/components/affiliate-portal/page-heading'
 import PayoutsTable from '@/components/affiliate-portal/payouts-table'
 import { affiliateContent } from '@/data/affiliate'
 import { affiliatePortalContent } from '@/data/affiliate-portal'
@@ -22,7 +30,10 @@ const copy = affiliatePortalContent.payouts
 
 export const metadata: Metadata = { title: copy.metaTitle }
 
-/** Their payouts with the money breakdown, where payouts go, and Export. */
+/**
+ * Where payouts go (shadcn's Item: icon, the masked method, Add or Change), then the Payouts card
+ * with Export in its corner and the table with the money breakdown inside.
+ */
 export default async function PayoutsPage({ params }: PayoutsPageProps) {
   // Hooks
   const { storeId } = await params
@@ -32,11 +43,33 @@ export default async function PayoutsPage({ params }: PayoutsPageProps) {
   // Render logic
   const payout = affiliateContent.payout
   return (
-    <>
-      <PageHeading
-        description={copy.help}
-        actions={
-          <>
+    <div className="flex flex-col gap-4 px-4 md:gap-6 lg:px-6">
+      <Item variant="outline" className="bg-card px-4 py-3">
+        <ItemMedia variant="icon">
+          <CreditCard />
+        </ItemMedia>
+        <ItemContent>
+          <ItemTitle>{copy.method}</ItemTitle>
+          <ItemDescription>
+            {affiliate.payoutHint ? payout.current(affiliate.payoutHint) : copy.methodMissing}
+          </ItemDescription>
+        </ItemContent>
+        <ItemActions className="basis-full sm:basis-auto">
+          <Button
+            variant={affiliate.payoutHint ? 'outline' : 'default'}
+            size="sm"
+            nativeButton={false}
+            render={<Link href={portalHref(base, '/settings/payout')} />}
+          >
+            {affiliate.payoutHint ? copy.change : copy.add}
+          </Button>
+        </ItemActions>
+      </Item>
+      <Card>
+        <CardHeader>
+          <CardTitle>{copy.title}</CardTitle>
+          <CardDescription>{copy.help}</CardDescription>
+          <CardAction>
             <Button
               variant="outline"
               size="sm"
@@ -46,33 +79,12 @@ export default async function PayoutsPage({ params }: PayoutsPageProps) {
               <Download />
               {copy.export}
             </Button>
-          </>
-        }
-      />
-      <div className="px-4 lg:px-6">
-        <Card size="sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="size-4 text-muted-foreground" />
-              {copy.method}
-            </CardTitle>
-            <CardDescription>
-              {affiliate.payoutHint ? payout.current(affiliate.payoutHint) : copy.methodMissing}
-            </CardDescription>
-            <CardAction>
-              <Button
-                variant={affiliate.payoutHint ? 'outline' : 'default'}
-                size="sm"
-                nativeButton={false}
-                render={<Link href={portalHref(base, '/settings/payout')} />}
-              >
-                {affiliate.payoutHint ? copy.change : copy.add}
-              </Button>
-            </CardAction>
-          </CardHeader>
-        </Card>
-      </div>
-      <PayoutsTable rows={rows} />
-    </>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          <PayoutsTable rows={rows} />
+        </CardContent>
+      </Card>
+    </div>
   )
 }

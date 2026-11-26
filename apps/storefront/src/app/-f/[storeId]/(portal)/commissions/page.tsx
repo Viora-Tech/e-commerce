@@ -4,7 +4,6 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import CommissionFilters from '@/components/affiliate-portal/commission-filters'
 import CommissionsTable from '@/components/affiliate-portal/commissions-table'
-import PageHeading from '@/components/affiliate-portal/page-heading'
 import PortalEmpty from '@/components/affiliate-portal/portal-empty'
 import { affiliatePortalContent } from '@/data/affiliate-portal'
 import { portalHref, requireAffiliate } from '@/lib/affiliate-portal'
@@ -24,7 +23,7 @@ export const metadata: Metadata = { title: copy.metaTitle }
 
 /**
  * Every commission their link or code brought: status tabs, source and date filters, Export,
- * and the table with pagination (dashboard-01's DataTable).
+ * and the table with pagination (dashboard-01's DataTable); the privacy line sits under it.
  */
 export default async function CommissionsPage({ params, searchParams }: CommissionsPageProps) {
   // Hooks
@@ -40,7 +39,6 @@ export default async function CommissionsPage({ params, searchParams }: Commissi
   const exportHref = `${portalHref(base, '/export/commissions')}${qs ? `?${qs}` : ''}`
   return (
     <>
-      <PageHeading description={copy.help} />
       <CommissionsTable
         rows={rows}
         empty={copy.empty}
@@ -51,7 +49,11 @@ export default async function CommissionsPage({ params, searchParams }: Commissi
               title={copy.none.title}
               description={copy.none.text}
               action={
-                <Button size="sm" nativeButton={false} render={<Link href={portalHref(base, '/')} />}>
+                <Button
+                  size="sm"
+                  nativeButton={false}
+                  render={<Link href={portalHref(base, '/')} />}
+                >
                   {copy.none.action}
                 </Button>
               }
@@ -74,9 +76,9 @@ export default async function CommissionsPage({ params, searchParams }: Commissi
           </>
         }
       />
-      {rows.length >= PAGE_ROWS ? (
-        <p className="px-4 text-sm text-muted-foreground lg:px-6">{copy.limit(PAGE_ROWS)}</p>
-      ) : null}
+      <p className="px-4 text-sm text-muted-foreground lg:px-6">
+        {rows.length >= PAGE_ROWS ? `${copy.help} ${copy.limit(PAGE_ROWS)}` : copy.help}
+      </p>
     </>
   )
 }

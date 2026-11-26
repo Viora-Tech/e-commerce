@@ -33,3 +33,48 @@ Owner asked to improve the affiliate portal UI after #1805 went live. Branch
 
 - Phone width (390px) in a real browser.
 - A store without a favicon (letter tile) and without a brand colour (neutral).
+
+## Second pass: matched to shadcn's blocks (owner: scroll bar, alignment, gaps, widths)
+
+Compared page by page against dashboard-01, login-03 / login-02 and the forms example
+(v3.shadcn.com/examples/forms; the v4 site no longer has it), light and dark, and at phone
+width (390px frames).
+
+- **Scrollbars**: the portal's `<html>` keeps a stable gutter (`[scrollbar-gutter:stable]`), so a
+  short page and a long page have the same width; scrollbars stay thin (`portal.css`).
+- **Number cards** (`section-cards.tsx`): dashboard-01's footer, tight under the value
+  (`pt-0`): the trend line with its arrow, then what the number counts. "Last 30 days" is
+  named once, on the chart, not on all four cards.
+- **Payout nudge**: the full-width alert at the top of the dashboard is gone
+  (`payout-banner.tsx` removed). The Balance card's footer says "Add your payout details" with
+  the button; once saved it shows the next-payout lines instead.
+- **Link and Balance cards**: footers pinned to the bottom at one height, so the pair lines up.
+  Link card: the link and the discount code with Copy, QR code in the header corner, the footer
+  holds Get product link, Get link with source and one Share menu (WhatsApp, Facebook, X,
+  Telegram, the phone's share sheet) instead of a row of five buttons.
+- **Latest commissions** (`recent-commissions.tsx`): a card with See all in the corner, the newest
+  five in a plain table (no status tabs or pagination), shadcn's Empty inside when there are none.
+  The table itself is shared with the Commissions page (`commissions-grid.tsx`).
+- **Commissions**: the native date inputs are a shadcn date range picker
+  (`date-range-filter.tsx`: Popover + Calendar `mode="range"`, two months, Reset / Apply, like the
+  admin's). The status tabs become a select on a narrow page (dashboard-01 does the same), so the
+  page never scrolls sideways on a phone. The privacy line moved under the table.
+- **Payouts**: the payout method is a shadcn Item (icon, masked method, Add / Change; the button
+  drops under the text on a phone); the table and its empty state sit in a "Payouts" card with
+  Export CSV in its corner. No floating description line.
+- **Settings**: the forms example's layout exactly: sections nav a fifth of the width, content
+  `max-w-2xl`, each page a heading + muted line + separator and the form on the page, no cards
+  (`settings-section.tsx`). The extra Payouts card under the payout form is gone (the saved
+  method shows in the section's line). Profile has two sections: Profile and Referral code.
+- **Guide**: tips sit beside the steps inside the Getting started card (a vertical separator on a
+  wide page, under them on a phone), so no short card leaves a hole; Program terms below.
+- `packages/ui` `Calendar`: `CalendarDayButton`'s `locale` prop allows `undefined`, so the
+  storefront (`exactOptionalPropertyTypes`) can use the Calendar.
+
+Checked: storefront and ui typecheck clean; portal tests (3 files, 24) pass; component-structure
+check has nothing for the portal. Sign-in and signup already matched login-03 / login-02 and were
+left as they are.
+
+Not changed: Marketing tools still has its one-line description above the grid (only an empty
+state to compare locally).
+

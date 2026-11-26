@@ -1,7 +1,6 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import {
   Field,
   FieldDescription,
@@ -17,17 +16,16 @@ import { useState, useTransition } from 'react'
 import { affiliateContent } from '@/data/affiliate'
 import { savePayoutDetailsAction } from '@/lib/affiliate-actions'
 
-type PayoutFormProps = { hint: string | null }
-
 type Method = 'upi' | 'bank'
 
 const copy = affiliateContent.payout
 
 /**
- * Settings › Payout and tax: UPI ID or bank account, PAN and GSTIN. What is saved is never shown
- * back, only the masked hint ("UPI as•••@okaxis"); saving again replaces it.
+ * Settings › Payout and tax: UPI ID or bank account, PAN and GSTIN, on the page as in shadcn's
+ * forms example. What is saved is never shown back, only the masked hint in the section's line
+ * ("UPI as•••@okaxis"); saving again replaces it.
  */
-export default function PayoutForm({ hint }: PayoutFormProps) {
+export default function PayoutForm() {
   // Hooks
   const router = useRouter()
   const [pending, start] = useTransition()
@@ -70,119 +68,109 @@ export default function PayoutForm({ hint }: PayoutFormProps) {
   // Render logic
   const invalid = (field: string) => (error?.field === field ? true : undefined)
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{copy.title}</CardTitle>
-        <CardDescription>{hint ? copy.current(hint) : copy.none}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit}>
-          <FieldGroup>
-            <RadioGroup
-              value={method}
-              onValueChange={(v) => setMethod(v as Method)}
-              className="flex gap-6"
-            >
-              {(['upi', 'bank'] as const).map((m) => (
-                <Field key={m} orientation="horizontal" className="w-auto">
-                  <RadioGroupItem value={m} id={`payout-${m}`} />
-                  <FieldLabel htmlFor={`payout-${m}`}>
-                    {m === 'upi' ? copy.upi : copy.bank}
-                  </FieldLabel>
-                </Field>
-              ))}
-            </RadioGroup>
-            {method === 'upi' ? (
-              <Field data-invalid={invalid('upiId')}>
-                <FieldLabel htmlFor="po-upi">{copy.upiId}</FieldLabel>
-                <Input
-                  id="po-upi"
-                  autoComplete="off"
-                  inputMode="email"
-                  placeholder="name@bank"
-                  value={upiId}
-                  aria-invalid={invalid('upiId')}
-                  onChange={(e) => setUpiId(e.target.value)}
-                />
-              </Field>
-            ) : (
-              <>
-                <Field data-invalid={invalid('accountName')}>
-                  <FieldLabel htmlFor="po-name">{copy.accountName}</FieldLabel>
-                  <Input
-                    id="po-name"
-                    autoComplete="name"
-                    value={accountName}
-                    aria-invalid={invalid('accountName')}
-                    onChange={(e) => setAccountName(e.target.value)}
-                  />
-                </Field>
-                <Field data-invalid={invalid('accountNumber')}>
-                  <FieldLabel htmlFor="po-number">{copy.accountNumber}</FieldLabel>
-                  <Input
-                    id="po-number"
-                    autoComplete="off"
-                    inputMode="numeric"
-                    value={accountNumber}
-                    aria-invalid={invalid('accountNumber')}
-                    onChange={(e) => setAccountNumber(e.target.value)}
-                  />
-                </Field>
-                <Field data-invalid={invalid('ifsc')}>
-                  <FieldLabel htmlFor="po-ifsc">{copy.ifsc}</FieldLabel>
-                  <Input
-                    id="po-ifsc"
-                    autoComplete="off"
-                    maxLength={11}
-                    className="uppercase"
-                    value={ifsc}
-                    aria-invalid={invalid('ifsc')}
-                    onChange={(e) => setIfsc(e.target.value)}
-                  />
-                </Field>
-              </>
-            )}
-            <FieldSeparator />
-            <Field data-invalid={invalid('pan')}>
-              <FieldLabel htmlFor="po-pan">{copy.pan}</FieldLabel>
-              <Input
-                id="po-pan"
-                autoComplete="off"
-                maxLength={10}
-                className="uppercase"
-                value={pan}
-                aria-invalid={invalid('pan')}
-                onChange={(e) => setPan(e.target.value)}
-              />
-              <FieldDescription>{copy.panHint}</FieldDescription>
+    <form onSubmit={handleSubmit}>
+      <FieldGroup>
+        <RadioGroup
+          value={method}
+          onValueChange={(v) => setMethod(v as Method)}
+          className="flex gap-6"
+        >
+          {(['upi', 'bank'] as const).map((m) => (
+            <Field key={m} orientation="horizontal" className="w-auto">
+              <RadioGroupItem value={m} id={`payout-${m}`} />
+              <FieldLabel htmlFor={`payout-${m}`}>{m === 'upi' ? copy.upi : copy.bank}</FieldLabel>
             </Field>
-            <Field data-invalid={invalid('gstin')}>
-              <FieldLabel htmlFor="po-gstin">{copy.gstin}</FieldLabel>
+          ))}
+        </RadioGroup>
+        {method === 'upi' ? (
+          <Field data-invalid={invalid('upiId')}>
+            <FieldLabel htmlFor="po-upi">{copy.upiId}</FieldLabel>
+            <Input
+              id="po-upi"
+              autoComplete="off"
+              inputMode="email"
+              placeholder="name@bank"
+              value={upiId}
+              aria-invalid={invalid('upiId')}
+              onChange={(e) => setUpiId(e.target.value)}
+            />
+          </Field>
+        ) : (
+          <>
+            <Field data-invalid={invalid('accountName')}>
+              <FieldLabel htmlFor="po-name">{copy.accountName}</FieldLabel>
               <Input
-                id="po-gstin"
-                autoComplete="off"
-                maxLength={15}
-                className="uppercase"
-                value={gstin}
-                aria-invalid={invalid('gstin')}
-                onChange={(e) => setGstin(e.target.value)}
+                id="po-name"
+                autoComplete="name"
+                value={accountName}
+                aria-invalid={invalid('accountName')}
+                onChange={(e) => setAccountName(e.target.value)}
               />
-              <FieldDescription>{copy.gstinHint}</FieldDescription>
             </Field>
-            {error ? <FieldError>{error.message}</FieldError> : null}
-            <div className="flex items-center gap-3">
-              <Button type="submit" loading={pending}>
-                {pending ? copy.saving : copy.save}
-              </Button>
-              {saved ? (
-                <span className="text-sm text-success" role="status">
-                  {copy.saved}
-                </span>
-              ) : null}
-            </div>
-          </FieldGroup>
-        </form>
-      </CardContent>
-    </Card>
+            <Field data-invalid={invalid('accountNumber')}>
+              <FieldLabel htmlFor="po-number">{copy.accountNumber}</FieldLabel>
+              <Input
+                id="po-number"
+                autoComplete="off"
+                inputMode="numeric"
+                value={accountNumber}
+                aria-invalid={invalid('accountNumber')}
+                onChange={(e) => setAccountNumber(e.target.value)}
+              />
+            </Field>
+            <Field data-invalid={invalid('ifsc')}>
+              <FieldLabel htmlFor="po-ifsc">{copy.ifsc}</FieldLabel>
+              <Input
+                id="po-ifsc"
+                autoComplete="off"
+                maxLength={11}
+                className="uppercase"
+                value={ifsc}
+                aria-invalid={invalid('ifsc')}
+                onChange={(e) => setIfsc(e.target.value)}
+              />
+            </Field>
+          </>
+        )}
+        <FieldSeparator />
+        <Field data-invalid={invalid('pan')}>
+          <FieldLabel htmlFor="po-pan">{copy.pan}</FieldLabel>
+          <Input
+            id="po-pan"
+            autoComplete="off"
+            maxLength={10}
+            className="uppercase"
+            value={pan}
+            aria-invalid={invalid('pan')}
+            onChange={(e) => setPan(e.target.value)}
+          />
+          <FieldDescription>{copy.panHint}</FieldDescription>
+        </Field>
+        <Field data-invalid={invalid('gstin')}>
+          <FieldLabel htmlFor="po-gstin">{copy.gstin}</FieldLabel>
+          <Input
+            id="po-gstin"
+            autoComplete="off"
+            maxLength={15}
+            className="uppercase"
+            value={gstin}
+            aria-invalid={invalid('gstin')}
+            onChange={(e) => setGstin(e.target.value)}
+          />
+          <FieldDescription>{copy.gstinHint}</FieldDescription>
+        </Field>
+        {error ? <FieldError>{error.message}</FieldError> : null}
+        <div className="flex items-center gap-3">
+          <Button type="submit" loading={pending}>
+            {pending ? copy.saving : copy.save}
+          </Button>
+          {saved ? (
+            <span className="text-sm text-success" role="status">
+              {copy.saved}
+            </span>
+          ) : null}
+        </div>
+      </FieldGroup>
+    </form>
   )
 }

@@ -1,6 +1,6 @@
 import { CheckIcon as Check } from '@commerce/ui/icons'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import type { Metadata } from 'next'
+import SettingsSection from '@/components/affiliate-portal/settings-section'
 import { affiliatePortalContent } from '@/data/affiliate-portal'
 import { requireAffiliate } from '@/lib/affiliate-portal'
 
@@ -21,12 +21,8 @@ export default async function NotificationsPage({ params }: NotificationsPagePro
 
   // Render logic
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{copy.title}</CardTitle>
-        <CardDescription>{copy.help}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+    <SettingsSection title={copy.title} description={copy.help}>
+      <div className="flex flex-col gap-4">
         <ul className="flex flex-col gap-2">
           {copy.items.map((item) => (
             <li key={item} className="flex items-start gap-2 text-sm">
@@ -36,7 +32,7 @@ export default async function NotificationsPage({ params }: NotificationsPagePro
           ))}
         </ul>
         <p className="text-sm text-muted-foreground">{copy.fixed}</p>
-      </CardContent>
-    </Card>
+      </div>
+    </SettingsSection>
   )
 }

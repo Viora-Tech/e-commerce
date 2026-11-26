@@ -26,7 +26,7 @@ export default function SettingsNav({ base }: SettingsNavProps) {
   // Render logic
   return (
     <nav
-      className="-mx-1 overflow-x-auto [scrollbar-width:none] lg:mx-0 lg:w-48 lg:shrink-0 lg:overflow-visible"
+      className="-mx-1 overflow-x-auto [scrollbar-width:none] lg:mx-0 lg:w-1/5 lg:shrink-0 lg:overflow-visible"
       aria-label={affiliatePortalContent.settings.title}
     >
       <ul className="flex min-w-max gap-1 px-1 lg:min-w-0 lg:flex-col lg:px-0">
