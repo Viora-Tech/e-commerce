@@ -166,7 +166,9 @@ export async function renderProductPage(storeId: string, handle: string): Promis
     ),
     storeRead(storeId, 'upi-discount', (tx) => storeUpiDiscount(tx, storeId)),
     storeRead(storeId, 'emi-offers', (tx) => storeEmiOffers(tx, storeId)),
-    storeRead(storeId, 'back-in-stock', (tx) => backInStockContext(tx, storeId)),
+    storeRead(storeId, `back-in-stock|${product.id}`, (tx) =>
+      backInStockContext(tx, storeId, product.id),
+    ),
     storeRead(storeId, 'policy-panels', (tx) => policyPanels(tx)),
     storeRead(storeId, 'offer-policies', (tx) => productOfferPolicies(tx, storeId)),
   ])
@@ -290,7 +292,14 @@ export async function renderProductPage(storeId: string, handle: string): Promis
     policyPanels: policies,
     underPrice,
     emiConfig: emiApp.config ?? null,
-    notifyMe: bis.installed ? { whatsappEnabled: bis.whatsappEnabled } : null,
+    notifyMe: bis.installed
+      ? {
+          whatsappEnabled: bis.whatsappEnabled,
+          buttonText: bis.buttonText,
+          widget: bis.widget,
+          productTitle: product.title,
+        }
+      : null,
     moneyFormat: current.moneyFormat ?? null,
     pricing: await requestMarketPricing(storeId),
     cartHref: `${h.get(MARKET_HEADERS.prefix) ?? ''}/cart`,

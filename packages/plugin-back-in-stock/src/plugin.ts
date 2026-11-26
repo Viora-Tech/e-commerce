@@ -39,7 +39,7 @@ export const backInStockPlugin = definePlugin({
       {
         question: 'Can I change the alert message?',
         answer:
-          'Not yet. The confirm email and the alert use a standard template with your store’s name, the product and a link to buy it. Settings chooses the channels and how fast alerts go out.',
+          'Yes. Campaign › Email opens the alert and the confirm email in your store’s email editor. Campaign › Button and Pop up change the button and the signup form.',
       },
     ],
   },
@@ -73,8 +73,8 @@ export const backInStockPlugin = definePlugin({
     icon: 'Bell',
     pages: [
       { path: '', title: 'Overview', navLabel: 'Overview', icon: 'BarChart3' },
+      { path: 'campaign', title: 'Campaign', navLabel: 'Campaign', icon: 'Bell' },
       { path: 'signups', title: 'Signups', navLabel: 'Signups', icon: 'Users' },
-      { path: 'settings', title: 'Settings', navLabel: 'Settings', icon: 'Settings' },
     ],
   },
 })

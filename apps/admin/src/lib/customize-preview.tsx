@@ -6,6 +6,7 @@ import {
   headerSettings,
   mainProductSettings,
   type NavLink,
+  type NotifyMeWidget,
   type ProductDetail,
   ProductRecommendations,
   ProductView,
@@ -16,6 +17,7 @@ import {
 } from '@commerce/blocks'
 import type { CardProduct, SectionMetadata } from '@commerce/blocks/puck'
 import { isValidElement } from 'react'
+import NotifyMePreview from '@/components/themes/customize/notify-me-preview'
 import { customizeContent } from '@/data/customize'
 
 /** Store data the preview header and footer draw from (`themes.templates.previewContext`). */
@@ -42,6 +44,8 @@ type PreviewOptions = {
   logo: { url: string; width: number } | null
   /** The store's active products, for product rows that depend on the shopper. */
   cards: CardProduct[]
+  /** The Back in stock campaign's button, drawn on a sold-out product; null without the app. */
+  notifyMe?: NotifyMeWidget | null | undefined
 }
 
 const copy = customizeContent
@@ -77,6 +81,7 @@ export function previewMetadata({
   resource,
   logo,
   cards,
+  notifyMe,
 }: PreviewOptions): SectionMetadata {
   return {
     renderers: {
@@ -104,7 +109,12 @@ export function previewMetadata({
       CookieBanner: (s) => <ZeroDriftCookieBanner {...cookieBannerSettings(s)} />,
       MainProduct: (s) =>
         resource?.kind === 'product' ? (
-          <ProductView product={resource.product} settings={mainProductSettings(s)} />
+          <ProductView
+            product={resource.product}
+            settings={mainProductSettings(s)}
+            NotifyMe={notifyMe ? NotifyMePreview : undefined}
+            notifyMeProps={notifyMe ? { whatsappEnabled: false, widget: notifyMe } : undefined}
+          />
         ) : (
           pickFirst(copy.templates.names.product)
         ),

@@ -46,6 +46,16 @@ async function seedVariant(opts: { preorderEnabled?: boolean } = {}) {
 }
 
 describe('createSignup', () => {
+  it('with double opt-in off, an email signup is confirmed at once and queues no confirm email', async () => {
+    const { storeId, variantId } = await seedVariant()
+    const { row } = await withStore(app, storeId, (tx) =>
+      createSignup(tx, storeId, { variantId, email: 'quick@example.com', doubleOptIn: false }),
+    )
+    expect(row.status).toBe('confirmed')
+    expect(row.confirmToken).toBeNull()
+    expect(row.confirmedAt).not.toBeNull()
+  })
+
   it('dedupes: a second signup for the same live email/variant is a no-op', async () => {
     const { storeId, variantId } = await seedVariant()
     const first = await withStore(app, storeId, (tx) =>

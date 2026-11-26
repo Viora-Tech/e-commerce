@@ -151,6 +151,9 @@ export const ACTION_DOCS: Record<string, string> = {
   'automations.update':
     'Saves the name, description or draft; the live version keeps running until Publish.',
   'automations.usage': "Monthly runs and active workflows against the plan's limits.",
+  'backInStock.overview':
+    "The Overview (Essential's Analytics tab): this month's sending against the free quota, the four period figures with the period before, and one row per variant anyone asked about.",
+  'backInStock.signups.export': 'Every signup with its full contact, for "Export signups" (CSV).',
   'backInStock.signups.importRestockTags':
     '"Bring over restock tags": Shopify restock-app customer tags become waiting signups.',
   'billing.apps':
@@ -549,6 +552,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'notifications.branding':
     "Email branding: what the merchant saved (or null) and the theme's look it starts from.",
   'notifications.checkSenderEmail': '"Check now": ask SES again.',
+  'notifications.checkSes':
+    'Apps → Amazon SES → Connect, after Save: the saved keys checked against AWS (keys, sending on, sandbox, From verified, configuration set).',
   'notifications.design':
     'Edit design: the saved design (or null), the default to start from, the locked blocks and variables.',
   'notifications.emailSuppressions':
