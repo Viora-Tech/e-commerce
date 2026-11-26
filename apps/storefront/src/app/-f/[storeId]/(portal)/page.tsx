@@ -1,4 +1,5 @@
 import { portalRange } from '@commerce/plugin-affiliates/server'
+import { TrendingUp } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -8,6 +9,7 @@ import BalanceTabs from '@/components/affiliate-portal/balance-tabs'
 import CommissionsTable from '@/components/affiliate-portal/commissions-table'
 import PayoutBanner from '@/components/affiliate-portal/payout-banner'
 import PerformanceCard from '@/components/affiliate-portal/performance-card'
+import PortalEmpty from '@/components/affiliate-portal/portal-empty'
 import ProgramDetails from '@/components/affiliate-portal/program-details'
 import SectionCards from '@/components/affiliate-portal/section-cards'
 import { affiliateContent } from '@/data/affiliate'
@@ -81,6 +83,14 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
       <CommissionsTable
         rows={portal.recent}
         empty={affiliateContent.dashboard.recentEmpty}
+        none={
+          <PortalEmpty
+            icon={TrendingUp}
+            title={affiliatePortalContent.commissions.none.title}
+            description={affiliatePortalContent.commissions.none.text}
+            className="p-6 md:p-6"
+          />
+        }
         pageSize={5}
         toolbar={
           <Button

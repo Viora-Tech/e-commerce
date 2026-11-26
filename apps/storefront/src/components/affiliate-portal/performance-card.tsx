@@ -58,6 +58,7 @@ export default function PerformanceCard({ range, points, unit }: PerformanceCard
   }
 
   // Render logic
+  const empty = points.every((p) => p.clicks === 0 && p.referrals === 0)
   const data = points.map((p) => ({
     label: axisLabel(p.period, unit),
     clicks: p.clicks,
@@ -98,14 +99,21 @@ export default function PerformanceCard({ range, points, unit }: PerformanceCard
             </NativeSelect>
           </CardAction>
         </CardHeader>
-        <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+        <CardContent className="relative px-2 pt-4 sm:px-6 sm:pt-6">
           <StackedAreaChart
             data={data}
+            legend
             series={[
               { key: 'clicks', label: copy.series.clicks },
               { key: 'referrals', label: copy.series.referrals },
             ]}
           />
+          {empty ? (
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1 px-6 text-center">
+              <p className="font-medium">{copy.emptyTitle}</p>
+              <p className="max-w-[22rem] text-sm text-muted-foreground">{copy.empty}</p>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </div>

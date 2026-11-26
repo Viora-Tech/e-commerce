@@ -6,7 +6,7 @@ import PortalSidebar from './portal-sidebar'
 import SiteHeader from './site-header'
 
 type PortalShellProps = {
-  store: { name: string; logoUrl: string | null; email: string | null }
+  store: { name: string; iconUrl: string | null; email: string | null }
   affiliate: { name: string; email: string | null; status: string }
   /** Where the portal's links start: `''` on its own host, `/affiliate` on a store domain. */
   base: string

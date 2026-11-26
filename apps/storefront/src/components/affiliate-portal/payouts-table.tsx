@@ -1,7 +1,7 @@
 'use client'
 
 import type { PortalPayout } from '@commerce/plugin-affiliates/server'
-import { CircleCheck, CircleDashed } from '@commerce/ui/icons'
+import { CircleCheck, CircleDashed, CreditCard } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import {
   Table,
@@ -14,6 +14,7 @@ import {
 import { useState } from 'react'
 import { affiliatePortalContent } from '@/data/affiliate-portal'
 import { day, money } from '@/lib/portal-format'
+import PortalEmpty from './portal-empty'
 import TablePagination from './table-pagination'
 
 type PayoutsTableProps = { rows: PortalPayout[] }
@@ -38,6 +39,19 @@ export default function PayoutsTable({ rows }: PayoutsTableProps) {
     setPage(0)
   }
 
+  // Early returns
+  if (rows.length === 0)
+    return (
+      <div className="px-4 lg:px-6">
+        <PortalEmpty
+          icon={CreditCard}
+          title={copy.none.title}
+          description={copy.none.text}
+          className="border border-dashed"
+        />
+      </div>
+    )
+
   // Render logic
   const c = copy.columns
   const pageRows = rows.slice(page * pageSize, (page + 1) * pageSize)
@@ -55,7 +69,7 @@ export default function PayoutsTable({ rows }: PayoutsTableProps) {
                 <TableHead className="text-right">{c.clawback}</TableHead>
                 <TableHead className="text-right">{c.gst}</TableHead>
                 <TableHead className="text-right">{c.net}</TableHead>
-                <TableHead className="pr-4">{c.reference}</TableHead>
+                <TableHead className="pr-4 pl-6">{c.reference}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -90,7 +104,7 @@ export default function PayoutsTable({ rows }: PayoutsTableProps) {
                     <TableCell className="text-right font-medium tabular-nums">
                       {money(r.netPaise)}
                     </TableCell>
-                    <TableCell className="pr-4 font-mono text-xs">{r.reference}</TableCell>
+                    <TableCell className="pr-4 pl-6 font-mono text-xs">{r.reference}</TableCell>
                   </TableRow>
                 ))
               )}

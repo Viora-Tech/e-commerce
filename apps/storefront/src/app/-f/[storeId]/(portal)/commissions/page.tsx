@@ -1,9 +1,11 @@
-import { Download } from '@commerce/ui/icons'
+import { Download, TrendingUp } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import CommissionFilters from '@/components/affiliate-portal/commission-filters'
 import CommissionsTable from '@/components/affiliate-portal/commissions-table'
 import PageHeading from '@/components/affiliate-portal/page-heading'
+import PortalEmpty from '@/components/affiliate-portal/portal-empty'
 import { affiliatePortalContent } from '@/data/affiliate-portal'
 import { portalHref, requireAffiliate } from '@/lib/affiliate-portal'
 import { commissionFilters, loadCommissions } from '@/lib/portal-data'
@@ -42,6 +44,20 @@ export default async function CommissionsPage({ params, searchParams }: Commissi
       <CommissionsTable
         rows={rows}
         empty={copy.empty}
+        none={
+          qs ? undefined : (
+            <PortalEmpty
+              icon={TrendingUp}
+              title={copy.none.title}
+              description={copy.none.text}
+              action={
+                <Button size="sm" nativeButton={false} render={<Link href={portalHref(base, '/')} />}>
+                  {copy.none.action}
+                </Button>
+              }
+            />
+          )
+        }
         pageSize={20}
         toolbar={
           <>

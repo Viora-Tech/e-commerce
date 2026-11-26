@@ -1,11 +1,12 @@
 'use client'
 
-import { Copy, Download, FileText } from '@commerce/ui/icons'
+import { Copy, Download, FileText, Megaphone } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardFooter } from '@commerce/ui/shadcn/card'
 import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import { useState } from 'react'
 import { affiliatePortalContent } from '@/data/affiliate-portal'
+import PortalEmpty from './portal-empty'
 
 type Creative = {
   id: string
@@ -48,9 +49,14 @@ export default function CreativesGrid({ creatives }: CreativesGridProps) {
   // Early returns
   if (creatives.length === 0)
     return (
-      <p className="mx-4 rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground lg:mx-6">
-        {copy.empty}
-      </p>
+      <div className="px-4 lg:px-6">
+        <PortalEmpty
+          icon={Megaphone}
+          title={copy.none.title}
+          description={copy.none.text}
+          className="border border-dashed"
+        />
+      </div>
     )
 
   // Render logic

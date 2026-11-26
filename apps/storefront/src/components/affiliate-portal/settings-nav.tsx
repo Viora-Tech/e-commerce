@@ -15,7 +15,10 @@ const TABS = [
   { path: '/settings/security', label: copy.security },
 ] as const
 
-/** Settings' sections as a row of tabs (links), scrolling sideways on a phone. */
+/**
+ * Settings' sections as shadcn's forms example draws them: a list down the left on a wide
+ * screen, a row that scrolls sideways on a phone. The open one has the muted fill.
+ */
 export default function SettingsNav({ base }: SettingsNavProps) {
   // Hooks
   const pathname = usePathname()
@@ -23,10 +26,10 @@ export default function SettingsNav({ base }: SettingsNavProps) {
   // Render logic
   return (
     <nav
-      className="-mx-1 overflow-x-auto border-b"
+      className="-mx-1 overflow-x-auto [scrollbar-width:none] lg:mx-0 lg:w-48 lg:shrink-0 lg:overflow-visible"
       aria-label={affiliatePortalContent.settings.title}
     >
-      <ul className="flex min-w-max gap-1 px-1">
+      <ul className="flex min-w-max gap-1 px-1 lg:min-w-0 lg:flex-col lg:px-0">
         {TABS.map((t) => {
           const href = `${base}${t.path}`
           const active = pathname === href
@@ -35,10 +38,10 @@ export default function SettingsNav({ base }: SettingsNavProps) {
               <Link
                 href={href}
                 aria-current={active ? 'page' : undefined}
-                className={`-mb-px inline-flex h-10 items-center border-b-2 px-3 text-sm font-medium transition-[color,border-color] duration-(--duration-press) ${
+                className={`inline-flex h-9 w-full items-center rounded-md px-3 text-sm font-medium whitespace-nowrap transition-colors duration-(--duration-press) ${
                   active
-                    ? 'border-foreground text-foreground'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                    ? 'bg-muted text-foreground'
+                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                 }`}
               >
                 {t.label}

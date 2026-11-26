@@ -1,4 +1,5 @@
 import '../portal.css'
+import { accentCss } from '@commerce/core/admin-accent'
 import type { Metadata } from 'next'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { cookies, headers } from 'next/headers'
@@ -32,15 +33,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 /**
  * The affiliate portal's document (`affiliate.<store domain>` or `/affiliate`): our shadcn look
- * from `@commerce/ui`, light or dark, with none of the store's theme, header or footer.
+ * from `@commerce/ui` in the store's brand colour, light or dark, with none of the store's theme, header or footer.
  */
-export default async function PortalLayout({ children }: Props) {
+export default async function PortalLayout({ children, params }: Props) {
   // Hooks
+  const { storeId } = await params
+  const store = await portalStore(storeId)
   const saved = (await cookies()).get(PORTAL_THEME_COOKIE)?.value
   const nonce = (await headers()).get(NONCE_HEADER) ?? undefined
 
   // Render logic
   const theme = portalThemeClass(saved)
+  // The store's brand colour through the admin's accent tokens (buttons, rings, chart, nav).
+  const brand = accentCss(store.brand)
   return (
     <html lang="en" className={`${sans.variable} ${theme ?? ''}`} suppressHydrationWarning>
       <head>
@@ -48,6 +53,7 @@ export default async function PortalLayout({ children }: Props) {
           // biome-ignore lint/security/noDangerouslySetInnerHtml: a fixed string, no input
           <script nonce={nonce} dangerouslySetInnerHTML={{ __html: SYSTEM_THEME }} />
         ) : null}
+        {brand ? <style nonce={nonce}>{brand}</style> : null}
       </head>
       <body className="min-h-dvh bg-background font-sans text-foreground antialiased">
         {children}

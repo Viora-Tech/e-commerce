@@ -21,6 +21,8 @@ import TablePagination from './table-pagination'
 type CommissionsTableProps = {
   rows: PortalSale[]
   empty: string
+  /** Shown instead of the table while there are no commissions at all (shadcn's Empty). */
+  none?: ReactNode
   /** Filters and Export, at the end of the tabs row (dashboard-01's "Customize Columns"). */
   toolbar?: ReactNode
   /** Rows per page to start with. */
@@ -66,6 +68,7 @@ function statusOf(r: PortalSale): { label: string; icon: ReactNode; note: string
 export default function CommissionsTable({
   rows,
   empty,
+  none,
   toolbar,
   pageSize: firstSize = 10,
 }: CommissionsTableProps) {
@@ -117,9 +120,9 @@ export default function CommissionsTable({
             </TableHeader>
             <TableBody>
               {pageRows.length === 0 ? (
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                    {empty}
+                    {rows.length === 0 && none ? none : empty}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -159,13 +162,15 @@ export default function CommissionsTable({
           </Table>
         </div>
       </div>
-      <TablePagination
-        total={shown.length}
-        page={page}
-        pageSize={pageSize}
-        onPage={setPage}
-        onPageSize={handlePageSize}
-      />
+      {shown.length > 0 ? (
+        <TablePagination
+          total={shown.length}
+          page={page}
+          pageSize={pageSize}
+          onPage={setPage}
+          onPageSize={handlePageSize}
+        />
+      ) : null}
     </Tabs>
   )
 }

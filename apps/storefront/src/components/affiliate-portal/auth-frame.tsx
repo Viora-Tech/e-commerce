@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import StoreMark from './store-mark'
 
 type AuthFrameProps = {
-  store: { name: string; logoUrl: string | null; email: string | null; origin: string }
+  store: { name: string; iconUrl: string | null; email: string | null; origin: string }
   children: ReactNode
 }
 
@@ -16,7 +16,7 @@ export default function AuthFrame({ store, children }: AuthFrameProps) {
     <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
       <div className="flex w-full max-w-sm flex-col gap-6">
         <a href={store.origin} className="flex items-center gap-2 self-center font-medium">
-          <StoreMark name={store.name} logoUrl={store.logoUrl} size="sm" />
+          <StoreMark name={store.name} iconUrl={store.iconUrl} size="sm" />
           {store.name}
         </a>
         {children}

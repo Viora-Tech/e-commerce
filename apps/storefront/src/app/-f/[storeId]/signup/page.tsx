@@ -58,7 +58,7 @@ export default async function SignupPage({ params, searchParams }: SignupPagePro
       <div className="flex flex-col gap-4 p-6 md:p-10">
         <div className="flex justify-center gap-2 md:justify-start">
           <a href={store.origin} className="flex items-center gap-2 font-medium">
-            <StoreMark name={store.name} logoUrl={store.logoUrl} size="sm" />
+            <StoreMark name={store.name} iconUrl={store.iconUrl} size="sm" />
             {store.name}
           </a>
         </div>

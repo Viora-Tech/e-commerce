@@ -1,5 +1,12 @@
-import { Download } from '@commerce/ui/icons'
+import { CreditCard, Download } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import {
+  Card,
+  CardAction,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@commerce/ui/shadcn/card'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import PageHeading from '@/components/affiliate-portal/page-heading'
@@ -34,14 +41,6 @@ export default async function PayoutsPage({ params }: PayoutsPageProps) {
               variant="outline"
               size="sm"
               nativeButton={false}
-              render={<Link href={portalHref(base, '/settings/payout')} />}
-            >
-              {copy.change}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              nativeButton={false}
               render={<a href={portalHref(base, '/export/payouts')} download />}
             >
               <Download />
@@ -50,10 +49,29 @@ export default async function PayoutsPage({ params }: PayoutsPageProps) {
           </>
         }
       />
-      <p className="px-4 text-sm lg:px-6">
-        <span className="text-muted-foreground">{copy.method}: </span>
-        {affiliate.payoutHint ? payout.current(affiliate.payoutHint) : payout.none}
-      </p>
+      <div className="px-4 lg:px-6">
+        <Card size="sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="size-4 text-muted-foreground" />
+              {copy.method}
+            </CardTitle>
+            <CardDescription>
+              {affiliate.payoutHint ? payout.current(affiliate.payoutHint) : copy.methodMissing}
+            </CardDescription>
+            <CardAction>
+              <Button
+                variant={affiliate.payoutHint ? 'outline' : 'default'}
+                size="sm"
+                nativeButton={false}
+                render={<Link href={portalHref(base, '/settings/payout')} />}
+              >
+                {affiliate.payoutHint ? copy.change : copy.add}
+              </Button>
+            </CardAction>
+          </CardHeader>
+        </Card>
+      </div>
       <PayoutsTable rows={rows} />
     </>
   )
