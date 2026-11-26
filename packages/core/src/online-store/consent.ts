@@ -158,6 +158,15 @@ export function consentRegion(
   return regions === 'everyone' || consentRequiredIn(country) ? 'ask' : 'open'
 }
 
+/**
+ * What the browser uses when it cannot learn the region of a page drawn `pending` (the check
+ * failed, answered nonsense or took longer than `REGION_CHECK_TIMEOUT_MS`): no banner, tracking
+ * runs, as for a visitor outside the regions requiring consent. Not saved for the tab, so the
+ * next page asks again.
+ */
+export const REGION_FALLBACK: ConsentRegion = 'open'
+export const REGION_CHECK_TIMEOUT_MS = 3000
+
 /** What an `open` visitor who never opened the cookie settings has: everything allowed. */
 export const IMPLIED_CONSENT: Consent = { analytics: true, marketing: true }
 

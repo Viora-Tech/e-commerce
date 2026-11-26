@@ -1,4 +1,10 @@
-import { CONSENT_COOKIE, CONSENT_MAX_AGE, type PageConsentRegion } from '@commerce/core/consent'
+import {
+  CONSENT_COOKIE,
+  CONSENT_MAX_AGE,
+  type PageConsentRegion,
+  REGION_CHECK_TIMEOUT_MS,
+  REGION_FALLBACK,
+} from '@commerce/core/consent'
 import { marketSuggestionContent } from '@/data/markets'
 import { consentContent } from '@/data/online-store'
 import type { ChatwootChat } from '../chatwoot'
@@ -74,6 +80,8 @@ export function islandScript(config: IslandConfig): string {
   const data = {
     v: config.bannerVersion,
     region: config.region,
+    fallback: REGION_FALLBACK,
+    regionTimeout: REGION_CHECK_TIMEOUT_MS,
     cookie: CONSENT_COOKIE,
     maxAge: CONSENT_MAX_AGE,
     ga4: t.ga4 || null,
@@ -306,10 +314,22 @@ const ISLANDS = `(function () {
     var known = null;
     try { known = sessionStorage.getItem('wc_consent_region'); } catch (e) {}
     if (known === 'open' || known === 'ask') { c.region = known; start(); }
-    else fetch('/api/consent-region', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (b) {
-      c.region = b && (b.region === 'open' || b.region === 'ask') ? b.region : 'ask';
-      try { sessionStorage.setItem('wc_consent_region', c.region); } catch (e) {}
-    }, function () { c.region = 'ask'; }).then(start);
+    else {
+      // A failed, odd or slow answer: no banner (REGION_FALLBACK), not saved for the tab.
+      var settled = false;
+      var settle = function (region, save) {
+        if (settled) return;
+        settled = true;
+        c.region = region;
+        if (save) { try { sessionStorage.setItem('wc_consent_region', region); } catch (e) {} }
+        start();
+      };
+      setTimeout(function () { settle(c.fallback, false); }, c.regionTimeout);
+      fetch('/api/consent-region', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (b) {
+        if (b && (b.region === 'open' || b.region === 'ask')) settle(b.region, true);
+        else settle(c.fallback, false);
+      }, function () { settle(c.fallback, false); });
+    }
   } else start();
   function onConsent(event) {
     window.__commerceConsentAnswer = null;

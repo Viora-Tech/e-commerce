@@ -1,4 +1,8 @@
-import type { ConsentRegion } from '@commerce/core/consent'
+import {
+  type ConsentRegion,
+  REGION_CHECK_TIMEOUT_MS,
+  REGION_FALLBACK,
+} from '@commerce/core/consent'
 
 /**
  * The browser side of a page drawn without the visitor's consent region (a copy a shared cache
@@ -27,22 +31,34 @@ export function knownRegion(): ConsentRegion | null {
   return isRegion(saved) ? saved : null
 }
 
-/** The visitor's region; `ask` when the server cannot be reached (nothing loads unasked). */
+/**
+ * The visitor's region. When the check fails, answers something else or takes longer than
+ * `REGION_CHECK_TIMEOUT_MS`, `REGION_FALLBACK` (`open`: no banner); that guess is not saved, so
+ * the tab's next page asks again.
+ */
 export async function fetchRegion(): Promise<ConsentRegion> {
   const known = knownRegion()
   if (known) return known
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), REGION_CHECK_TIMEOUT_MS)
   try {
-    const res = await fetch('/api/consent-region', { credentials: 'same-origin' })
+    const res = await fetch('/api/consent-region', {
+      credentials: 'same-origin',
+      signal: controller.signal,
+    })
+    if (!res.ok) return REGION_FALLBACK
     const body = (await res.json()) as { region?: unknown }
-    const region = isRegion(body.region) ? body.region : 'ask'
+    if (!isRegion(body.region)) return REGION_FALLBACK
     try {
-      tabStorage()?.setItem(REGION_KEY, region)
+      tabStorage()?.setItem(REGION_KEY, body.region)
     } catch {
       // Blocked storage: the next page asks again.
     }
-    return region
+    return body.region
   } catch {
-    return 'ask'
+    return REGION_FALLBACK
+  } finally {
+    clearTimeout(timer)
   }
 }
 
