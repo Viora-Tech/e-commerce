@@ -106,6 +106,7 @@ describe('islandScript', () => {
   it('is valid JavaScript with every value escaped', () => {
     const code = islandScript({
       bannerVersion: 3,
+      region: 'ask' as const,
       tracking: { ga4: 'G-ABC123', gtm: 'GTM-ABC12', metaPixel: '1234567890', googleAds: '' },
       umami: { src: 'https://u.example/script.js</script>', websiteId: 'w', waitForConsent: true },
     })

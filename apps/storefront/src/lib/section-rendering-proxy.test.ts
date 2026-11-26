@@ -25,6 +25,8 @@ vi.mock('./storefront-gate', async (original) => ({
     plainHtml: false,
     honoProduct: false,
     productFeed: false,
+    bannerRegions: 'consent_required',
+    bannerVersion: 1,
   }),
 }))
 

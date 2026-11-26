@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: cookie consent, tag gating — WHAT: the banner's stored choice (`wc_consent`) and which analytics/marketing tags it allows / WHY: the storefront's consent manager runs on every page, so this stays free of zod and the database */
+/** SOURCE OF TRUTH: cookie consent, tag gating, consent regions — WHAT: the banner's stored choice (`wc_consent`), which analytics/marketing tags it allows, and which countries are asked first (Shopify's regions requiring consent) / WHY: the storefront's consent manager runs on every page, so this stays free of zod and the database */
 /**
  * The cookie consent banner's choice and the tags it lets load. No zod and no
  * database: the storefront's consent manager runs on every page, so it imports
@@ -54,9 +54,9 @@ export function currentConsent(
 }
 
 /**
- * Which tags may load. Nothing optional loads before the shopper says yes to
- * its category (DPDP: consent is opt in); analytics tags need analytics, the
- * Meta pixel and the Google Ads tag need marketing.
+ * Which tags may load for a consent (`effectiveConsent`): analytics tags need analytics, the
+ * Meta pixel and the Google Ads tag need marketing. Null (no answer where the banner asks)
+ * loads nothing optional.
  */
 export function allowedTags(
   prefs: ConsentPreferences,
@@ -76,4 +76,113 @@ export function allowedTags(
 /** The slice of the store's preferences the tags read. */
 export type ConsentPreferences = {
   tracking: { ga4: string; gtm: string; metaPixel: string; googleAds?: string | undefined }
+}
+
+// Regions -------------------------------------------------------------------
+
+/**
+ * Shopify's "regions requiring consent" for its customer privacy banner: the EU and EEA, the
+ * United Kingdom and Switzerland. Visitors from these countries are asked before optional
+ * cookies; everyone else is tracked from the first page, with a way to opt out. ISO 3166-1
+ * alpha-2, upper case, as Cloudflare's `CF-IPCountry` sends them.
+ */
+export const CONSENT_REQUIRED_COUNTRIES: readonly string[] = [
+  // European Union
+  'AT',
+  'BE',
+  'BG',
+  'HR',
+  'CY',
+  'CZ',
+  'DK',
+  'EE',
+  'FI',
+  'FR',
+  'DE',
+  'GR',
+  'HU',
+  'IE',
+  'IT',
+  'LV',
+  'LT',
+  'LU',
+  'MT',
+  'NL',
+  'PL',
+  'PT',
+  'RO',
+  'SK',
+  'SI',
+  'ES',
+  'SE',
+  // The rest of the EEA, the United Kingdom, Switzerland
+  'IS',
+  'LI',
+  'NO',
+  'GB',
+  'CH',
+]
+
+const REQUIRED = new Set(CONSENT_REQUIRED_COUNTRIES)
+
+/**
+ * Settings → Customer privacy → who sees the banner, as Shopify sets it up:
+ * `consent_required` (the default) asks only visitors from `CONSENT_REQUIRED_COUNTRIES` and
+ * tracks everyone else from the first page; `everyone` asks every visitor before any optional
+ * cookie.
+ */
+export const BANNER_REGIONS = ['consent_required', 'everyone'] as const
+export type BannerRegions = (typeof BANNER_REGIONS)[number]
+export const DEFAULT_BANNER_REGIONS: BannerRegions = 'consent_required'
+
+/**
+ * Whether a visitor from `country` is asked first. An unknown country (no geo header, a
+ * local server) is not, as on Shopify.
+ */
+export function consentRequiredIn(country: string | null | undefined): boolean {
+  return country ? REQUIRED.has(country.trim().toUpperCase()) : false
+}
+
+/**
+ * How one visitor is treated: `ask` shows the banner and waits for a yes; `open` counts
+ * analytics and marketing as allowed until the shopper says no. A page a shared cache may hand
+ * to visitors from anywhere is drawn `pending` and the browser asks `/api/consent-region`.
+ */
+export type ConsentRegion = 'open' | 'ask'
+export type PageConsentRegion = ConsentRegion | 'pending'
+
+export function consentRegion(
+  regions: BannerRegions,
+  country: string | null | undefined,
+): ConsentRegion {
+  return regions === 'everyone' || consentRequiredIn(country) ? 'ask' : 'open'
+}
+
+/** What an `open` visitor who never opened the cookie settings has: everything allowed. */
+export const IMPLIED_CONSENT: Consent = { analytics: true, marketing: true }
+
+/**
+ * The consent that counts for this visitor. Where the banner asks, only an answer for the
+ * current banner version counts (`currentConsent`). Where it does not, a saved answer of any
+ * version stands (a no stays a no), and without one everything is allowed. `pending` (region
+ * not known yet) allows nothing until the browser learns the region.
+ */
+export function effectiveConsent(
+  stored: StoredConsent | null,
+  bannerVersion: number,
+  region: PageConsentRegion,
+): Consent | null {
+  if (region === 'open') {
+    return stored ? { analytics: stored.analytics, marketing: stored.marketing } : IMPLIED_CONSENT
+  }
+  return currentConsent(stored, bannerVersion)
+}
+
+/** Whether the banner should ask this visitor now (an imported theme's banner reads it too). */
+export function bannerAsks(
+  stored: StoredConsent | null,
+  bannerVersion: number,
+  region: PageConsentRegion,
+): boolean {
+  return region === 'ask' && currentConsent(stored, bannerVersion) === null
 }

@@ -1,6 +1,5 @@
 import 'server-only'
 import {
-  currentConsent,
   decodeConsent,
   liveThemeSettings,
   parseCustomerPrivacySettings,
@@ -19,6 +18,7 @@ import { parseRichText, richTextToPlainText } from '@commerce/richtext'
 import { eq } from 'drizzle-orm'
 import { cookies, headers } from 'next/headers'
 import { chatwootChatFor } from '../chatwoot'
+import { requestRegion, shimConsentOf } from '../consent-cookie'
 import { NONCE_HEADER } from '../csp'
 import { requestExperiments } from '../experiments'
 import { inboxLauncherOf } from '../inbox-launcher'
@@ -226,6 +226,8 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
   const viewport = themeViewport(theme, mode)
   const privacy = parseCustomerPrivacySettings(current.preferences)
   const consent = decodeConsent(jar.get(CONSENT_COOKIE)?.value)
+  // Shopify's model: the banner only where the visitor's region requires consent.
+  const consentRegionNow = await requestRegion(storeId, h)
   const nonce = h.get(NONCE_HEADER) ?? ''
   const n = nonce ? ` nonce="${escapeHtml(nonce)}"` : ''
   const lang = h.get(MARKET_HEADERS.locale) ?? 'en'
@@ -276,7 +278,7 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
       ourFonts ? `<link rel="stylesheet" href="${escapeHtml(ourFonts)}">` : '',
       favicon ? `<link rel="icon" href="${escapeHtml(favicon)}">` : '',
       `<script${n}>${liquidShim({
-        askConsent: currentConsent(consent, privacy.bannerVersion) === null,
+        ...shimConsentOf(consent, privacy.bannerVersion, consentRegionNow),
         prefix: '',
       })}</script>`,
       layout.head,
@@ -291,6 +293,7 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
     : ''
   const island = `<script${n}>${islandScript({
     bannerVersion: privacy.bannerVersion,
+    region: consentRegionNow,
     tracking: {
       ga4: prefs.tracking.ga4,
       gtm: prefs.tracking.gtm,

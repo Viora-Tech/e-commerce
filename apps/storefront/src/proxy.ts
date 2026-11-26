@@ -9,7 +9,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { FEED_FILES } from './data/product-feed'
 import { SEO_FILES } from './data/seo'
 import { accountsHostname } from './lib/accounts-host'
-import { analyticsAllowed } from './lib/consent-cookie'
+import { CONSENT_PENDING_HEADER, consentOf } from './lib/consent-cookie'
 import {
   forwardNonce,
   ISOLATED_FRAME_ANCESTORS,
@@ -439,6 +439,9 @@ async function routeRequest(
       resting: honoResting(),
     })
   if ((plain || hono) && shared) headers.set('x-edge-cache-control', shared)
+  // A shared copy goes to visitors from every region, so where the banner depends on the region
+  // it is drawn without one and the browser asks `/api/consent-region` (`lib/consent-cookie.ts`).
+  if (shared && lock.bannerRegions === 'consent_required') headers.set(CONSENT_PENDING_HEADER, '1')
 
   const url = request.nextUrl.clone()
   url.pathname = locked
@@ -479,8 +482,8 @@ async function routeRequest(
   // said yes to marketing (`lib/referral-landing.ts`). Never twice for a page handed back.
   if (!handedBack && referred && !seoFile && !locked && !preview)
     await noteReferral(storeId, request, response)
-  // The first page view after the shopper allowed analytics mints the anonymous visitor
-  // id the beacon reports (the beacon is a keepalive POST whose Set-Cookie some browsers
+  // The first page view once analytics is allowed (a yes on the banner, or a region where the
+  // banner does not ask) mints the anonymous visitor id the beacon reports (the beacon is a keepalive POST whose Set-Cookie some browsers
   // drop, so it is done here). Without analytics consent no visitor id is set at all. Never
   // on robots.txt, sitemap.xml or llms.txt: they answer `cache-control: public`, and a
   // shared cache that stored a Set-Cookie would hand one visitor id to every shopper after.
@@ -488,8 +491,13 @@ async function routeRequest(
   if (
     !seoFile &&
     !(FEED_FILES as readonly string[]).includes(pick.pathname) &&
-    analyticsAllowed(request.cookies.get(CONSENT_COOKIE)?.value) &&
-    !parseVisitorId(request.cookies.get(VISITOR_COOKIE)?.value)
+    !parseVisitorId(request.cookies.get(VISITOR_COOKIE)?.value) &&
+    (await visitorMayBeCounted(
+      storeId,
+      headers,
+      request.cookies.get(CONSENT_COOKIE)?.value,
+      preview,
+    ))
   ) {
     response.cookies.set(VISITOR_COOKIE, crypto.randomUUID(), {
       httpOnly: true,
@@ -516,6 +524,21 @@ async function routeRequest(
     })
   }
   return response
+}
+
+/**
+ * Analytics is allowed for this page view: a yes on the banner, or a region where the banner does
+ * not ask. A theme preview (nobody being tracked there) only counts an explicit yes.
+ */
+async function visitorMayBeCounted(
+  storeId: string,
+  headers: Headers,
+  raw: string | undefined,
+  preview: unknown,
+): Promise<boolean> {
+  const { consent, stored } = await consentOf(storeId, headers, raw)
+  if (consent?.analytics !== true) return false
+  return !preview || stored?.analytics === true
 }
 
 /**

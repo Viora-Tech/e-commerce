@@ -1,6 +1,5 @@
 import 'server-only'
 import { loadEnv } from '@commerce/config'
-import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import {
   type Assignments,
   assignmentsKey,
@@ -80,7 +79,7 @@ const NOBODY: RequestExperiments = { visitorId: null, assignments: NO_ASSIGNMENT
  */
 export const requestExperiments = cache(async (storeId: string): Promise<RequestExperiments> => {
   const jar = await cookies()
-  if (!analyticsAllowed(jar.get(CONSENT_COOKIE)?.value)) return NOBODY
+  if (!(await analyticsAllowed(storeId))) return NOBODY
   const visitorId = parseVisitorId(jar.get(VISITOR_COOKIE)?.value)
   if (!visitorId) return NOBODY
   return { visitorId, assignments: await assignVisitor(storeId, visitorId) }

@@ -1,4 +1,3 @@
-import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { logger } from '@commerce/observability/logging'
 import { recordExposures, recordPurchase } from '@commerce/plugin-growthbook/server'
 import { cookies, headers } from 'next/headers'
@@ -39,7 +38,7 @@ export const POST = withEvlog(async (request: Request) => {
   const storeId = (await headers()).get('x-store-id')
   const jar = await cookies()
   const visitorId = parseVisitorId(jar.get(VISITOR_COOKIE)?.value)
-  if (!storeId || !visitorId || !analyticsAllowed(jar.get(CONSENT_COOKIE)?.value)) {
+  if (!storeId || !visitorId || !(await analyticsAllowed(storeId))) {
     return new Response(null, { status: 204 })
   }
   const { seen, order: placed } = await readBody(request)

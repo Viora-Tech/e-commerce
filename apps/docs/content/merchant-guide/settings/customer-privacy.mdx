@@ -31,12 +31,14 @@ how customers use their rights.
 Also in **Settings → Policies**. This is the person customers contact about their data. It
 can be you. Their name and contact details show in your privacy policy and store footer.
 
-### Leave the cookie banner on
+### Choose who sees the cookie banner
 
-It is always on. Shoppers choose **Accept all**, **Necessary only** or pick for themselves.
-Until they say yes, your store analytics, Google Analytics, Tag Manager and the Meta pixel
-do not load. If you add a new tag or change what the banner says, press
-**Ask everyone again**.
+It works like Shopify's customer privacy. By default the banner shows only to visitors from
+regions that require consent (the EU, the EEA, the UK and Switzerland); everyone else, India
+included, sees no banner and is tracked from their first page. You can switch to
+**Ask everyone** instead. Where the banner shows, your store analytics, Google Analytics, Tag
+Manager and the Meta pixel wait for a yes. If you add a new tag or change what the banner says,
+press **Ask everyone again**.
 
 ### Only message people who said yes
 
@@ -63,8 +65,24 @@ check out. Customers can delete their own account from their account page.
 
 ## The cookie banner
 
+### Who sees it
+
+**Who sees the banner** has two choices:
+
+- **Only where consent is required** (the default for every store): visitors from the EU, the
+  EEA, the UK and Switzerland see the banner and are asked first. Everyone else sees no banner,
+  and your store analytics, Google tags, the Meta pixel, the Pixels app, Umami, Chatwoot and the
+  affiliate referral cookie all run from their first page. They can still turn tracking off
+  with **Cookie settings** at the bottom of every page, and that choice is kept.
+- **Ask everyone**: every visitor sees the banner, and nothing optional runs until they say yes.
+
+The country comes from the visitor's internet connection, as on Shopify.
+A visitor whose country is not known is treated like India.
+
+### What it asks
+
 Your store needs a few cookies to work, like the cart and sign in. These are always on.
-Everything else is optional and off until the shopper says yes:
+Where the banner asks, everything else is optional and off until the shopper says yes:
 
 | Category | What it covers | Loads after |
 | --- | --- | --- |
@@ -82,8 +100,8 @@ The store keeps a record of every answer, with the time and the banner version, 
 consent.
 
 <Callout>
-Your store's own visit counts (Analytics → Live view, sales by source) only count shoppers who
-allowed analytics. Numbers can look lower than before the banner. That is expected.
+Your store's own visit counts (Analytics → Live view, sales by source) count fully only shoppers
+who are tracked: everyone outside the banner regions, and those inside who allowed analytics.
 </Callout>
 
 ## Data requests

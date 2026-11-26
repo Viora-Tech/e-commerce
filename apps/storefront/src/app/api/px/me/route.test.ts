@@ -9,16 +9,29 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
  */
 const state = {
   consentCookie: undefined as string | undefined,
+  /** Settings › Customer privacy: these tests ask everyone unless they say otherwise. */
+  regions: 'everyone' as 'everyone' | 'consent_required',
+  country: '',
   installed: true,
   bannerVersion: 1,
   facts: { email: ' Asha@Example.com ', phone: '98765 43210', name: 'Asha Rao', externalId: 'c1' },
 }
 
 vi.mock('next/headers', () => ({
-  headers: async () => new Headers({ 'x-store-id': 'store-1' }),
+  headers: async () =>
+    new Headers({
+      'x-store-id': 'store-1',
+      ...(state.country ? { 'cf-ipcountry': state.country } : {}),
+    }),
   cookies: async () => ({
     get: (name: string) =>
       name === 'wc_consent' && state.consentCookie ? { value: state.consentCookie } : undefined,
+  }),
+}))
+vi.mock('@/lib/storefront-gate', () => ({
+  storefrontLock: async () => ({
+    bannerRegions: state.regions,
+    bannerVersion: state.bannerVersion,
   }),
 }))
 vi.mock('@/lib/request-log', () => ({ withEvlog: (fn: unknown) => fn }))
@@ -57,6 +70,8 @@ beforeEach(() => {
   state.consentCookie = undefined
   state.installed = true
   state.bannerVersion = 1
+  state.regions = 'everyone'
+  state.country = ''
   vi.mocked(server.shopperMatchFacts).mockClear()
 })
 
@@ -74,6 +89,17 @@ describe('/api/px/me', () => {
     state.bannerVersion = 2
     expect((await call()).status).toBe(204)
     expect(server.shopperMatchFacts).not.toHaveBeenCalled()
+  })
+
+  it("follows Shopify's regions: matches an Indian visitor with no banner answer, never a German one", async () => {
+    state.regions = 'consent_required'
+    state.country = 'IN'
+    expect((await call()).status).toBe(200)
+    state.consentCookie = encodeConsent({ analytics: true, marketing: false }, 1, AT)
+    expect((await call()).status).toBe(204)
+    state.consentCookie = undefined
+    state.country = 'DE'
+    expect((await call()).status).toBe(204)
   })
 
   it('answers nothing without the Pixels app', async () => {

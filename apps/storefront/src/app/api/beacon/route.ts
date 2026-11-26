@@ -10,7 +10,6 @@ import {
   setCartAttribution,
 } from '@commerce/core'
 import { isBotUserAgent, productHandleFromHref } from '@commerce/core/marketing'
-import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { dayKey } from '@commerce/dates'
 import { logger } from '@commerce/observability/logging'
 import { recordVisit, sharedRedis } from '@commerce/queue'
@@ -152,7 +151,7 @@ export const POST = withEvlog(async (request: Request) => {
   const storeId = h.get('x-store-id')
   if (!storeId) return new Response(null, { status: 204 })
   // No analytics consent: count the visit without cookies or ids (totals only), nothing else.
-  if (!analyticsAllowed(jar.get(CONSENT_COOKIE)?.value)) {
+  if (!(await analyticsAllowed(storeId))) {
     const { href, referrer, discovery } = await readBody(request)
     if (discovery === undefined && !isBotUserAgent(h.get('user-agent'))) {
       await countAnonymousVisit(request, h, storeId, href, referrer)

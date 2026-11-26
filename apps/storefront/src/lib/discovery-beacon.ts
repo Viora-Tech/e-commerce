@@ -13,9 +13,14 @@ export type DiscoveryBeaconEvent =
 
 const BEACON_PATH = '/api/beacon'
 
-/** The shopper said yes to analytics (the banner's cookie); the server checks again. */
+/**
+ * Analytics is allowed: the consent the page's consent manager counts now (a yes, or a region
+ * where the banner does not ask), else the banner's cookie. The server checks again.
+ */
 function analyticsConsented(): boolean {
   if (typeof document === 'undefined') return false
+  const now = typeof window === 'undefined' ? undefined : window.__commerceConsent
+  if (now !== undefined) return now?.analytics === true
   const raw = document.cookie
     .split('; ')
     .find((c) => c.startsWith(`${CONSENT_COOKIE}=`))

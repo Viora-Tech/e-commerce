@@ -39,6 +39,7 @@ describe('plain page chat button', () => {
     expect(spec.config.frame).toBe(CHAT_FRAME_PATH)
     const code = islandScript({
       bannerVersion: 1,
+      region: 'ask' as const,
       tracking: { ga4: '', gtm: '', metaPixel: '', googleAds: '' },
       umami: null,
       chat: spec,

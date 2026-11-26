@@ -44,6 +44,7 @@ import customData from './custom-data'
 import customerAddresses from './customer-addresses'
 import customerGiftCards from './customer-gift-cards'
 import customerMerge from './customer-merge'
+import customerPrivacy from './customer-privacy'
 import customerSignInAs from './customer-sign-in-as'
 import customerStoreCredit from './customer-store-credit'
 import customers from './customers'
@@ -319,6 +320,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...orderDetail,
   ...orderEdit,
   ...orderHold,
+  ...customerPrivacy,
   ...orderListFilters,
   ...shopifyImportFiles,
   ...shopifyImportRun,

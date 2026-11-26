@@ -1,9 +1,8 @@
 import { cookieBannerSettings } from '@commerce/blocks'
-import { decodeConsent, encodeConsent } from '@commerce/core/preferences'
+import { decodeConsent, encodeConsent, type PageConsentRegion } from '@commerce/core/preferences'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
-import { analyticsAllowed } from '@/lib/consent-cookie'
 
 /*
  * The gate itself, rendered on the server with the two things it guards
@@ -43,13 +42,14 @@ const { default: ConsentManager } = await import('./consent-manager')
 const tracking = { ga4: 'G-ABC1234', gtm: 'GTM-5X7K9Q', metaPixel: '1234567890' }
 const AT = new Date('2026-09-27T10:00:00Z')
 
-function render(cookie: string | null, bannerVersion = 1) {
+function render(cookie: string | null, bannerVersion = 1, region: PageConsentRegion = 'ask') {
   return renderToStaticMarkup(
     createElement(ConsentManager, {
       tracking,
       bannerMessage: '',
       bannerVersion,
       initial: decodeConsent(cookie),
+      region,
     }),
   )
 }
@@ -100,6 +100,7 @@ describe('the Chatwoot chat', () => {
         bannerMessage: '',
         bannerVersion: 1,
         initial: decodeConsent(cookie),
+        region: 'ask',
         chatwoot: {
           widget: { ...widget, consent },
           identity: {
@@ -137,6 +138,7 @@ describe('the theme CookieBanner section', () => {
         bannerMessage: '',
         bannerVersion: 1,
         initial: decodeConsent(cookie),
+        region: 'ask',
         appearance,
       }),
     )
@@ -157,14 +159,27 @@ describe('the theme CookieBanner section', () => {
   })
 })
 
-describe('server-side analytics check (proxy visitor id, beacon route)', () => {
-  it('needs a yes to analytics in the cookie', () => {
-    expect(analyticsAllowed(undefined)).toBe(false)
-    expect(analyticsAllowed('garbage')).toBe(false)
-    expect(analyticsAllowed(encodeConsent({ analytics: false, marketing: true }, 1, AT))).toBe(
-      false,
-    )
-    expect(analyticsAllowed(encodeConsent({ analytics: true, marketing: false }, 1, AT))).toBe(true)
+describe("Shopify's model: the banner only where consent is required", () => {
+  it('runs the beacon, every tag and the pixel on the first page with no banner where it does not ask', () => {
+    const html = render(null, 1, 'open')
+    expect(html).toContain('data-testid="beacon" data-consented="true"')
+    expect(html).toContain('data-ga4="G-ABC1234" data-gtm="GTM-5X7K9Q" data-pixel="1234567890"')
+    expect(html).not.toContain('aria-label="Cookie consent"')
+  })
+
+  it('keeps a saved no there, whatever banner version it was given for', () => {
+    const no = encodeConsent({ analytics: false, marketing: false }, 1, AT)
+    const html = render(no, 3, 'open')
+    expect(html).toContain('data-testid="beacon" data-consented="false"')
+    expect(html).toContain('data-ga4="" data-gtm="" data-pixel=""')
+    expect(html).not.toContain('aria-label="Cookie consent"')
+  })
+
+  it('draws nothing optional, no banner and no beacon yet while the region is pending', () => {
+    const html = render(null, 1, 'pending')
+    expect(html).not.toContain('data-testid="beacon"')
+    expect(html).toContain('data-ga4="" data-gtm="" data-pixel=""')
+    expect(html).not.toContain('aria-label="Cookie consent"')
   })
 })
 
@@ -177,6 +192,7 @@ describe('the Pixels app', () => {
         bannerMessage: '',
         bannerVersion: 1,
         initial: decodeConsent(cookie),
+        region: 'ask',
         pixels,
       }),
     )

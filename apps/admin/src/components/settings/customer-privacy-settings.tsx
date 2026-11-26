@@ -1,10 +1,12 @@
 'use client'
 
 import type { GrievanceOfficer, CustomerPrivacySettings as Settings } from '@commerce/core'
+import { BANNER_REGIONS, type BannerRegions } from '@commerce/core/consent'
 import { PRIVACY_LIMITS } from '@commerce/core/privacy'
 import { Eye, Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
+import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -33,11 +35,12 @@ type Overview = {
   bannerShown30Days: number
 }
 
-type Form = { bannerMessage: string; requestDueDays: number }
+type Form = { bannerMessage: string; requestDueDays: number; bannerRegions: BannerRegions }
 
 const formOf = (o: Overview): Form => ({
   bannerMessage: o.settings.bannerMessage,
   requestDueDays: o.settings.requestDueDays,
+  bannerRegions: o.settings.bannerRegions,
 })
 
 const clampDays = (raw: string): number =>
@@ -164,6 +167,30 @@ export default function CustomerPrivacySettings() {
                 title={copy.banner.heading}
                 description={copy.banner.body}
               >
+                <SettingsRow
+                  label={copy.banner.regions.label}
+                  description={copy.banner.regions.help}
+                >
+                  <RadioGroup
+                    value={form.bannerRegions}
+                    onValueChange={(v) => setForm({ ...form, bannerRegions: v as BannerRegions })}
+                    className="flex flex-col gap-3"
+                  >
+                    {BANNER_REGIONS.map((r) => (
+                      <div key={r} className="flex items-start gap-2">
+                        <RadioGroupItem id={`privacy-regions-${r}`} value={r} className="mt-0.5" />
+                        <label htmlFor={`privacy-regions-${r}`} className="flex flex-col gap-0.5">
+                          <span className="text-body font-medium text-foreground">
+                            {copy.banner.regions.options[r].title}
+                          </span>
+                          <span className="text-caption text-muted-foreground">
+                            {copy.banner.regions.options[r].body}
+                          </span>
+                        </label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </SettingsRow>
                 <SettingsRow
                   label={copy.banner.message}
                   description={copy.banner.messageHelp}

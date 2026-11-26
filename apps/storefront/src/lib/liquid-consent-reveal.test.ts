@@ -20,6 +20,8 @@ type World = {
   storageThrows?: boolean
   /** The theme's script has defined `<cookie-banner>`. */
   defined?: boolean
+  /** The page was drawn without the visitor's region (a shared copy). */
+  pending?: boolean
 }
 
 /** Runs the script against a stand-in banner and returns what it did. */
@@ -47,14 +49,20 @@ function run(world: World) {
     },
   }
   const answers: unknown[] = []
-  const window = {
+  const state = { pending: world.pending ?? false, ask: world.ask ?? true }
+  const window: {
+    Shopify: unknown
+    customElements: unknown
+    __commerceConsentReveal?: (() => void)[]
+  } = {
     Shopify:
       world.shim === false
         ? undefined
         : {
             designMode: world.designMode ?? false,
             customerPrivacy: {
-              shouldShowBanner: () => world.ask ?? true,
+              shouldShowBanner: () => state.ask && !state.pending,
+              regionPending: () => state.pending,
               setTrackingConsent: (c: unknown) => answers.push(c),
             },
           },
@@ -91,7 +99,14 @@ function run(world: World) {
     const button = { setAttribute: (n: string, v: string) => (attrs[n] = v) }
     onClick?.({ target: { closest: (q: string) => (q === selector ? button : null) } })
   }
+  /** The region learned later, as the shim's `__commerceConsentRegion` does it. */
+  const learn = (ask: boolean) => {
+    state.pending = false
+    state.ask = ask
+    if (ask) for (const f of window.__commerceConsentReveal ?? []) f()
+  }
   return {
+    learn,
     shown: () => !banner.hidden,
     get focused() {
       return focused.length > 0
@@ -122,6 +137,17 @@ describe('revealConsentEarly', () => {
     const r = run({})
     expect(r.shown()).toBe(true)
     expect(r.focused).toBe(true)
+  })
+
+  it('waits while the region is pending, then shows without taking focus where it asks', () => {
+    const asked = run({ pending: true })
+    expect(asked.shown()).toBe(false)
+    asked.learn(true)
+    expect(asked.shown()).toBe(true)
+    expect(asked.focused).toBe(false)
+    const open = run({ pending: true })
+    open.learn(false)
+    expect(open.shown()).toBe(false)
   })
 
   it('stays hidden when the consent cookie already holds an answer', () => {
@@ -189,7 +215,7 @@ describe('the revealed banner answers before the theme script binds it', () => {
     expect(r.shown()).toBe(false)
   })
 
-  it("steps aside once the theme has defined <cookie-banner> (its own handler answers)", () => {
+  it('steps aside once the theme has defined <cookie-banner> (its own handler answers)', () => {
     const r = run({ defined: true })
     r.tap('[data-cookie-accept]')
     expect(r.answers).toEqual([])

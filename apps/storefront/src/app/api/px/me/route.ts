@@ -1,4 +1,3 @@
-import { CONSENT_COOKIE, currentConsent, decodeConsent } from '@commerce/core/consent'
 import {
   browserMatchData,
   collectorStore,
@@ -8,6 +7,7 @@ import {
 import { logger } from '@commerce/observability/logging'
 import { cookies, headers } from 'next/headers'
 import { readCartId } from '@/lib/cart-cookie'
+import { requestConsent } from '@/lib/consent-cookie'
 import { currentCustomer } from '@/lib/customer-session'
 import { clientIp, rateLimited } from '@/lib/rate-limit'
 import { withEvlog } from '@/lib/request-log'
@@ -35,10 +35,9 @@ export const GET = withEvlog(async (request: Request) => {
     return nothing()
   }
   const jar = await cookies()
-  const stored = decodeConsent(jar.get(CONSENT_COOKIE)?.value)
   try {
     const store = await inStore(storeId, (tx) => collectorStore(tx, storeId))
-    if (!store.installed || !currentConsent(stored, store.bannerVersion)?.marketing) {
+    if (!store.installed || !(await requestConsent(storeId)).consent?.marketing) {
       return nothing()
     }
     const [me, cartId] = await Promise.all([currentCustomer(storeId), readCartId()])

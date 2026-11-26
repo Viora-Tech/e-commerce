@@ -6,7 +6,7 @@ import { affiliateState } from '@commerce/plugin-affiliates/server'
 import type { NextRequest, NextResponse } from 'next/server'
 import { countAffiliateClick } from './affiliates'
 import { REFERRAL_COOKIE } from './attribution-cookie'
-import { marketingAllowed } from './consent-cookie'
+import { consentOf } from './consent-cookie'
 import { LOYALTY_REF_COOKIE, loyaltyRefCookieOptions, loyaltyRefLanding } from './loyalty-referral'
 import { isPrefetch, referralClick } from './referral-click'
 import { inStore } from './store-context'
@@ -55,8 +55,8 @@ export async function setReferralCookie(
 }
 
 /**
- * An affiliate link landing (`?ref=`): counts the click and, once the shopper has said yes to
- * marketing cookies, sets the referral cookie for the store's link window (owner, 12 Nov 2026).
+ * An affiliate link landing (`?ref=`): counts the click and, once marketing is allowed (a yes on
+ * the banner, or at once where the banner does not ask), sets the referral cookie for the store's link window (owner, 12 Nov 2026).
  * Without that yes the banner keeps the landing in the tab and sets the cookie on a later yes
  * (`lib/referral-pending.ts`, `/api/referral`). The count is a per-affiliate daily total and
  * needs no consent. Runs in the proxy; never fails the page.
@@ -66,6 +66,13 @@ export async function noteReferral(
   request: NextRequest,
   response: NextResponse,
 ): Promise<void> {
+  // A yes on the banner, or a region where the banner does not ask (Shopify's model).
+  const { consent } = await consentOf(
+    storeId,
+    request.headers,
+    request.cookies.get(CONSENT_COOKIE)?.value,
+  )
+  const marketing = consent?.marketing === true
   // A Loyalty points member's link uses the same `?ref=`: kept apart, for the friend's reward.
   const loyaltyCode = loyaltyRefLanding({
     param: request.nextUrl.searchParams.get('ref'),
@@ -73,7 +80,7 @@ export async function noteReferral(
     method: request.method,
     prefetch: isPrefetch(request.headers),
     bot: isBotUserAgent(request.headers.get('user-agent')),
-    marketing: marketingAllowed(request.cookies.get(CONSENT_COOKIE)?.value),
+    marketing,
   })
   if (loyaltyCode) {
     const secure = request.nextUrl.protocol === 'https:'
@@ -85,7 +92,7 @@ export async function noteReferral(
     method: request.method,
     userAgent: request.headers.get('user-agent'),
     prefetch: isPrefetch(request.headers),
-    marketing: marketingAllowed(request.cookies.get(CONSENT_COOKIE)?.value),
+    marketing,
     now: new Date(),
   })
   if (!click) return
