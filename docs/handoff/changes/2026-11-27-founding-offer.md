@@ -45,6 +45,9 @@ Branch `feat/founding-offer` (from `origin/dev`). Migration `0272_founding_offer
   once give exactly 20 places, closed offer, the bill's order and discount, 12-month count and
   normal-price renewal, AutoPay amount and `total_count`). `next-bill.test.ts` expects the new
   `founding: false`.
+- Run here: biome check (clean) and `scripts/check-components.ts` (no findings in changed
+  files). NOT run: typecheck and vitest (wt-consent was busy with other agents all session).
+  Run on dev: `cd packages/core && bunx vitest run src/billing` and `bun run typecheck`.
 
 ## Left to do / for the owner to check
 
