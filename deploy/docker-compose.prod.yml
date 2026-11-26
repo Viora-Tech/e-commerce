@@ -61,6 +61,8 @@ x-app-env: &app-env
   # visitors without cookies (seconds, blank = 30, 0 = private). See developer docs, performance.
   STOREFRONT_CACHE_MB: ${STOREFRONT_CACHE_MB:-}
   STOREFRONT_EDGE_TTL: ${STOREFRONT_EDGE_TTL:-}
+  # Cache-miss theme renders run at once per storefront process (blank = 4, 0 = no limit).
+  STOREFRONT_RENDER_SLOTS: ${STOREFRONT_RENDER_SLOTS:-}
   # Sections of an imported theme's page sent first (blank = 3); the rest stream in behind them.
   STOREFRONT_EAGER_SECTIONS: ${STOREFRONT_EAGER_SECTIONS:-}
   # `off` keeps every store on React pages, whatever their "Send pages as plain HTML" switch.

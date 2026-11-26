@@ -62,11 +62,20 @@ import { noteVisit, WARM_USER_AGENT } from './lib/recent-pages'
 import { redirectFor } from './lib/redirects'
 import { noteReferral } from './lib/referral-landing'
 import {
+  PRIORITY,
+  RETRY_AFTER_S,
+  renderGate,
+  renderPriority,
+  SHOPPER_COOKIES,
+} from './lib/render-gate'
+import {
   checkoutHostname,
   DERIVED_HEADERS,
   listingSearch,
+  MISSING_ROUTE_HEADER,
   PASSWORD_PREFIX,
   primaryRedirect,
+  RENDER_TICKET_HEADER,
   redirectHostFor,
   routeForAccounts,
   routeForCheckoutHost,
@@ -304,11 +313,36 @@ async function routeRequest(
   const route = routeForStore(storeId, pick.pathname)
   if (route.kind === 'forbidden') return new NextResponse('Not found', { status: 404 })
 
+  // The render queue (`lib/render-gate.ts`): while someone has waited 5 s for a render, a
+  // crawler's page request is turned away with a 503 rather than joining the line.
+  const priority = renderPriority(
+    request.headers.get('user-agent'),
+    SHOPPER_COOKIES.some((name) => request.cookies.has(name)),
+  )
+  const page =
+    route.kind === 'rewrite' &&
+    (request.method === 'GET' || request.method === 'HEAD') &&
+    !(SEO_FILES as readonly string[]).includes(pick.pathname) &&
+    !(FEED_FILES as readonly string[]).includes(pick.pathname)
+  if (page && priority === PRIORITY.bot && renderGate().gate.congested()) {
+    return new NextResponse('Busy, please retry shortly', {
+      status: 503,
+      headers: {
+        'content-type': 'text/plain',
+        'retry-after': String(RETRY_AFTER_S),
+        'cache-control': 'no-store',
+      },
+    })
+  }
+
   // Never trust routing headers from the client; set only what the proxy derived.
   const headers = new Headers(request.headers)
   for (const h of DERIVED_HEADERS) headers.delete(h)
   withNonce(headers)
   headers.set('x-store-id', storeId)
+  // Its place in the render queue, and the signal that tells the render its visitor has gone.
+  if (page) headers.set(RENDER_TICKET_HEADER, renderGate().tickets.issue(request.signal, priority))
+  if (route.kind === 'rewrite' && route.missing) headers.set(MISSING_ROUTE_HEADER, '1')
   const country = visitorCountry(request.headers)
   if (country) headers.set('x-visitor-country', country)
   for (const [name, value] of marketHeaders(pick, markets, hostname, hostRoute.primaryHostname)) {
