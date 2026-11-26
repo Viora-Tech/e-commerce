@@ -74,15 +74,33 @@ export default function SignupsList() {
       title: copy.columns.variant,
       hideable: false,
       align: 'start',
+      // Product names run long ("ATK Blazing Sky F1 V3 Series Esports Wireless Mouse"): the
+      // column takes a fixed share and wraps, like Products and Customers, so it never runs into
+      // Contact. The product sits on up to two lines with the variant muted under it.
+      className: 'w-[40%] whitespace-normal',
+      minWidth: 16,
       sortValue: (r) => r.variantLabel,
-      render: (r) => <span className="font-medium">{r.variantLabel}</span>,
+      render: (r) => (
+        <span className="flex min-w-0 flex-col text-left" title={r.variantLabel}>
+          <span className="line-clamp-2 font-medium text-ink-strong">{r.productTitle}</span>
+          {r.variantTitle ? (
+            <span className="truncate text-caption text-muted-foreground">{r.variantTitle}</span>
+          ) : null}
+        </span>
+      ),
     },
     {
       id: 'contact',
       title: copy.columns.contact,
       align: 'start',
+      className: 'w-[26%]',
+      minWidth: 12,
       sortValue: (r) => r.contact,
-      render: (r) => r.contact,
+      render: (r) => (
+        <span className="block truncate" title={r.contact}>
+          {r.contact}
+        </span>
+      ),
     },
     {
       id: 'status',

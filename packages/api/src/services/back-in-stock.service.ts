@@ -1,22 +1,12 @@
 import { product, type StoreTx, variant } from '@commerce/db'
 import { eq, inArray } from 'drizzle-orm'
 
-/** Reads the Back in stock router needs beyond the plugin's own services. */
-export async function variantLabel(tx: StoreTx, variantId: string): Promise<string> {
-  const [row] = await tx
-    .select({ productTitle: product.title, variantTitle: variant.title })
-    .from(variant)
-    .innerJoin(product, eq(product.id, variant.productId))
-    .where(eq(variant.id, variantId))
-  if (!row) return variantId
-  return row.variantTitle === 'Default'
-    ? row.productTitle
-    : `${row.productTitle} / ${row.variantTitle}`
-}
-
 export type VariantInfo = { label: string; productTitle: string; variantTitle: string | null }
 
-/** `variantLabel` for many variants in one statement (the Analytics list and the export). */
+/**
+ * Reads the Back in stock router needs beyond the plugin's own services: each variant's
+ * "Product / Variant" label and its two parts, in one statement (Analytics, Signups, export).
+ */
 export async function variantLabels(
   tx: StoreTx,
   variantIds: readonly string[],
