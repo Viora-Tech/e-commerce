@@ -1,8 +1,8 @@
 import { cn } from '@commerce/ui/lib/utils'
-import type { PlacementId } from '@/lib/loyalty-placements'
+import type { LoyaltyPageId, PlacementId } from '@/lib/loyalty-placements'
 
 type PlacementArtProps = {
-  id: PlacementId
+  id: PlacementId | LoyaltyPageId
   className?: string
 }
 
@@ -61,6 +61,30 @@ export default function PlacementArt({ id, className }: PlacementArtProps) {
           <span className={cn(BAR, 'h-1.5 w-2/3')} />
           <span className={cn(accent, 'h-2 w-full')} />
           <span className={cn(BAR, 'mt-auto h-2 w-full')} />
+        </div>
+      ) : null}
+      {id === 'landing' ? (
+        <div className="flex flex-1 flex-col gap-1">
+          <span className={cn(accent, 'h-5 w-full')} />
+          <span className="grid flex-1 grid-cols-3 gap-1">
+            <span className={BAR} />
+            <span className={BAR} />
+            <span className={BAR} />
+          </span>
+        </div>
+      ) : null}
+      {id === 'account' || id === 'accountStatus' ? (
+        <div className="flex flex-1 gap-1.5">
+          <span className="flex w-1/4 flex-col gap-1">
+            <span className={cn(BAR, 'h-1 w-full')} />
+            <span className={cn(id === 'account' ? accent : BAR, 'h-1 w-full')} />
+            <span className={cn(BAR, 'h-1 w-full')} />
+          </span>
+          <span className="flex flex-1 flex-col gap-1">
+            <span className={cn(id === 'accountStatus' ? accent : BAR, 'h-3 w-full')} />
+            <span className={cn(BAR, 'h-1.5 w-full')} />
+            <span className={cn(BAR, 'h-1.5 w-2/3')} />
+          </span>
         </div>
       ) : null}
       {id === 'referralPopup' ? (

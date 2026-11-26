@@ -76,6 +76,18 @@ export const LoyaltySettingsSchema = z.object({
   tierWindow: z.enum(['lifetime', 'rolling_12m']).default('lifetime'),
   /** Loyalty emails the merchant switched off on the app's Emails page (`LOYALTY_EMAIL_KEYS`). */
   emailsOff: z.array(z.string().min(1).max(60)).max(20).default([]),
+  /**
+   * Storefront pages the program adds (Placements → Embedded content and Customer accounts):
+   * the rewards landing page at `/pages/rewards`, the Points section in the customer account,
+   * and the points card at the top of the account's Orders page.
+   */
+  pages: z
+    .object({
+      landing: z.boolean().default(true),
+      account: z.boolean().default(true),
+      accountStatus: z.boolean().default(true),
+    })
+    .default({ landing: true, account: true, accountStatus: true }),
   referrals: z
     .object({
       enabled: z.boolean().default(false),

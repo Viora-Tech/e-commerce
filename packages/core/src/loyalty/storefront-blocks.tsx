@@ -14,7 +14,12 @@ export const LOYALTY_WIDGET = `${LOYALTY_APP_ID}/Widget`
 export const LOYALTY_REFERRAL_POPUP = `${LOYALTY_APP_ID}/ReferralPopup`
 
 /** What the storefront hands a loyalty embed (`apps/storefront/src/lib/app-embed-data.ts`). */
-export type LoyaltyEmbedData = { storeName: string; signedIn: boolean }
+export type LoyaltyEmbedData = {
+  storeName: string
+  signedIn: boolean
+  /** The store's brand colour (checkout accent, else the live theme's button colour), or null. */
+  brandColor?: string | null | undefined
+}
 
 type EmbedProps = Record<string, unknown> & { data?: LoyaltyEmbedData | null | undefined }
 
@@ -32,7 +37,15 @@ const yesNo = [
  * panel); `optional` lets the merchant clear the gradient back to one colour.
  */
 const headerFields = {
-  headerColor: { type: 'text', label: 'Header colour', metadata: { colour: true } },
+  headerColor: {
+    type: 'text',
+    label: 'Header colour',
+    metadata: {
+      colour: true,
+      optional: true,
+      help: 'Not set: your store’s brand colour.',
+    },
+  },
   headerGradient: {
     type: 'text',
     label: 'Header gradient to',
@@ -87,6 +100,21 @@ export const loyaltyEmbeds: AppEmbedDefinition[] = [
           { label: 'No icon', value: 'none' },
         ],
       },
+      productLine: {
+        type: 'radio',
+        label: 'Points line above Add to cart',
+        options: yesNo,
+      },
+      cartBox: {
+        type: 'radio',
+        label: 'Points box above Checkout (cart and cart drawer)',
+        options: yesNo,
+      },
+      pointsValue: {
+        type: 'radio',
+        label: 'Show what the points are worth in ₹',
+        options: yesNo,
+      },
       cardPoints: {
         type: 'radio',
         label: 'Points under product card prices',
@@ -108,6 +136,7 @@ export const loyaltyEmbeds: AppEmbedDefinition[] = [
       <LoyaltyLauncher
         settings={props}
         storeName={props.data?.storeName ?? ''}
+        brand={props.data?.brandColor ?? null}
         signedIn={props.data?.signedIn === true}
         live={Boolean(props.data)}
       />
@@ -135,6 +164,7 @@ export const loyaltyEmbeds: AppEmbedDefinition[] = [
     render: (props: EmbedProps) => (
       <LoyaltyReferralPopup
         settings={props}
+        brand={props.data?.brandColor ?? null}
         heading={typeof props.heading === 'string' ? props.heading : ''}
         live={Boolean(props.data)}
       />
@@ -155,24 +185,14 @@ export const loyaltyBlocks: AppBlockDefinition[] = [
     type: `${LOYALTY_APP_ID}/ProductPoints`,
     label: 'Points on product',
     description:
-      '"Earn N points with this order" on the product page; visitors see "Join to earn".',
+      '"Earn N points with this purchase" where you place it. The Loyalty widget already adds it above Add to cart; use this block to put it somewhere else.',
     icon: 'Gift',
     fields: {
-      look: {
-        type: 'radio',
-        label: 'Look',
-        options: [
-          { label: 'A line of text', value: 'line' },
-          { label: 'A soft box', value: 'card' },
-        ],
-      },
+      showWorth: { type: 'radio', label: 'Show what the points are worth in ₹', options: yesNo },
     },
-    defaultProps: { look: 'line' },
+    defaultProps: { showWorth: false },
     render: (props: BlockProps) => (
-      <LoyaltyProductPoints
-        pricePaise={productPrice(props)}
-        look={props.look === 'card' ? 'card' : 'line'}
-      />
+      <LoyaltyProductPoints pricePaise={productPrice(props)} showWorth={props.showWorth === true} />
     ),
   },
   {
@@ -189,13 +209,16 @@ export const loyaltyBlocks: AppBlockDefinition[] = [
   {
     type: `${LOYALTY_APP_ID}/CartRedeem`,
     label: 'Redeem in cart',
-    description: 'The shopper’s points and the rewards that fit the cart, applied in one click.',
+    description:
+      'The points box (points for this order, rewards to redeem and apply) where you place it. The Loyalty widget already adds it above Checkout; use this block to put it somewhere else.',
     icon: 'Gift',
-    fields: { heading: { type: 'text', label: 'Heading (empty: Use your points)' } },
-    defaultProps: { heading: '' },
+    fields: {
+      showWorth: { type: 'radio', label: 'Show what the points are worth in ₹', options: yesNo },
+    },
+    defaultProps: { showWorth: false },
     render: (props: BlockProps) => (
       <LoyaltyCartRedeem
-        heading={typeof props.heading === 'string' ? props.heading : ''}
+        showWorth={props.showWorth === true}
         live={props.puck?.isEditing !== true}
       />
     ),

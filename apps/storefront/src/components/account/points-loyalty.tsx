@@ -19,10 +19,9 @@ import { type CSSProperties, useEffect } from 'react'
 type PointsLoyaltyProps = {
   view: LoyaltyView
   member: LoyaltyMemberView
+  /** The store's brand colour: the cards' icons, links and bars follow it. */
+  brand: string | null
 }
-
-/** The account page draws the widget's cards in their default colours. */
-const SETTINGS = resolveLoyaltyWidgetSettings({})
 
 /**
  * The Points page's Loyalty v2 cards (the same ones the widget shows): tier and progress,
@@ -30,7 +29,7 @@ const SETTINGS = resolveLoyaltyWidgetSettings({})
  * link with share buttons. A claim or a click refreshes the page, so the balance and history
  * above follow. Opening the page counts the day's visit.
  */
-export default function PointsLoyalty({ view, member }: PointsLoyaltyProps) {
+export default function PointsLoyalty({ view, member, brand }: PointsLoyaltyProps) {
   // Hooks
   const router = useRouter()
   useEffect(() => {
@@ -42,9 +41,11 @@ export default function PointsLoyalty({ view, member }: PointsLoyaltyProps) {
 
   // Render logic
   return (
+    // `data-reveal`: the imported theme hides h1-h3 until they scroll in; the cards show at once.
     <div
+      data-reveal
       className="kl-loyalty flex max-w-[40rem] flex-col gap-4 text-[0.9375rem] text-(--kl-ink)"
-      style={loyaltyStyleVars(SETTINGS) as CSSProperties}
+      style={loyaltyStyleVars(resolveLoyaltyWidgetSettings({}, brand)) as CSSProperties}
     >
       <LoyaltyTierCard tiers={view.tiers} tier={member.tier} names={view.pointsName} />
       <LoyaltyRewardList

@@ -1,3 +1,4 @@
+import './bare-404.css'
 import { connection } from 'next/server'
 import type { CSSProperties } from 'react'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
@@ -18,7 +19,7 @@ export default async function NotFound() {
   // Render logic
   return (
     <html lang="en">
-      <body>
+      <body className="m-0">
         <div
           className="ck flex min-h-dvh items-center justify-center bg-ck-canvas px-5 py-12 font-ck text-ck-ink antialiased"
           style={CK_FALLBACK_VARS as CSSProperties}

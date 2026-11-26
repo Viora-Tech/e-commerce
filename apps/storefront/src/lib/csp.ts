@@ -62,7 +62,10 @@ export function isIsolatedStorePath(pathname: string): boolean {
     pathname === '/checkout' ||
     pathname.startsWith('/checkout/') ||
     pathname === '/account' ||
-    pathname.startsWith('/account/')
+    pathname.startsWith('/account/') ||
+    // The affiliate portal shows payout details: nothing frames it either.
+    pathname === '/affiliate' ||
+    pathname.startsWith('/affiliate/')
   )
 }
 

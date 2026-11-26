@@ -6,10 +6,8 @@ import { formatPaise } from '../../money'
 import LoyaltyCard from './loyalty-card'
 import LoyaltyClaimedCode from './loyalty-claimed-code'
 import { redeemReward } from './loyalty-client'
-import { rewardGlyph } from './loyalty-format'
-import LoyaltyIcon from './loyalty-icon'
-import { rewardCost } from './loyalty-math'
-import { ICON_TILE } from './loyalty-styles'
+import { rewardCost, rewardProgress } from './loyalty-math'
+import { DARK_BUTTON, PROGRESS_FILL, PROGRESS_TRACK } from './loyalty-styles'
 import type { LoyaltyPointsName, LoyaltyRedeemed, LoyaltyRewardView } from './loyalty-types'
 
 type LoyaltyRewardListProps = {
@@ -36,9 +34,10 @@ function costLine(r: LoyaltyRewardView, names: LoyaltyPointsName, points: number
 }
 
 /**
- * The rewards catalog: each reward's icon, title and cost. A guest sees what each costs; a member gets a Claim
- * button on each reward they can take now, and the code (Copy, Apply at checkout) once claimed.
- * A custom amount reward is claimed at its smallest step.
+ * The rewards catalog, Essential Loyalty's way: each reward's title, its cost ("for 1,000
+ * points") and a thin bar of the shopper's points toward it (empty for a visitor). A member gets
+ * Claim on each reward they can take now, and the code (Copy, Apply at checkout) once claimed. A
+ * custom amount reward is claimed at its smallest step.
  */
 export default function LoyaltyRewardList({
   title,
@@ -76,45 +75,56 @@ export default function LoyaltyRewardList({
   return (
     <LoyaltyCard title={title || undefined}>
       {claimed ? <LoyaltyClaimedCode redeemed={claimed} /> : null}
-      <ul className="m-0 flex list-none flex-col p-0">
-        {rewards.map((r) => (
-          <li
-            key={r.id}
-            className="flex flex-col gap-1 border-t border-(--kl-line) py-3 first:border-t-0"
-          >
-            <span className="flex items-center gap-3">
-              <span className={ICON_TILE}>
-                <LoyaltyIcon name={rewardGlyph(r.type)} className="size-[1.125rem]" />
-              </span>
-              <span className="flex min-w-0 flex-1 flex-col">
-                <span className="font-semibold text-(--kl-ink)">{r.title}</span>
-                <span className="text-[0.8125rem] text-(--kl-muted)">
-                  {costLine(r, names, points)}
-                </span>
-                {r.minOrderPaise ? (
+      <ul className="m-0 -my-2 flex list-none flex-col p-0">
+        {rewards.map((r) => {
+          const pct = rewardProgress(points, rewardCost(r))
+          const canClaim = points !== null && onClaimed !== null && !r.block
+          return (
+            <li
+              key={r.id}
+              className="flex flex-col gap-2 border-t border-(--kl-line) py-3 first:border-t-0"
+            >
+              <span className="flex items-center gap-3">
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="text-[0.875rem] font-semibold text-(--kl-ink)">{r.title}</span>
                   <span className="text-[0.8125rem] text-(--kl-muted)">
-                    {copy.rewards.minOrder(formatPaise(r.minOrderPaise))}
+                    {costLine(r, names, points)}
                   </span>
+                  {r.minOrderPaise ? (
+                    <span className="text-[0.8125rem] text-(--kl-muted)">
+                      {copy.rewards.minOrder(formatPaise(r.minOrderPaise))}
+                    </span>
+                  ) : null}
+                </span>
+                {canClaim ? (
+                  <button
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={() => handleClaim(r)}
+                    className={`${DARK_BUTTON} h-8! px-4!`}
+                  >
+                    {busy === r.id ? copy.rewards.claiming : copy.rewards.claim}
+                  </button>
                 ) : null}
               </span>
-              {points !== null && onClaimed && !r.block ? (
-                <button
-                  type="button"
-                  disabled={busy !== null}
-                  onClick={() => handleClaim(r)}
-                  className="shrink-0 rounded-full border-0 bg-(--kl-accent)! px-4 py-1.5 text-[0.8125rem] font-semibold text-(--kl-accent-text)! disabled:opacity-60"
-                >
-                  {busy === r.id ? copy.rewards.claiming : copy.rewards.claim}
-                </button>
-              ) : null}
-            </span>
-            {failed === r.id ? (
-              <span role="alert" className="text-[0.8125rem] text-(--kl-danger)">
-                {copy.rewards.failed}
+              <span
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={pct}
+                aria-label={r.title}
+                className={PROGRESS_TRACK}
+              >
+                <span className={PROGRESS_FILL} style={{ width: `${pct}%` }} />
               </span>
-            ) : null}
-          </li>
-        ))}
+              {failed === r.id ? (
+                <span role="alert" className="text-[0.8125rem] text-(--kl-danger)">
+                  {copy.rewards.failed}
+                </span>
+              ) : null}
+            </li>
+          )
+        })}
       </ul>
     </LoyaltyCard>
   )

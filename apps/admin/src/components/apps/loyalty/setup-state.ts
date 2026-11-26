@@ -20,14 +20,17 @@ export type LoyaltySetupData = {
     | undefined
   /** The floating widget's app embed is on in the live theme. */
   placementsOn: boolean
+  /** The store's public origin (View page links); null when it could not be read. */
+  origin: string | null
 }
 
 /** Settings, the earn rules and the live theme, read together. */
 export async function loadSetupData(): Promise<LoyaltySetupData> {
-  const [settings, rules, themes] = await Promise.all([
+  const [settings, rules, themes, origin] = await Promise.all([
     api.loyalty.settings.get(),
     api.loyalty.rules.list(),
     api.themes.list().catch(() => null),
+    api.store.origin().catch(() => null),
   ])
   const spend = spendDraftOf(rules, settings)
   const live = themes?.find((t) => t.role === 'main') ?? null
@@ -45,5 +48,6 @@ export async function loadSetupData(): Promise<LoyaltySetupData> {
     ratePercent: spend.enabled ? spend.points : 0,
     theme,
     placementsOn: Boolean(theme?.appEmbeds?.['loyalty/Widget']?.enabled),
+    origin: typeof origin === 'string' ? origin : null,
   }
 }

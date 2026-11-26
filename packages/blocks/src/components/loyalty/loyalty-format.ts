@@ -55,8 +55,8 @@ export function wayPoints(w: Pick<LoyaltyWayToEarn, 'type' | 'points'>, names: L
 }
 
 const WAY_GLYPHS: Record<string, LoyaltyGlyph> = {
-  order_spend: 'bag',
-  first_order: 'bag',
+  order_spend: 'cart',
+  first_order: 'id-card',
   signup: 'user',
   newsletter: 'mail',
   birthday: 'cake',

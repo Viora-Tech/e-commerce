@@ -10,7 +10,7 @@ export const loyaltyPlacementsContent = {
     },
     productPoints: {
       title: 'Product page',
-      body: 'Shows how many points the product earns, under the price.',
+      body: 'Shows how many points the product earns, above Add to cart. The floating widget adds it; an app block can place it elsewhere.',
     },
     cardPoints: {
       title: 'Product card',
@@ -18,16 +18,42 @@ export const loyaltyPlacementsContent = {
     },
     cartRedeem: {
       title: 'Cart placement',
-      body: 'Lets members spend points on a reward from the cart.',
+      body: 'Points for the order above Checkout, in the cart and the cart drawer. Members redeem a reward and apply it without leaving the cart.',
     },
     referralPopup: {
       title: 'Referral pop-up',
       body: 'Welcomes a friend who opens a referral link and shows their reward.',
     },
   },
+  /** Pages the program adds to the store, switched on and off here. */
+  pages: {
+    embedded: 'Embedded content',
+    accounts: 'Customer accounts',
+    items: {
+      landing: {
+        title: 'Loyalty landing page',
+        body: 'A page that explains your program: how it works, ways to earn and redeem, referrals and questions. Link to it from a menu.',
+      },
+      account: {
+        title: 'Account page',
+        body: 'A Points section in the customer account: balance, history, rewards to claim and the referral link.',
+      },
+      accountStatus: {
+        title: 'Loyalty status',
+        body: 'The points balance and rewards ready to claim, at the top of the account’s Orders page.',
+      },
+    },
+    on: 'On',
+    off: 'Off',
+    switchOn: (title: string) => `Show ${title}`,
+    view: 'View page',
+    saved: 'Saved',
+    failed: 'Could not save. Try again.',
+  },
   where: {
     embed: 'Customize › App embeds',
     block: 'Customize › add an app block to the template',
+    widget: 'On with the floating widget (Customize › App embeds)',
   },
   open: 'Customize',
   enableEmbed: 'Enable app embed',

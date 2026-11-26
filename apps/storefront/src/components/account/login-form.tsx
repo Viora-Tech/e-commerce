@@ -31,6 +31,9 @@ type LoginFormProps = {
 const copy = accountContent.login
 const FIELD_ID = 'login-email'
 
+/** The loyalty referral pop-up's kept email (`LOYALTY_SIGNIN_EMAIL_KEY` in `@commerce/blocks/loyalty`). */
+const KEPT_EMAIL_KEY = 'kl-signin-email'
+
 /** Two steps: email, then the six digit code mailed to it. The card is `SignIn`'s. */
 export default function LoginForm({
   returnTo,
@@ -51,6 +54,17 @@ export default function LoginForm({
   useEffect(() => {
     onStep?.(sentTo !== null || linkSentTo !== null)
   }, [sentTo, linkSentTo, onStep])
+  // A friend's referral pop-up kept the email the visitor typed there: start with it.
+  useEffect(() => {
+    try {
+      const kept = window.sessionStorage.getItem(KEPT_EMAIL_KEY)
+      if (!kept) return
+      window.sessionStorage.removeItem(KEPT_EMAIL_KEY)
+      setEmail((now) => now || kept)
+    } catch {
+      // Storage blocked: the shopper types it.
+    }
+  }, [])
 
   // Helpers
   const send = (address: string) => {

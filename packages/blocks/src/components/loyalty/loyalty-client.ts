@@ -1,7 +1,15 @@
 /** SOURCE OF TRUTH: the loyalty widget's calls to the storefront — WHAT: one shared read of the shopper's loyalty view (and the light earn read) per page, and the actions (claim a reward, apply a code, click through a way to earn, the daily visit, a friend's referral) on `/api/loyalty/*` / WHY: the launcher's panel, the blocks and the Points page share one fetch instead of each asking again */
-import type { LoyaltyEarnInfo, LoyaltyRedeemed, LoyaltyView } from './loyalty-types'
+import type {
+  LoyaltyEarnInfo,
+  LoyaltyRedeemed,
+  LoyaltyRewardView,
+  LoyaltyView,
+} from './loyalty-types'
 
 const BASE = '/api/loyalty'
+
+/** The referral pop-up keeps the email typed there; the sign-in form starts with it (this tab only). */
+export const LOYALTY_SIGNIN_EMAIL_KEY = 'kl-signin-email'
 
 let viewRead: Promise<LoyaltyView | null> | null = null
 let viewWithCart = false
@@ -69,6 +77,21 @@ export function redeemReward(rewardId: string, points?: number): Promise<Loyalty
 
 export function applyLoyaltyCode(code: string): Promise<{ ok: boolean } | null> {
   return postJson<{ ok: boolean }>('apply', { code })
+}
+
+/**
+ * The cart box's "Redeem and apply": claims the reward (a custom amount at `points`), then puts
+ * its code on the cart. The code when both worked; null when the claim failed, gave no code
+ * (store credit) or the cart refused it. No new pricing: the same two calls as the panel.
+ */
+export async function redeemAndApply(
+  reward: Pick<LoyaltyRewardView, 'id'>,
+  points?: number,
+): Promise<string | null> {
+  const done = await redeemReward(reward.id, points)
+  if (!done?.code) return null
+  const applied = await applyLoyaltyCode(done.code)
+  return applied?.ok ? done.code : null
 }
 
 /** A social or Google review rule: credits the points, answers the link to open. */

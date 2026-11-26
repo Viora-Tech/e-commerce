@@ -1,3 +1,4 @@
+import '../../globals.css'
 import { liveThemeSettings, themeRootAttrs, themeToCss } from '@commerce/core'
 import type { Metadata, Viewport } from 'next'
 import { cookies } from 'next/headers'

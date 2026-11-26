@@ -1,0 +1,14 @@
+/*
+ * The bare 404 (`not-found.tsx`, a path outside any store). Next loads a root not-found's CSS on
+ * every page, so this is kept tiny and neutral: Tailwind's theme and utilities for the 404's own
+ * files only, no preflight (that would reset the affiliate portal's base styles), and the
+ * checkout palette. The store's `globals.css` stays off the affiliate portal (`app/-f`).
+ */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@import "./checkout-palette.css";
+
+@source "./not-found.tsx";
+@source "../components/checkout/checkout-icon.tsx";
+@source "../lib/checkout-classes.ts";
+@source "../lib/error-page.ts";

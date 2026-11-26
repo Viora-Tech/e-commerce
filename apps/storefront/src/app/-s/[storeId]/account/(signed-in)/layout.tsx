@@ -19,7 +19,11 @@ export default async function SignedInLayout({ children, params }: SignedInLayou
   const { storeId } = await params
   const me = await currentCustomer(storeId)
   const showPoints = me
-    ? await inStore(storeId, async (tx) => (await loyaltyState(tx, storeId)).installed)
+    ? await inStore(storeId, async (tx) => {
+        const state = await loyaltyState(tx, storeId)
+        // Placements → Customer accounts → Account page switches the section off.
+        return state.installed && state.settings.pages.account
+      })
     : false
   return renderTemplate(storeId, 'account', {
     renderers: {

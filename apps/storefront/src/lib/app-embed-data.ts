@@ -8,20 +8,23 @@ import { FLOATING_TAB, FLOATING_TAB_REVIEWS } from '@commerce/plugin-reviews/blo
 import { reviewsState, storeWidgetReviews } from '@commerce/plugin-reviews/server'
 import { cookies } from 'next/headers'
 import { CUSTOMER_COOKIE } from './customer-session'
-import { storeNameFor } from './loyalty-view'
+import { storeBrandFor, storeNameFor } from './loyalty-view'
 import { storeRead } from './store-cache'
 
 type EmbedLoader = (storeId: string, props: Record<string, unknown>) => Promise<unknown>
 
 /**
- * The Loyalty widget and Referral pop-up: the store's name (cached) and whether the request
+ * The Loyalty widget and Referral pop-up: the store's name and brand colour (cached) and whether the request
  * carries a session cookie (no database read), so the launcher knows to send the daily visit.
  * The shopper's points load only when the panel opens (`/api/loyalty/state`).
  */
 async function loyaltyEmbed(storeId: string): Promise<LoyaltyEmbedData> {
-  const storeName = await storeNameFor(storeId)
+  const [storeName, brandColor] = await Promise.all([
+    storeNameFor(storeId),
+    storeBrandFor(storeId).catch(() => null),
+  ])
   const signedIn = Boolean((await cookies()).get(CUSTOMER_COOKIE)?.value)
-  return { storeName, signedIn }
+  return { storeName, signedIn, brandColor }
 }
 
 /**

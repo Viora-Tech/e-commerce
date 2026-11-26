@@ -10,6 +10,8 @@ type LoyaltyLauncherProps = {
   /** The embed's saved settings (theme editor → App embeds → Loyalty widget). */
   settings: Record<string, unknown>
   storeName: string
+  /** The store's brand colour (checkout accent, else the live theme's button), for the header default. */
+  brand?: string | null | undefined
   /** The request carried a shopper session cookie. */
   signedIn: boolean
   /** False in the theme editor's canvas: a picture only, nothing is fetched. */
@@ -20,6 +22,7 @@ type LoyaltyLauncherProps = {
 const loadPanel = () => import('./loyalty-panel')
 const LoyaltyPanel = lazy(loadPanel)
 const LoyaltyPricePoints = lazy(() => import('./loyalty-price-points'))
+const LoyaltyPlacements = lazy(() => import('./loyalty-placements'))
 
 const VISIT_KEY = 'kl-loyalty-visit'
 
@@ -51,6 +54,7 @@ function markVisited(): void {
 export default function LoyaltyLauncher({
   settings,
   storeName,
+  brand,
   signedIn,
   live,
 }: LoyaltyLauncherProps) {
@@ -82,9 +86,13 @@ export default function LoyaltyLauncher({
   }
 
   // Render logic
-  const s = resolveLoyaltyWidgetSettings(settings)
-  const side = s.position === 'left' ? 'left-4' : 'right-4'
-  const vars = loyaltyStyleVars(s) as CSSProperties
+  const s = resolveLoyaltyWidgetSettings(settings, brand)
+  const side =
+    s.position === 'left'
+      ? 'left-[1.875rem] max-[30rem]:left-4'
+      : 'right-[1.875rem] max-[30rem]:right-4'
+  const raw = loyaltyStyleVars(s)
+  const vars = raw as CSSProperties
   return (
     <div className="kl-loyalty font-sans" style={vars}>
       <button
@@ -95,7 +103,7 @@ export default function LoyaltyLauncher({
         onClick={handleToggle}
         onPointerEnter={handlePreload}
         onFocus={handlePreload}
-        className={`fixed bottom-4 z-[2147483000] inline-flex h-12 touch-manipulation items-center gap-2 rounded-full border-0 bg-(image:--kl-head) bg-(--kl-head-solid) px-4 text-[0.9375rem] font-semibold normal-case leading-none tracking-normal text-(--kl-head-text) shadow-lg transition-[scale] duration-150 ease-out active:scale-95 ${side}`}
+        className={`fixed bottom-[1.875rem] z-[2147483000] inline-flex h-12 cursor-pointer touch-manipulation items-center gap-2 rounded-[0.75rem]! border-0! bg-(image:--kl-head) bg-(--kl-head-solid)! px-4! text-[0.9375rem]! font-semibold! normal-case! leading-none tracking-normal! text-(--kl-head-text)! shadow-[0_0.25rem_1rem_rgb(0_0_0/0.2)] transition-[scale] duration-150 ease-out active:scale-95 max-[30rem]:bottom-4 ${side} ${open && s.layout === 'popup' ? 'pointer-events-none opacity-0' : ''}`}
       >
         {s.launcherIcon === 'none' ? null : <LoyaltyIcon name={s.launcherIcon} />}
         {s.launcherText ? <span>{s.launcherText}</span> : null}
@@ -108,6 +116,16 @@ export default function LoyaltyLauncher({
             storeName={storeName}
             signedIn={signedIn}
             onClose={handleClose}
+          />
+        </Suspense>
+      ) : null}
+      {live && (s.productLine || s.cartBox) ? (
+        <Suspense fallback={null}>
+          <LoyaltyPlacements
+            productLine={s.productLine}
+            cartBox={s.cartBox}
+            pointsValue={s.pointsValue}
+            vars={raw}
           />
         </Suspense>
       ) : null}

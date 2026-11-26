@@ -7,6 +7,7 @@ import {
   POINT_PAISE,
   publicLoyaltyProgram,
   shopperLoyalty,
+  storeCheckoutLook,
   tierProgress,
 } from '@commerce/core'
 import { type StoreTx, store } from '@commerce/db'
@@ -32,6 +33,19 @@ async function storeNameOf(tx: StoreTx, storeId: string): Promise<string> {
 /** The store's name (cached), for the widget's "{Store} Rewards". */
 export function storeNameFor(storeId: string): Promise<string> {
   return storeRead(storeId, 'store-name', (tx) => storeNameOf(tx, storeId))
+}
+
+/**
+ * The store's brand colour for the loyalty widget's default header: the checkout accent the
+ * merchant picked, else the live theme's button colour (`storeCheckoutLook` resolves both).
+ * Cached with the store version; null when there is none.
+ */
+export function storeBrandFor(storeId: string): Promise<string | null> {
+  return storeRead(storeId, 'brand-colour', async (tx) => {
+    const look = await storeCheckoutLook({ storeId, tx })
+    const accent = look.branding.accent
+    return typeof accent === 'string' && /^#[0-9a-f]{6}$/i.test(accent) ? accent : null
+  })
 }
 
 /**

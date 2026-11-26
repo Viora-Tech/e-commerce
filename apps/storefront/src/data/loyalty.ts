@@ -2,8 +2,16 @@
 export const loyaltyAccountContent = {
   nav: 'Points',
   title: 'Points',
+  /** The points card at the top of the account's Orders page (Placements → Loyalty status). */
+  status: {
+    title: 'Your points',
+    rewards: (n: number) =>
+      n === 1 ? '1 reward ready to claim' : n > 1 ? `${n} rewards ready to claim` : '',
+    worth: (money: string) => `Worth ${money}`,
+    open: 'Points and rewards',
+  },
   balance: 'Your points',
-  points: (n: number) => `${n} ${n === 1 ? 'point' : 'points'}`,
+  points: (n: number) => `${n.toLocaleString('en-IN')} ${n === 1 ? 'point' : 'points'}`,
   worth: (money: string) => `Worth ${money} off your next order`,
   intro:
     'Points sit in your store credit. At checkout, keep Store credit ticked and they come off the order.',
