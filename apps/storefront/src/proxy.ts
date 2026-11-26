@@ -48,6 +48,16 @@ import {
   plainSkipNonce,
   wantsPlainHtml,
 } from './lib/plain-html/route'
+import {
+  PORTAL_BASE_HEADER,
+  PORTAL_PATH,
+  portalHostBase,
+  portalHostFor,
+  portalPathRest,
+  portalRedirect,
+  portalStoreHosts,
+  routeForPortalHost,
+} from './lib/portal-routing'
 import { noteVisit, WARM_USER_AGENT } from './lib/recent-pages'
 import { redirectFor } from './lib/redirects'
 import { noteReferral } from './lib/referral-landing'
@@ -123,7 +133,9 @@ export async function proxy(request: NextRequest) {
   // Checkout and the shopper account (D-01) refuse all framing and carry the isolation headers;
   // every other page keeps the self-plus-admin frame-ancestors the theme editor needs.
   // A market prefix (`/ae/checkout`) never loosens that.
+  // The affiliate portal's own host is isolated on every path, like checkout.
   const isolated =
+    portalHostBase(hostnameFromHeader(request.headers.get('host'))) !== null ||
     isIsolatedStorePath(request.nextUrl.pathname) ||
     isIsolatedStorePath(withoutMarketSegment(request.nextUrl.pathname))
   const csp = scriptCsp({
@@ -175,6 +187,24 @@ async function routeRequest(
     withNonce(headers)
     headers.set('x-store-id', store.storeId)
     if (route.kind === 'passthrough') return NextResponse.next({ request: { headers } })
+    const url = request.nextUrl.clone()
+    url.pathname = route.path
+    return NextResponse.rewrite(url, { request: { headers } })
+  }
+
+  // The affiliate portal's own host (`affiliate.<store domain>`, `lib/portal-routing.ts`): the
+  // store from the domain under it; every path is the portal's.
+  const portalStore = await portalHostStore(hostname)
+  if (hostname && portalStore) {
+    const route = routeForPortalHost(portalStore, request.nextUrl.pathname)
+    if (route.kind === 'forbidden') return new NextResponse('Not found', { status: 404 })
+    const headers = new Headers(request.headers)
+    for (const h of DERIVED_HEADERS) headers.delete(h)
+    withNonce(headers)
+    headers.set('x-store-id', portalStore)
+    headers.set('x-pathname', request.nextUrl.pathname)
+    if (route.kind === 'passthrough') return NextResponse.next({ request: { headers } })
+    headers.set(PORTAL_BASE_HEADER, '')
     const url = request.nextUrl.clone()
     url.pathname = route.path
     return NextResponse.rewrite(url, { request: { headers } })
@@ -293,6 +323,27 @@ async function routeRequest(
   if (listing) headers.set('x-listing', listing)
 
   if (route.kind === 'passthrough') return NextResponse.next({ request: { headers } })
+
+  // The affiliate portal (`lib/portal-routing.ts`): on its own host once that is live, else here,
+  // outside the theme, the password page and the theme's redirects.
+  if (portalPathRest(pick.pathname) !== null) {
+    const portalHost = await resolve(portalHostFor(hostname))
+    const to = portalRedirect({
+      hostname,
+      port: host?.split(':')[1] ?? '',
+      pathname: pick.pathname,
+      search: request.nextUrl.search,
+      protocol: request.nextUrl.protocol,
+      method: request.method,
+      portalLive: portalHost?.storeId === storeId,
+      dev: process.env.NODE_ENV !== 'production',
+    })
+    if (to) return NextResponse.redirect(to, 302)
+    headers.set(PORTAL_BASE_HEADER, PORTAL_PATH)
+    const url = request.nextUrl.clone()
+    url.pathname = route.path
+    return NextResponse.rewrite(url, { request: { headers } })
+  }
 
   // URL redirects (Content → Menus → URL redirects, imported Shopify paths) answer
   // before anything renders, so an old link never shows the password page first.
@@ -465,6 +516,24 @@ async function routeRequest(
     })
   }
   return response
+}
+
+/**
+ * The store a portal host (`affiliate.waimers.in`) belongs to: the store of the domain under it
+ * (`waimers.in`, or its www twin). Null for any other host, and for a host that is itself another
+ * store's domain (a store whose own address starts with `affiliate.`).
+ */
+async function portalHostStore(hostname: string | null): Promise<string | null> {
+  const base = portalHostBase(hostname)
+  if (!hostname || !base) return null
+  let storeId: string | null = null
+  for (const h of portalStoreHosts(base)) {
+    storeId = (await resolve(h))?.storeId ?? null
+    if (storeId) break
+  }
+  if (!storeId) return null
+  const own = await resolve(hostname)
+  return own && own.storeId !== storeId ? null : storeId
 }
 
 /**

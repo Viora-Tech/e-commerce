@@ -71,6 +71,7 @@ const config: NextConfig = {
     '@commerce/plugin-emi',
     '@commerce/plugin-gst-invoices',
     '@commerce/plugin-affiliates',
+    '@commerce/ui',
     '@commerce/plugin-forms',
     '@commerce/plugin-growthbook',
     '@commerce/plugin-reviews',

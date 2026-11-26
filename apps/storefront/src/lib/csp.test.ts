@@ -74,6 +74,8 @@ describe('storefront script CSP', () => {
       '/checkout/pay/7',
       '/account',
       '/account/orders',
+      '/affiliate',
+      '/affiliate/payouts',
     ]) {
       expect(isIsolatedStorePath(p)).toBe(true)
     }
@@ -85,6 +87,7 @@ describe('storefront script CSP', () => {
       '/checkouting',
       '/accountant',
       '/blogs/account',
+      '/affiliates-page',
     ]) {
       expect(isIsolatedStorePath(p)).toBe(false)
     }

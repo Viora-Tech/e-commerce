@@ -1,0 +1,212 @@
+/* The locked checkout's palette (`.ck`, `--ck-*`, its keyframes), shared by `globals.css` and
+   the bare 404's `bare-404.css`, so a page outside any store gets it without the store CSS. */
+
+/*
+ * The locked checkout (components/checkout). Its own palette, never the theme's: the
+ * shell sets the merchant's Settings -> Checkout -> Branding as --ck-* properties
+ * (checkoutBrandingVars in @commerce/core), and these map them to Tailwind tokens
+ * (bg-ck-button, rounded-ck, font-ck). Dark mode follows the store's mode: data-theme
+ * on <html>, or the system setting when the store leaves the choice to the shopper.
+ */
+@theme inline {
+  --color-ck-bg: var(--ck-bg);
+  --color-ck-ink: var(--ck-ink);
+  --color-ck-muted: var(--ck-muted);
+  --color-ck-faint: var(--ck-faint);
+  --color-ck-line-strong: var(--ck-line-strong);
+  --color-ck-accent-lift: var(--ck-accent-lift);
+  --color-ck-line: var(--ck-line);
+  --color-ck-field: var(--ck-field);
+  --color-ck-soft: var(--ck-soft);
+  --color-ck-canvas: var(--ck-canvas);
+  --color-ck-danger: var(--ck-danger);
+  --color-ck-danger-soft: color-mix(in oklab, var(--ck-danger) 9%, transparent);
+  --color-ck-success: var(--ck-success);
+  --color-ck-success-soft: color-mix(in oklab, var(--ck-success) 14%, transparent);
+  --color-ck-warn: var(--ck-warn);
+  --color-ck-warn-soft: color-mix(in oklab, var(--ck-warn) 16%, transparent);
+  --color-ck-accent: var(--ck-accent);
+  --color-ck-accent-ink: var(--ck-accent-ink);
+  --color-ck-accent-soft: color-mix(in oklab, var(--ck-accent) 7%, transparent);
+  --color-ck-ring: color-mix(in oklab, var(--ck-accent) 24%, transparent);
+  --color-ck-button: var(--ck-button);
+  --color-ck-button-ink: var(--ck-button-ink);
+  --color-ck-summary: var(--ck-summary);
+  --color-ck-glass-blob: var(--ck-glass-blob);
+  --color-ck-glass-streak: var(--ck-glass-streak);
+  --color-ck-glass-fill: var(--ck-glass-fill);
+  --color-ck-summary-ink: var(--ck-summary-ink);
+  --color-ck-summary-muted: color-mix(in oklab, var(--ck-summary-ink) 62%, transparent);
+  --color-ck-summary-line: color-mix(in oklab, var(--ck-summary-ink) 13%, transparent);
+  --color-ck-summary-wash: color-mix(in oklab, var(--ck-summary) 86%, transparent);
+  --color-ck-qr: var(--ck-qr);
+  --radius-ck: var(--ck-radius);
+  --radius-ck-button: var(--ck-radius-button);
+  --font-ck: var(--ck-font);
+}
+
+.ck {
+  --ck-bg: #ffffff;
+  --ck-ink: #0a0a0a;
+  --ck-muted: #737373;
+  --ck-faint: #8a8a8a;
+  --ck-line-strong: #d4d4d4;
+  --ck-accent-lift: var(--ck-accent);
+  --ck-line: #e5e5e5;
+  --ck-field: #ffffff;
+  --ck-soft: #f5f5f5;
+  /* The page behind the checkout's cards: the admin's light grey in light, a shade under the cards in dark. */
+  --ck-canvas: #fafafa;
+  --ck-danger: #c23a2b;
+  --ck-success: #1d8a50;
+  --ck-warn: #b7791f;
+  /* A QR needs a light quiet zone to scan, so it stays white in dark mode too. */
+  --ck-qr: #ffffff;
+  --ck-summary: var(--ck-summary-light);
+  --ck-summary-ink: var(--ck-summary-ink-light);
+  /* Focus rings as real properties: arbitrary box-shadow values cannot read @theme inline names. */
+  --ck-ring: color-mix(in oklab, var(--ck-accent) 24%, transparent);
+  --ck-danger-ring: color-mix(in oklab, var(--ck-danger) 14%, transparent);
+  /* The cards take the admin's recipes: a faint top fade, and glass on the one summary card. */
+  --ck-card-surface: none;
+  --ck-glass-blob: #e4e4e7;
+  --ck-glass-streak: #ffffff;
+  --ck-glass-fill: rgb(255 255 255 / 0.55);
+  /* The summary card: a hairline lift in light mode, glass in dark. */
+  --ck-card-shadow:
+    0 0 0 0.0625rem rgb(0 0 0 / 0.06), 0 0.0625rem 0.125rem rgb(0 0 0 / 0.06),
+    0 0.5rem 1.5rem rgb(0 0 0 / 0.06);
+  /* The one-page checkout's cards (Contact, Delivery, Shipping, Payment). */
+  --ck-section-shadow:
+    0 0 0 0.0625rem rgb(0 0 0 / 0.06), 0 0.0625rem 0.125rem rgb(0 0 0 / 0.06),
+    0 0.25rem 0.75rem rgb(0 0 0 / 0.04);
+  color-scheme: light;
+}
+
+/* The theme's logo for dark backgrounds on a dark checkout. */
+.ck-logo-dark {
+  display: none;
+}
+:root[data-theme="dark"] .ck-logo-dark {
+  display: block;
+}
+:root[data-theme="dark"] .ck-logo-light {
+  display: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .ck-logo-dark {
+    display: block;
+  }
+  :root:not([data-theme]) .ck-logo-light {
+    display: none;
+  }
+}
+
+:root[data-theme="dark"] .ck {
+  --ck-bg: #171717;
+  --ck-ink: #fafafa;
+  --ck-muted: #a1a1a1;
+  --ck-faint: #737373;
+  --ck-line-strong: rgb(255 255 255 / 0.15);
+  --ck-accent-lift: color-mix(in oklab, var(--ck-accent) 74%, white);
+  --ck-line: rgb(255 255 255 / 0.08);
+  --ck-field: #171717;
+  --ck-soft: #1b1b1f;
+  --ck-canvas: #0a0a0a;
+  --ck-danger: #f0776a;
+  --ck-success: #4cc488;
+  --ck-warn: #e0a84a;
+  --ck-summary: #171717;
+  --ck-summary-ink: #fafafa;
+  --ck-card-shadow:
+    inset 0 0.0625rem 0 rgb(255 255 255 / 0.08), 0 0 0 0.0625rem var(--ck-line),
+    0 0.0625rem 0.125rem rgb(0 0 0 / 0.5), 0 0.75rem 1.75rem -0.75rem rgb(0 0 0 / 0.7);
+  --ck-section-shadow:
+    inset 0 0.0625rem 0 rgb(255 255 255 / 0.08), 0 0 0 0.0625rem var(--ck-line),
+    0 0.0625rem 0.125rem rgb(0 0 0 / 0.5), 0 0.75rem 1.75rem -0.75rem rgb(0 0 0 / 0.7);
+  color-scheme: dark;
+}
+
+/* The thank-you mark settling in (StatusMark); transform and opacity only. */
+/* A step or a finished row arriving: a short rise with a fade. */
+@keyframes ck-lift {
+  from {
+    opacity: 0;
+    translate: 0 1.25rem;
+  }
+}
+@keyframes ck-settle {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+/* The thank-you tick drawing itself (StatusMark): a pathLength="1" path, dash offset 1 -> 0. */
+@keyframes ck-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+/* One-time entrances (the thank-you page's headline and cards, the error pages): an 8px rise
+   with a fade, and the fade alone for reduced motion. Transform and opacity only. */
+@keyframes sf-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+
+@keyframes sf-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* City and State just filled in from the PIN code: a brief wash of the accent that fades out. */
+@keyframes ck-filled {
+  from {
+    background-color: color-mix(in oklab, var(--ck-accent) 14%, var(--ck-field));
+  }
+}
+
+/* The theme's mobile dock pads <body> for itself; the checkout hides the dock, so not here.
+   The account pages wear the checkout's look (`ck-account`) but keep the theme and its dock. */
+body:has(.ck:not(.ck-account)) {
+  padding-bottom: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .ck {
+    --ck-bg: #171717;
+    --ck-ink: #fafafa;
+    --ck-muted: #a1a1a1;
+    --ck-faint: #737373;
+    --ck-line-strong: rgb(255 255 255 / 0.15);
+    --ck-accent-lift: color-mix(in oklab, var(--ck-accent) 74%, white);
+    --ck-line: rgb(255 255 255 / 0.08);
+    --ck-field: #171717;
+    --ck-soft: #1b1b1f;
+    --ck-canvas: #0a0a0a;
+    --ck-danger: #f0776a;
+    --ck-success: #4cc488;
+    --ck-warn: #e0a84a;
+    --ck-summary: #171717;
+    --ck-summary-ink: #fafafa;
+    --ck-card-shadow:
+      inset 0.0625rem 0.0625rem 0 rgb(255 255 255 / 0.18), inset -0.0625rem -0.0625rem 0 rgb(
+        0 0 0 / 0.55
+      ),
+      inset 0 0 2.5rem rgb(255 255 255 / 0.05), 0 0 0 0.0625rem rgb(255 255 255 / 0.08),
+      0 0.125rem 0.25rem rgb(0 0 0 / 0.6), 0 1.125rem 2.75rem -0.75rem rgb(0 0 0 / 0.7);
+    --ck-section-shadow:
+      inset 0 0.0625rem 0 rgb(255 255 255 / 0.12), 0 0 0 0.0625rem rgb(255 255 255 / 0.08),
+      0 0.0625rem 0.125rem rgb(0 0 0 / 0.6), 0 0.5rem 1.5rem -0.5rem rgb(0 0 0 / 0.7);
+    --ck-card-surface: linear-gradient(to bottom, rgb(255 255 255 / 0.035), transparent 60%);
+    --ck-glass-blob: rgb(255 255 255 / 0.22);
+    --ck-glass-streak: rgb(255 255 255 / 0.1);
+    --ck-glass-fill: rgb(23 23 23 / 0.3);
+    color-scheme: dark;
+  }
+}

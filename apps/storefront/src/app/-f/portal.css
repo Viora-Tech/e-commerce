@@ -1,0 +1,73 @@
+/*
+ * The affiliate portal's styles (`app/-f`): our admin's shadcn look, never the store's theme.
+ * Tokens come from @commerce/ui styles.css, like the admin. The store's pages load
+ * `app/globals.css` instead; the two are never on one document.
+ */
+@import "tailwindcss";
+@import "@commerce/ui/styles.css";
+
+/* The portal's own files and the shared shadcn components. */
+@source "../../../../../packages/ui/src/**/*.{ts,tsx}";
+
+/*
+ * shadcn's state variants (from `shadcn/tailwind.css`, MIT, which the admin imports): the
+ * storefront does not depend on the `shadcn` package, so the few the components use are here.
+ */
+@custom-variant data-open {
+  &:where([data-state="open"]),
+  &:where([data-open]:not([data-open="false"])) {
+    @slot;
+  }
+}
+@custom-variant data-closed {
+  &:where([data-state="closed"]),
+  &:where([data-closed]:not([data-closed="false"])) {
+    @slot;
+  }
+}
+@custom-variant data-checked {
+  &:where([data-state="checked"]),
+  &:where([data-checked]:not([data-checked="false"])) {
+    @slot;
+  }
+}
+@custom-variant data-unchecked {
+  &:where([data-state="unchecked"]),
+  &:where([data-unchecked]:not([data-unchecked="false"])) {
+    @slot;
+  }
+}
+@custom-variant data-selected {
+  &:where([data-selected="true"]) {
+    @slot;
+  }
+}
+@custom-variant data-disabled {
+  &:where([data-disabled="true"]),
+  &:where([data-disabled]:not([data-disabled="false"])) {
+    @slot;
+  }
+}
+@custom-variant data-active {
+  &:where([data-state="active"]),
+  &:where([data-active]:not([data-active="false"])) {
+    @slot;
+  }
+}
+@custom-variant data-horizontal {
+  &:where([data-orientation="horizontal"]) {
+    @slot;
+  }
+}
+@custom-variant data-vertical {
+  &:where([data-orientation="vertical"]) {
+    @slot;
+  }
+}
+
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+}

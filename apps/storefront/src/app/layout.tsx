@@ -1,6 +1,5 @@
 import type { Viewport } from 'next'
 import type { ReactNode } from 'react'
-import './globals.css'
 
 /**
  * Paint edge to edge on notched phones (viewport-fit=cover) so the safe-area insets are real:
@@ -16,7 +15,9 @@ export const viewport: Viewport = {
   interactiveWidget: 'resizes-content',
 }
 
-// Root layout is shared by the store segment and the bare 404 root.
+// Root layout is shared by the store segment and the bare 404 root. Each document layout
+// imports its own stylesheet: the store's pages `globals.css`, the affiliate portal (`-f`)
+// its shadcn one, so the two Tailwind builds never fight over the same class names.
 export default function RootLayout({ children }: { children: ReactNode }) {
   return children
 }

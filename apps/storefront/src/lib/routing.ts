@@ -1,5 +1,11 @@
 import { indexNowKeyFromPath } from '@commerce/core/indexnow'
 import { CHAT_FRAME_PATH } from './inbox-frame'
+import {
+  PORTAL_BASE_HEADER,
+  PORTAL_PREFIX,
+  portalInternalPath,
+  portalPathRest,
+} from './portal-routing'
 import { shopifyJsonPath } from './shopify-json/paths'
 
 /**
@@ -34,13 +40,17 @@ export function routeForStore(storeId: string, pathname: string): Route {
     internal(pathname, ACCOUNTS_PREFIX) ||
     internal(pathname, PLAIN_PREFIX) ||
     internal(pathname, CHAT_FRAME_PREFIX) ||
-    internal(pathname, HONO_PREFIX)
+    internal(pathname, HONO_PREFIX) ||
+    internal(pathname, PORTAL_PREFIX)
   ) {
     return { kind: 'forbidden' }
   }
   if (pathname.startsWith('/_next/') || pathname.startsWith('/api/')) {
     return { kind: 'passthrough' }
   }
+  // The affiliate portal (`lib/portal-routing.ts`): its own app, outside the theme.
+  const portal = portalPathRest(pathname)
+  if (portal !== null) return { kind: 'rewrite', path: portalInternalPath(storeId, portal) }
   if (pathname === CHAT_FRAME_PATH)
     return { kind: 'rewrite', path: `${CHAT_FRAME_PREFIX}/${storeId}` }
   // IndexNow's key file, `/<key>.txt` at the site root (`app/-s/[storeId]/indexnow/[key]`).
@@ -106,6 +116,8 @@ export const DERIVED_HEADERS = [
   'x-pathname',
   'x-listing',
   SECTION_PATH_HEADER,
+  // Where the affiliate portal's links start (`lib/portal-routing.ts`).
+  PORTAL_BASE_HEADER,
   // The shared-cache answer the proxy chose for a plain HTML page (`lib/plain-html/route.ts`).
   'x-edge-cache-control',
   // Markets (`lib/markets.ts` MARKET_HEADERS).

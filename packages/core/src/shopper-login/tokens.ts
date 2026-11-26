@@ -22,6 +22,8 @@ export type TokenPurpose =
   | 'review'
   /** A "Share and earn" invite after an order (Affiliates app). */
   | 'affiliate-enrol'
+  /** The affiliate portal's sign-in hand-off from the store's domain to affiliate.<domain>. */
+  | 'affiliate-portal'
 
 /** A sign-in start request is good for 10 minutes: time to pick an account at the provider. */
 export const START_TTL_MS = 10 * 60 * 1000
