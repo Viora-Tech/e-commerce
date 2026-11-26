@@ -1,45 +1,23 @@
-import { loadEnv } from '@commerce/config'
 import {
-  apexRedirectOnly,
-  cloudflareConfigFrom,
-  connectDomain,
-  createDomainProvider,
-  DomainError,
-  type DomainRow,
-  type DomainTargets,
   getDomain,
   listDomains,
   permissions,
-  platformRoots,
   removeDomain,
   requestCertificateRetry,
   setDomainRedirect,
   setPrimaryDomain,
-  verifyDomain,
-  domainView as viewOf,
 } from '@commerce/core'
-import { logger } from '@commerce/observability/logging'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can } from '../procedures'
-
-const env = () => loadEnv(process.env)
-const targets = (): DomainTargets => ({
-  aRecord: env().STOREFRONT_A_RECORD,
-  cnameTarget: env().STOREFRONT_CNAME_TARGET,
-})
-const redirectOnly = () => apexRedirectOnly(env().DOMAIN_PROVIDER)
-const domainView = (d: DomainRow, t: DomainTargets) =>
-  viewOf(d, t, { apexRedirectOnly: redirectOnly() })
-
-async function domainErrorsToBadRequest<T>(fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn()
-  } catch (err) {
-    if (err instanceof DomainError) throw new ORPCError('BAD_REQUEST', { message: err.message })
-    throw err
-  }
-}
+import {
+  connectStoreDomain,
+  domainErrorsToBadRequest,
+  domainRedirectOnly as redirectOnly,
+  domainTargets as targets,
+  toDomainView as domainView,
+  verifyStoreDomain,
+} from '../services/domains.service'
 
 const read = () => can(permissions.SETTINGS_READ)
 const manage = () => can(permissions.SETTINGS_MANAGE)
@@ -70,32 +48,16 @@ export const domainsRouter = {
       }),
     )
     .handler(({ context, input }) =>
-      domainErrorsToBadRequest(async () => {
-        const t = targets()
-        const rows = await connectDomain(context.tx, context.scope.storeId, input, {
-          platformRoots: platformRoots(env()),
-          targets: t,
-          apexRedirectOnly: redirectOnly(),
-        })
-        return rows.map((d) => domainView(d, t))
-      }),
+      domainErrorsToBadRequest(() =>
+        connectStoreDomain(context.tx, context.scope.storeId, input),
+      ),
     ),
 
   /** Check DNS and SSL now instead of waiting for the worker's poll. */
   verify: manage()
     .input(byId)
     .handler(({ context, input }) =>
-      domainErrorsToBadRequest(async () => {
-        const t = targets()
-        const d = await verifyDomain(context.tx, input.id, {
-          provider: createDomainProvider(env().DOMAIN_PROVIDER, {
-            cloudflare: cloudflareConfigFrom(env()),
-            log: (m) => logger.warn(m, { area: 'domains' }),
-          }),
-          targets: t,
-        })
-        return domainView(d, t)
-      }),
+      domainErrorsToBadRequest(() => verifyStoreDomain(context.tx, input.id)),
     ),
 
   /**

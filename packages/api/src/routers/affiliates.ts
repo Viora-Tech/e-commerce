@@ -50,6 +50,7 @@ import { z } from 'zod'
 import { BULK_MAX, can, SEARCH_MAX } from '../procedures'
 
 import { affiliateExtrasRouter, program, refusal } from './affiliates-extras'
+import { affiliatePortalDomainRouter } from './affiliates-portal-domain'
 
 /** The Affiliates list's search and filter panel. */
 const AffiliateListInput = z.object({
@@ -120,6 +121,8 @@ const ProgramInput = z.object({
 
 export const affiliatesRouter = {
   ...affiliateExtrasRouter,
+  /** Settings › Portal address: `affiliate.<primary domain>` through the domain flow. */
+  portalDomain: affiliatePortalDomainRouter,
   /** Sales from affiliates, money owed, the best affiliates and who is waiting to be paid. */
   overview: can(permissions.MARKETING_READ).handler(async ({ context }) => {
     const settings = await program(context)

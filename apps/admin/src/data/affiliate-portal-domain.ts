@@ -1,0 +1,36 @@
+/** Copy for Affiliates → Settings → Portal address. Hindi overlay: `data/hi/affiliate-portal-domain.ts`. */
+export const affiliatePortalDomainContent = {
+  title: 'Portal address',
+  description: 'Where your affiliates sign in, see their sales and get their links.',
+  current: 'Affiliates use',
+  fallbackNote: 'This address keeps working after you connect the portal address.',
+  use: (host: string) => `Use ${host}`,
+  useHelp: (host: string) =>
+    `Give the portal its own address, ${host}. You add two DNS records where your domain is registered, then press Verify.`,
+  connected: (host: string) => `${host} added. Add the two DNS records, then press Verify.`,
+  verify: 'Verify',
+  verified: 'Portal address connected',
+  stillPending: 'Records not found yet. We will keep checking.',
+  pending: 'Waiting for the two DNS records. We check every few minutes.',
+  failed: 'The records we found do not match. Fix them where your domain is registered, then verify again.',
+  sslPending: 'Records found. A free SSL certificate is being issued; this takes a few minutes.',
+  live: (url: string) => `Affiliates now use ${url}`,
+  liveHelp: 'Links to /affiliate on your store send them here.',
+  copyWhat: 'Portal address',
+  manage: 'Domain settings',
+  disconnect: 'Disconnect',
+  disconnectTitle: (host: string) => `Disconnect ${host}?`,
+  disconnectBody:
+    'Affiliates go back to /affiliate on your store straight away. Remove the two DNS records afterwards.',
+  disconnectConfirm: 'Disconnect',
+  disconnected: (host: string) => `${host} disconnected`,
+  noDomain: {
+    heading: 'Connect your own domain first',
+    body: 'The portal address sits under your store’s own domain, like affiliate.yourbrand.in. Connect a domain and make it primary in Settings › Domains.',
+    action: 'Go to Domains',
+  },
+  noAccess: 'Changing this needs access to Settings › Domains. Ask the store owner.',
+  actionFailed: 'Could not update the portal address',
+  loadFailed: 'Could not load the portal address',
+  retry: 'Try again',
+}
