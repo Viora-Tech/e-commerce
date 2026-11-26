@@ -62,6 +62,12 @@ export const storePlan = pgTable(
      * notices. Set only by `bun run platform:unlimited`, never by a merchant.
      */
     unlimited: boolean('unlimited').notNull().default(false),
+    /**
+     * When the store took a founding-merchant place (migration 0272): one of the first stores to
+     * sign up while the offer was open (`packages/core/src/billing/founding-offer.ts`). Null for
+     * everyone else. Never cleared, so the places stay counted.
+     */
+    foundingOfferAt: timestamp('founding_offer_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -154,6 +160,8 @@ export const planPayment = pgTable(
     prorated: boolean('prorated').notNull().default(false),
     /** The old plan's unused days taken off this bill, before GST, in paise. */
     creditPaise: integer('credit_paise').notNull().default(0),
+    /** Billed at the founding-merchant price (migration 0272); paid full ones count the months. */
+    foundingOffer: boolean('founding_offer').notNull().default(false),
     paidAt: timestamp('paid_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },

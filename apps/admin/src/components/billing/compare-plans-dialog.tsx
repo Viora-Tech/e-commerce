@@ -1,6 +1,6 @@
 'use client'
 
-import type { BillingInterval, PlanId } from '@commerce/core/billing'
+import type { BillingInterval, FoundingView, PlanId } from '@commerce/core/billing'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogHeader from '@/components/layout/dialog-header'
@@ -15,6 +15,7 @@ type ComparePlansDialogProps = {
   currentInterval: BillingInterval
   paid: boolean
   busy: PlanId | null
+  founding?: FoundingView | undefined
   onChoose: (plan: PlanId, interval: BillingInterval) => void
 }
 

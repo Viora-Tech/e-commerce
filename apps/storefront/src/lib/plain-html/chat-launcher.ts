@@ -12,6 +12,7 @@ import {
   SAMPLE_ROWS,
 } from '../launcher-lift'
 import { PHONE_QUERY, SCROLL_SLOP, TOP_ZONE, TUCK_SELECTOR } from '../launcher-tuck'
+import { REMEASURE_MS, SCROLL_SETTLE_MS, SETTLE_MS, WATCH_SELECTOR } from '../launcher-watch'
 import { islandModuleUrl } from './modules'
 
 /**
@@ -124,6 +125,10 @@ export function chatModuleSpec(w: InboxWidget, storeName: string) {
       tuck: TUCK_SELECTOR,
       slop: SCROLL_SLOP,
       top: TOP_ZONE,
+      watch: WATCH_SELECTOR,
+      settle: SETTLE_MS,
+      scrollSettle: SCROLL_SETTLE_MS,
+      late: REMEASURE_MS,
     },
   }
 }

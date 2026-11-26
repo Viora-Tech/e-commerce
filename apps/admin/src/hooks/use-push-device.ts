@@ -40,10 +40,13 @@ async function currentSubscription(): Promise<PushSubscription | null> {
 /**
  * Turns push on or off for this browser. `publicKey` null (no VAPID keys on the server) leaves
  * the state `unsupported`; `onDevices` reports the member's device count after a change.
+ * `endpoint` is this browser's subscription while it has one, so the devices list can mark
+ * "This device".
  */
 export function usePushDevice(publicKey: string | null, onDevices?: (devices: number) => void) {
   const [state, setState] = useState<PushDeviceState>('loading')
   const [busy, setBusy] = useState(false)
+  const [endpoint, setEndpoint] = useState<string | null>(null)
 
   useEffect(() => {
     let live = true
@@ -53,7 +56,9 @@ export function usePushDevice(publicKey: string | null, onDevices?: (devices: nu
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) return 'unsupported'
       if (!('Notification' in window)) return 'unsupported'
       if (Notification.permission === 'denied') return 'blocked'
-      return (await currentSubscription()) ? 'on' : 'off'
+      const sub = await currentSubscription()
+      if (live) setEndpoint(sub?.endpoint ?? null)
+      return sub ? 'on' : 'off'
     }
     decide()
       .catch(() => 'unsupported' as const)
@@ -92,27 +97,39 @@ export function usePushDevice(publicKey: string | null, onDevices?: (devices: nu
         userAgent: navigator.userAgent.slice(0, 400),
       })
       setState('on')
+      setEndpoint(sub.endpoint)
       onDevices?.(r.devices)
     } finally {
       setBusy(false)
     }
   }, [publicKey, onDevices])
 
-  /** Unsubscribes this browser and forgets it for the member. */
+  /**
+   * Forgets this browser for the member, then unsubscribes it. The browser unsubscribes even when
+   * the server call fails: its endpoint is then dead, so the next push reports it gone and the
+   * worker drops the row.
+   */
   const turnOff = useCallback(async () => {
     setBusy(true)
     try {
       const sub = await currentSubscription()
+      let failure: unknown = null
       if (sub) {
-        const r = await api.account.removePushDevice({ endpoint: sub.endpoint })
-        await sub.unsubscribe()
-        onDevices?.(r.devices)
+        await api.account
+          .removePushDevice({ endpoint: sub.endpoint })
+          .then((r) => onDevices?.(r.devices))
+          .catch((err: unknown) => {
+            failure = err
+          })
+        await sub.unsubscribe().catch(() => false)
       }
       setState('off')
+      setEndpoint(null)
+      if (failure) throw failure
     } finally {
       setBusy(false)
     }
   }, [onDevices])
 
-  return { state, busy, turnOn, turnOff }
+  return { state, busy, endpoint, turnOn, turnOff }
 }

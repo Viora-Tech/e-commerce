@@ -67,20 +67,16 @@ export const CHAT_MODULE = `window.__commerceIsland && window.__commerceIsland('
     return layer !== null && isOverlay(layer.getBoundingClientRect(), window.innerHeight);
   }
 
-  var frameId = 0;
   function measure() {
-    cancelAnimationFrame(frameId);
-    frameId = requestAnimationFrame(function () {
-      var box = button.getBoundingClientRect();
-      // Hidden (the phone's full-screen chat is open): keep the last answer.
-      if (!box.width) return;
-      var next = launcherLift(bottomBars(box), box, window.innerHeight);
-      if (next !== lift) {
-        lift = next;
-        document.documentElement.style.setProperty('--wc-chat-bottom', next > 0 ? 'max(' + c.base + ', ' + next + 'px + ' + c.gap + ')' : '(' + c.base + ')');
-      }
-      button.classList.toggle('is-covered', overlayOver(box));
-    });
+    var box = button.getBoundingClientRect();
+    // Hidden (the phone's full-screen chat is open): keep the last answer.
+    if (!box.width) return;
+    var next = launcherLift(bottomBars(box), box, window.innerHeight);
+    if (next !== lift) {
+      lift = next;
+      document.documentElement.style.setProperty('--wc-chat-bottom', next > 0 ? 'max(' + c.base + ', ' + next + 'px + ' + c.gap + ')' : '(' + c.base + ')');
+    }
+    button.classList.toggle('is-covered', overlayOver(box));
   }
   // Phones: tucked while scrolling down or while a buying bar is on screen (lib/launcher-tuck.ts).
   var phone = window.matchMedia(c.phone);
@@ -103,14 +99,48 @@ export const CHAT_MODULE = `window.__commerceIsland && window.__commerceIsland('
     lastY = y;
     button.classList.toggle('is-tucked', phone.matches && (scrolledAway || barShown()));
   }
-  measure();
-  tuck();
-  setTimeout(measure, 1500);
-  new MutationObserver(function () { measure(); tuck(); }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'open', 'hidden'] });
-  window.addEventListener('resize', measure);
-  window.addEventListener('load', measure);
-  window.addEventListener('scroll', tuck, { passive: true });
-  document.addEventListener('transitionend', measure);
+  // When to look again: lib/launcher-watch.ts (watchLauncher), the same rules in plain JS. Always
+  // in an animation frame, never on every class change in the theme (its carousels change classes
+  // many times a second).
+  var frameId = 0;
+  var wantMeasure = false;
+  var watched = [];
+  var bars = new MutationObserver(settle);
+  function watchBars() {
+    document.querySelectorAll(c.watch).forEach(function (el) {
+      if (watched.indexOf(el) >= 0) return;
+      watched.push(el);
+      bars.observe(el, { attributes: true, attributeFilter: ['class', 'hidden'] });
+    });
+  }
+  function run() {
+    frameId = 0;
+    if (wantMeasure) { wantMeasure = false; watchBars(); measure(); }
+    tuck();
+  }
+  function request(alsoMeasure) {
+    if (alsoMeasure) wantMeasure = true;
+    if (!frameId) frameId = requestAnimationFrame(run);
+  }
+  function remeasure() { request(true); }
+  function later() { setTimeout(remeasure, c.settle); }
+  function settle() { request(true); later(); }
+  var scrollEnd = 0;
+  request(true);
+  setTimeout(remeasure, c.late);
+  var top = new MutationObserver(remeasure);
+  top.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style'] });
+  top.observe(document.body, { childList: true, attributes: true, attributeFilter: ['class', 'style'] });
+  new MutationObserver(settle).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['open'] });
+  window.addEventListener('scroll', function () {
+    request(false);
+    clearTimeout(scrollEnd);
+    scrollEnd = setTimeout(remeasure, c.scrollSettle);
+  }, { passive: true });
+  window.addEventListener('resize', remeasure, { passive: true });
+  window.addEventListener('load', remeasure);
+  document.addEventListener('pointerup', later, { capture: true, passive: true });
+  document.addEventListener('keyup', later, { capture: true, passive: true });
 
   function post(message) {
     if (!frame) return;

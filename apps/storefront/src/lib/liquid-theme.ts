@@ -50,6 +50,7 @@ import {
   keepable,
   type LiquidRenderScope,
   layoutCacheKey,
+  liquidRequestPath,
   NONCE_MARK,
   newTrace,
   type RenderTrace,
@@ -68,19 +69,24 @@ import { deferThemeScripts } from './liquid-defer'
 import { belowTheFold } from './liquid-fold'
 import { liquidMarketFor } from './liquid-market'
 import { withMarketPrefix } from './liquid-market-links'
+import { avifImagePreloads } from './liquid-preload'
 import { withoutVideoCovers } from './liquid-video-cover'
 import { withVideoPosters } from './liquid-video-poster'
 import { requestCatalogId } from './market-catalog'
 import { marketPricingFor, pricingKey } from './market-pricing'
 import { MARKET_HEADERS } from './markets'
 import { postersByVideoUrl } from './media-lookup'
+import { RenderAbortedError } from './render-gate'
+import { withRenderSlot } from './render-slot'
 import { cartIsEmpty, requestCart } from './request-cart'
 import './search-engine'
 import { abThemeId } from './rollout-ab'
+import { MISSING_ROUTE_HEADER } from './routing'
 import { requestOrigin } from './seo'
 import { CACHE_TTL_MS, cachedForStore, peekForStore, rememberForStore } from './store-cache'
 import { inStore } from './store-context'
 import { readPreview } from './storefront-gate'
+import { bundleThemeStylesheets } from './theme-css'
 
 /**
  * The storefront side of imported Shopify themes (`@commerce/core` theme-import): the
@@ -114,7 +120,8 @@ export function liquidTemplateFor(path: string): string {
 /** What this request renders Liquid for: from the headers the proxy set, once per request. */
 export const requestScope = cache(async (storeId: string) => {
   const h = await headers()
-  const path = h.get('x-pathname') ?? '/'
+  // A path no route serves renders as one page, so its 404 is drawn once per theme version.
+  const path = liquidRequestPath(h.get('x-pathname') ?? '/', h.get(MISSING_ROUTE_HEADER) === '1')
   const template = liquidTemplateFor(path)
   // Filters, sort and page shape a collection or search page's listing (`listingSearch`).
   const listing =
@@ -475,47 +482,52 @@ export async function renderLiquidSections(
   // on a pool that busy requests have filled.
   const cart = toLiquidCart(await requestCart(storeId), scope.pricing)
   const customer = await currentCustomer(storeId)
-  const rendered = await inStore(storeId, async (tx) => {
-    const live = await tracedContext(tx, storeId, themeId, theme, scope, cart, customer)
-    const done: { p: (typeof placed)[number]; html: string; trace: RenderTrace }[] = []
-    // The page's first video is its LCP: the first above-the-fold template section with one.
-    const videoBefore = (p: (typeof placed)[number]) =>
-      placed
-        .slice(0, placed.indexOf(p))
-        .some((q) =>
-          /<video\b/i.test(out.get(q.id)?.html ?? done.find((d) => d.p === q)?.html ?? ''),
+  // One page's misses share a slot in the render queue (`render-slot.ts`); once the visitor has
+  // gone, the sections left are not drawn.
+  const rendered = await withRenderSlot((signal) =>
+    inStore(storeId, async (tx) => {
+      const live = await tracedContext(tx, storeId, themeId, theme, scope, cart, customer)
+      const done: { p: (typeof placed)[number]; html: string; trace: RenderTrace }[] = []
+      // The page's first video is its LCP: the first above-the-fold template section with one.
+      const videoBefore = (p: (typeof placed)[number]) =>
+        placed
+          .slice(0, placed.indexOf(p))
+          .some((q) =>
+            /<video\b/i.test(out.get(q.id)?.html ?? done.find((d) => d.p === q)?.html ?? ''),
+          )
+      for (const p of missing) {
+        if (signal?.aborted) throw new RenderAbortedError()
+        const trace = live.start()
+        const html = await renderLiquidSection(live.ctx, p.section, (err) => {
+          trace.failed = true
+          logger.error('liquid section failed to render', { storeId, section: p.type, error: err })
+        })
+        if (live.ctx.cache.missing) trace.failed = true
+        // The theme's own `<script>` tags carry the nonce (written at parse time,
+        // `nonceThemeScripts` in core); a script that came in with data never does. Its deferred
+        // and module scripts wait for React (`./liquid-defer.ts`); a cookie banner shows with
+        // the first paint (`./liquid-consent-reveal.ts`).
+        // A video from Files plays its smaller copy when the worker has made one
+        // (`@commerce/core` compact-video); one query, only for a section with videos.
+        const sources = videoSources(html)
+        const small = sources.length ? await compactVideosByUrl(tx, sources) : null
+        const sized = small ? withCompactVideos(html, small) : html
+        const posters = sources.length ? await posterAddresses(tx, sources, small) : null
+        const parked = revealConsentEarly(deferThemeScripts(sized), NONCE_MARK)
+        // Above the fold, a hero video plays without its cover (`./liquid-video-cover.ts`), and
+        // a video without a poster gets its first frame from Files (`./liquid-video-poster.ts`),
+        // the page's first one eagerly. Indentation out, once, before the cache keeps it
+        // (`./liquid-compact.ts`).
+        const folded = p.belowFold ? belowTheFold(parked) : withoutVideoCovers(parked)
+        const lcp = location === 'template' && part.start === 0 && !p.belowFold && !videoBefore(p)
+        const placedHtml = compactThemeHtml(
+          posters ? withVideoPosters(folded, posters, { lcp, nonceMark: NONCE_MARK }) : folded,
         )
-    for (const p of missing) {
-      const trace = live.start()
-      const html = await renderLiquidSection(live.ctx, p.section, (err) => {
-        trace.failed = true
-        logger.error('liquid section failed to render', { storeId, section: p.type, error: err })
-      })
-      if (live.ctx.cache.missing) trace.failed = true
-      // The theme's own `<script>` tags carry the nonce (written at parse time,
-      // `nonceThemeScripts` in core); a script that came in with data never does. Its deferred
-      // and module scripts wait for React (`./liquid-defer.ts`); a cookie banner shows with
-      // the first paint (`./liquid-consent-reveal.ts`).
-      // A video from Files plays its smaller copy when the worker has made one
-      // (`@commerce/core` compact-video); one query, only for a section with videos.
-      const sources = videoSources(html)
-      const small = sources.length ? await compactVideosByUrl(tx, sources) : null
-      const sized = small ? withCompactVideos(html, small) : html
-      const posters = sources.length ? await posterAddresses(tx, sources, small) : null
-      const parked = revealConsentEarly(deferThemeScripts(sized), NONCE_MARK)
-      // Above the fold, a hero video plays without its cover (`./liquid-video-cover.ts`), and
-      // a video without a poster gets its first frame from Files (`./liquid-video-poster.ts`),
-      // the page's first one eagerly. Indentation out, once, before the cache keeps it
-      // (`./liquid-compact.ts`).
-      const folded = p.belowFold ? belowTheFold(parked) : withoutVideoCovers(parked)
-      const lcp = location === 'template' && part.start === 0 && !p.belowFold && !videoBefore(p)
-      const placedHtml = compactThemeHtml(
-        posters ? withVideoPosters(folded, posters, { lcp, nonceMark: NONCE_MARK }) : folded,
-      )
-      done.push({ p, html: placedHtml, trace })
-    }
-    return done
-  })
+        done.push({ p, html: placedHtml, trace })
+      }
+      return done
+    }),
+  )
   for (const { p, html, trace } of rendered) {
     out.set(p.id, { html: finish(withCookieLink(p, html), scope), ...p.wrapper })
     if (p.key && keepable(trace, cart.itemCount === 0, customer !== null)) {
@@ -572,23 +584,33 @@ export async function liquidLayoutFor(
 
   const cart = toLiquidCart(await requestCart(storeId), scope.pricing)
   const customer = await currentCustomer(storeId)
-  const { layout, trace } = await inStore(storeId, async (tx) => {
-    const live = await tracedContext(tx, storeId, themeId, theme, scope, cart, customer)
-    const trace = live.start()
-    const parts = await renderLiquidLayout(live.ctx, (err) => {
-      trace.failed = true
-      logger.error('liquid layout failed to render', { storeId, error: err })
-    })
-    if (live.ctx.cache.missing) trace.failed = true
-    const layout: LiquidLayout = {
-      ...parts,
-      head: compactThemeHtml(deferThemeScripts(parts.head)),
-      beforeHeader: compactThemeHtml(deferThemeScripts(parts.beforeHeader)),
-      afterFooter: compactThemeHtml(deferThemeScripts(parts.afterFooter)),
-      fontsHref: googleFontsHref(parts.fonts),
-    }
-    return { layout, trace }
-  })
+  const { layout, trace } = await withRenderSlot(() =>
+    inStore(storeId, async (tx) => {
+      const live = await tracedContext(tx, storeId, themeId, theme, scope, cart, customer)
+      const trace = live.start()
+      const parts = await renderLiquidLayout(live.ctx, (err) => {
+        trace.failed = true
+        logger.error('liquid layout failed to render', { storeId, error: err })
+      })
+      if (live.ctx.cache.missing) trace.failed = true
+      const layout: LiquidLayout = {
+        ...parts,
+        // One request for the head's run of theme stylesheets (`theme-css.ts`).
+        // The product page's gallery is our AVIF-first picture: its preload asks for AVIF too.
+        head: bundleThemeStylesheets(
+          compactThemeHtml(
+            deferThemeScripts(
+              scope.template === 'product' ? avifImagePreloads(parts.head) : parts.head,
+            ),
+          ),
+        ),
+        beforeHeader: compactThemeHtml(deferThemeScripts(parts.beforeHeader)),
+        afterFooter: compactThemeHtml(deferThemeScripts(parts.afterFooter)),
+        fontsHref: googleFontsHref(parts.fonts),
+      }
+      return { layout, trace }
+    }),
+  )
   if (key && keepable(trace, cart.itemCount === 0, customer !== null)) {
     const entry: CachedLayout = { layout, cart: trace.cart, customer: trace.customer }
     await rememberForStore(storeId, key, entry, {

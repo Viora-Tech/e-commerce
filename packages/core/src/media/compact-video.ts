@@ -148,19 +148,56 @@ export type VideoProbe = {
   bytes: number
   durationSec?: number | null | undefined
   width?: number | null | undefined
+  height?: number | null | undefined
+}
+
+/**
+ * The copy's encode settings. A landscape video keeps #1783's (1080p wide, CRF 26, capped near
+ * 3.5 Mbps). A portrait video is a phone's hero source (a theme's mobile video): it plays on a
+ * phone only, so its copy is at most 720 wide, CRF 28, capped near 1 Mbps (Waimers' phone hero
+ * copy was 4.7 MB at the landscape settings, 27 Nov 2026; this aims at 1 to 1.5 MB for a clip of
+ * about ten seconds).
+ */
+export type CopyShape = {
+  maxWidth: number
+  crf: number
+  maxrateKbps: number
+  /** At or under this bitrate (and no wider than `maxWidth`) the original is already lean. */
+  leanBps: number
+}
+
+export const LANDSCAPE_COPY: CopyShape = {
+  maxWidth: COMPACT_MAX_WIDTH,
+  crf: 26,
+  maxrateKbps: 3500,
+  leanBps: LOW_BITRATE_BPS,
+}
+
+export const PORTRAIT_COPY: CopyShape = {
+  maxWidth: 720,
+  crf: 28,
+  maxrateKbps: 1000,
+  leanBps: 1_200_000,
+}
+
+/** Portrait (taller than wide) gets the phone settings; unknown or landscape, the usual ones. */
+export function copyShapeFor(probe: Pick<VideoProbe, 'width' | 'height'>): CopyShape {
+  const { width, height } = probe
+  return width && height && height > width ? PORTRAIT_COPY : LANDSCAPE_COPY
 }
 
 /**
  * Whether to encode a copy: `small` under `SMALL_VIDEO_BYTES`, `lean` when its bitrate is already
- * at or under `LOW_BITRATE_BPS` and it is no wider than the copy would be. Unknown duration or
- * width never skips (the encode then decides, through `worthKeeping`).
+ * at or under its shape's `leanBps` and it is no wider than the copy would be. Unknown duration
+ * or width never skips (the encode then decides, through `worthKeeping`).
  */
 export function compactPlan(probe: VideoProbe): 'encode' | 'small' | 'lean' {
   if (probe.bytes < SMALL_VIDEO_BYTES) return 'small'
   const { durationSec, width } = probe
-  if (durationSec && durationSec > 0 && width && width <= COMPACT_MAX_WIDTH) {
+  const shape = copyShapeFor(probe)
+  if (durationSec && durationSec > 0 && width && width <= shape.maxWidth) {
     const bitrate = (probe.bytes * 8) / durationSec
-    if (bitrate <= LOW_BITRATE_BPS) return 'lean'
+    if (bitrate <= shape.leanBps) return 'lean'
   }
   return 'encode'
 }

@@ -1,5 +1,6 @@
 import { themeAssetFile } from '@commerce/core'
 import { inStore } from '@/lib/store-context'
+import { BUNDLE_FILE, bundleFiles, bundleVersion, joinCss, minifyCss } from '@/lib/theme-css'
 
 type Params = { params: Promise<{ storeId: string; themeId: string; file: string }> }
 
@@ -7,11 +8,30 @@ const notFound = () => new Response('Not found', { status: 404 })
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+const YEAR = 'public, max-age=31536000, immutable'
+const SHORT = 'public, max-age=300'
+
+/** Minified CSS by theme, file and checksum: files change only on a new import, so few entries. */
+const minified = new Map<string, string>()
+const MAX_MINIFIED = 400
+
+function minifiedCss(key: string, body: Uint8Array): string {
+  const hit = minified.get(key)
+  if (hit !== undefined) return hit
+  const css = minifyCss(new TextDecoder().decode(body))
+  if (minified.size >= MAX_MINIFIED) minified.delete(minified.keys().next().value as string)
+  minified.set(key, css)
+  return css
+}
+
 /**
  * The `assets/` files of an imported Shopify theme (CSS, JS, fonts, icons), what
  * `asset_url` points at. Store-scoped by RLS like every storefront read. URLs carry
  * the file's checksum (`?v=`), so a matching request is cached for a year; fonts
  * answer any origin because the Customize canvas (the admin) loads them too.
+ *
+ * CSS is served minified (`lib/theme-css.ts`), and `~bundle.css?f=a.css,b.css&v=<hash>` answers
+ * a run of the theme's stylesheets joined in order, as the renderer links them.
  */
 export async function GET(req: Request, { params }: Params) {
   const { storeId, themeId, file: raw } = await params
@@ -19,21 +39,59 @@ export async function GET(req: Request, { params }: Params) {
   // Shopify's assets folder is flat, so one path segment is the whole file name.
   const file = decodeURIComponent(raw)
   if (!file || file.includes('..') || file.includes('/') || file.includes('\0')) return notFound()
+  const search = new URL(req.url).searchParams
+  if (file === BUNDLE_FILE) return bundle(storeId, themeId, search)
   const asset = await inStore(storeId, (tx) => themeAssetFile(tx, themeId, file))
   if (!asset) return notFound()
-  const versioned = new URL(req.url).searchParams.get('v') === asset.checksum
+  const versioned = search.get('v') === asset.checksum
+  const css = asset.contentType === 'text/css'
   const headers: Record<string, string> = {
     'content-type': asset.contentType.startsWith('text/')
       ? `${asset.contentType}; charset=utf-8`
       : asset.contentType,
-    'cache-control': versioned ? 'public, max-age=31536000, immutable' : 'public, max-age=300',
+    'cache-control': versioned ? YEAR : SHORT,
     'x-content-type-options': 'nosniff',
     'access-control-allow-origin': '*',
-    etag: `"${asset.checksum}"`,
+    etag: css ? `"${asset.checksum}-m"` : `"${asset.checksum}"`,
   }
   // An SVG opened on its own never runs script.
   if (asset.contentType === 'image/svg+xml') {
     headers['content-security-policy'] = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
   }
-  return new Response(asset.body as unknown as BodyInit, { headers })
+  const body = css
+    ? minifiedCss(`${themeId}/${file}:${asset.checksum}`, asset.body)
+    : (asset.body as unknown as BodyInit)
+  return new Response(body, { headers })
+}
+
+/** A run of the theme's stylesheets, joined in order and minified; cached for a year when current. */
+async function bundle(storeId: string, themeId: string, search: URLSearchParams) {
+  const files = bundleFiles(search.get('f'))
+  if (!files) return notFound()
+  const assets = await inStore(storeId, async (tx) => {
+    const out = []
+    for (const file of files) out.push(await themeAssetFile(tx, themeId, file))
+    return out
+  })
+  const parts: { file: string; version: string; css: string }[] = []
+  for (const [n, asset] of assets.entries()) {
+    const file = files[n] as string
+    if (asset?.contentType !== 'text/css') return notFound()
+    parts.push({
+      file,
+      version: asset.checksum,
+      css: minifiedCss(`${themeId}/${file}:${asset.checksum}`, asset.body),
+    })
+  }
+  const version = bundleVersion(parts)
+  return new Response(joinCss(parts.map((p) => p.css)), {
+    headers: {
+      'content-type': 'text/css; charset=utf-8',
+      // A theme updated since the page was drawn answers its current files, briefly cached.
+      'cache-control': search.get('v') === version ? YEAR : SHORT,
+      'x-content-type-options': 'nosniff',
+      'access-control-allow-origin': '*',
+      etag: `"${version}"`,
+    },
+  })
 }

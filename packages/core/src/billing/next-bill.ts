@@ -6,6 +6,7 @@
  */
 import { APP_PRICING } from './apps'
 import { monthlyCost } from './cost-estimate'
+import { type FoundingView, foundingPriceOf } from './founding-offer'
 import { type BillingInterval, PLAN_IDS, PLANS, type PlanId, planRank } from './plans'
 import { gstOn } from './proration'
 
@@ -87,6 +88,8 @@ export type NextBill = {
   interval: BillingInterval
   /** The plan's price before GST, for the period starting `dueAt`. */
   planPaise: number
+  /** `planPaise` is the founding merchant price. */
+  founding: boolean
   /** This month's per-order fees so far plus what earlier months carried in. */
   feesPaise: number
   feesMonth: string
@@ -113,11 +116,14 @@ export function projectNextBill(input: {
   fees: { feePaise: number; carriedInPaise: number; month: string }
   /** App ids bought on top of the plan that renew. */
   renewingApps: string[]
+  /** The founding offer (`PlanView.founding`): its months left price the renewal. */
+  founding?: FoundingView | undefined
 }): NextBill | null {
   const dueAt = input.periodEnd ?? input.trialEndsAt
   if (!dueAt) return null
   const plan = input.nextPlan ?? input.plan
-  const planPaise = PLANS[plan].pricePaise[input.interval]
+  const foundingPaise = foundingPriceOf(input.founding ?? null, plan, input.interval)
+  const planPaise = foundingPaise ?? PLANS[plan].pricePaise[input.interval]
   const feesPaise = input.fees.feePaise + input.fees.carriedInPaise
   const apps = input.renewingApps.flatMap((id) => {
     const price = APP_PRICING[id]
@@ -130,6 +136,7 @@ export function projectNextBill(input: {
     plan,
     interval: input.interval,
     planPaise,
+    founding: foundingPaise !== null,
     feesPaise,
     feesMonth: input.fees.month,
     apps,

@@ -1,15 +1,22 @@
+import { readdirSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import {
   ACCOUNTS_PREFIX,
   checkoutHostname,
+  DERIVED_HEADERS,
   INTERNAL_PREFIX,
+  isProbePath,
   listingSearch,
+  MISSING_ROUTE_HEADER,
   PASSWORD_PREFIX,
   primaryRedirect,
+  RENDER_TICKET_HEADER,
   redirectHostFor,
   routeForAccounts,
   routeForCheckoutHost,
   routeForStore,
+  STORE_ROUTE_SEGMENTS,
 } from './routing'
 
 describe('routeForStore', () => {
@@ -240,5 +247,142 @@ describe('listingSearch', () => {
       'q=pad&options[prefix]=last&options[unavailable_products]=last&type=product',
     )
     expect(listingSearch(params)).toBe('options%5Bunavailable_products%5D=last&q=pad')
+  })
+})
+
+describe('scanner probes', () => {
+  // The 26 Nov 2026 scan, plus the usual WordPress and admin-panel guesses.
+  const probes = [
+    '/.env',
+    '/.env.production',
+    '/.git/config',
+    '/.svn/entries',
+    '/.aws/credentials',
+    '/.DS_Store',
+    '/backup/db.sql',
+    '/backup',
+    '/backups/site.tar.gz',
+    '/db.sql',
+    '/dump.sql.gz',
+    '/site.zip',
+    '/www.tar',
+    '/config.php',
+    '/index.php',
+    '/xmlrpc.php',
+    '/wp-login.php',
+    '/wp-admin/install.php',
+    '/wp-content/uploads/x.png',
+    '/phpmyadmin/',
+    '/phpMyAdmin/index.php',
+    '/terraform.tfstate',
+    '/terraform/main.tf',
+    '/compose.yaml',
+    '/compose.yml',
+    '/docker-compose.yml',
+    '/web.config.bak',
+    '/index.html.orig',
+    '/settings.old',
+    '/.index.php.swp',
+    '/default.asp',
+    '/login.aspx',
+    '/admin.jsp',
+    '/cgi-bin/test.cgi',
+    '/products/mouse/.env',
+  ]
+
+  it.each(probes)('answers %s with a bare 404', (path) => {
+    expect(isProbePath(path)).toBe(true)
+    expect(routeForStore('store-a', path)).toEqual({ kind: 'forbidden' })
+  })
+
+  // Every kind of URL a store serves, including the dotted ones.
+  const pages = [
+    '/',
+    '/products/mouse',
+    '/products/mouse.json',
+    '/products/mouse.js',
+    '/products/mouse.md',
+    '/products/mouse/product.json',
+    '/products.json',
+    '/collections/all',
+    '/collections/mice.json',
+    '/collections.json',
+    '/pages/about-us',
+    '/blogs/news/launch',
+    '/cart',
+    '/cart.js',
+    '/checkout',
+    '/account/login',
+    '/affiliate',
+    '/search?q=pad',
+    '/search/suggest.json',
+    '/sitemap.xml',
+    '/sitemap_products_1.xml',
+    '/robots.txt',
+    '/llms.txt',
+    '/feeds/products.xml',
+    '/feeds/products.csv',
+    '/apps/reviews',
+    '/cdn/shop/files/logo.png',
+    '/webhooks/razorpay',
+    '/theme-assets/t1/base.css',
+    '/theme-assets/t1/old-theme.js.bak',
+    '/.well-known/apple-app-site-association',
+    '/.well-known/security.txt',
+    '/policies/refund-policy',
+    '/0123456789abcdef0123456789abcdef.txt',
+  ]
+
+  it.each(pages)('leaves %s alone', (path) => {
+    expect(isProbePath(path.split('?')[0] as string)).toBe(false)
+  })
+
+  it('never refuses Next internals or the API', () => {
+    expect(routeForStore('store-a', '/_next/static/chunks/main.js.old')).toEqual({
+      kind: 'passthrough',
+    })
+    expect(routeForStore('store-a', '/api/webhooks/x.php')).toEqual({ kind: 'passthrough' })
+  })
+})
+
+describe('missing routes', () => {
+  it('marks a path no store route serves, so its 404 renders once for all of them', () => {
+    expect(routeForStore('store-a', '/no-such-page')).toEqual({
+      kind: 'rewrite',
+      path: '/-s/store-a/no-such-page',
+      missing: true,
+    })
+    expect(routeForStore('store-a', '/admin/login')).toMatchObject({ missing: true })
+    expect(routeForStore('store-a', '/.well-known/security.txt')).toMatchObject({ missing: true })
+  })
+
+  it.each([
+    '/',
+    '/products/mouse',
+    '/products/mouse.json',
+    '/collections/all',
+    '/pages/about',
+    '/policies/privacy-policy',
+    '/sitemap_products_1.xml',
+    '/robots.txt',
+    '/track-order',
+  ])('does not mark %s', (path) => {
+    const route = routeForStore('store-a', path)
+    expect(route.kind).toBe('rewrite')
+    expect(route).not.toHaveProperty('missing')
+  })
+
+  it('lists every route folder under app/-s/[storeId]', () => {
+    const dir = fileURLToPath(new URL('../app/-s/[storeId]', import.meta.url))
+    const folders = readdirSync(dir, { withFileTypes: true })
+      .filter((e) => e.isDirectory() && !e.name.startsWith('[') && !e.name.startsWith('('))
+      .map((e) => e.name)
+      .sort()
+    expect([...STORE_ROUTE_SEGMENTS].sort()).toEqual(folders)
+  })
+
+  it('keeps the flag and the ticket out of what a client may send', () => {
+    expect(DERIVED_HEADERS).toContain(MISSING_ROUTE_HEADER)
+    expect(DERIVED_HEADERS).toContain(RENDER_TICKET_HEADER)
   })
 })

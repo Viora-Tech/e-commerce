@@ -325,6 +325,25 @@ reloads usually gets the warmed page. During an import nothing is warmed until t
   and left as the theme wrote them (see "Imported themes: weight and streaming" above).
 - `STOREFRONT_EDGE_TTL` (default 30 seconds): see "Shared caches" below. `0` keeps every page
   private.
+- `STOREFRONT_RENDER_SLOTS` (default 4): how many cache-miss theme renders (an imported theme's
+  layout or sections, with their reads) one process runs at once (`lib/render-gate.ts`). The rest
+  wait in line: requests with the cart or sign-in cookie first, crawlers last. A page's parts share
+  one slot. While anyone has waited 5 s, crawler page requests get `503` with `Retry-After: 30`
+  from the proxy (robots.txt, sitemaps and feeds never). A visitor who disconnects leaves the line,
+  and a render under way stops before its next section. `0` turns the limit off.
+
+### Scans and unknown paths
+
+- Probe paths (`/.env*`, any dot segment but `/.well-known/`, `.sql`, `.zip`, `.tar`, `.gz`,
+  `.bak`, `.php` and similar endings, `/wp-*`, `/backup`, `/phpmyadmin`, `/terraform*`,
+  `/compose.yml`) get a plain-text 404 from the proxy (`isProbePath` in `lib/routing.ts`): no theme,
+  no database.
+- Any other path no route serves (`STORE_ROUTE_SEGMENTS`) is flagged `x-missing-route`, and its
+  Liquid renders as `/404`, so the theme's 404 page (layout, header, footer, 404 sections) is
+  rendered once per theme version for every unknown path.
+- The ten-minute `storefront memory` log line carries `eventLoop` (`p99Ms`, `maxMs` since the last
+  line) and `renderQueue`; `storefront render queue backed up` is a warning logged when the queue
+  stays non-empty for 3 s (at most every 30 s).
 
 ### Shared caches (Cloudflare, a CDN)
 

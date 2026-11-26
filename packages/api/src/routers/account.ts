@@ -12,14 +12,11 @@ import {
   loadMemberAlertPrefs,
   MemberAlertPrefsInputSchema,
   MemberProfileInputSchema,
-  PushSubscriptionInputSchema,
   pushDeviceCount,
   type RateLimitRule,
   rateLimitKey,
-  removePushSubscription,
   retryAfterSeconds,
   saveMemberAlertPrefs,
-  savePushSubscription,
 } from '@commerce/core'
 import { logger } from '@commerce/observability/logging'
 import { ORPCError } from '@orpc/server'
@@ -45,6 +42,7 @@ import {
   updateMemberProfile,
 } from '../services/account.service'
 import { storeNameOf } from '../services/staff-invites.service'
+import { accountPushProcedures, pushPublicKey } from './account-push'
 
 /** In-process fallback, as in the other routers, for hosts that wire no shared store. */
 const fallbackRateLimit = createMemoryRateLimitStore()
@@ -65,12 +63,6 @@ const DELETE_CODE_RULE = { limit: 3, windowMs: HOUR }
 
 /** Test pushes per member: enough to try a phone and a laptop a few times. */
 const PUSH_TEST_RULE = { limit: 10, windowMs: HOUR }
-
-/** The VAPID public key browsers subscribe with; null when push is not set up here. */
-const pushPublicKey = (): string | null => {
-  const env = loadEnv(process.env)
-  return env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY ? env.VAPID_PUBLIC_KEY : null
-}
 
 /** Better Auth's OTP store namespace the deletion code lives in; it never signs anyone in. */
 const DELETE_CODE_TYPE = 'email-verification' as const
@@ -116,6 +108,8 @@ function authRefusal(fallback: string) {
  * because nothing here reads or changes store data beyond the caller's own membership.
  */
 export const accountRouter = {
+  ...accountPushProcedures,
+
   profile: protectedProcedure.handler(async ({ context }) => {
     const profile = await memberProfile(context.db, context.session.user.id)
     if (!profile) throw new ORPCError('NOT_FOUND', { message: 'Account not found' })
@@ -352,31 +346,6 @@ export const accountRouter = {
       },
     }
   }),
-
-  /** Push, "Turn on for this device": saves this browser's subscription for the member. */
-  savePushDevice: storeProcedure
-    .input(PushSubscriptionInputSchema)
-    .handler(async ({ context, input }) => {
-      if (!pushPublicKey()) {
-        throw new ORPCError('PRECONDITION_FAILED', { message: 'Push is not set up on this server' })
-      }
-      await savePushSubscription(
-        context.tx,
-        context.scope.storeId,
-        context.scope.userId,
-        input,
-        settingsSecret(),
-      )
-      return { devices: await pushDeviceCount(context.tx, context.scope.userId) }
-    }),
-
-  /** Push, "Turn off for this device". */
-  removePushDevice: storeProcedure
-    .input(z.object({ endpoint: z.string().url().max(2000) }))
-    .handler(async ({ context, input }) => {
-      await removePushSubscription(context.tx, context.scope.userId, input.endpoint)
-      return { devices: await pushDeviceCount(context.tx, context.scope.userId) }
-    }),
 
   /** Push, "Send a test": one push to each of the member's devices, sent by the worker. */
   sendPushTest: storeProcedure.handler(async ({ context }) => {

@@ -29,9 +29,84 @@ const internal = (pathname: string, prefix: string) =>
   pathname === prefix || pathname.startsWith(`${prefix}/`)
 
 export type Route =
-  | { kind: 'rewrite'; path: string }
+  | {
+      kind: 'rewrite'
+      path: string
+      /** No store route serves it: the catch-all draws the theme's 404 (`MISSING_ROUTE_HEADER`). */
+      missing?: true
+    }
   | { kind: 'forbidden' }
   | { kind: 'passthrough' }
+
+/**
+ * Set by the proxy on a path no store route serves (`app/-s/[storeId]/[...missing]`), so the
+ * theme's 404 renders once per theme version for every such path instead of once per path
+ * (`lib/liquid-theme.ts` `requestScope`). Derived: a client never sets it.
+ */
+export const MISSING_ROUTE_HEADER = 'x-missing-route'
+
+/** The proxy's ticket for this request in the render queue (`lib/render-gate.ts`). Derived. */
+export const RENDER_TICKET_HEADER = 'x-render-ticket'
+
+/**
+ * The first segment of every route under `app/-s/[storeId]/` (kept in step by `routing.test.ts`,
+ * which reads the folder). A path whose first segment is none of these lands in the catch-all.
+ */
+export const STORE_ROUTE_SEGMENTS: ReadonlySet<string> = new Set([
+  'account',
+  'blogs',
+  'c',
+  'cart',
+  'checkout',
+  'cod',
+  'collections',
+  'collections.json',
+  'documents',
+  'feeds',
+  'inbox',
+  'indexnow',
+  'l',
+  'llms.txt',
+  'newsletter',
+  'pages',
+  'policies',
+  'products',
+  'products.json',
+  'recommendations',
+  'reviews',
+  'robots.txt',
+  'search',
+  'sitemap.xml',
+  'theme-actions',
+  'theme-assets',
+  'track-order',
+  'unsubscribe',
+  'wishlist',
+])
+
+/** A file a scanner hopes was left on the server: dumps, archives, backups, editor swap files. */
+const PROBE_FILE = /\.(env|sql|zip|tar|tgz|gz|bz2|7z|rar|bak|orig|old|swp|php\d?|aspx?|jsp|cgi)$/
+/** First segments that are always a scan: WordPress, phpMyAdmin, backups, infra files. */
+const PROBE_ROOT = /^(wp-.*|xmlrpc\.php|backups?|phpmyadmin|terraform.*|(docker-)?compose\.ya?ml)$/
+
+/**
+ * A request for a secret or server file no store has (`/.env.production`, `/backup/db.sql`,
+ * `/.git/config`, `/wp-login.php`): answered with a bare 404 before anything renders. A bot
+ * asked for ~250 of these in three minutes on 26 Nov 2026, and each one rendered the theme's
+ * 404 under its own cache keys until the storefront stalled. Never matches a store URL: handles
+ * carry no dot segment and none of these endings, theme asset files are left alone, and
+ * `/.well-known/` (app links, security.txt) passes.
+ */
+export function isProbePath(pathname: string): boolean {
+  const segments = pathname.toLowerCase().split('/').filter(Boolean)
+  const first = segments[0]
+  if (!first) return false
+  // Theme files and Next's own paths keep whatever names they were given.
+  if (first === 'theme-assets' || first === '_next' || first === 'api') return false
+  if (segments.some((s, i) => s.startsWith('.') && !(i === 0 && s === '.well-known'))) return true
+  if (PROBE_ROOT.test(first)) return true
+  return PROBE_FILE.test(segments[segments.length - 1] ?? '')
+}
 
 export function routeForStore(storeId: string, pathname: string): Route {
   if (
@@ -48,6 +123,8 @@ export function routeForStore(storeId: string, pathname: string): Route {
   if (pathname.startsWith('/_next/') || pathname.startsWith('/api/')) {
     return { kind: 'passthrough' }
   }
+  // A scanner's probe (`/.env`, `/backup.sql`): a bare 404, no theme and no database.
+  if (isProbePath(pathname)) return { kind: 'forbidden' }
   // The affiliate portal (`lib/portal-routing.ts`): its own app, outside the theme.
   const portal = portalPathRest(pathname)
   if (portal !== null) return { kind: 'rewrite', path: portalInternalPath(storeId, portal) }
@@ -60,7 +137,11 @@ export function routeForStore(storeId: string, pathname: string): Route {
   }
   // Shopify's `/products/<h>.json` / `.js` and `/collections/<h>.json` (`lib/shopify-json`).
   const rest = shopifyJsonPath(pathname) ?? (pathname === '/' ? '' : pathname)
-  return { kind: 'rewrite', path: `${INTERNAL_PREFIX}/${storeId}${rest}` }
+  const path = `${INTERNAL_PREFIX}/${storeId}${rest}`
+  const first = rest.split('/')[1]
+  return first && !STORE_ROUTE_SEGMENTS.has(first)
+    ? { kind: 'rewrite', path, missing: true }
+    : { kind: 'rewrite', path }
 }
 
 /** What the platform login domain serves: provider sign-in and the Truecaller callback. */
@@ -116,6 +197,9 @@ export const DERIVED_HEADERS = [
   'x-theme-design-mode',
   'x-form-posted',
   'x-pathname',
+  MISSING_ROUTE_HEADER,
+  // The render queue ticket (`lib/render-gate.ts`).
+  RENDER_TICKET_HEADER,
   'x-listing',
   SECTION_PATH_HEADER,
   // Where the affiliate portal's links start (`lib/portal-routing.ts`).

@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import BlocklistCard from '@/components/apps/affiliates/blocklist-card'
 import FraudCard from '@/components/apps/affiliates/fraud-card'
 import NumberField from '@/components/apps/affiliates/number-field'
+import PortalAddressCard from '@/components/apps/affiliates/portal-address-card'
 import ShareAndEarnCard from '@/components/apps/affiliates/share-and-earn-card'
 import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import PageHeader from '@/components/layout/page-header'
@@ -119,6 +120,7 @@ export default function SettingsPage() {
           />
         </SettingsRow>
       </SettingsCard>
+      <PortalAddressCard />
       <SettingsCard title={copy.tracking}>
         <NumberField
           id="aff-cookie"

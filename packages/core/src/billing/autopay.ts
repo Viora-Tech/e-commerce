@@ -16,6 +16,8 @@ import { and, desc, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm'
 import { CommerceError } from '../errors'
 import { applyPaymentStatus } from '../payments/confirm'
 import { planBillWhat, sendPlanBillEmail } from './emails'
+import { FOUNDING_OFFER, foundingApplies, foundingMonthsLeft } from './founding-offer'
+import { loadFoundingState } from './founding-offer-service'
 import { type BillingInterval, PLANS, type PlanId } from './plans'
 import { type BillingEnv, createPlanBill } from './service'
 
@@ -119,6 +121,12 @@ const cancelAtRazorpay = (cfg: AutopayConfig, subscriptionId: string) =>
 /**
  * "Turn on UPI AutoPay": a Razorpay plan for the store's plan price (GST included) and a
  * subscription on it; the answer is the page where the owner approves the UPI mandate.
+ *
+ * A founding store on monthly Growth: the Razorpay plan is made at ₹999 + GST and the
+ * subscription runs only for its founding months left. Razorpay then completes it
+ * (`subscription.completed` turns the mandate off), renewals go back to pay links at the normal
+ * price, and the owner can turn AutoPay on again at that price. No dashboard step: Razorpay
+ * plans are created through the API, one per subscription, as before.
  */
 export async function startAutopay(
   db: Db,
@@ -126,7 +134,11 @@ export async function startAutopay(
   input: { plan: PlanId; interval: BillingInterval },
   cfg: AutopayConfig,
 ): Promise<{ approveUrl: string }> {
-  const amount = Math.round(PLANS[input.plan].pricePaise[input.interval] * GST)
+  const founding = await withStore(db, storeId, (tx) => loadFoundingState(tx, storeId))
+  const isFounding = foundingApplies(founding, input.plan, input.interval)
+  const amount = Math.round(
+    (isFounding ? FOUNDING_OFFER.pricePaise : PLANS[input.plan].pricePaise[input.interval]) * GST,
+  )
   if (amount <= 0) throw new AutopayError('This plan has nothing to charge.')
   const open = await openMandates(db, storeId)
   // A second subscription beside a working one would charge the plan twice.
@@ -136,7 +148,7 @@ export async function startAutopay(
     period: input.interval === 'year' ? 'yearly' : 'monthly',
     interval: 1,
     item: {
-      name: `${siteConfig.brand.name} ${input.plan} (${input.interval})`,
+      name: `${siteConfig.brand.name} ${input.plan} (${input.interval})${isFounding ? ' founding offer' : ''}`,
       amount,
       currency: 'INR',
     },
@@ -144,7 +156,7 @@ export async function startAutopay(
   })
   const sub = await rzp<{ id: string; short_url: string }>(cfg, '/subscriptions', {
     plan_id: rzpPlan.id,
-    total_count: input.interval === 'year' ? 10 : 120,
+    total_count: isFounding ? foundingMonthsLeft(founding) : input.interval === 'year' ? 10 : 120,
     quantity: 1,
     customer_notify: 1,
     notes: { storeId, plan: input.plan, interval: input.interval },
@@ -298,9 +310,7 @@ export async function handleAutopayWebhook(
       tx
         .update(autopayMandate)
         .set({ lastPaymentId: mandate.lastPaymentId })
-        .where(
-          and(eq(autopayMandate.id, mandate.id), eq(autopayMandate.lastPaymentId, paymentId)),
-        ),
+        .where(and(eq(autopayMandate.id, mandate.id), eq(autopayMandate.lastPaymentId, paymentId))),
     )
     throw err
   }

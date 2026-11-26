@@ -10,7 +10,12 @@ export const ACTION_DOCS: Record<string, string> = {
     "Leaves a store: Better Auth drops the membership (and clears it as the active store), then the member's staff row goes.",
   'account.notifications':
     'Notifications: the member\'s own alerts for the store they are in, whether the store can send WhatsApp, whether they gave a mobile for it, and whether this server takes bug reports (the "Your bug repo…',
-  'account.removePushDevice': 'Push, "Turn off for this device".',
+  'account.pushDevices':
+    'Push devices list: every browser or phone the member has push on for in this store, newest first.',
+  'account.removePushDevice':
+    'Push, "Turn off" for this device: forgets the browser\'s subscription for the member.',
+  'account.removePushDeviceById':
+    'Push devices list, "Remove": stops pushes to one of the member\'s own devices.',
   'account.requestEmailChange':
     'Change email, step 1: Better Auth emails a code to the NEW address.',
   'account.revokeOtherSessions': 'Signs every other device out; this browser stays signed in.',
@@ -52,6 +57,12 @@ export const ACTION_DOCS: Record<string, string> = {
     'The bank bulk-upload file for pending payouts, account numbers and UPI IDs decrypted.',
   'affiliates.payouts.tdsReport':
     'The quarterly TDS report (26Q): every commission credited in the quarter with the PAN decrypted.',
+  'affiliates.portalDomain.connect':
+    'Connect affiliate.<primary domain>: not primary, serves itself, no www twin.',
+  'affiliates.portalDomain.remove':
+    "Disconnect the portal host; /affiliate on the store's domains keeps working.",
+  'affiliates.portalDomain.verify':
+    "Check the records now, as Verify connection does on the domain's page.",
   'affiliates.programs.archive': 'Archives a program and moves its affiliates to another one.',
   'affiliates.programs.create':
     "A new program; its rules start from what the admin sends (a copy of the default's).",

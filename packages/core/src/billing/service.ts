@@ -31,6 +31,16 @@ import { orderViewToken, thankYouPath } from '../preorder/balance-link'
 import { validateGstin } from '../tax/gstin'
 import { autopayActive } from './autopay'
 import { planBillWhat, sendPlanBillEmail } from './emails'
+import {
+  FOUNDING_OFFER_LABEL,
+  type FoundingView,
+  foundingApplies,
+  foundingDiscountPaise,
+  foundingNote,
+  foundingView,
+  withPlanGst,
+} from './founding-offer'
+import { loadFoundingState } from './founding-offer-service'
 import { type MonthPace, monthPace, type UpgradeNudge, upgradeNudge } from './next-bill'
 import { quoteNote } from './plan-change'
 import {
@@ -147,6 +157,8 @@ export type PlanView = {
   pace: MonthPace
   /** A bigger plan that would cost less at this pace (the "Pro would save about ₹1,100" box). */
   nudge: UpgradeNudge | null
+  /** The founding merchant offer: price and months left; null without a place. */
+  founding: FoundingView
 }
 
 export type UsageBillView = {
@@ -194,7 +206,7 @@ export async function loadPlanView(
   now = new Date(),
 ): Promise<PlanView> {
   const row = await ensureStorePlan(tx, storeId, now)
-  const [usage, bills, [contact], fees, feeBills] = await Promise.all([
+  const [usage, bills, [contact], fees, feeBills, founding] = await Promise.all([
     planUsage(tx, now),
     tx
       .select()
@@ -216,6 +228,7 @@ export async function loadPlanView(
       )
       .orderBy(desc(usageBill.month))
       .limit(12),
+    loadFoundingState(tx, storeId),
   ])
   const shown = bills.map((b) => toBill(env, b))
   const pace = monthPace(usage.orders, usage.salesPaise, dayKey(now))
@@ -255,6 +268,7 @@ export async function loadPlanView(
     fairUseNotice: row.fairUseNoticeMonth === previousMonth(billingMonth(now)),
     pace,
     nudge: row.unlimited ? null : upgradeNudge(row.plan, pace),
+    founding: row.unlimited ? null : foundingView(founding),
   }
 }
 
@@ -291,7 +305,12 @@ export async function placeSalesOrder(
   db: Db,
   env: BillingEnv,
   storeId: string,
-  input: { lines: SalesLine[]; note: (buyer: string) => string },
+  input: {
+    lines: SalesLine[]
+    note: (buyer: string) => string
+    /** Off the order total, GST-inclusive, shown with its label on the invoice. */
+    discount?: { paise: number; label: string } | undefined
+  },
 ): Promise<{ id: string; number: number; totalPaise: number }> {
   const salesStoreId = env.salesStoreId
   if (!salesStoreId) throw new BillingNotReady('no_sales_store')
@@ -322,7 +341,8 @@ export async function placeSalesOrder(
       email: buyer?.email ?? null,
       customerName: buyer?.name ?? null,
       lines,
-      discountPaise: 0,
+      discountPaise: input.discount?.paise ?? 0,
+      ...(input.discount ? { discountLabel: input.discount.label } : {}),
       shippingPaise: 0,
       note: input.note(buyer?.name ?? storeId),
     })
@@ -403,6 +423,11 @@ export async function createPlanBill(
   const { quote } = input
   const computed = quote && (quote.prorated || quote.creditPaise > 0) ? quote : null
   const periodEnd = quote ? quote.periodEnd : addInterval(input.periodStart, input.interval)
+  // Founding months: a computed quote already holds the founding price; a full month is the
+  // normal line less a "Founding offer" discount, so the invoice shows both.
+  const founding = await withStore(db, storeId, (tx) => loadFoundingState(tx, storeId))
+  const isFounding = foundingApplies(founding, input.plan, input.interval)
+  const foundingLine = isFounding && !computed
   const claimed = await withStore(db, storeId, async (tx) => {
     const replaced = await tx
       .select({ id: planPayment.salesOrderId })
@@ -442,7 +467,11 @@ export async function createPlanBill(
       lines: [
         {
           sku: planSku(input.plan, input.interval),
-          ...(computed ? { unitPricePaise: computed.planTotalPaise } : {}),
+          ...(computed
+            ? { unitPricePaise: computed.planTotalPaise }
+            : foundingLine
+              ? { unitPricePaise: withPlanGst(PLANS[input.plan].pricePaise[input.interval]) }
+              : {}),
         },
         ...(withFees
           ? [{ sku: usageFeeSku('carried'), unitPricePaise: withFeeGst(feesPaise) }]
@@ -452,9 +481,13 @@ export async function createPlanBill(
         [
           `${siteConfig.brand.name} ${input.plan} (${input.interval}) for ${buyer}, store ${storeId}`,
           computed ? quoteNote(computed, input.periodStart, periodEnd) : null,
+          isFounding ? foundingNote(founding) : null,
         ]
           .filter(Boolean)
           .join('. '),
+      discount: foundingLine
+        ? { paise: foundingDiscountPaise(), label: FOUNDING_OFFER_LABEL }
+        : undefined,
     })
   let withFees = feesPaise > 0
   let sale: Awaited<ReturnType<typeof placeSalesOrder>>
@@ -489,6 +522,7 @@ export async function createPlanBill(
         status: 'due',
         prorated: quote?.prorated ?? false,
         creditPaise: quote?.creditPaise ?? 0,
+        foundingOffer: isFounding,
       })
       .returning()
     if (!row) throw new Error('plan bill insert returned nothing')

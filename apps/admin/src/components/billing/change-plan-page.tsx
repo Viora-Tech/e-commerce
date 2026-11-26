@@ -47,6 +47,7 @@ export default function ChangePlanPage({ view, boughtApps }: ChangePlanPageProps
         busy={null}
         suggested={view.nudge?.plan ?? null}
         pace={view.pace}
+        founding={view.founding}
         onChoose={handleChoose}
       />
       <PlanMoveDialog view={view} target={target} onClose={handleClose} boughtApps={boughtApps} />
