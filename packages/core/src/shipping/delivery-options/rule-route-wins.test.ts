@@ -153,9 +153,11 @@ describe('a rule’s preferred route wins on a Standard card (fixed layout)', ()
     }
   })
 
-  it('a product with no rule is unchanged: the cheapest Surface route at the zone price', () => {
+  it('a product with no rule is unchanged: a Surface route at the zone price', () => {
     const std = find(run([cable]), 'std')
-    expect(std?.pick?.route.key).toBe('rapidshyp:80')
+    // Every route costs the shopper the same zone rate: the earliest Surface one wins, as before.
+    expect(std?.pick?.route.key).toBe('rapidshyp:50')
+    expect(std?.pick?.route.speed).toBe('standard')
     expect(std?.pricePaise).toBe(4900)
     expect(std?.why).toMatchObject({ kind: 'cheapest' })
   })
