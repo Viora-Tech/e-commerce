@@ -25,11 +25,17 @@ import { latestIssuedDate, peekNext, startOfIstDay } from './next-number'
 import { takeNumber } from './numbers'
 import { invoiceParcels } from './parcels'
 import { assertPeriodOpen, PeriodError } from './periods'
-import { queuedInvoiceDrafts } from './queue-list'
+import { alreadyInvoicedDraft, queueConditions } from './queue-list'
 import { gstToken, orderIssuer } from './registration'
 import { invoice, invoiceSettings } from './schema'
 
-export { listQueue, type QueueFilter, queuedInvoiceDrafts } from './queue-list'
+export {
+  alreadyInvoicedDraft,
+  listQueue,
+  type QueueFilter,
+  queueConditions,
+  queuedInvoiceDrafts,
+} from './queue-list'
 
 /**
  * The invoice queue. Orders wait here as unnumbered drafts; a GST number is
@@ -148,6 +154,16 @@ export async function enqueueOrderParcels(
       }
       continue
     }
+    // Invoiced before it had parcels (one invoice for the whole order), or this target is the
+    // whole order and a parcel's invoice is issued: the goods are billed, no second draft.
+    const billed = parcel.id
+      ? await existing(tx, orderId, 'tax_invoice', null)
+      : ((await liveDocuments(tx, orderId, 'tax_invoice')).find((d) => d.status === 'issued') ??
+        null)
+    if (billed?.status === 'issued') {
+      results.push({ row: billed, created: false })
+      continue
+    }
     due ??= await isDue()
     if (!due) continue
     const issuer = await orderIssuer(tx, orderId, parcel.gstRegistrationId)
@@ -236,6 +252,19 @@ export async function issueDrafts(
         )
     : []
   const byId = new Map(rows.map((r) => [r.id, r]))
+  // A draft whose goods an issued invoice already bills is never numbered (`alreadyInvoicedDraft`).
+  const stale = rows.length
+    ? await tx
+        .select({ id: invoice.id })
+        .from(invoice)
+        .where(and(inArray(invoice.id, [...byId.keys()]), alreadyInvoicedDraft()))
+    : []
+  if (stale.length > 0) {
+    throw new InvoiceError(
+      'invalid',
+      'This order already has an issued GST invoice for these goods, so it is not issued again.',
+    )
+  }
   // Order numbers, so one day's invoices are numbered in order-number order, not packing order.
   const orderIds = [...new Set(rows.map((r) => r.orderId))]
   const orderNumbers = new Map(
@@ -451,7 +480,8 @@ export async function cancelInvoice(
 /** The app bar's one statement (`./app-bar`): queued tax invoices (when `count`) and the seller GSTIN. */
 export async function queueBarRead(tx: StoreTx, storeId: string, count: boolean) {
   const waiting = count
-    ? sql`(select count(*)::int from ${invoice} where ${and(eq(invoice.storeId, storeId), queuedInvoiceDrafts())})`
+    ? // The Queue page's own conditions with no filter picked, so "Queue N" is its row count.
+      sql`(select count(*)::int from ${invoice} where ${and(eq(invoice.storeId, storeId), queueConditions({}))})`
     : sql`0`
   const [row] = await tx.execute<{ waiting: number; gstin: string | null }>(sql`
     select ${waiting} as waiting, coalesce(

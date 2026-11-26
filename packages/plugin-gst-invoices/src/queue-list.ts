@@ -21,18 +21,33 @@ export type QueueFilter = {
 }
 
 /**
- * Tax invoices waiting to be issued. Drafts queued before their order was cancelled
- * stay out of the queue and its counts.
+ * An issued tax invoice already bills this draft's goods: one for the whole order (no parcel),
+ * one for the same parcel, or any when the draft itself is for the whole order. Such a draft is
+ * stale (an order invoiced before it had parcels, queued again when it shipped) and issuing it
+ * would invoice the goods twice (owner, 26 Nov 2026: "Ready" rows of invoiced orders).
+ */
+export const alreadyInvoicedDraft = (): SQL =>
+  sql`exists (select 1 from ${invoice} as done
+    where done.order_id = ${invoice.orderId} and done.kind = 'tax_invoice' and done.status = 'issued'
+      and (done.fulfillment_order_id is null or ${invoice.fulfillmentOrderId} is null
+        or done.fulfillment_order_id = ${invoice.fulfillmentOrderId}))`
+
+/**
+ * Tax invoices waiting to be issued. Drafts queued before their order was cancelled, and drafts
+ * whose goods an issued invoice already bills (`alreadyInvoicedDraft`), stay out of the queue
+ * and its counts.
  */
 export const queuedInvoiceDrafts = (): SQL =>
   and(
     eq(invoice.kind, 'tax_invoice'),
     eq(invoice.status, 'draft'),
     sql`not exists (select 1 from ${order} where ${order.id} = ${invoice.orderId} and ${order.status} = 'cancelled')`,
+    sql`not ${alreadyInvoicedDraft()}`,
   ) as SQL
 
-export async function listQueue(tx: StoreTx, filter: QueueFilter) {
-  const conds: (SQL | undefined)[] = [
+/** The Queue page's conditions: what `listQueue` lists and `queueBarRead` counts. */
+export function queueConditions(filter: QueueFilter): SQL | undefined {
+  return and(
     queuedInvoiceDrafts(),
     filter.gstRegistrationId === undefined
       ? undefined
@@ -41,16 +56,15 @@ export async function listQueue(tx: StoreTx, filter: QueueFilter) {
     filter.to ? lt(invoice.eligibleAt, filter.to) : undefined,
     queueSearch(filter.q),
     paymentCondition(filter.payment),
-  ]
-  return tx
-    .select()
-    .from(invoice)
-    .where(and(...conds))
-    .orderBy(
-      // By day, then order number: the order the batch is numbered in (`issueDrafts`).
-      sql`date_trunc('day', ${invoice.eligibleAt} at time zone 'Asia/Kolkata')`,
-      sql`(select ${order.number} from ${order} where ${order.id} = ${invoice.orderId})`,
-      asc(invoice.eligibleAt),
-      asc(invoice.createdAt),
-    )
+  )
+}
+
+export async function listQueue(tx: StoreTx, filter: QueueFilter) {
+  return tx.select().from(invoice).where(queueConditions(filter)).orderBy(
+    // By day, then order number: the order the batch is numbered in (`issueDrafts`).
+    sql`date_trunc('day', ${invoice.eligibleAt} at time zone 'Asia/Kolkata')`,
+    sql`(select ${order.number} from ${order} where ${order.id} = ${invoice.orderId})`,
+    asc(invoice.eligibleAt),
+    asc(invoice.createdAt),
+  )
 }

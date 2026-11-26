@@ -1,7 +1,6 @@
 'use client'
 
 import type { ProgramRules } from '@commerce/plugin-affiliates/settings'
-import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useState } from 'react'
 import NumberField from '@/components/apps/affiliates/number-field'
@@ -16,6 +15,7 @@ import SettingsRow from '@/components/settings/settings-row'
 import { affiliatesContent } from '@/data/affiliates'
 import { affiliatesLayoutContent } from '@/data/affiliates-layout'
 import { useCopy } from '@/hooks/use-copy'
+import ChoiceSelect from './choice-select'
 
 type ProgramCommissionRulesProps = {
   rules: ProgramRules
@@ -61,21 +61,27 @@ export default function ProgramCommissionRules({ rules, onChange }: ProgramCommi
       <SectionHead title={copy.sections.rules} />
       <SettingsCard title={copy.defaultCommission} description={copy.defaultHelp}>
         <SettingsRow label={copy.rule} htmlFor="aff-rule">
-          <NativeSelect
+          <ChoiceSelect
             id="aff-rule"
             value={tiered ? 'tiered' : 'simple'}
-            onChange={(e) => handleRule(e.target.value)}
-          >
-            <NativeSelectOption value="simple">{copy.rules.simple}</NativeSelectOption>
-            <NativeSelectOption value="tiered">{copy.rules.tiered}</NativeSelectOption>
-          </NativeSelect>
+            options={[
+              { value: 'simple', label: copy.rules.simple },
+              { value: 'tiered', label: copy.rules.tiered },
+            ]}
+            onChange={handleRule}
+          />
         </SettingsRow>
         <SettingsRow label={copy.type} htmlFor="aff-type">
           <div className="grid gap-2 sm:grid-cols-2">
-            <NativeSelect id="aff-type" value={c.type} onChange={(e) => handleType(e.target.value)}>
-              <NativeSelectOption value="percent">{copy.types.percent}</NativeSelectOption>
-              <NativeSelectOption value="flat">{copy.types.flat}</NativeSelectOption>
-            </NativeSelect>
+            <ChoiceSelect
+              id="aff-type"
+              value={c.type}
+              options={[
+                { value: 'percent', label: copy.types.percent },
+                { value: 'flat', label: copy.types.flat },
+              ]}
+              onChange={handleType}
+            />
             <MoneyInput
               aria-label={copy.amount}
               value={String(amount)}

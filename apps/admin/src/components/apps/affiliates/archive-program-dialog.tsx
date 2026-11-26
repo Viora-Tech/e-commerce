@@ -3,7 +3,6 @@
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Label } from '@commerce/ui/shadcn/label'
-import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import DialogContent from '@/components/layout/dialog-content'
@@ -13,6 +12,7 @@ import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
+import ChoiceSelect from './choice-select'
 
 type ArchiveProgramDialogProps = {
   open: boolean
@@ -65,17 +65,12 @@ export default function ArchiveProgramDialog({
         </DialogHeader>
         <div className="flex flex-col gap-2">
           <Label htmlFor="aff-move-to">{copy.moveTo}</Label>
-          <NativeSelect
+          <ChoiceSelect
             id="aff-move-to"
             value={selected}
-            onChange={(e) => setMoveTo(e.target.value)}
-          >
-            {targets.map((t) => (
-              <NativeSelectOption key={t.id} value={t.id}>
-                {t.name}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
+            options={targets.map((t) => ({ value: t.id, label: t.name }))}
+            onChange={setMoveTo}
+          />
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

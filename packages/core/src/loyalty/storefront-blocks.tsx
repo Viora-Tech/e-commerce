@@ -27,16 +27,22 @@ const yesNo = [
   { label: 'No', value: false },
 ]
 
-const colourHelp = 'A hex colour, for example #1f2937'
-
+/**
+ * The header colours. `metadata.colour` gives them the theme editor's colour swatch (App embeds
+ * panel); `optional` lets the merchant clear the gradient back to one colour.
+ */
 const headerFields = {
-  headerColor: { type: 'text', label: 'Header colour', placeholder: colourHelp },
+  headerColor: { type: 'text', label: 'Header colour', metadata: { colour: true } },
   headerGradient: {
     type: 'text',
-    label: 'Header gradient to (leave empty for one colour)',
-    placeholder: colourHelp,
+    label: 'Header gradient to',
+    metadata: {
+      colour: true,
+      optional: true,
+      help: 'Not set: the header is one colour.',
+    },
   },
-  headerText: { type: 'text', label: 'Header text colour', placeholder: colourHelp },
+  headerText: { type: 'text', label: 'Header text colour', metadata: { colour: true } },
 }
 
 export const loyaltyEmbeds: AppEmbedDefinition[] = [
@@ -46,7 +52,12 @@ export const loyaltyEmbeds: AppEmbedDefinition[] = [
     description:
       'A rewards button on every page. Shoppers join, see their points, claim rewards and share their referral link.',
     fields: {
-      title: { type: 'text', label: 'Program name (empty: your store name + Rewards)' },
+      title: {
+        type: 'text',
+        label: 'Program name',
+        placeholder: 'Your store name + Rewards',
+        metadata: { help: 'Leave empty to use your store name followed by Rewards.' },
+      },
       layout: {
         type: 'radio',
         label: 'Opens as',
@@ -78,13 +89,18 @@ export const loyaltyEmbeds: AppEmbedDefinition[] = [
       },
       cardPoints: {
         type: 'radio',
-        label: 'Show "Earn N points" under product card prices',
+        label: 'Points under product card prices',
         options: yesNo,
       },
       priceSelector: {
         type: 'text',
-        label: 'Imported theme: CSS selector of the prices to add points under',
+        label: 'Price selector for imported themes',
         placeholder: '.card-information .price',
+        // Developer-only: the App embeds panel folds it under "Advanced".
+        metadata: {
+          advanced: true,
+          help: 'Only for an imported Shopify theme: the CSS selector of the card prices to show points under.',
+        },
       },
     },
     defaultProps: LOYALTY_WIDGET_DEFAULTS,
@@ -103,7 +119,11 @@ export const loyaltyEmbeds: AppEmbedDefinition[] = [
     description:
       'When someone opens a member’s referral link, a pop-up shows the friend’s offer and gives them their code.',
     fields: {
-      heading: { type: 'text', label: 'Heading (empty: A friend sent you a gift)' },
+      heading: {
+        type: 'text',
+        label: 'Heading',
+        placeholder: 'A friend sent you a gift',
+      },
       ...headerFields,
     },
     defaultProps: {

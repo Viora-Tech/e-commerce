@@ -188,6 +188,100 @@ export function cleanAnswers(
   return { answers, missing }
 }
 
+/** What an affiliate's code covers: the whole order (the first version) or chosen products or collections. */
+export const COUPON_APPLIES_TO = ['all', 'products', 'collections'] as const
+export type CouponAppliesTo = (typeof COUPON_APPLIES_TO)[number]
+
+/**
+ * One product or collection the code covers. A product carries its own percent (the discount
+ * engine's per-product amounts); collections share the code's one percent, since the engine has
+ * no per-collection amounts in one code.
+ */
+export const CouponTargetSchema = z.object({
+  target: z.enum(['product', 'collection']),
+  id: z.uuid(),
+  label: z.string().max(200).default(''),
+  bp: z.number().int().min(1).max(10_000).default(1000),
+})
+export type CouponTarget = z.infer<typeof CouponTargetSchema>
+
+/** The personal code's discount. Codes made before `appliesTo` read as the whole order. */
+export const CouponSchema = z.object({
+  enabled: z.boolean().default(true),
+  /** What the shopper saves with the code: on the whole order, or on the chosen collections. */
+  bp: z.number().int().min(1).max(10_000).default(1000),
+  appliesTo: z.enum(COUPON_APPLIES_TO).default('all'),
+  /** The products or collections for `appliesTo` (rows of the other kind are kept, unused). */
+  targets: z.array(CouponTargetSchema).max(200).default([]),
+})
+export type CouponRules = z.infer<typeof CouponSchema>
+
+/** The coupon's rows that count under its `appliesTo`. Pure. */
+export function couponTargets(coupon: CouponRules): CouponTarget[] {
+  if (coupon.appliesTo === 'all') return []
+  const kind = coupon.appliesTo === 'products' ? 'product' : 'collection'
+  return coupon.targets.filter((t) => t.target === kind)
+}
+
+/**
+ * The discount-engine fields an affiliate's code is made (and kept in step) with. Whole order:
+ * one percent. Products: each product its own percent (`productValues`). Collections: the one
+ * percent on their products. A narrowed code with nothing picked covers nothing rather than the
+ * whole order (saving refuses it; this is the safe reading of a stored one). Pure.
+ */
+export function couponDiscountFields(coupon: CouponRules): {
+  type: 'order' | 'products'
+  method: 'percent'
+  value: number
+  appliesTo: CouponAppliesTo
+  appliesToIds: string[]
+  productValues: Record<string, number> | null
+} {
+  if (coupon.appliesTo === 'all') {
+    return {
+      type: 'order',
+      method: 'percent',
+      value: coupon.bp,
+      appliesTo: 'all',
+      appliesToIds: [],
+      productValues: null,
+    }
+  }
+  const rows = couponTargets(coupon)
+  const ids = rows.map((t) => t.id)
+  if (coupon.appliesTo === 'collections') {
+    return {
+      type: 'products',
+      method: 'percent',
+      value: coupon.bp,
+      appliesTo: 'collections',
+      appliesToIds: ids,
+      productValues: null,
+    }
+  }
+  return {
+    type: 'products',
+    method: 'percent',
+    value: rows.length > 0 ? Math.max(...rows.map((t) => t.bp)) : coupon.bp,
+    appliesTo: 'products',
+    appliesToIds: ids,
+    productValues: Object.fromEntries(rows.map((t) => [t.id, t.bp])),
+  }
+}
+
+/**
+ * What the code saves, for the storefront: `{ percent, selected: false }` on the whole order,
+ * `{ percent: best, selected: true }` when it covers only some products ("up to 15% off
+ * selected products"). Null when the program gives no code. Pure.
+ */
+export function couponOffer(coupon: CouponRules): { percent: number; selected: boolean } | null {
+  if (!coupon.enabled) return null
+  if (coupon.appliesTo === 'all') return { percent: coupon.bp / 100, selected: false }
+  const f = couponDiscountFields(coupon)
+  if (f.appliesToIds.length === 0) return null
+  return { percent: f.value / 100, selected: true }
+}
+
 /** One program's rules, in `affiliate_program.rules`. */
 export const ProgramRulesSchema = z.object({
   commission: CommissionRuleSchema.default({ type: 'percent', bp: 1000 }),
@@ -202,13 +296,7 @@ export const ProgramRulesSchema = z.object({
   /** `auto` approves every signup; `manual` waits for the merchant. */
   approval: z.enum(['auto', 'manual']).default('manual'),
   /** A personal code each approved affiliate gets, made in the discount engine. */
-  coupon: z
-    .object({
-      enabled: z.boolean().default(true),
-      /** What the shopper saves with the code. */
-      bp: z.number().int().min(1).max(10_000).default(1000),
-    })
-    .default({ enabled: true, bp: 1000 }),
+  coupon: CouponSchema.default({ enabled: true, bp: 1000, appliesTo: 'all', targets: [] }),
   tiers: z.array(TierSchema).max(10).default([]),
   /** Shown on the storefront signup page above the form. */
   pitch: z.string().max(2000).default(''),

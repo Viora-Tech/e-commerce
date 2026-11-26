@@ -14,6 +14,7 @@ type LinkBuilderProps = {
   /** Their discount code and what it saves, for the share text. */
   couponCode: string | null
   couponPercent: number | null
+  couponSelected: boolean
 }
 
 const copy = affiliateContent.dashboard
@@ -35,7 +36,13 @@ function referralLink(origin: string, raw: string, code: string): string | null 
  * The dashboard's link card: their link (the home page, or any product they search or page they
  * paste), copy, share to WhatsApp, Instagram, X and more, and a QR code to download.
  */
-export default function LinkBuilder({ origin, code, couponCode, couponPercent }: LinkBuilderProps) {
+export default function LinkBuilder({
+  origin,
+  code,
+  couponCode,
+  couponPercent,
+  couponSelected,
+}: LinkBuilderProps) {
   // Hooks
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Suggestion[]>([])
@@ -115,7 +122,10 @@ export default function LinkBuilder({ origin, code, couponCode, couponPercent }:
         <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
           <div className="flex min-w-0 flex-col gap-4">
             <CopyValue label={b.link} value={link} />
-            <ShareButtons url={link} text={copy.share.message(link, couponCode, couponPercent)} />
+            <ShareButtons
+              url={link}
+              text={copy.share.message(link, couponCode, couponPercent, couponSelected)}
+            />
           </div>
           {qr ? (
             <div className="flex flex-col items-center gap-2 justify-self-center">

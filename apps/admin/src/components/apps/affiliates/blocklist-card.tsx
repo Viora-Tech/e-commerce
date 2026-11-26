@@ -3,7 +3,6 @@
 import { BLOCKLIST_KINDS, type BlocklistKind } from '@commerce/plugin-affiliates/fraud'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
-import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import EmptyState from '@/components/layout/empty-state'
@@ -12,6 +11,7 @@ import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
+import ChoiceSelect from './choice-select'
 
 type Entry = { id: string; kind: BlocklistKind; hint: string; note: string }
 
@@ -64,18 +64,13 @@ export default function BlocklistCard() {
   return (
     <SettingsCard title={b.title} description={b.description}>
       <form onSubmit={handleAdd} className="flex flex-col gap-2 sm:flex-row sm:items-end">
-        <NativeSelect
+        <ChoiceSelect
           aria-label={b.kind}
           value={kind}
-          onChange={(e) => setKind(BLOCKLIST_KINDS.find((k) => k === e.target.value) ?? 'email')}
+          options={BLOCKLIST_KINDS.map((k) => ({ value: k, label: b.kinds[k] }))}
+          onChange={setKind}
           className="sm:w-44"
-        >
-          {BLOCKLIST_KINDS.map((k) => (
-            <NativeSelectOption key={k} value={k}>
-              {b.kinds[k]}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
+        />
         <Input
           aria-label={b.value}
           placeholder={b.placeholders[kind]}

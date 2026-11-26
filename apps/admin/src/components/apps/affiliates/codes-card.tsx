@@ -1,5 +1,7 @@
 'use client'
 
+import { Tag } from '@commerce/ui/icons'
+import { Alert, AlertAction, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -82,11 +84,19 @@ export default function CodesCard({
         </div>
       </dl>
       {request?.status === 'pending' ? (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg bg-muted/50 px-3 py-2">
-          <span className="text-body">{c.request(request.code)}</span>
-          <span className="flex gap-2">
+        <Alert tone="warning">
+          <Tag aria-hidden="true" />
+          <AlertTitle className="flex flex-wrap items-center gap-2">
+            {c.requestTitle}
+            <span className="sr-only">{c.requestCode}</span>
+            <span className="rounded-md border border-warning-border bg-background px-2 py-0.5 font-mono text-body-strong text-foreground">
+              {request.code}
+            </span>
+          </AlertTitle>
+          <AlertDescription>{c.requestBody}</AlertDescription>
+          {/* On a phone the buttons drop under the words instead of squeezing them. */}
+          <AlertAction className="flex-wrap max-sm:col-start-2 max-sm:row-span-1 max-sm:row-start-3 max-sm:mt-2 max-sm:self-start">
             <Button
-              size="sm"
               onClick={() => handleDecide('approve')}
               disabled={busy !== null}
               loading={busy === 'approve'}
@@ -94,7 +104,6 @@ export default function CodesCard({
               {c.approve}
             </Button>
             <Button
-              size="sm"
               variant="outline"
               onClick={() => handleDecide('decline')}
               disabled={busy !== null}
@@ -102,8 +111,8 @@ export default function CodesCard({
             >
               {c.decline}
             </Button>
-          </span>
-        </div>
+          </AlertAction>
+        </Alert>
       ) : null}
       {couponCode ? (
         <div className="flex flex-col gap-1">

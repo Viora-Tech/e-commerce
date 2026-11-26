@@ -8,23 +8,18 @@ import { ChevronRight, Puzzle } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Switch } from '@commerce/ui/shadcn/switch'
-import { AutoField, type Field } from '@puckeditor/core'
 import { useState } from 'react'
 import { customizeContent } from '@/data/customize'
 import { customizeInboxEmbedContent } from '@/data/customize-inbox-embed'
 import { useCopy } from '@/hooks/use-copy'
 import { editorAppEmbedSources } from '@/lib/customize-app-embeds'
-import {
-  CHROME_BODY,
-  CHROME_FOCUS,
-  CHROME_GROUP_LABEL,
-  CHROME_LABEL,
-  CHROME_META,
-} from '@/lib/customize-chrome'
+import { CHROME_BODY, CHROME_FOCUS, CHROME_LABEL, CHROME_META } from '@/lib/customize-chrome'
 import { FIELD_INPUT } from '@/lib/customize-field-styles'
+import AppEmbedField, { type AppEmbedFieldDef } from './app-embed-field'
 import EmbedSaveHint from './embed-save-hint'
 import ImportedAppEmbedsList from './imported-app-embeds-list'
 import InboxEmbedCard from './inbox-embed-card'
+import MoreSettings from './more-settings'
 
 type AppsPanelProps = {
   /** The apps this store has installed; only their embeds are listed. */
@@ -34,9 +29,6 @@ type AppsPanelProps = {
   /** An imported Shopify theme's own app embeds, listed read-only below ours. */
   imported?: readonly ImportedAppEmbed[] | undefined
 }
-
-/** Field definitions carry their own label; the panel draws it above the control. */
-type LabelledField = Field & { label?: string }
 
 /**
  * The App embeds rail panel (Shopify's "App embeds"): every site-wide widget the installed apps
@@ -118,7 +110,7 @@ export default function AppsPanel({ installed, theme, onChange, imported = [] }:
           {matched.map((e) => {
             const type = e.embed.type
             const expanded = open === type
-            const fields = Object.entries(e.embed.fields) as [string, LabelledField][]
+            const fields = Object.entries(e.embed.fields) as [string, AppEmbedFieldDef][]
             return (
               <li key={type} className="rounded-xl border border-border bg-card">
                 <div className="flex items-center gap-2 p-3">
@@ -168,21 +160,35 @@ export default function AppsPanel({ installed, theme, onChange, imported = [] }:
                       {fields.length === 0 ? (
                         <p className="text-xs text-muted-foreground">{copy.noSettings}</p>
                       ) : (
-                        fields.map(([key, field]) => (
-                          <div key={key} className="flex flex-col gap-1.5">
-                            {field.label ? (
-                              <span className={CHROME_GROUP_LABEL}>{field.label}</span>
-                            ) : null}
-                            <AutoField
+                        fields
+                          .filter(([, field]) => !field.metadata?.advanced)
+                          .map(([key, field]) => (
+                            <AppEmbedField
+                              key={key}
                               field={field}
                               value={e.props[key]}
                               onChange={(value) =>
                                 handleSet(type, e.enabled, { ...e.props, [key]: value })
                               }
                             />
-                          </div>
-                        ))
+                          ))
                       )}
+                      {fields.some(([, field]) => field.metadata?.advanced) ? (
+                        <MoreSettings label={copy.advanced}>
+                          {fields
+                            .filter(([, field]) => field.metadata?.advanced)
+                            .map(([key, field]) => (
+                              <AppEmbedField
+                                key={key}
+                                field={field}
+                                value={e.props[key]}
+                                onChange={(value) =>
+                                  handleSet(type, e.enabled, { ...e.props, [key]: value })
+                                }
+                              />
+                            ))}
+                        </MoreSettings>
+                      ) : null}
                     </div>
                   </div>
                 </div>

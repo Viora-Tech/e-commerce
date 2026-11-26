@@ -9,6 +9,7 @@ import { redeemReward } from './loyalty-client'
 import { rewardGlyph } from './loyalty-format'
 import LoyaltyIcon from './loyalty-icon'
 import { rewardCost } from './loyalty-math'
+import { ICON_TILE } from './loyalty-styles'
 import type { LoyaltyPointsName, LoyaltyRedeemed, LoyaltyRewardView } from './loyalty-types'
 
 type LoyaltyRewardListProps = {
@@ -82,7 +83,7 @@ export default function LoyaltyRewardList({
             className="flex flex-col gap-1 border-t border-(--kl-line) py-3 first:border-t-0"
           >
             <span className="flex items-center gap-3">
-              <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-(--kl-soft) text-(--kl-ink)">
+              <span className={ICON_TILE}>
                 <LoyaltyIcon name={rewardGlyph(r.type)} className="size-[1.125rem]" />
               </span>
               <span className="flex min-w-0 flex-1 flex-col">
@@ -101,7 +102,7 @@ export default function LoyaltyRewardList({
                   type="button"
                   disabled={busy !== null}
                   onClick={() => handleClaim(r)}
-                  className="shrink-0 rounded-full border-0 bg-(image:--kl-head) bg-(--kl-head-solid) px-4 py-1.5 text-[0.8125rem] font-semibold text-(--kl-head-text) disabled:opacity-60"
+                  className="shrink-0 rounded-full border-0 bg-(--kl-accent)! px-4 py-1.5 text-[0.8125rem] font-semibold text-(--kl-accent-text)! disabled:opacity-60"
                 >
                   {busy === r.id ? copy.rewards.claiming : copy.rewards.claim}
                 </button>

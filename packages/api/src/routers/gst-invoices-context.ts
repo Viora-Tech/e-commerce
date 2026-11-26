@@ -22,11 +22,24 @@ import {
 } from '@commerce/plugin-gst-invoices/server'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
+import { forgetAppBar } from '../services/app-bar.service'
 import { getStoreApps, storeRegistries } from '../services/apps.service'
 import { registrationScope } from '../services/gst-invoices.service'
 import { storageProviderFor } from '../services/media.service'
 
 export type Ctx = { tx: StoreTx; scope: { storeId: string } }
+
+/**
+ * The queue changed (issued, added, removed, recorded as already invoiced): once this commits,
+ * the sidebar's "Queue N" count is read again instead of waiting out the app bar cache.
+ */
+export function queueChanged(context: {
+  scope: { storeId: string }
+  afterCommit: (fn: () => void | Promise<void>) => void
+}) {
+  const storeId = context.scope.storeId
+  context.afterCommit(() => forgetAppBar(storeId, GST_INVOICES_ID))
+}
 
 /** Every procedure here needs the store to have installed the app. */
 export async function requireInstalled(context: Ctx) {

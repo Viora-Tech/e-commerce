@@ -14,6 +14,8 @@
 /* Monorepo: tell Tailwind to scan shared packages for class names */
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
 @source "../../../../packages/blocks/src/**/*.tsx";
+/* Shared class strings kept in .ts files (e.g. the loyalty widget's loyalty-styles.ts). */
+@source "../../../../packages/blocks/src/**/*-styles.ts";
 
 /*
  * Thin, theme-coloured scrollbars with no arrow buttons; base styling, not a component.

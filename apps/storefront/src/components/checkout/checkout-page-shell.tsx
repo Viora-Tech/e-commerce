@@ -5,6 +5,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import CheckoutBrand from '@/components/checkout/checkout-brand'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import CheckoutMoney from '@/components/checkout/checkout-money'
+import CheckoutSummaryAside from '@/components/checkout/checkout-summary-aside'
 import SummaryGlass from '@/components/checkout/summary-glass'
 import { checkoutContent as content } from '@/data/checkout'
 import { CK_CARD } from '@/lib/checkout-classes'
@@ -40,7 +41,7 @@ const HEADER_ACTION =
 /**
  * The checkout's frame (Figma: Checkout · Polish). A quiet header with the store's logo, help
  * and the way back to the cart, over the canvas; the cards on
- * the left and the order summary card on the right, sticky, from `lg`; on a phone the summary
+ * the left and the order summary card on the right from `lg` (sticky while it fits, CheckoutSummaryAside); on a phone the summary
  * folds into a card at the top and the cards follow. The store's policies sit under the
  * cards. Its look is only the merchant's checkout branding, set here as --ck-* properties: no
  * theme reaches it. Light or dark follows the store's mode (or the shopper's system setting
@@ -112,9 +113,9 @@ export default function CheckoutPageShell({
         <div
           className={`mx-auto! grid w-full max-w-[70rem] flex-1 content-start gap-3 px-3 pt-3 sm:px-6 sm:pt-6 lg:grid-cols-[minmax(0,41.25rem)_24.75rem] xl:px-0 pb-8 lg:gap-12 lg:pt-10 lg:pb-14`}
         >
-          <aside className="lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1 lg:self-start">
+          <CheckoutSummaryAside>
             <div
-              className={`${CK_CARD} relative isolate overflow-hidden bg-ck-summary! bg-[image:var(--ck-summary-image)] bg-cover bg-center text-ck-summary-ink [box-shadow:var(--ck-card-shadow)]! lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto lg:overscroll-contain lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden lg:rounded-[calc(var(--ck-radius)*1.6)] lg:p-5`}
+              className={`${CK_CARD} relative isolate overflow-hidden bg-ck-summary! bg-[image:var(--ck-summary-image)] bg-cover bg-center text-ck-summary-ink [box-shadow:var(--ck-card-shadow)]! lg:rounded-[calc(var(--ck-radius)*1.6)] lg:p-5`}
             >
               {image ? (
                 <div
@@ -130,7 +131,7 @@ export default function CheckoutPageShell({
               ) : null}
             </div>
             {summaryAfter ? <div className="hidden pt-4 lg:block">{summaryAfter}</div> : null}
-          </aside>
+          </CheckoutSummaryAside>
           <div className="flex min-w-0 flex-col gap-3 sm:gap-4 lg:col-start-1 lg:row-start-1">
             {children}
           </div>

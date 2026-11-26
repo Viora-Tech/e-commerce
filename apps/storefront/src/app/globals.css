@@ -3,6 +3,8 @@
 
 /* Monorepo: tell Tailwind to scan the shared blocks package for class names */
 @source "../../../../packages/blocks/src/**/*.tsx";
+/* Shared class strings kept in .ts files (e.g. the loyalty widget's loyalty-styles.ts). */
+@source "../../../../packages/blocks/src/**/*-styles.ts";
 
 /*
  * Zero Drift's token names, unchanged. Values are injected per store by the

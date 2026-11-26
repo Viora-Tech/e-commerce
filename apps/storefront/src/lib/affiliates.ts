@@ -7,6 +7,7 @@ import {
   affiliateTotals,
   affiliateTrend,
   type CommissionRule,
+  couponOffer,
   defaultProgram,
   listCreatives,
   type PayoutOutlook,
@@ -52,7 +53,10 @@ export type AffiliatePortal = {
     hasOverrides: boolean
     scope: 'first_order' | 'lifetime'
     lifetimeDays: number
+    /** What the code saves: the order percent, or the best percent when it covers chosen products only. */
     couponPercent: number | null
+    /** The code covers chosen products or collections, not the whole order. */
+    couponSelected: boolean
     cookieDays: number
     holdDays: number
     minPayoutPaise: number
@@ -115,6 +119,7 @@ export async function loadAffiliatePortal(
         : await defaultProgram(tx, storeId)
     if (!chosen) return null
     const rules = chosen.rules
+    const offer = couponOffer(rules.coupon)
     const program = {
       slug: chosen.slug,
       isDefault: chosen.isDefault,
@@ -126,7 +131,8 @@ export async function loadAffiliatePortal(
       hasOverrides: rules.overrides.length > 0,
       scope: rules.scope,
       lifetimeDays: rules.lifetimeDays,
-      couponPercent: rules.coupon.enabled ? rules.coupon.bp / 100 : null,
+      couponPercent: offer?.percent ?? null,
+      couponSelected: offer?.selected ?? false,
       cookieDays: settings.cookieDays,
       holdDays: settings.holdDays,
       minPayoutPaise: settings.minPayoutPaise,

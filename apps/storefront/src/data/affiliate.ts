@@ -6,6 +6,7 @@ export const affiliateContent = {
   /** The signup page, laid out like UpPromote's register page. */
   register: {
     partner: 'Become our partner',
+    panelRate: (rate: string) => `Earn ${rate} on every order you bring`,
     heading: 'Join our affiliate program',
     login: 'Login',
     benefits: 'Benefits',
@@ -17,7 +18,8 @@ export const affiliateContent = {
     amount: 'Commission amount',
     upTo: (percent: string) => `up to ${percent} as your sales grow`,
     coupon: 'Customer discount',
-    couponValue: (percent: number) => `${percent}% off with your code`,
+    couponValue: (percent: number, selected: boolean) =>
+      selected ? `Up to ${percent}% off selected products` : `${percent}% off with your code`,
     terms: 'Additional terms',
     join: 'Join',
   },
@@ -111,13 +113,13 @@ export const affiliateContent = {
       title: 'Your link',
       help: 'Share it anywhere. Orders through it count for you.',
       code: 'Your discount code',
-      codeHint: (percent: number | null) =>
+      codeHint: (percent: number | null, selected = false) =>
         percent
-          ? `Your followers save ${percent}% with it, and it always counts for you, even without the link.`
+          ? `Your followers save ${selected ? `up to ${percent}% on selected products` : `${percent}%`} with it, and it always counts for you, even without the link.`
           : 'It always counts for you, even without the link.',
-      message: (link: string, code: string | null, percent: number | null) =>
+      message: (link: string, code: string | null, percent: number | null, selected = false) =>
         code && percent
-          ? `Use my code ${code} for ${percent}% off: ${link}`
+          ? `Use my code ${code} for ${selected ? `up to ${percent}% off selected products` : `${percent}% off`}: ${link}`
           : `Have a look: ${link}`,
       native: 'Share',
       whatsapp: 'WhatsApp',

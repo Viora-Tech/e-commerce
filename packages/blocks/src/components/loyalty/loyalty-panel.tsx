@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { loyaltyWidgetContent as copy } from '../../data/loyalty-widget'
 import LoyaltyCard from './loyalty-card'
 import { forgetLoyaltyView, loadLoyaltyView } from './loyalty-client'
@@ -28,12 +28,12 @@ type Screen = 'home' | 'earn' | 'redeem'
 
 /**
  * The rewards panel the launcher opens (loaded on the first open), laid out like Essential
- * Loyalty's: a solid header in the merchant's colours ("Welcome to" over the program's name),
+ * Loyalty's: a gradient header in the merchant's colours ("Welcome to" over the program's name),
  * white cards overlapping its bottom edge, then the guest view (Become a member, Points with
- * Ways to earn / Ways to redeem, referral teaser) or the member view (balance, Points, tier,
- * codes, referral). Ways to earn and Ways to redeem open as their own screens with a back arrow;
+ * Ways to earn / Ways to redeem, Refer a friend's Give / Get) or the member view (balance,
+ * Points, tier, Your rewards, referral). Ways to earn and Ways to redeem open as their own screens with a back arrow;
  * a guest gets Join now pinned under them. A pop-up above the launcher or a full-height side
- * panel, as the embed settings say. Escape closes it.
+ * panel, as the embed settings say. Escape, or a press outside the widget, closes it.
  */
 export default function LoyaltyPanel({
   open,
@@ -46,6 +46,7 @@ export default function LoyaltyPanel({
   const [load, setLoad] = useState<Load>({ status: 'loading' })
   const [attempt, setAttempt] = useState(0)
   const [screen, setScreen] = useState<Screen>('home')
+  const panel = useRef<HTMLElement>(null)
   useEffect(() => {
     if (!open) return
     let live = true
@@ -60,13 +61,24 @@ export default function LoyaltyPanel({
   }, [open, attempt])
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return
+    const close = () => {
       setScreen('home')
       onClose()
     }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close()
+    }
+    // A press anywhere outside the widget (panel and its launcher) closes it, like Essential's.
+    const onPointer = (e: PointerEvent) => {
+      const widget = panel.current?.closest('.kl-loyalty') ?? panel.current
+      if (widget && e.target instanceof Node && !widget.contains(e.target)) close()
+    }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    document.addEventListener('pointerdown', onPointer)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.removeEventListener('pointerdown', onPointer)
+    }
   }, [open, onClose])
 
   // Event handlers
@@ -94,6 +106,7 @@ export default function LoyaltyPanel({
   const list = view && screen !== 'home' ? screen : null
   return (
     <section
+      ref={panel}
       aria-label={title}
       hidden={!open}
       className={`fixed z-[2147483001] flex flex-col overflow-hidden border border-(--kl-line) bg-(--kl-soft) text-left text-[0.9375rem] normal-case leading-snug tracking-normal text-(--kl-ink) shadow-2xl ${frame}`}
@@ -135,10 +148,10 @@ export default function LoyaltyPanel({
           <LoyaltyPanelHeader
             title={title}
             welcome={member ? copy.welcomeBack : copy.welcome}
-            points={member && view ? copy.points(member.points, view.pointsName) : undefined}
+            storeName={view?.storeName || storeName}
             onClose={handleClose}
           />
-          <div className="relative -mt-10 flex flex-col gap-3 px-4 pb-4">
+          <div className="relative -mt-11 flex flex-col gap-3 px-4 pb-5">
             {!view ? (
               <LoyaltyCard>
                 {load.status === 'failed' ? (

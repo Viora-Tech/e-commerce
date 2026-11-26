@@ -15,7 +15,7 @@ import {
 } from '@commerce/plugin-gst-invoices/server'
 import { z } from 'zod'
 import { can } from '../procedures'
-import { asOrpc, requireInstalled } from './gst-invoices-context'
+import { asOrpc, queueChanged, requireInstalled } from './gst-invoices-context'
 
 export const recordExternal = can(permissions.ORDERS_WRITE)
   .input(
@@ -33,6 +33,7 @@ export const recordExternal = can(permissions.ORDERS_WRITE)
   )
   .handler(async ({ context, input }) => {
     await requireInstalled(context)
+    queueChanged(context)
     try {
       const row = await recordAlreadyInvoiced(
         context.tx,
@@ -55,6 +56,7 @@ export const recordExternalMany = can(permissions.ORDERS_WRITE)
   .input(z.object({ ids: z.array(z.uuid()).min(1).max(RECORD_MANY_MAX) }))
   .handler(async ({ context, input }) => {
     await requireInstalled(context)
+    queueChanged(context)
     try {
       return await recordManyWithoutDetails(context.tx, context.scope.storeId, input.ids, {
         author: context.session.user.email,
@@ -69,6 +71,7 @@ export const undoExternal = can(permissions.ORDERS_WRITE)
   .input(z.object({ id: z.uuid() }))
   .handler(async ({ context, input }) => {
     await requireInstalled(context)
+    queueChanged(context)
     try {
       const row = await undoExternalInvoice(context.tx, context.scope.storeId, input.id, {
         author: context.session.user.email,

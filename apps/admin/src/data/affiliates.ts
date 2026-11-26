@@ -145,8 +145,6 @@ export const affiliatesContent = {
     excludes: 'Earns nothing',
     excludesHelp:
       'Products or collections that never earn commission, whatever the other rates say. Their price is left out of the sale too.',
-    excludeNone: 'Nothing is left out.',
-    addExclude: 'Add product or collection',
     preview: 'Check a rate',
     previewHelp: 'An order of one product at 18% GST, with no product or collection rate.',
     previewOrder: 'Order value incl. GST (₹)',
@@ -256,7 +254,10 @@ export const affiliatesContent = {
         'For a leaked code: the old one stops working at once and a new one is made. Their link is not changed.',
       rotateConfirm: 'Replace the discount code?',
       rotated: (code: string) => `New discount code: ${code}`,
-      request: (code: string) => `Asked for their own code: ${code}`,
+      requestTitle: 'Code request',
+      requestBody:
+        'They asked to use this as their link and discount code. Approving keeps their old links earning.',
+      requestCode: 'Requested code',
       approve: 'Approve',
       decline: 'Decline',
       approved: 'Approved. Old links keep earning.',
@@ -404,11 +405,10 @@ export const affiliatesContent = {
       'Orders up to this many days after a click earn. A referral cookie remembers the click once the shopper allows marketing cookies; codes always count.',
     overrides: 'Different rates',
     overridesHelp: 'A product or collection with its own percent. Products win over collections.',
-    overrideTarget: { product: 'Product', collection: 'Collection' } as Record<string, string>,
-    overrideNone: 'None yet. Add one from a product or collection id.',
-    overrideId: 'Product or collection id',
-    overrideLabel: 'Name (for you)',
-    addOverride: 'Add rate',
+    targetGroups: { product: 'Products', collection: 'Collections' },
+    pickProducts: 'Choose products',
+    pickCollections: 'Choose collections',
+    rateFor: (title: string) => `Percent for ${title}`,
     remove: 'Remove',
     tiers: 'Tiers',
     tiersHelp: 'Lift the percent once an affiliate’s approved sales pass a mark.',
@@ -421,6 +421,21 @@ export const affiliatesContent = {
     couponHelp:
       'Made in Discounts, so it follows your discount rules. Orders with the code earn the affiliate commission.',
     couponRate: 'Followers save (%)',
+    couponAppliesTo: 'The code takes money off',
+    couponScopes: {
+      all: 'The whole order',
+      products: 'Specific products',
+      collections: 'Specific collections',
+    },
+    couponScopeHelp: {
+      all: 'One percent off everything in the cart.',
+      products:
+        'Only the products you pick, each with its own percent. Other products in the cart pay full price.',
+      collections: 'Only products in the collections you pick, all at the percent above.',
+    },
+    couponCollectionsRate: 'Followers save on these collections (%)',
+    couponPickNeeded:
+      'Pick at least one product or collection, or let the code cover the whole order.',
     payouts: 'Holds and payouts',
     holdDays: 'Hold after delivery (days)',
     holdHelp: 'Your return window. Cancels, RTO and refunds in this time reverse the commission.',

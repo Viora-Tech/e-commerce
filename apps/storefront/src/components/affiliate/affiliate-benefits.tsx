@@ -33,7 +33,9 @@ export default function AffiliateBenefits({ program: p }: AffiliateBenefitsProps
         ? `${ruleAmount(rule)}, ${copy.upTo(bpPercent(p.rate.upToBp))}`
         : ruleAmount(rule),
     },
-    ...(p.couponPercent ? [{ label: copy.coupon, value: copy.couponValue(p.couponPercent) }] : []),
+    ...(p.couponPercent
+      ? [{ label: copy.coupon, value: copy.couponValue(p.couponPercent, p.couponSelected) }]
+      : []),
     ...(terms ? [{ label: copy.terms, value: terms }] : []),
   ]
   return (

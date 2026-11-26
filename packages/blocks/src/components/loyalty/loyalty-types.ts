@@ -76,7 +76,7 @@ export type LoyaltyMemberView = {
 
 export type LoyaltyReferralView = {
   friendReward: LoyaltyOffer
-  /** Signed in only. */
+  /** What the member gets for a referral (shown to visitors too, on the Give / Get card). */
   referrerReward: LoyaltyOffer | null
   /** The shopper's own link (absolute), signed in only. */
   url: string | null

@@ -6,6 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { GST_INVOICES_CHANGED } from '@/apps/order-action-procedures'
@@ -50,6 +51,7 @@ export default function OrderCard({ orderId }: OrderCardProps) {
   // Hooks
   const copy = useCopy(gstInvoicesContent.orderCard)
   const apps = useCopy(appsContent)
+  const router = useRouter()
   const outsideCopy = useCopy(gstAlreadyInvoicedContent)
   const [data, setData] = useState<Data | null>(null)
   /** The first read failed: the card says so with Try again instead of hiding itself. */
@@ -110,7 +112,15 @@ export default function OrderCard({ orderId }: OrderCardProps) {
 
   // Event handlers
   const handleQueue = () =>
-    run('queue', () => api.gstInvoices.queue.add({ orderIds: [orderId] }), copy.queued)
+    run(
+      'queue',
+      async () => {
+        await api.gstInvoices.queue.add({ orderIds: [orderId] })
+        // The sidebar's Queue count comes from the server layout.
+        router.refresh()
+      },
+      copy.queued,
+    )
   const handleSlip = (kind: 'packing_slip' | 'order_confirmation') =>
     run(kind, () => api.gstInvoices.issue({ orderId, kind }))
   const handleDownload = (id: string) =>

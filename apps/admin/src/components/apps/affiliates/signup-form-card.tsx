@@ -8,12 +8,12 @@ import {
 import { Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
-import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import EmptyState from '@/components/layout/empty-state'
 import SettingsCard from '@/components/settings/settings-card'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
+import ChoiceSelect from './choice-select'
 
 type SignupFormCardProps = {
   fields: SignupField[]
@@ -58,24 +58,13 @@ export default function SignupFormCard({ fields, onChange }: SignupFormCardProps
                 onChange={(e) => handleField(i, { label: e.target.value })}
                 className="flex-1"
               />
-              <NativeSelect
+              <ChoiceSelect
                 aria-label={f.kind}
                 value={field.kind}
-                onChange={(e) =>
-                  handleField(i, {
-                    kind:
-                      SIGNUP_FIELD_KINDS.find((k): k is SignupFieldKind => k === e.target.value) ??
-                      'text',
-                  })
-                }
+                options={SIGNUP_FIELD_KINDS.map((k) => ({ value: k, label: f.kinds[k] }))}
+                onChange={(kind: SignupFieldKind) => handleField(i, { kind })}
                 className="sm:w-40"
-              >
-                {SIGNUP_FIELD_KINDS.map((k) => (
-                  <NativeSelectOption key={k} value={k}>
-                    {f.kinds[k]}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
+              />
               <label htmlFor={`aff-q-${field.id}`} className="flex items-center gap-2 text-body">
                 <Switch
                   id={`aff-q-${field.id}`}

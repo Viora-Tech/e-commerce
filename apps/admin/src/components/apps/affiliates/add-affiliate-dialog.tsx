@@ -4,7 +4,6 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
-import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -16,6 +15,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
+import ChoiceSelect from './choice-select'
 
 type AddAffiliateDialogProps = {
   open: boolean
@@ -94,17 +94,12 @@ export default function AddAffiliateDialog({
           {programs.length > 1 ? (
             <div className="flex flex-col gap-2">
               <Label htmlFor="aff-add-program">{copy.program}</Label>
-              <NativeSelect
+              <ChoiceSelect
                 id="aff-add-program"
                 value={programId || programs.find((p) => p.isDefault)?.id || ''}
-                onChange={(e) => setProgramId(e.target.value)}
-              >
-                {programs.map((p) => (
-                  <NativeSelectOption key={p.id} value={p.id}>
-                    {p.name}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
+                options={programs.map((p) => ({ value: p.id, label: p.name }))}
+                onChange={setProgramId}
+              />
             </div>
           ) : null}
           <div className="flex items-center gap-3">

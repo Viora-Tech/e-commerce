@@ -14,6 +14,7 @@ import {
   sourceName,
   useDynamicSourceScope,
 } from '@/lib/dynamic-sources'
+import { FieldLabelAction } from '@/lib/field-label-action'
 import DynamicSourceChip from './dynamic-source-chip'
 import DynamicSourcePicker from './dynamic-source-picker'
 import FieldFrame from './field-frame'
@@ -30,7 +31,7 @@ type DynamicSourceFieldProps = {
 
 /**
  * Wraps an inspector field with Shopify's "Connect dynamic source" (the small
- * database button beside the label). Connected, the control gives way to a chip
+ * database button beside the label, handed to FieldFrame through `FieldLabelAction`). Connected, the control gives way to a chip
  * naming the source, with ✕ to disconnect, which puts the typed-in value back.
  * Fields that cannot be connected (choices, toggles, lists) render untouched.
  */
@@ -105,21 +106,26 @@ export default function DynamicSourceField({
   }
 
   return (
-    <div className="relative">
-      {children}
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-xs"
-        onClick={() => setPicking(true)}
-        disabled={readOnly}
-        aria-label={copy.connect}
-        title={copy.connect}
-        className="absolute -top-1 right-0 size-6 rounded-md text-muted-foreground hover:text-primary"
+    <>
+      <FieldLabelAction
+        value={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => setPicking(true)}
+            disabled={readOnly}
+            aria-label={copy.connect}
+            title={copy.connect}
+            className="size-6 rounded-md text-muted-foreground hover:text-primary"
+          >
+            <DynamicSource aria-hidden className="size-3.5" />
+          </Button>
+        }
       >
-        <DynamicSource aria-hidden className="size-3.5" />
-      </Button>
+        {children}
+      </FieldLabelAction>
       {picker}
-    </div>
+    </>
   )
 }

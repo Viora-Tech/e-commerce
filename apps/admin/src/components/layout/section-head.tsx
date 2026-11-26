@@ -14,7 +14,8 @@ type SectionHeadProps = {
 export default function SectionHead({ title, intro, aside, action }: SectionHeadProps) {
   // Render logic
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
+    // `data-section-head`: an app page's shell leaves room beside its first one for its actions.
+    <div data-section-head="" className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex flex-col gap-0.5">
         <h2 className="text-card-title text-ink-strong">{title}</h2>
         {intro ? <p className="text-caption text-muted-foreground">{intro}</p> : null}

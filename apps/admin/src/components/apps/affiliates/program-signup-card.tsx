@@ -2,13 +2,13 @@
 
 import type { ProgramRules } from '@commerce/plugin-affiliates/settings'
 import { Input } from '@commerce/ui/shadcn/input'
-import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsRow from '@/components/settings/settings-row'
 import { affiliatesContent } from '@/data/affiliates'
 import { affiliatesLayoutContent } from '@/data/affiliates-layout'
 import { useCopy } from '@/hooks/use-copy'
+import ChoiceSelect from './choice-select'
 
 type ProgramSignupCardProps = {
   isDefault: boolean
@@ -54,14 +54,15 @@ export default function ProgramSignupCard({
         </SettingsRow>
       )}
       <SettingsRow label={s.approval} htmlFor="aff-approval">
-        <NativeSelect
+        <ChoiceSelect
           id="aff-approval"
           value={rules.approval}
-          onChange={(e) => onChange({ approval: e.target.value === 'auto' ? 'auto' : 'manual' })}
-        >
-          <NativeSelectOption value="manual">{s.approvalManual}</NativeSelectOption>
-          <NativeSelectOption value="auto">{s.approvalAuto}</NativeSelectOption>
-        </NativeSelect>
+          options={[
+            { value: 'manual', label: s.approvalManual },
+            { value: 'auto', label: s.approvalAuto },
+          ]}
+          onChange={(approval) => onChange({ approval })}
+        />
       </SettingsRow>
       <SettingsRow label={s.terms} description={s.termsHelp} htmlFor="aff-terms">
         <Textarea
