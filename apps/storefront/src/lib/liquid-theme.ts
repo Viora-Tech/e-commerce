@@ -68,6 +68,7 @@ import { deferThemeScripts } from './liquid-defer'
 import { belowTheFold } from './liquid-fold'
 import { liquidMarketFor } from './liquid-market'
 import { withMarketPrefix } from './liquid-market-links'
+import { avifImagePreloads } from './liquid-preload'
 import { withoutVideoCovers } from './liquid-video-cover'
 import { withVideoPosters } from './liquid-video-poster'
 import { requestCatalogId } from './market-catalog'
@@ -584,7 +585,14 @@ export async function liquidLayoutFor(
     const layout: LiquidLayout = {
       ...parts,
       // One request for the head's run of theme stylesheets (`theme-css.ts`).
-      head: bundleThemeStylesheets(compactThemeHtml(deferThemeScripts(parts.head))),
+      // The product page's gallery is our AVIF-first picture: its preload asks for AVIF too.
+      head: bundleThemeStylesheets(
+        compactThemeHtml(
+          deferThemeScripts(
+            scope.template === 'product' ? avifImagePreloads(parts.head) : parts.head,
+          ),
+        ),
+      ),
       beforeHeader: compactThemeHtml(deferThemeScripts(parts.beforeHeader)),
       afterFooter: compactThemeHtml(deferThemeScripts(parts.afterFooter)),
       fontsHref: googleFontsHref(parts.fonts),
