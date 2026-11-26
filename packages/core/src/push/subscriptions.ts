@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: member push subscriptions — WHAT: saves, removes and reads a team member's browser push subscriptions (one per browser or phone, per store), with the subscription keys encrypted at rest / WHY: Account → Notifications turns push on for "this device", and the worker needs each member's devices to send to; a device the push service says is gone is dropped */
 import { memberPushSubscription, type StoreTx } from '@commerce/db'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, desc, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 import { decryptSecret, encryptSecret } from '../secrets'
 
@@ -76,6 +76,58 @@ export async function removePushSubscription(
     .where(
       and(eq(memberPushSubscription.userId, userId), eq(memberPushSubscription.endpoint, endpoint)),
     )
+    .returning({ id: memberPushSubscription.id })
+  return gone.length > 0
+}
+
+/** One of the member's push devices as Account → Notifications lists it (no keys, no endpoint). */
+export type PushDeviceListing = {
+  id: string
+  userAgent: string | null
+  createdAt: Date
+  lastOkAt: Date | null
+  /** True for the browser whose endpoint the caller passed: "This device". */
+  thisDevice: boolean
+}
+
+/**
+ * The member's devices with push on in this store, newest first. `endpoint` is the caller's own
+ * browser subscription, if it has one; it is only compared, never returned.
+ */
+export async function listPushDevices(
+  tx: StoreTx,
+  userId: string,
+  endpoint?: string | null,
+): Promise<PushDeviceListing[]> {
+  const rows = await tx
+    .select({
+      id: memberPushSubscription.id,
+      endpoint: memberPushSubscription.endpoint,
+      userAgent: memberPushSubscription.userAgent,
+      createdAt: memberPushSubscription.createdAt,
+      lastOkAt: memberPushSubscription.lastOkAt,
+    })
+    .from(memberPushSubscription)
+    .where(eq(memberPushSubscription.userId, userId))
+    .orderBy(desc(memberPushSubscription.createdAt))
+  return rows.map(({ endpoint: e, ...r }) => ({
+    ...r,
+    thisDevice: Boolean(endpoint) && e === endpoint,
+  }))
+}
+
+/**
+ * "Remove" on one device in the list: forgets it so it gets no more pushes. Only the member's
+ * own rows match, so another member's device id removes nothing. True when one was removed.
+ */
+export async function removePushDeviceById(
+  tx: StoreTx,
+  userId: string,
+  id: string,
+): Promise<boolean> {
+  const gone = await tx
+    .delete(memberPushSubscription)
+    .where(and(eq(memberPushSubscription.userId, userId), eq(memberPushSubscription.id, id)))
     .returning({ id: memberPushSubscription.id })
   return gone.length > 0
 }

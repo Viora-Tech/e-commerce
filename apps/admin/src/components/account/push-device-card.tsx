@@ -3,6 +3,7 @@
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import PushDeviceList from '@/components/account/push-device-list'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
 import { accountContent } from '@/data/account'
@@ -21,7 +22,8 @@ type PushDeviceCardProps = {
 /**
  * Account → Notifications, "Push on this device": turns browser push on or off for the phone or
  * computer the member is on, sends a test, and says plainly why it cannot (blocked, iPhone not
- * on the Home Screen, old browser). Which alerts arrive by push is the Push column below.
+ * on the Home Screen, old browser). Below it, every device with push on, each removable. Which
+ * alerts arrive by push is the Push column below.
  */
 export default function PushDeviceCard({
   publicKey,
@@ -33,7 +35,11 @@ export default function PushDeviceCard({
   } = useCopy(accountContent)
   const [devices, setDevices] = useState(initialDevices)
   const [testing, setTesting] = useState(false)
-  const { state, busy, turnOn, turnOff } = usePushDevice(publicKey, setDevices)
+  const [listVersion, setListVersion] = useState(0)
+  const { state, busy, endpoint, turnOn, turnOff } = usePushDevice(publicKey, (n) => {
+    setDevices(n)
+    setListVersion((v) => v + 1)
+  })
 
   // Event handlers
   const handleTurnOn = () => {
@@ -41,7 +47,9 @@ export default function PushDeviceCard({
   }
 
   const handleTurnOff = () => {
-    turnOff().catch((err: unknown) => toast.error(errorText(err, copy.failed)))
+    turnOff()
+      .then(() => toast.success(copy.turnedOff))
+      .catch((err: unknown) => toast.error(errorText(err, copy.turnOffFailed)))
   }
 
   const handleTest = async () => {
@@ -74,12 +82,17 @@ export default function PushDeviceCard({
     <SettingsCard title={copy.title} description={copy.body}>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <StatusChip tone={state === 'on' ? 'success' : 'neutral'}>
               {state === 'on' ? copy.on : copy.off}
             </StatusChip>
-            <span className="text-caption text-muted-foreground">{copy.devices(devices)}</span>
+            {state === 'on' || state === 'off' ? (
+              <span className="text-body text-ink-strong">
+                {state === 'on' ? copy.onLine : copy.offLine}
+              </span>
+            ) : null}
           </div>
+          <span className="text-caption text-muted-foreground">{copy.devices(devices)}</span>
           {note ? <p className="text-caption text-muted-foreground">{note}</p> : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -99,6 +112,16 @@ export default function PushDeviceCard({
           ) : null}
         </div>
       </div>
+      {publicKey !== null ? (
+        <div className="mt-4 border-t border-hairline pt-4">
+          <PushDeviceList
+            endpoint={endpoint}
+            ready={state !== 'loading'}
+            version={listVersion}
+            onDevices={setDevices}
+          />
+        </div>
+      ) : null}
     </SettingsCard>
   )
 }
