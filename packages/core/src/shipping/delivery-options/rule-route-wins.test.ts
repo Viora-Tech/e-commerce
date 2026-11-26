@@ -204,7 +204,7 @@ describe('a rule’s preferred route wins on a Standard card (fixed layout)', ()
       ['loc-a:open', 'loc-b:open'],
     )
     if (!out.ok) throw new Error(out.problem)
-    expect(out.delivery.parcels?.map((p) => p.route.key)).toEqual(['delhivery:S', 'delhivery:E'])
+    expect(out.delivery.parcels?.map((p) => p.route?.key)).toEqual(['delhivery:S', 'delhivery:E'])
   })
 })
 
