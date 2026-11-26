@@ -5,6 +5,7 @@ import { type TemplateId, templateFor } from '../settings'
 import ClassicTemplate from './classic'
 import CompactTemplate from './compact'
 import MinimalTemplate from './minimal'
+import PolishTemplate from './polish'
 import { documentText, type TemplateProps } from './view'
 
 export type { TemplateAssets, TemplateProps } from './view'
@@ -19,6 +20,10 @@ export const TEMPLATES: Record<TemplateId, { label: string; description: string 
     label: 'GST compact',
     description: 'One column, black on white. A5 and thermal friendly.',
   },
+  polish: {
+    label: 'Logo left',
+    description: 'Colour header band with the logo on the left, tinted totals.',
+  },
 }
 
 /**
@@ -30,5 +35,6 @@ export function documentElement(props: TemplateProps): ReactElement<DocumentProp
   const id = templateFor(props.settings, props.doc.kind)
   if (id === 'minimal') return <MinimalTemplate {...props} fontFamily={fontFamily} />
   if (id === 'compact') return <CompactTemplate {...props} fontFamily={fontFamily} />
+  if (id === 'polish') return <PolishTemplate {...props} fontFamily={fontFamily} />
   return <ClassicTemplate {...props} fontFamily={fontFamily} />
 }

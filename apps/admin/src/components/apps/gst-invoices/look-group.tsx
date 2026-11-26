@@ -28,7 +28,7 @@ export default function LookGroup({ settings, onChange, errors }: GroupProps) {
     <EditorGroup title={copy.title} body={copy.body} defaultOpen>
       <Field>
         <FieldLabel>{copy.template}</FieldLabel>
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-2">
           {TEMPLATE_IDS.map((id) => (
             <button
               key={id}

@@ -97,6 +97,7 @@ export const gstInvoicesContent = {
           classic: { label: 'Classic', description: 'Accent header, tinted cards.' },
           minimal: { label: 'Minimal', description: 'Ruled grid, no fills.' },
           compact: { label: 'GST compact', description: 'One column, A5 and thermal friendly.' },
+          polish: { label: 'Logo left', description: 'Colour header band, logo on the left.' },
         },
       },
       issuing: {
@@ -131,7 +132,12 @@ export const gstInvoicesContent = {
         attach: 'Attach to email',
         template: 'Template',
         sameAsStore: 'Store template',
-        templateNames: { classic: 'Classic', minimal: 'Minimal', compact: 'GST compact' },
+        templateNames: {
+          classic: 'Classic',
+          minimal: 'Minimal',
+          compact: 'GST compact',
+          polish: 'Logo left',
+        },
         packingPrices: 'Show prices on packing slips',
         fields: 'Show on this document',
         labels: 'Rename labels',
