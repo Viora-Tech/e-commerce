@@ -27,11 +27,12 @@ import type { ReadableStream as NodeReadableStream } from 'node:stream/web'
 import {
   compactPlan,
   compactVideoKey,
+  copyShapeFor,
   isCompactableVideo,
   linkAutoPoster,
-  markVideoCompact,
   MEDIA_MISSING_ERROR,
   markMediaMissing,
+  markVideoCompact,
   markVideoNoCopy,
   storageForStore,
   videoPosterKey,
@@ -42,7 +43,13 @@ import { type Db, media, withStore } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import type { StorageProvider } from '@commerce/storage'
 import { eq } from 'drizzle-orm'
-import { encodeVideoFile, probeVideo } from './video-ffmpeg'
+import {
+  type EncodeOptions,
+  encodeVideoFile,
+  probeVideo,
+  silentAudio,
+  type VideoFacts,
+} from './video-ffmpeg'
 import { makePosterFile, type PosterFile } from './video-poster'
 
 /**
@@ -62,8 +69,10 @@ export type CompactResult =
 
 /** The ffmpeg side, swappable in tests (no ffmpeg there). */
 export type VideoTools = {
-  probe: (input: string) => Promise<{ width: number | null; durationSec: number | null }>
-  encode: (input: string, output: string) => Promise<void>
+  probe: (input: string) => Promise<VideoFacts>
+  encode: (input: string, output: string, opts: EncodeOptions) => Promise<void>
+  /** Whether the sound track is silence (the copy then has none). Missing: sound is kept. */
+  silent?: (input: string) => Promise<boolean>
   /** The first-frame poster of `input` at `output` (`frame` is a scratch PNG). */
   poster: (input: string, frame: string, output: string) => Promise<PosterFile>
 }
@@ -71,6 +80,7 @@ export type VideoTools = {
 const defaultTools: VideoTools = {
   probe: probeVideo,
   encode: encodeVideoFile,
+  silent: silentAudio,
   poster: makePosterFile,
 }
 
@@ -242,8 +252,11 @@ export async function compactVideo(
     const plan = compactPlan({ bytes: original, ...probe })
     if (plan !== 'encode') return await keep(plan, { original, ...probe })
 
+    // A portrait video is a phone's hero source: the phone settings. A silent track is dropped.
+    const shape = copyShapeFor(probe)
+    const audio = !(await tools.silent?.(input))
     const started = Date.now()
-    await tools.encode(input, output)
+    await tools.encode(input, output, { shape, audio })
     const copy = (await stat(output)).size
     if (!worthKeeping(original, copy)) return await keep('not-smaller', { original, copy })
 
@@ -252,7 +265,15 @@ export async function compactVideo(
     await withStore(db, storeId, (tx) =>
       markVideoCompact(tx, mediaId, { url: provider.publicUrl(copyKey), key: copyKey, size: copy }),
     )
-    logger.info('video copy made', { storeId, mediaId, original, copy, ms: Date.now() - started })
+    logger.info('video copy made', {
+      storeId,
+      mediaId,
+      original,
+      copy,
+      width: shape.maxWidth,
+      audio,
+      ms: Date.now() - started,
+    })
     return 'made'
   } finally {
     await rm(dir, { recursive: true, force: true })

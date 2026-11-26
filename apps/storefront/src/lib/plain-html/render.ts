@@ -45,6 +45,7 @@ import {
 import { storeShareImages } from '../share-image'
 import { storeRead } from '../store-cache'
 import { liveThemeId, templateSections } from '../template-render'
+import { bundleThemeStylesheets } from '../theme-css'
 import { resolveThemeMode, THEME_COOKIE, themeViewport } from '../theme-mode'
 import { umamiTrackerOf } from '../umami'
 import { chatLauncherHtml, chatModuleSpec } from './chat-launcher'
@@ -274,6 +275,11 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
           ? `<meta name="theme-color" media="${escapeHtml(t.media)}" content="${escapeHtml(t.color)}">`
           : meta('theme-color', t.color),
       ),
+      // The font files come from fonts.gstatic.com: connect before the stylesheets ask for them
+      // (the theme's own preconnect comes later, inside its head).
+      layout.fontsHref || ourFonts || layout.head.includes('fonts.googleapis.com')
+        ? '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+        : '',
       layout.fontsHref ? `<link rel="stylesheet" href="${escapeHtml(layout.fontsHref)}">` : '',
       ourFonts ? `<link rel="stylesheet" href="${escapeHtml(ourFonts)}">` : '',
       favicon ? `<link rel="icon" href="${escapeHtml(favicon)}">` : '',
@@ -339,8 +345,15 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
     '</body></html>',
   ].join('')
   // The compat CSS names our default body font (`--font-body`), which Dawn's `.rte` reads.
-  const head = headWith(ourFontsHref(THEME_COMPAT_CSS + layout.head + body))
-  const html = `<!DOCTYPE html><html${attrs({ lang, ...layout.htmlAttrs })}><head>${head}</head>${body}`
+  // Families the theme links itself (its font link, its head) are left to it (`theme-fonts.ts`).
+  const head = headWith(
+    ourFontsHref(THEME_COMPAT_CSS + layout.head + body, `${layout.fontsHref ?? ''} ${layout.head}`),
+  )
+  // Each run of the theme's stylesheet links with no other CSS between them is one request
+  // (`theme-css.ts`); the whole page at once, so runs across sections join too.
+  const html = bundleThemeStylesheets(
+    `<!DOCTYPE html><html${attrs({ lang, ...layout.htmlAttrs })}><head>${head}</head>${body}`,
+  )
   return { html }
 }
 

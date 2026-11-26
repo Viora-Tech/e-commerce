@@ -4,10 +4,11 @@
  * `font-family: 'Plus Jakarta Sans'` (Waimers' Zero Drift does, in an inline `:root` style) is
  * drawn in it although the theme never declares the face. The plain page has no global
  * stylesheet, so for each of our families the page's markup names it links the same family from
- * Google Fonts with the same weights. Also when the theme's own font link asks for that family:
- * the theme usually asks for fewer weights (Waimers: Figtree 500 and 800 only) and the React page
- * had all of ours, so text set at 400 or 600 would otherwise be drawn from a neighbouring weight.
- * Pure.
+ * Google Fonts with the same weights.
+ *
+ * A family the theme's own Google Fonts link already asks for is left to the theme (27 Nov,
+ * owner): asking again in a second stylesheet cost a render-blocking request on every page
+ * (Waimers: Archivo and Figtree twice), for weights the theme's CSS does not set. Pure.
  */
 
 /** Our next/font families (`lib/fonts.ts`) and their Google Fonts `css2` axes, as self-hosted. */
@@ -42,9 +43,32 @@ export function namedFamilies(html: string): string[] {
   )
 }
 
-/** The Google Fonts stylesheet for our families the page names; null when there are none. */
-export function ourFontsHref(html: string): string | null {
-  const named = namedFamilies(html)
+/** The families the Google Fonts stylesheets linked in `html` ask for (`family=Name:axes`). */
+export function linkedFamilies(html: string): Set<string> {
+  const found = new Set<string>()
+  const hrefs = html.match(/https:\/\/fonts\.googleapis\.com\/css2?\?[^"'\s>]*/gi) ?? []
+  for (const href of hrefs) {
+    for (const m of href.replace(/&amp;/g, '&').matchAll(/[?&]family=([^&:]+)/g)) {
+      const raw = m[1] ?? ''
+      let name = raw
+      try {
+        name = decodeURIComponent(raw)
+      } catch {
+        // A malformed escape: compare the raw text.
+      }
+      found.add(name.replace(/\+/g, ' ').trim())
+    }
+  }
+  return found
+}
+
+/**
+ * The Google Fonts stylesheet for our families the page names and the theme does not already
+ * link (`themeHead`: the theme's head markup and its font link); null when there are none.
+ */
+export function ourFontsHref(html: string, themeHead = ''): string | null {
+  const linked = linkedFamilies(themeHead)
+  const named = namedFamilies(html).filter((family) => !linked.has(family))
   if (!named.length) return null
   const query = named.map((f) => `family=${f.replace(/ /g, '+')}:${FAMILIES[f]}`).join('&')
   return `https://fonts.googleapis.com/css2?${query}&display=swap`

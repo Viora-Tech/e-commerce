@@ -7,6 +7,14 @@ import ProductCardSaleBadge from './product-card-sale-badge'
 import ProductCardWishlist from './product-card-wishlist'
 import ProductImagePlaceholder from './product-image-placeholder'
 
+/**
+ * The card's width in the grid, for `sizes`: four, three or two columns; on a phone half the
+ * window less its share of the page margins and gap (about 2.75rem in all), so a phone fetches
+ * the card at its own pixel density and no wider. The hover image gets the same (it had none,
+ * so the browser took the default 100vw and fetched the widest copy for a hidden image).
+ */
+const CARD_SIZES = '(min-width: 990px) 25vw, (min-width: 750px) 33vw, calc(50vw - 1.375rem)'
+
 // Port of snippets/product-card.liquid. Hover swap only; cursor scrubbing
 // (card-scrub.js) comes with the interactive pass. The vendor line and sale
 // badge always render; the theme's card settings show or hide them in CSS.
@@ -59,7 +67,7 @@ export default function ProductCard({
               height={533}
               loading={lazy ? 'lazy' : 'eager'}
               fetchPriority={lazy ? undefined : 'high'}
-              sizes="(min-width: 990px) 25vw, (min-width: 750px) 33vw, 50vw"
+              sizes={CARD_SIZES}
             />
           ) : (
             <div className="product-card__image product-card__image--primary product-card__image--placeholder">
@@ -74,6 +82,7 @@ export default function ProductCard({
               width={533}
               height={533}
               loading="lazy"
+              sizes={CARD_SIZES}
               ariaHidden
             />
           ) : null}

@@ -14,6 +14,7 @@ import {
   overlayOver,
 } from '@/lib/launcher-lift'
 import { buyingBarShown, nextTucked, PHONE_QUERY } from '@/lib/launcher-tuck'
+import { watchLauncher } from '@/lib/launcher-watch'
 import ChatIcon from './chat-icon'
 
 type InboxLauncherProps = {
@@ -28,9 +29,6 @@ const ACTIVE_KEY = 'inbox:active'
 
 /** Nothing of the chat loads until the shopper opens it (or has chatted before). */
 const ChatWidget = dynamic(() => import('./chat-widget'), { ssr: false })
-
-/** A late-painting theme bar (a dock its script draws) is measured again after this. */
-const REMEASURE_MS = 1500
 
 /**
  * The icon swap (chat <-> chevron): the outgoing icon turns 20deg, shrinks to 0.9 and fades
@@ -57,7 +55,8 @@ const wasActive = () => {
  * or on idle when this browser has chatted before. No cookie and no third party until the
  * shopper sends a message. It lifts itself above any bar a theme pins to the bottom of the
  * window under it (a mobile dock, a sticky add-to-cart, the cookie banner), measured on load, on
- * resize and when the page's elements change (`lib/launcher-lift.ts`), and sits above the usual
+ * resize, after a scroll and when a bar or overlay can have changed (`lib/launcher-lift.ts`,
+ * `lib/launcher-watch.ts`), and sits above the usual
  * theme layers (z-index 999), hiding while a theme overlay (a cart drawer) is open over it.
  * On a phone it is 2.75rem and tucks away while the page scrolls down or a buying bar (sticky
  * add to cart, the cart's checkout bar) is on screen, back on scroll up (`lib/launcher-tuck.ts`).
@@ -74,55 +73,27 @@ export default function InboxLauncher({ widget, storeName, logoUrl }: InboxLaunc
   const pathname = usePathname()
 
   useEffect(() => {
-    let frame = 0
-    const measure = () => {
-      cancelAnimationFrame(frame)
-      frame = requestAnimationFrame(() => {
+    // Phones: tucked while scrolling down or while a buying bar is on screen (`launcher-tuck.ts`).
+    const phone = window.matchMedia(PHONE_QUERY)
+    let lastY = window.scrollY
+    let scrolledAway = false
+    // Both run in an animation frame, only when something that can move a bar changed
+    // (`launcher-watch.ts`): never on every class change in the theme.
+    return watchLauncher({
+      tuck: () => {
+        const y = window.scrollY
+        scrolledAway = nextTucked(scrolledAway, lastY, y)
+        lastY = y
+        setTucked(phone.matches && (scrolledAway || buyingBarShown()))
+      },
+      measure: () => {
         const box = buttonRef.current?.getBoundingClientRect()
         // Hidden (the phone's full-screen chat is open): keep the last answer.
         if (!box || box.width === 0) return
         setLift(launcherLift(bottomBars(box), box, window.innerHeight))
         setCovered(overlayOver(box))
-      })
-    }
-    // Phones: tucked while scrolling down or while a buying bar is on screen (`launcher-tuck.ts`).
-    const phone = window.matchMedia(PHONE_QUERY)
-    let lastY = window.scrollY
-    let scrolledAway = false
-    const tuck = () => {
-      const y = window.scrollY
-      scrolledAway = nextTucked(scrolledAway, lastY, y)
-      lastY = y
-      setTucked(phone.matches && (scrolledAway || buyingBarShown()))
-    }
-    measure()
-    tuck()
-    const late = globalThis.setTimeout(measure, REMEASURE_MS)
-    // A dock drawn by a theme script, a cookie banner answered and removed, a drawer opened.
-    const observer = new MutationObserver(() => {
-      measure()
-      tuck()
+      },
     })
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['class', 'open', 'hidden'],
-    })
-    window.addEventListener('resize', measure)
-    window.addEventListener('load', measure)
-    window.addEventListener('scroll', tuck, { passive: true })
-    // A sticky add-to-cart slides in: measured again once it has arrived.
-    document.addEventListener('transitionend', measure)
-    return () => {
-      cancelAnimationFrame(frame)
-      globalThis.clearTimeout(late)
-      observer.disconnect()
-      window.removeEventListener('resize', measure)
-      window.removeEventListener('load', measure)
-      window.removeEventListener('scroll', tuck)
-      document.removeEventListener('transitionend', measure)
-    }
   }, [])
 
   useEffect(() => {
