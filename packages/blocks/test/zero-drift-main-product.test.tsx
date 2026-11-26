@@ -122,6 +122,18 @@ describe('MainProduct (ProductView)', () => {
     expect(out).toContain('PINCODE')
   })
 
+  it('hides the UPI offer price on a sold-out variant', () => {
+    const settings = mainProductSettings({ showPaymentSignals: true })
+    const soldOut: ProductDetail = {
+      ...product,
+      variants: product.variants.map((v) => ({ ...v, available: 0, purchasable: false })),
+    }
+    expect(html(createElement(ProductView, { product, settings }))).toContain('with UPI')
+    const out = html(createElement(ProductView, { product: soldOut, settings }))
+    expect(out).not.toContain('offer-note')
+    expect(out).not.toContain('with UPI')
+  })
+
   it('stands down dispatch promises on a sold-out or pre-order product', () => {
     const soldOut: ProductDetail = {
       ...product,

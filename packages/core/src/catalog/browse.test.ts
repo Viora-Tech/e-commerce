@@ -117,6 +117,18 @@ async function seed(storeId: string, s: Seed) {
 const base = { filters: EMPTY_FILTERS, sort: 'title-ascending' as const, page: 1, perPage: 10 }
 
 describe('browseProducts', () => {
+  it('tops the price range with the dearest variant, not the dearest from-price', async () => {
+    const [s] = await owner.insert(store).values({ slug: 'bmax', name: 'B' }).returning()
+    const storeId = s?.id as string
+    await seed(storeId, { handle: 'pad', price: 2_599_900, stock: 1 })
+    // Variants at ₹22,999, ₹23,000 and ₹23,001: from ₹22,999, dearest ₹23,001.
+    await seed(storeId, { handle: 'board', price: 2_299_900, stock: 1, sizes: ['A', 'B', 'C'] })
+    await seed(storeId, { handle: 'big', price: 2_689_800, stock: 1, sizes: ['A', 'B'] })
+    const all = await run(storeId, (tx) => browseProducts(tx, base))
+    expect(all.facets.priceMin).toBe(2_299_900)
+    expect(all.facets.priceMax).toBe(2_689_900)
+  })
+
   it('filters by availability, price, type, vendor, tag and option, with facets', async () => {
     const [s] = await owner.insert(store).values({ slug: 'b', name: 'B' }).returning()
     const storeId = s?.id as string

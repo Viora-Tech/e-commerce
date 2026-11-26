@@ -13,6 +13,7 @@ import {
   launcherLift,
   overlayOver,
 } from '@/lib/launcher-lift'
+import { buyingBarShown, nextTucked, PHONE_QUERY } from '@/lib/launcher-tuck'
 import ChatIcon from './chat-icon'
 
 type InboxLauncherProps = {
@@ -58,6 +59,8 @@ const wasActive = () => {
  * window under it (a mobile dock, a sticky add-to-cart, the cookie banner), measured on load, on
  * resize and when the page's elements change (`lib/launcher-lift.ts`), and sits above the usual
  * theme layers (z-index 999), hiding while a theme overlay (a cart drawer) is open over it.
+ * On a phone it is 2.75rem and tucks away while the page scrolls down or a buying bar (sticky
+ * add to cart, the cart's checkout bar) is on screen, back on scroll up (`lib/launcher-tuck.ts`).
  */
 export default function InboxLauncher({ widget, storeName, logoUrl }: InboxLauncherProps) {
   // Hooks
@@ -66,6 +69,7 @@ export default function InboxLauncher({ widget, storeName, logoUrl }: InboxLaunc
   const [unread, setUnread] = useState(0)
   const [lift, setLift] = useState(0)
   const [covered, setCovered] = useState(false)
+  const [tucked, setTucked] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const pathname = usePathname()
 
@@ -81,10 +85,24 @@ export default function InboxLauncher({ widget, storeName, logoUrl }: InboxLaunc
         setCovered(overlayOver(box))
       })
     }
+    // Phones: tucked while scrolling down or while a buying bar is on screen (`launcher-tuck.ts`).
+    const phone = window.matchMedia(PHONE_QUERY)
+    let lastY = window.scrollY
+    let scrolledAway = false
+    const tuck = () => {
+      const y = window.scrollY
+      scrolledAway = nextTucked(scrolledAway, lastY, y)
+      lastY = y
+      setTucked(phone.matches && (scrolledAway || buyingBarShown()))
+    }
     measure()
+    tuck()
     const late = globalThis.setTimeout(measure, REMEASURE_MS)
     // A dock drawn by a theme script, a cookie banner answered and removed, a drawer opened.
-    const observer = new MutationObserver(measure)
+    const observer = new MutationObserver(() => {
+      measure()
+      tuck()
+    })
     observer.observe(document.body, {
       childList: true,
       subtree: true,
@@ -93,12 +111,17 @@ export default function InboxLauncher({ widget, storeName, logoUrl }: InboxLaunc
     })
     window.addEventListener('resize', measure)
     window.addEventListener('load', measure)
+    window.addEventListener('scroll', tuck, { passive: true })
+    // A sticky add-to-cart slides in: measured again once it has arrived.
+    document.addEventListener('transitionend', measure)
     return () => {
       cancelAnimationFrame(frame)
       globalThis.clearTimeout(late)
       observer.disconnect()
       window.removeEventListener('resize', measure)
       window.removeEventListener('load', measure)
+      window.removeEventListener('scroll', tuck)
+      document.removeEventListener('transitionend', measure)
     }
   }, [])
 
@@ -128,12 +151,14 @@ export default function InboxLauncher({ widget, storeName, logoUrl }: InboxLaunc
   // On a phone the checkout's form and sticky Pay bar fill the screen; the button would cover a
   // field, so it waits off checkout pages there (desktop keeps it).
   const checkout = pathname.includes('/checkout')
+  // Phones: a 2.75rem button 0.75rem off the edge; a labelled pill shrinks to its icon there.
   const side =
     widget.horizontal === 'left'
-      ? 'left-4'
+      ? 'left-4 max-sm:left-3'
       : widget.horizontal === 'center'
         ? 'left-1/2 -translate-x-1/2'
-        : 'right-4'
+        : 'right-4 max-sm:right-3'
+  const phoneIcon = pill && widget.activatorIcon !== 'none'
   const style = {
     bottom: `calc(${launcherBottom(widget.vertical, lift)})`,
     fontSize: `${widget.activatorFontSize / 16}rem`,
@@ -159,26 +184,26 @@ export default function InboxLauncher({ widget, storeName, logoUrl }: InboxLaunc
         ref={buttonRef}
         {...{ [CHAT_ROOT_ATTR]: '' }}
         style={style}
-        className={`${CHAT_GUARD} fixed z-[999]! flex h-14 touch-manipulation items-center justify-center gap-2 rounded-full font-medium! shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_8px_24px_rgb(0_0_0/0.16)] transition-[scale,opacity]! duration-(--duration-press)! ease-out! active:scale-(--motion-press-scale)! ${pill ? 'px-5' : 'w-14'} ${open || checkout ? 'max-sm:hidden!' : ''} ${covered && !open ? 'invisible! opacity-0!' : ''} ${side}`}
+        className={`${CHAT_GUARD} fixed z-[999]! flex h-14 touch-manipulation items-center justify-center gap-2 rounded-full font-medium! shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_8px_24px_rgb(0_0_0/0.16)] transition-[scale,opacity]! duration-(--duration-press)! ease-out! active:scale-(--motion-press-scale)! ${pill ? 'px-5' : 'w-14'} max-sm:h-11 ${pill ? (phoneIcon ? 'max-sm:w-11 max-sm:px-0' : '') : 'max-sm:w-11'} ${open || checkout ? 'max-sm:hidden!' : ''} ${(covered || tucked) && !open ? 'invisible! opacity-0! pointer-events-none' : ''} ${side}`}
       >
         {pill ? (
           <>
             {widget.activatorIcon === 'none' ? null : (
               <ChatIcon kind={widget.activatorIcon} className="size-5" />
             )}
-            <span>{label}</span>
+            <span className={phoneIcon ? 'max-sm:sr-only' : ''}>{label}</span>
           </>
         ) : (
-          <span className="relative grid size-6 place-items-center">
+          <span className="relative grid size-6 place-items-center max-sm:size-5">
             {widget.activatorIcon === 'none' ? null : (
               <ChatIcon
                 kind={widget.activatorIcon}
-                className={`absolute size-6 ${SWAP} ${open ? CHAT_OUT : ''}`}
+                className={`absolute size-6 max-sm:size-5 ${SWAP} ${open ? CHAT_OUT : ''}`}
               />
             )}
             <ChatIcon
               kind="chevronDown"
-              className={`absolute size-6 ${SWAP} ${open ? '' : CHEVRON_OUT}`}
+              className={`absolute size-6 max-sm:size-5 ${SWAP} ${open ? '' : CHEVRON_OUT}`}
             />
           </span>
         )}

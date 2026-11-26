@@ -15,18 +15,18 @@ type SortSelectProps = {
 
 /**
  * Sort as a menu that matches the theme: a button with the current order and a list that opens
- * under it (arrow keys, Enter, Escape, a click outside closes it). Until the page is interactive,
- * and without JavaScript, it is the plain select in a GET form with an Apply button.
+ * under it (arrow keys, Enter, Escape, a click outside closes it). The server draws the same
+ * button, so nothing moves when the page turns interactive (it used to draw a select first, and
+ * the swap shifted the grid under it). Without JavaScript a plain select in a GET form with an
+ * Apply button stands in.
  */
 export default function SortSelect({ action, value, options, keep }: SortSelectProps) {
   // Hooks
   const router = useRouter()
-  const [ready, setReady] = useState(false)
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(() => Math.max(0, options.indexOf(value)))
   const root = useRef<HTMLDivElement>(null)
   const list = useRef<HTMLDivElement>(null)
-  useEffect(() => setReady(true), [])
   useEffect(() => {
     if (!open) return
     list.current?.focus()
@@ -45,7 +45,6 @@ export default function SortSelect({ action, value, options, keep }: SortSelectP
   }
 
   // Event handlers
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => go(e.target.value)
   const handlePick = (sort: BrowseSort) => {
     setOpen(false)
     if (sort !== value) go(sort)
@@ -67,41 +66,35 @@ export default function SortSelect({ action, value, options, keep }: SortSelectP
     e.preventDefault()
   }
 
-  // Early returns
-  if (!ready)
-    return (
-      <form action={action} method="get" className="ml-auto flex items-center gap-2">
-        {keep.map(([k, v]) => (
-          <input key={`${k}=${v}`} type="hidden" name={k} value={v} />
-        ))}
-        <label htmlFor="sort-by" className="text-small text-muted whitespace-nowrap">
-          {copy.sortLabel}
-        </label>
-        <select
-          id="sort-by"
-          name="sort_by"
-          className="field__input !w-auto py-2"
-          defaultValue={value}
-          onChange={handleChange}
-        >
-          {options.map((o) => (
-            <option key={o} value={o}>
-              {SORT_LABELS[o]}
-            </option>
-          ))}
-        </select>
-        <noscript>
-          <button type="submit" className="btn btn--secondary btn--small">
-            {copy.apply}
-          </button>
-        </noscript>
-      </form>
-    )
-
   // Render logic
   const listId = 'sort-by-list'
   return (
     <div ref={root} className="relative ml-auto">
+      <noscript>
+        <form action={action} method="get" className="flex items-center gap-2">
+          {keep.map(([k, v]) => (
+            <input key={`${k}=${v}`} type="hidden" name={k} value={v} />
+          ))}
+          <label htmlFor="sort-by" className="text-small text-muted whitespace-nowrap">
+            {copy.sortLabel}
+          </label>
+          <select
+            id="sort-by"
+            name="sort_by"
+            className="field__input !w-auto py-2"
+            defaultValue={value}
+          >
+            {options.map((o) => (
+              <option key={o} value={o}>
+                {SORT_LABELS[o]}
+              </option>
+            ))}
+          </select>
+          <button type="submit" className="btn btn--secondary btn--small">
+            {copy.apply}
+          </button>
+        </form>
+      </noscript>
       <button
         type="button"
         aria-haspopup="listbox"
