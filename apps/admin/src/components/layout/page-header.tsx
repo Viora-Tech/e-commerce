@@ -96,7 +96,9 @@ export default function PageHeader({
 
   return (
     // `data-page-header`: an app page's shell leaves room beside it for its floating actions.
-    <div data-page-header="" className="flex flex-col gap-3">
+    // `data-page-back`: a detail page's header (back link above the title) instead starts below
+    // them, so its own actions keep the right edge (AppShellActions).
+    <div data-page-header="" data-page-back={back ? '' : undefined} className="flex flex-col gap-3">
       {back ? (
         'href' in back ? (
           <BackLink href={back.href} label={back.label} />

@@ -167,7 +167,18 @@ export default function InvoiceDetail({ params }: AppPageProps) {
   // One without details is only undone: cancelling would queue the order again.
   const cancellable = live && !noDetails
   const facts = [
-    { label: copy.fields.number, value: doc.number ?? '-' },
+    {
+      label: copy.fields.number,
+      // The number's copy button lives here; the title already shows the number.
+      value: doc.number ? (
+        <span className="group/row flex items-center gap-1">
+          {doc.number}
+          <CopyButton value={doc.number} what={copy.fields.number} />
+        </span>
+      ) : (
+        '-'
+      ),
+    },
     { label: copy.fields.series, value: doc.seriesId ?? '-' },
     { label: copy.fields.date, value: doc.invoiceDate ? formatDay(doc.invoiceDate) : '-' },
     { label: copy.fields.order, value: s.order.name },
@@ -180,14 +191,7 @@ export default function InvoiceDetail({ params }: AppPageProps) {
         title={`${kinds[doc.kind]} ${doc.number ?? ''}`.trim()}
         back={{ label: copy.back, href: routes.apps.page('gst-invoices', 'invoices') }}
         badges={<StatusLabel kind="gstDoc" value={doc.status} variant="soft" />}
-        summary={
-          doc.number ? (
-            <span className="group/row flex items-center gap-1">
-              {doc.number}
-              <CopyButton value={doc.number} what={copy.fields.number} />
-            </span>
-          ) : undefined
-        }
+        summary={copy.summary(s.order.name, doc.invoiceDate ? formatDay(doc.invoiceDate) : null)}
         actions={
           outside ? (
             <span className="text-body text-muted-foreground">
