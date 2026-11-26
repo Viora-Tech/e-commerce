@@ -8,6 +8,9 @@
  *   the HTTPS router) exists from Dokploy 0.29.0; older releases drop the field silently, so a
  *   create that asked for one checks the answer has it (`createDomain` below)
  * - `POST /api/domain.delete` `{ domainId }` → removes it and its Traefik config
+ * - `GET  /api/application.readTraefikConfig?applicationId=` → the app's Traefik file (a string)
+ *   and `POST /api/application.updateTraefikConfig` `{ applicationId, traefikConfig }`: used only
+ *   to make a redirect-only apex's plain-http router one hop (`one-hop-apex.ts`)
  * Auth: `x-api-key` header (Dokploy → Settings → Profile → API/CLI).
  *
  * The API key only ever goes in that header: never in a URL, a log line or an error.
@@ -40,6 +43,9 @@ export type DokployClient = {
   deleteDomain(domainId: string): Promise<void>
   /** Set when an apex only redirects; `routes.ts` puts it on those routes. */
   apexMiddleware?: string | undefined
+  /** The storefront app's Traefik file, or null when Dokploy has none. Optional for test fakes. */
+  readTraefikConfig?: (() => Promise<string | null>) | undefined
+  updateTraefikConfig?: ((config: string) => Promise<void>) | undefined
 }
 
 /** A Dokploy call that failed: network, timeout or a non-2xx answer. Retry later. */
@@ -192,6 +198,21 @@ export function createDokployClient(
 
     async deleteDomain(domainId) {
       await call('domain.delete', { method: 'POST', body: { domainId } })
+    },
+
+    async readTraefikConfig() {
+      const body = await call('application.readTraefikConfig', {
+        method: 'GET',
+        query: { applicationId: config.applicationId },
+      })
+      return typeof body === 'string' && body.trim() ? body : null
+    },
+
+    async updateTraefikConfig(traefikConfig) {
+      await call('application.updateTraefikConfig', {
+        method: 'POST',
+        body: { applicationId: config.applicationId, traefikConfig },
+      })
     },
   }
 }

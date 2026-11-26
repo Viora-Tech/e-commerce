@@ -1,4 +1,8 @@
-import { domainCertificateContent, domainEdgeContent } from '@/data/domains'
+import {
+  domainBareGuideContent,
+  domainCertificateContent,
+  domainEdgeContent,
+} from '@/data/domains'
 import { translation } from '@/lib/i18n'
 
 export default [
@@ -25,5 +29,15 @@ export default [
       `यह पता विज़िटर को वही पेज रखते हुए ${www} पर भेजता है। ${www} को अपने स्टोर से जोड़ें और उसे अपना मुख्य डोमेन बनाएँ।`,
     apexDialog: (www: string) =>
       `हम ${www} को भी जोड़ेंगे। आपका स्टोर उसी पते पर चलता है, और यह पता विज़िटर को वहाँ भेजता है।`,
+  }),
+  translation(domainBareGuideContent, {
+    heading: 'बिना www वाले डोमेन के रिकॉर्ड',
+    body: 'ज़्यादातर रजिस्ट्रार बिना www वाले डोमेन पर CNAME नहीं लगाने देते, इसलिए उसे A रिकॉर्ड मिलता है और उसके www को CNAME। मालिकाना हक़ वाले रिकॉर्ड अगली स्क्रीन पर हैं।',
+    apex: (host: string, value: string) => `${host}: A रिकॉर्ड, नाम @, वैल्यू ${value}`,
+    www: (host: string, value: string) => `${host}: CNAME रिकॉर्ड, नाम www, वैल्यू ${value}`,
+    aliasOk:
+      'अगर आपका DNS होस्ट @ के लिए ALIAS या CNAME flattening देता है, तो A रिकॉर्ड की जगह उसे www वाली वैल्यू पर लगा सकते हैं।',
+    aliasNo:
+      'आपका DNS होस्ट ALIAS या CNAME flattening दे, तब भी A रिकॉर्ड ही लगाएँ: सिर्फ़ हमारा अपना पता ही बिना www वाले डोमेन से विज़िटर को www पर भेज सकता है।',
   }),
 ]

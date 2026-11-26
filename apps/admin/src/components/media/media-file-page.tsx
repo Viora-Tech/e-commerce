@@ -94,7 +94,10 @@ export default function MediaFilePage({ file, usedIn, neighbours, filter }: Medi
     { label: copy.size, value: size },
     { label: copy.dimensions, value: dimensions },
     { label: copy.uploaded, value: formatDateTime(file.createdAt) },
-    { label: copy.status, value: copy.statuses[file.status] ?? file.status },
+    {
+      label: copy.status,
+      value: file.missing ? copy.missing : (copy.statuses[file.status] ?? file.status),
+    },
   ].filter((f) => f.value)
   const previousHref = neighbours.previous ? routes.content.file(neighbours.previous, filter) : null
   const nextHref = neighbours.next ? routes.content.file(neighbours.next, filter) : null
@@ -163,6 +166,9 @@ export default function MediaFilePage({ file, usedIn, neighbours, filter }: Medi
                 <FileText className="size-12 text-muted-foreground" aria-hidden />
               )}
             </div>
+            {file.missing ? (
+              <p className="mt-3 text-body text-destructive">{copy.missingHint}</p>
+            ) : null}
           </DataCard>
           <DataCard title={copy.link}>
             <MediaFileLink url={file.url} variants={file.variants} />

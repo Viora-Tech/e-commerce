@@ -4,6 +4,7 @@ import { resetDb } from '@commerce/db/test'
 import { MemoryStorageProvider } from '@commerce/storage/testing'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { createProduct } from '../catalog/products'
+import { markMediaMissing } from './compact-video'
 import { getMedia, mediaNeighbours, mediaUsedIn } from './library'
 import { confirmUpload, createUploadIntent, deleteMedia, markMediaProcessed } from './service'
 
@@ -118,11 +119,23 @@ describe('getMedia', () => {
       height: 600,
       status: 'ready',
       usedBy: 1,
+      missing: false,
     })
+    expect(row).not.toHaveProperty('processError')
     expect(await withStore(app, storeB, (tx) => getMedia(tx, a))).toBeNull()
     expect(
       await withStore(app, storeA, (tx) => getMedia(tx, '01a16498-0000-7000-8000-000000000000')),
     ).toBeNull()
+  })
+
+  it('says when a sweep found the file gone from storage', async () => {
+    const storeA = await seedStore('a')
+    const a = await readyUpload(storeA, new MemoryStorageProvider(), 'Gone.png')
+    await withStore(app, storeA, (tx) => markMediaMissing(tx, a))
+    expect(await withStore(app, storeA, (tx) => getMedia(tx, a))).toMatchObject({
+      status: 'ready',
+      missing: true,
+    })
   })
 })
 

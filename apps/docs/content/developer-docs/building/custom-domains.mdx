@@ -274,9 +274,12 @@ it is on.
            permanent: true
    ```
 
-   Port 80 is untouched: Let's Encrypt's challenge is answered first, and everything else hits
-   `redirect-to-https`, then this. **Confirm** with `curl -I` that the path and query survive and
-   that the storefront's logs show nothing.
+   Port 80 is one hop too: Dokploy gives the apex's `web` router only `redirect-to-https`, so after
+   adding the route the job swaps it for `apex-to-www@file` in the storefront app's Traefik file
+   (`application.readTraefikConfig` / `updateTraefikConfig`, `domains/one-hop-apex.ts`), and every
+   later route job re-applies it. Let's Encrypt's challenge is still answered first. A failure is
+   only logged: the apex then takes two hops (`http` → `https` → www). **Confirm** with
+   `curl -I http://<apex>/a?b=1` that the answer is one 301 straight to `https://www.<apex>/a?b=1`.
 8. **Environment.** On the **admin and worker**: `DOMAIN_PROVIDER=cloudflare`,
    `CLOUDFLARE_ZONE_ID`, `CLOUDFLARE_API_TOKEN`, real `STOREFRONT_A_RECORD` and
    `STOREFRONT_CNAME_TARGET`. The storefront must not get the token. The four `DOKPLOY_*` keys are

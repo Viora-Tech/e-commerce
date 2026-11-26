@@ -17,7 +17,16 @@ const state = vi.hoisted(() => ({
 vi.mock('@commerce/db', () => ({
   media: { id: 'id' },
   withStore: async (_db: unknown, _storeId: string, fn: (tx: unknown) => unknown) =>
-    fn({ select: () => ({ from: () => ({ where: async () => (state.row ? [state.row] : []) }) }) }),
+    fn({
+      select: () => ({ from: () => ({ where: async () => (state.row ? [state.row] : []) }) }),
+      update: () => ({
+        set: (values: unknown) => ({
+          where: async () => {
+            state.marks.push({ kind: 'update', id: 'm1', copy: values })
+          },
+        }),
+      }),
+    }),
 }))
 vi.mock('@commerce/core/registries', () => ({ registriesForStore: async () => ({ storage: {} }) }))
 vi.mock('@commerce/core', async () => {
@@ -38,6 +47,10 @@ vi.mock('@commerce/core', async () => {
     markVideoCompact: async (_tx: unknown, id: string, copy: unknown) => {
       state.marks.push({ kind: 'copy', id, copy })
     },
+    MEDIA_MISSING_ERROR: rules.MEDIA_MISSING_ERROR,
+    markMediaMissing: async (_tx: unknown, id: string) => {
+      state.marks.push({ kind: 'missing', id })
+    },
     markVideoNoCopy: async (_tx: unknown, id: string) => {
       state.marks.push({ kind: 'none', id })
     },
@@ -47,6 +60,7 @@ vi.mock('@commerce/core', async () => {
 const { compactVideo, downloadToFile } = await import('./video-compact')
 
 const MB = 1024 * 1024
+const MISSING = 'File missing from storage'
 const KEY = 'stores/s1/media/hero.mp4'
 
 async function storeVideo(bytes: number) {
@@ -143,6 +157,24 @@ describe('compactVideo', () => {
     state.row = { ...state.row, contentType: 'video/mp4', provider: 'r2' }
     await expect(run(tools(3 * MB))).resolves.toBe('skipped')
     expect(state.marks).toEqual([])
+  })
+
+  it('marks a video whose file is gone as missing, once, without a retry', async () => {
+    state.provider = new MemoryStorageProvider({ publicBaseUrl: 'https://cdn.test' })
+    await expect(run(tools(3 * MB))).resolves.toBe('missing')
+    expect(state.marks).toEqual([{ kind: 'missing', id: 'm1' }])
+    // Marked: the next sweep or plain run leaves it alone.
+    state.row = { ...state.row, compactSize: 0, posterMediaId: null, processError: MISSING }
+    state.marks = []
+    await expect(run(tools(3 * MB))).resolves.toBe('skipped')
+    expect(state.marks).toEqual([])
+  })
+
+  it('a forced run that finds the file back clears the missing mark', async () => {
+    await storeVideo(12 * MB)
+    state.row = { ...state.row, compactSize: 0, processError: MISSING }
+    await expect(run(tools(3 * MB), true)).resolves.toBe('made')
+    expect(state.marks[0]).toEqual({ kind: 'update', id: 'm1', copy: { processError: null } })
   })
 
   it('fails without marking when ffmpeg fails, so the retry can try again', async () => {

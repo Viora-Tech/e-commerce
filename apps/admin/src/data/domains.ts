@@ -141,3 +141,19 @@ export const domainEdgeContent = {
   apexDialog: (www: string) =>
     `We connect ${www} as well. That is the address your store runs on, and this one sends visitors there.`,
 } as const
+
+/**
+ * The connect dialog's guide when the merchant types a bare domain (`brand.in`): the records the
+ * apex and its www need, before the full table on the next screen. Translated in
+ * `data/hi/domains.ts`.
+ */
+export const domainBareGuideContent = {
+  heading: 'Records for a bare domain',
+  body: 'Most registrars cannot point a bare domain with a CNAME, so it gets an A record and its www gets a CNAME. The ownership records are on the next screen.',
+  apex: (host: string, value: string) => `${host}: A record, name @, value ${value}`,
+  www: (host: string, value: string) => `${host}: CNAME record, name www, value ${value}`,
+  aliasOk:
+    'If your DNS host offers ALIAS or CNAME flattening for @, you can point it at the www value instead of the A record.',
+  aliasNo:
+    'Use the A record even if your DNS host offers ALIAS or CNAME flattening: only our own address lets the bare domain send visitors to www.',
+} as const

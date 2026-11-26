@@ -2,13 +2,23 @@
 import type { StoreTx } from '@commerce/db'
 import { media } from '@commerce/db'
 import { and, asc, desc, eq, sql } from 'drizzle-orm'
+import { MEDIA_MISSING_ERROR } from './compact-video'
 import { mediaReferences } from './references'
 import { libraryColumns, libraryWhere, type MediaListInput } from './service'
 
-/** One file for its page in the library: the list item's columns (with its status); null when missing. */
+/**
+ * One file for its page in the library: the list item's columns (with its status), and
+ * `missing` when a sweep found its object gone from the bucket (`markMediaMissing`); null when
+ * there is no such row.
+ */
 export async function getMedia(tx: StoreTx, id: string) {
-  const [row] = await tx.select(libraryColumns).from(media).where(eq(media.id, id))
-  return row ?? null
+  const [row] = await tx
+    .select({ ...libraryColumns, processError: media.processError })
+    .from(media)
+    .where(eq(media.id, id))
+  if (!row) return null
+  const { processError, ...file } = row
+  return { ...file, missing: processError === MEDIA_MISSING_ERROR }
 }
 
 /**
