@@ -14,6 +14,11 @@ export type SignupInput = {
   email?: string | undefined
   phone?: string | undefined
   ip?: string | undefined
+  /**
+   * The campaign's "Ask shoppers to confirm" (double opt-in). Off: an email signup is confirmed
+   * at once and gets no confirm email. Defaults to on, as before.
+   */
+  doubleOptIn?: boolean | undefined
 }
 
 const normaliseEmail = (email: string): string => email.trim().toLowerCase()
@@ -65,7 +70,8 @@ export async function createSignup(tx: StoreTx, storeId: string, input: SignupIn
   const live = existing.find((r) => r.status !== 'unsubscribed')
   if (live) return { row: live, created: false }
 
-  const status: SignupStatus = email ? 'pending_confirmation' : 'confirmed'
+  const confirmFirst = Boolean(email) && input.doubleOptIn !== false
+  const status: SignupStatus = confirmFirst ? 'pending_confirmation' : 'confirmed'
   const now = new Date()
   const [row] = await tx
     .insert(backInStockSignup)
@@ -78,14 +84,15 @@ export async function createSignup(tx: StoreTx, storeId: string, input: SignupIn
       status,
       consentAt: now,
       ip: input.ip ?? null,
-      confirmToken: email ? newToken() : null,
+      confirmToken: confirmFirst ? newToken() : null,
+      confirmedAt: confirmFirst ? null : now,
       unsubscribeToken: newToken(),
     })
     .onConflictDoNothing()
     .returning()
   if (row) {
     // Double opt-in: the confirm link goes out through the outbox, in this same transaction.
-    if (email) {
+    if (confirmFirst) {
       await insertOutboxEvent(tx, storeId, 'back_in_stock.confirm_requested', {
         backInStockSignupId: row.id,
       })

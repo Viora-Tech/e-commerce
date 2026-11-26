@@ -14,13 +14,14 @@ import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
+import { exportSignups } from './export-signups'
 
 type Row = Awaited<ReturnType<typeof api.backInStock.signups.list>>[number]
 
 /** Every "notify me" signup: who is waiting, for what, and where they are in the double opt-in flow. */
 export default function SignupsList() {
   // Hooks
-  const copy = useCopy(backInStockContent).signups
+  const { signups: copy, overview } = useCopy(backInStockContent)
   const apps = useCopy(appsContent)
   const {
     data: rows,
@@ -32,8 +33,41 @@ export default function SignupsList() {
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
   const [importing, setImporting] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
-  // Derived
+  // Event handlers
+  const handleQuery = (next: string) => {
+    setQuery(next)
+    setPage(1)
+  }
+  const handlePerPage = (next: number) => {
+    setPerPage(next)
+    setPage(1)
+  }
+  const handleRestockTags = async () => {
+    setImporting(true)
+    try {
+      const r = await api.backInStock.signups.importRestockTags()
+      toast.success(copy.restockTagsDone(r.added, r.unmatched.length))
+      setRows(await api.backInStock.signups.list({}))
+    } catch (err) {
+      toast.error(errorText(err, String(err)))
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const handleExport = async () => {
+    setExporting(true)
+    await exportSignups({
+      header: copy.csvHeader,
+      file: overview.exportFile,
+      failed: overview.exportFailed,
+    })
+    setExporting(false)
+  }
+
+  // Render logic
   const columns: ResourceColumnSpec<Row>[] = [
     {
       id: 'variant',
@@ -63,30 +97,6 @@ export default function SignupsList() {
       render: (r) => <RelativeTime value={r.createdAt} />,
     },
   ]
-
-  // Event handlers
-  const handleQuery = (next: string) => {
-    setQuery(next)
-    setPage(1)
-  }
-  const handlePerPage = (next: number) => {
-    setPerPage(next)
-    setPage(1)
-  }
-  const handleRestockTags = async () => {
-    setImporting(true)
-    try {
-      const r = await api.backInStock.signups.importRestockTags()
-      toast.success(copy.restockTagsDone(r.added, r.unmatched.length))
-      setRows(await api.backInStock.signups.list({}))
-    } catch (err) {
-      toast.error(errorText(err, String(err)))
-    } finally {
-      setImporting(false)
-    }
-  }
-
-  // Render logic
   const needle = query.trim().toLowerCase()
   const matching = (rows ?? []).filter(
     (r) =>
@@ -102,9 +112,14 @@ export default function SignupsList() {
         title={copy.title}
         summary={copy.subtitle}
         actions={
-          <Button variant="outline" loading={importing} onClick={handleRestockTags}>
-            {copy.restockTags}
-          </Button>
+          <>
+            <Button variant="outline" loading={exporting} onClick={handleExport}>
+              {copy.exportSignups}
+            </Button>
+            <Button variant="outline" loading={importing} onClick={handleRestockTags}>
+              {copy.restockTags}
+            </Button>
+          </>
         }
       />
       <ResourceTable

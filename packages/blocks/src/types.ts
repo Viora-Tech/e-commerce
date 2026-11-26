@@ -290,4 +290,30 @@ export type NotifyMeFormProps = {
   variantId: string
   whatsappEnabled: boolean
   buttonText?: string | null | undefined
+  /** The campaign's button and pop-up (the app's `notifyWidgetOf`); null keeps the plain form. */
+  widget?: NotifyMeWidget | null | undefined
+  /** For the pop-up's "{product}": the product's and the picked variant's titles. */
+  productTitle?: string | undefined
+  variantTitle?: string | undefined
+}
+
+/** The Back in stock campaign's storefront button and pop-up, as the app hands them over. */
+export type NotifyMeWidget = {
+  buttonText: string
+  buttonStyle: 'theme' | 'custom'
+  buttonBackground: string
+  buttonTextColor: string
+  buttonRadius: 'none' | 'small' | 'medium' | 'large' | 'full'
+  display: 'popup' | 'inline'
+  popupHeading: string
+  popupDescription: string
+  emailPlaceholder: string
+  emailError: string
+  submitText: string
+  disclaimer: string
+  successHeading: string
+  successMessage: string
+  newsletter: boolean
+  newsletterText: string
+  newsletterPrechecked: boolean
 }

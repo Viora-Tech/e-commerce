@@ -190,7 +190,9 @@ export default async function ProductPage({ params, searchParams }: Params) {
     ),
     storeRead(storeId, 'upi-discount', (tx) => storeUpiDiscount(tx, storeId)),
     storeRead(storeId, 'emi-offers', (tx) => storeEmiOffers(tx, storeId)),
-    storeRead(storeId, 'back-in-stock', (tx) => backInStockContext(tx, storeId)),
+    storeRead(storeId, `back-in-stock|${product.id}`, (tx) =>
+      backInStockContext(tx, storeId, product.id),
+    ),
     storeRead(storeId, 'policy-panels', (tx) => policyPanels(tx)),
     // Returns and India shipping for the structured data's merchant-listing fields.
     storeRead(storeId, 'offer-policies', (tx) => productOfferPolicies(tx, storeId)),
@@ -258,7 +260,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
               available: variant.available,
               isPreorder,
               whatsappEnabled: bis.whatsappEnabled,
-              buttonText: bis.buttonText,
+              buttonText: bis.widget?.buttonText ?? bis.buttonText,
               action: notifyMeAction,
             }
           : undefined,
@@ -295,7 +297,12 @@ export default async function ProductPage({ params, searchParams }: Params) {
             NotifyMe={bis.installed ? NotifyMeForm : undefined}
             notifyMeProps={
               bis.installed
-                ? { whatsappEnabled: bis.whatsappEnabled, buttonText: bis.buttonText }
+                ? {
+                    whatsappEnabled: bis.whatsappEnabled,
+                    buttonText: bis.buttonText,
+                    widget: bis.widget,
+                    productTitle: product.title,
+                  }
                 : undefined
             }
           />

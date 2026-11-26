@@ -2,8 +2,10 @@
 
 import 'server-only'
 
-import { BackInStockError, createSignup } from '@commerce/plugin-back-in-stock'
+import { requestNewsletterSignup } from '@commerce/core'
+import { BackInStockError, createSignup, loadStoreSettings } from '@commerce/plugin-back-in-stock'
 import { headers } from 'next/headers'
+import { nudgeOutbox } from './outbox'
 import { clientIp, rateLimited, retryAfterSeconds } from './rate-limit'
 import { requestStoreId } from './request-store'
 import { inStore } from './store-context'
@@ -39,15 +41,24 @@ export async function notifyMeAction(
       return { status: 'error', error: `rate_limited:${retryAfterSeconds(emailLimit)}` }
   }
 
+  const wantsNews = form.get('newsletter') === 'on' && typeof email === 'string' && email !== ''
   try {
-    await inStore(storeId, (tx) =>
-      createSignup(tx, storeId, {
+    const newsletter = await inStore(storeId, async (tx) => {
+      // The campaign's "Ask shoppers to confirm" (double opt-in) decides the signup's first state.
+      const settings = await loadStoreSettings(tx, storeId)
+      await createSignup(tx, storeId, {
         variantId,
         email: typeof email === 'string' && email ? email : undefined,
         phone: typeof phone === 'string' && phone ? phone : undefined,
         ip,
-      }),
-    )
+        doubleOptIn: settings.doubleOptIn,
+      })
+      // The pop-up's newsletter box: the store's own newsletter double opt-in, nothing more.
+      return wantsNews && settings.newsletter === 'ask'
+        ? requestNewsletterSignup(tx, storeId, email)
+        : null
+    })
+    if (newsletter === 'sent') await nudgeOutbox(storeId)
     return { status: 'done' }
   } catch (err) {
     if (err instanceof BackInStockError) return { status: 'error', error: err.code }

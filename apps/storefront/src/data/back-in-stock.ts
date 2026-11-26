@@ -11,4 +11,8 @@ export const backInStockContent = {
   doneWhatsapp: "You're on the list — we'll message you when it's back.",
   errorGeneric: 'Something went wrong. Try again in a moment.',
   errorRateLimited: 'Too many requests. Try again shortly.',
+  /** The pop-up's close button, for screen readers. */
+  close: 'Close',
+  /** The email field's error when the campaign has none of its own. */
+  emailInvalid: 'Enter a valid email address',
 } as const

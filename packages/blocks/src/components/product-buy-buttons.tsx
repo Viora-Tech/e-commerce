@@ -294,7 +294,12 @@ export default function ProductBuyButtons({
             </p>
           </div>
           {notify && NotifyMe && notifyMeProps ? (
-            <NotifyMe key={notify} variantId={notify} {...notifyMeProps} />
+            <NotifyMe
+              key={notify}
+              variantId={notify}
+              variantTitle={variant?.title}
+              {...notifyMeProps}
+            />
           ) : null}
         </div>
       ) : (

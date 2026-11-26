@@ -15,8 +15,8 @@ import AutomationSettingsPage from '@/components/apps/automations/settings-page'
 import AutomationTemplatesPage from '@/components/apps/automations/templates-page'
 import AutomationWorkflowPage from '@/components/apps/automations/workflow-page'
 import AutomationWorkflowsPage from '@/components/apps/automations/workflows-page'
+import BackInStockCampaignPage from '@/components/apps/back-in-stock/campaign-page'
 import OverviewPage from '@/components/apps/back-in-stock/overview-page'
-import SettingsEditorBackInStock from '@/components/apps/back-in-stock/settings-editor'
 import SignupsList from '@/components/apps/back-in-stock/signups-list'
 import BluedartConnectPage from '@/components/apps/bluedart/connect-page'
 import BluedartOverviewPage from '@/components/apps/bluedart/overview-page'
@@ -187,8 +187,8 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
   'back-in-stock': {
     pages: {
       '': OverviewPage,
+      campaign: BackInStockCampaignPage,
       signups: SignupsList,
-      settings: SettingsEditorBackInStock,
     },
   },
   bluedart: {

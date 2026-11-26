@@ -1,6 +1,7 @@
 import type {
   CommerceTrackDetail,
   MainProductSettings,
+  NotifyMeFormProps,
   PolicyPanel,
   ReviewsCarousel,
   ReviewsWidget,
@@ -28,7 +29,7 @@ export type IslandProps = {
   /** The EMI app's settings (its provider wraps the buy box), when installed. */
   emiConfig: EmiOffersConfig | null
   /** The back-in-stock app's form, when installed. */
-  notifyMe: { whatsappEnabled: boolean } | null
+  notifyMe: Omit<NotifyMeFormProps, 'variantId'> | null
   /** Settings › Store details price format (`Rs. {{amount}}`); null is the currency's own. */
   moneyFormat: string | null
   pricing: MarketPricing | null
