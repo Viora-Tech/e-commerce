@@ -1,4 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { Separator } from '@commerce/ui/shadcn/separator'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import ProgramDetails from '@/components/affiliate-portal/program-details'
@@ -14,7 +15,8 @@ export const metadata: Metadata = { title: copy.metaTitle }
 
 /**
  * Guide: the store's own words about its program (the program's pitch, set in the admin), our
- * getting-started steps and tips, and the program's rules and terms. Plain cards and lists.
+ * getting-started steps with the tips beside them in one card (so no short card leaves a hole),
+ * then the program's rules and terms.
  */
 export default async function GuidePage({ params }: GuidePageProps) {
   // Hooks
@@ -31,37 +33,37 @@ export default async function GuidePage({ params }: GuidePageProps) {
   // Render logic
   const p = portal.program
   return (
-    <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @5xl/main:grid-cols-2 @5xl/main:items-start">
+    <div className="flex flex-col gap-4 px-4 lg:px-6">
       <Card>
         <CardHeader>
           <CardTitle>{copy.title}</CardTitle>
           <CardDescription>{copy.welcome(store.name)}</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4 text-sm">
-          {p.pitch ? <p className="whitespace-pre-line">{p.pitch}</p> : null}
-          <ol className="flex list-decimal flex-col gap-3 pl-5">
-            {copy.steps.map((s) => (
-              <li key={s.title}>
-                <span className="font-medium">{s.title}.</span>{' '}
-                <span className="text-muted-foreground">{s.body}</span>
-              </li>
-            ))}
-          </ol>
+        <CardContent className="grid gap-6 text-sm @3xl/main:grid-cols-[3fr_auto_2fr]">
+          <div className="flex flex-col gap-4">
+            {p.pitch ? <p className="whitespace-pre-line">{p.pitch}</p> : null}
+            <ol className="flex list-decimal flex-col gap-3 pl-5">
+              {copy.steps.map((s) => (
+                <li key={s.title}>
+                  <span className="font-medium">{s.title}.</span>{' '}
+                  <span className="text-muted-foreground">{s.body}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+          <Separator orientation="vertical" className="hidden @3xl/main:block" />
+          <Separator className="@3xl/main:hidden" />
+          <div className="flex flex-col gap-3">
+            <h2 className="font-medium">{copy.tipsTitle}</h2>
+            <ul className="flex list-disc flex-col gap-2 pl-5 text-muted-foreground">
+              {copy.tips.map((t) => (
+                <li key={t}>{t}</li>
+              ))}
+            </ul>
+          </div>
         </CardContent>
       </Card>
       <Card>
-        <CardHeader>
-          <CardTitle>{copy.tipsTitle}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="flex list-disc flex-col gap-2 pl-5 text-sm text-muted-foreground">
-            {copy.tips.map((t) => (
-              <li key={t}>{t}</li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
-      <Card className="@5xl/main:col-span-2">
         <CardHeader>
           <CardTitle>{copy.terms}</CardTitle>
         </CardHeader>

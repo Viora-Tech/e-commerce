@@ -105,6 +105,8 @@ export const affiliatePortalContent = {
       qrAlt: 'QR code for your link',
       qrDownload: 'Download PNG',
       share: 'Share',
+      shareNative: 'More apps…',
+      linkLabel: 'Link',
       coupon: 'Your discount code',
       couponHint: (percent: number | null) =>
         percent
@@ -130,8 +132,10 @@ export const affiliatePortalContent = {
       },
       conversion: 'Conversion',
       empty: 'Nothing in this range yet. Share your link and it fills up.',
+      emptyTitle: 'No clicks yet',
     },
     recent: 'Latest commissions',
+    recentHelp: 'The newest orders your link or code brought.',
     seeAll: 'See all',
   },
   table: {
@@ -159,6 +163,10 @@ export const affiliatePortalContent = {
       to: 'To',
       any: 'All sources',
       clear: 'Clear filters',
+      dates: 'Dates',
+      anyDate: 'Any date',
+      reset: 'Reset',
+      apply: 'Apply',
     },
     columns: {
       date: 'Date',
@@ -170,6 +178,11 @@ export const affiliatePortalContent = {
     },
     export: 'Export CSV',
     empty: 'No commissions match these filters.',
+    none: {
+      title: 'No commissions yet',
+      text: 'When someone orders through your link or code, the order shows here with its status.',
+      action: 'Get your link',
+    },
     limit: (n: number) => `Showing the newest ${n}. Narrow the dates to see older ones.`,
   },
   payouts: {
@@ -190,7 +203,14 @@ export const affiliatePortalContent = {
     status: { pending: 'On its way', paid: 'Paid' } as Record<string, string>,
     export: 'Export CSV',
     empty: 'Your payouts will show here.',
+    none: {
+      title: 'No payouts yet',
+      text: 'Once your approved commission reaches the minimum, the store sends it to your payout method.',
+    },
     method: 'Payout method',
+    methodHelp: 'Where the store sends your money.',
+    methodMissing: 'Not added yet. Add a UPI ID or a bank account so the store can pay you.',
+    add: 'Add payout details',
     change: 'Change',
   },
   marketing: {
@@ -205,10 +225,16 @@ export const affiliatePortalContent = {
     copied: 'Copied',
     download: 'Download',
     empty: 'The store has not added anything yet.',
+    none: {
+      title: 'Nothing to post yet',
+      text: 'The store has not added images or captions. Your link works anywhere in the meantime.',
+      action: 'Get your link',
+    },
   },
   settings: {
     metaTitle: 'Settings',
     title: 'Settings',
+    help: 'Your profile, where your money goes, and what we email you about.',
     tabs: {
       profile: 'Profile',
       payout: 'Payout and tax',

@@ -8,3 +8,4 @@ export const PORTAL_THEME_MAX_AGE = 365 * 24 * 60 * 60
 export function portalThemeClass(saved: string | undefined): 'dark' | 'light' | null {
   return saved === 'dark' || saved === 'light' ? saved : null
 }
+

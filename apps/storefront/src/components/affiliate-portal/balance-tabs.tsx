@@ -1,14 +1,17 @@
 'use client'
 
+import { Button } from '@commerce/ui/shadcn/button'
 import {
   Card,
   CardAction,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@commerce/ui/shadcn/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
+import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { affiliateContent } from '@/data/affiliate'
 import { affiliatePortalContent } from '@/data/affiliate-portal'
@@ -20,16 +23,20 @@ type BalanceTabsProps = {
   outlook: string[]
   /** The Program details tab's content (`ProgramDetails`), drawn on the server. */
   program: ReactNode
+  /** Settings › Payout and tax, while no UPI ID or bank account is saved: the footer's nudge. */
+  payoutHref: string | null
 }
 
 const copy = affiliatePortalContent.dashboard
 const hints = affiliateContent.dashboard.balances
 
 /**
- * UpPromote's "Commission | Program details" card in shadcn's plain card style: the balance as
- * Pending, Approved and Paid rows with what each means, then the next payout; or the rules.
+ * UpPromote's "Commission | Program details" card in shadcn's card style: the balance as Pending,
+ * Approved and Paid rows with what each means; the footer (pinned to the bottom so it lines up
+ * with the link card beside it) says what the next payout looks like and, while no payout
+ * details are saved, offers to add them.
  */
-export default function BalanceTabs({ totals, outlook, program }: BalanceTabsProps) {
+export default function BalanceTabs({ totals, outlook, program, payoutHref }: BalanceTabsProps) {
   // Render logic
   const rows = [
     { label: copy.totals.pending, value: totals.pendingPaise, hint: hints.pendingHint },
@@ -38,7 +45,7 @@ export default function BalanceTabs({ totals, outlook, program }: BalanceTabsPro
   ]
   return (
     <Card>
-      <Tabs defaultValue="balance" className="gap-0">
+      <Tabs defaultValue="balance" className="flex flex-1 flex-col gap-(--card-spacing)">
         <CardHeader>
           <CardTitle>{copy.tabs.commission}</CardTitle>
           <CardDescription>{copy.balanceHelp}</CardDescription>
@@ -49,8 +56,8 @@ export default function BalanceTabs({ totals, outlook, program }: BalanceTabsPro
             </TabsList>
           </CardAction>
         </CardHeader>
-        <CardContent className="pt-4">
-          <TabsContent value="balance" className="flex flex-col gap-4">
+        <CardContent>
+          <TabsContent value="balance">
             <dl className="divide-y rounded-lg border">
               {rows.map((r) => (
                 <div key={r.label} className="flex items-center justify-between gap-4 px-4 py-3">
@@ -62,14 +69,30 @@ export default function BalanceTabs({ totals, outlook, program }: BalanceTabsPro
                 </div>
               ))}
             </dl>
-            <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
-              {outlook.map((l) => (
-                <li key={l}>{l}</li>
-              ))}
-            </ul>
           </TabsContent>
           <TabsContent value="program">{program}</TabsContent>
         </CardContent>
+        <CardFooter className="mt-auto min-h-20 flex-wrap justify-between gap-3">
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5 text-sm">
+            {payoutHref ? (
+              <>
+                <span className="font-medium">{copy.banner.title}</span>
+                <span className="text-muted-foreground">{copy.banner.body}</span>
+              </>
+            ) : (
+              outlook.map((l) => (
+                <span key={l} className="text-muted-foreground">
+                  {l}
+                </span>
+              ))
+            )}
+          </div>
+          {payoutHref ? (
+            <Button size="sm" nativeButton={false} render={<Link href={payoutHref} />}>
+              {copy.banner.action}
+            </Button>
+          ) : null}
+        </CardFooter>
       </Tabs>
     </Card>
   )

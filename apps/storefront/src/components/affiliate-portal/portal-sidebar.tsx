@@ -22,7 +22,7 @@ import NavUser from './nav-user'
 import StoreMark from './store-mark'
 
 type PortalSidebarProps = {
-  store: { name: string; logoUrl: string | null }
+  store: { name: string; iconUrl: string | null }
   affiliate: { name: string; email: string | null; status: string }
   base: string
   storeOrigin: string
@@ -88,7 +88,7 @@ export default function PortalSidebar({ store, affiliate, base, storeOrigin }: P
               size="lg"
               render={<Link href={hrefOf(base, '/')} onClick={handleNavigate} />}
             >
-              <StoreMark name={store.name} logoUrl={store.logoUrl} />
+              <StoreMark name={store.name} iconUrl={store.iconUrl} />
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{store.name}</span>
                 <span className="truncate text-xs text-muted-foreground">{copy.brand}</span>

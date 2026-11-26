@@ -1,14 +1,7 @@
 import { ExternalLink, LogOut } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@commerce/ui/shadcn/card'
 import type { Metadata } from 'next'
+import SettingsSection from '@/components/affiliate-portal/settings-section'
 import { affiliatePortalContent } from '@/data/affiliate-portal'
 import { portalStore, requireAffiliate } from '@/lib/affiliate-portal'
 import { portalSignOutAction } from '@/lib/portal-actions'
@@ -32,33 +25,31 @@ export default async function SecurityPage({ params }: SecurityPageProps) {
 
   // Render logic
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{copy.title}</CardTitle>
-        <CardDescription>{copy.help}</CardDescription>
-      </CardHeader>
-      {me.email ? (
-        <CardContent className="text-sm">
-          {affiliatePortalContent.settings.profile.email}:{' '}
-          <span className="text-muted-foreground">{me.email}</span>
-        </CardContent>
-      ) : null}
-      <CardFooter className="flex flex-wrap gap-2">
-        <Button
-          variant="outline"
-          nativeButton={false}
-          render={<a href={`${store.origin}/account/profile`} target="_blank" rel="noreferrer" />}
-        >
-          <ExternalLink />
-          {copy.manage}
-        </Button>
-        <form action={portalSignOutAction}>
-          <Button type="submit" variant="ghost">
-            <LogOut />
-            {copy.signOut}
+    <SettingsSection title={copy.title} description={copy.help}>
+      <div className="flex flex-col gap-6">
+        {me.email ? (
+          <p className="text-sm">
+            {affiliatePortalContent.settings.profile.email}:{' '}
+            <span className="text-muted-foreground">{me.email}</span>
+          </p>
+        ) : null}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<a href={`${store.origin}/account/profile`} target="_blank" rel="noreferrer" />}
+          >
+            <ExternalLink />
+            {copy.manage}
           </Button>
-        </form>
-      </CardFooter>
-    </Card>
+          <form action={portalSignOutAction}>
+            <Button type="submit" variant="ghost">
+              <LogOut />
+              {copy.signOut}
+            </Button>
+          </form>
+        </div>
+      </div>
+    </SettingsSection>
   )
 }

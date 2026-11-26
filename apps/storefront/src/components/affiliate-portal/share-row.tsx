@@ -1,8 +1,17 @@
 'use client'
 
+import { ChevronDown, SocialMedia } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@commerce/ui/shadcn/dropdown-menu'
 import { useEffect, useState } from 'react'
 import { affiliateContent } from '@/data/affiliate'
+import { affiliatePortalContent } from '@/data/affiliate-portal'
 
 type ShareRowProps = {
   /** The line to share, with the link (and the code when there is one). */
@@ -31,7 +40,10 @@ const APPS: { id: App; label: string }[] = [
   { id: 'telegram', label: copy.telegram },
 ]
 
-/** Share buttons: the phone's own share sheet where there is one, then each app's share page. */
+/**
+ * One "Share" button with a menu: each app's share page, then the phone's own share sheet
+ * where there is one. One button instead of a row of five keeps the link card's footer tidy.
+ */
 export default function ShareRow({ text, url }: ShareRowProps) {
   // Hooks
   const [canShare, setCanShare] = useState(false)
@@ -51,23 +63,30 @@ export default function ShareRow({ text, url }: ShareRowProps) {
 
   // Render logic
   return (
-    <div className="flex flex-wrap gap-2">
-      {canShare ? (
-        <Button type="button" size="sm" onClick={handleNative}>
-          {copy.native}
-        </Button>
-      ) : null}
-      {APPS.map((a) => (
-        <Button
-          key={a.id}
-          size="sm"
-          variant="outline"
-          render={<a href={shareUrl(a.id, text, url)} target="_blank" rel="noreferrer" />}
-          nativeButton={false}
-        >
-          {a.label}
-        </Button>
-      ))}
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<Button size="sm" />}>
+        <SocialMedia />
+        {affiliatePortalContent.dashboard.link.share}
+        <ChevronDown />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-40">
+        {APPS.map((a) => (
+          <DropdownMenuItem
+            key={a.id}
+            render={<a href={shareUrl(a.id, text, url)} target="_blank" rel="noreferrer" />}
+          >
+            {a.label}
+          </DropdownMenuItem>
+        ))}
+        {canShare ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleNative}>
+              {affiliatePortalContent.dashboard.link.shareNative}
+            </DropdownMenuItem>
+          </>
+        ) : null}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

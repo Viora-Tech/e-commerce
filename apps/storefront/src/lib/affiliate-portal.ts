@@ -1,7 +1,12 @@
 import 'server-only'
 
 import { loadEnv } from '@commerce/config'
-import { readStoreProfile, storeCheckoutLook, storefrontOriginFor } from '@commerce/core'
+import {
+  liveThemeSettings,
+  readStoreProfile,
+  storeCheckoutLook,
+  storefrontOriginFor,
+} from '@commerce/core'
 import {
   type AffiliateRow,
   affiliateForCustomer,
@@ -37,6 +42,10 @@ export type PortalStore = {
   name: string
   logoUrl: string | null
   logoDarkUrl: string | null
+  /** The theme's favicon: a square mark for the sidebar and sign-in tiles (a wide logo is not). */
+  iconUrl: string | null
+  /** The checkout brand colour (`#6c3baa`), the portal's primary; null keeps shadcn's neutral. */
+  brand: string | null
   /** Settings › Store details contact email, for the top bar's "Support". */
   email: string | null
   /** The store's own address (its live primary domain), where referral links point. */
@@ -47,18 +56,28 @@ export type PortalStore = {
 export const portalStore = cache(async (storeId: string): Promise<PortalStore> => {
   const fallback = loadEnv(process.env).STOREFRONT_URL ?? 'http://localhost:3100'
   const read = await storeRead(storeId, 'affiliate-portal-store', async (tx) => {
-    const [look, profile, origin] = await Promise.all([
+    const [look, profile, origin, theme] = await Promise.all([
       storeCheckoutLook({ tx, storeId }),
       readStoreProfile({ tx, storeId }),
       storefrontOriginFor(tx, storeId, fallback),
+      liveThemeSettings(tx, storeId),
     ])
-    return { look, email: profile.contactEmail || null, origin }
+    const accent = look.branding.accent
+    return {
+      look,
+      email: profile.contactEmail || null,
+      origin,
+      iconUrl: theme.brand.favicon?.url ?? null,
+      brand: typeof accent === 'string' && /^#[0-9a-f]{6}$/i.test(accent) ? accent : null,
+    }
   })
   const look = await withThemeLogo(storeId, read.look)
   return {
     name: look.storeName,
     logoUrl: look.logoUrl,
     logoDarkUrl: look.logoDarkUrl ?? null,
+    iconUrl: read.iconUrl,
+    brand: read.brand,
     email: read.email,
     origin: read.origin,
   }

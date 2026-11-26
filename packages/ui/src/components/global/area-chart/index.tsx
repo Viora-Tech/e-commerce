@@ -4,6 +4,8 @@ import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts'
 import {
   type ChartConfig,
   ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
 } from '../../shadcn/chart'
@@ -25,6 +27,8 @@ type StackedAreaChartProps = {
   tooltipLabel?: ((label: string) => string) | undefined
   /** Stack the series (parts of one whole); off draws each from zero. */
   stacked?: boolean | undefined
+  /** A legend under the chart naming each series by its colour. */
+  legend?: boolean | undefined
 }
 
 /**
@@ -38,6 +42,7 @@ export default function StackedAreaChart({
   heightRem = 15.625,
   tooltipLabel,
   stacked = false,
+  legend = false,
 }: StackedAreaChartProps) {
   // Render logic
   const config: ChartConfig = Object.fromEntries(
@@ -71,6 +76,7 @@ export default function StackedAreaChart({
             />
           }
         />
+        {legend ? <ChartLegend content={<ChartLegendContent />} /> : null}
         {[...series].reverse().map((s) => (
           <Area
             key={s.key}

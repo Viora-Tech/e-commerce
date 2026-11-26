@@ -1,16 +1,12 @@
 import { portalRange } from '@commerce/plugin-affiliates/server'
-import { Button } from '@commerce/ui/shadcn/button'
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import AffiliateLinkCard from '@/components/affiliate-portal/affiliate-link-card'
 import BalanceTabs from '@/components/affiliate-portal/balance-tabs'
-import CommissionsTable from '@/components/affiliate-portal/commissions-table'
-import PayoutBanner from '@/components/affiliate-portal/payout-banner'
 import PerformanceCard from '@/components/affiliate-portal/performance-card'
 import ProgramDetails from '@/components/affiliate-portal/program-details'
+import RecentCommissions from '@/components/affiliate-portal/recent-commissions'
 import SectionCards from '@/components/affiliate-portal/section-cards'
-import { affiliateContent } from '@/data/affiliate'
 import { affiliatePortalContent } from '@/data/affiliate-portal'
 import { portalBase, portalHref, portalStore, portalViewer } from '@/lib/affiliate-portal'
 import { loadAffiliatePortal } from '@/lib/affiliates'
@@ -29,8 +25,8 @@ export const metadata: Metadata = { title: copy.metaTitle }
 /**
  * The portal's home, laid out like shadcn's dashboard-01. Signed out: the sign-in page (or the
  * signup page for a `?program=` link). Not an approved affiliate yet: the signup page. Approved:
- * the payout banner while no payout details are saved, the range's cards with trends, clicks
- * and referrals over time, their link and balance, and their latest commissions.
+ * the range's cards with trends, clicks and referrals over time, their link and balance (whose
+ * footer asks for payout details while none are saved), and their latest commissions.
  */
 export default async function DashboardPage({ params, searchParams }: DashboardPageProps) {
   // Hooks
@@ -57,12 +53,7 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
   const p = portal.program
   return (
     <>
-      {a.payoutHint ? null : <PayoutBanner href={portalHref(base, '/settings/payout')} />}
-      <SectionCards
-        current={totalsOf(activity.points)}
-        previous={previous}
-        rangeLabel={copy.performance.ranges[range] ?? ''}
-      />
+      <SectionCards current={totalsOf(activity.points)} previous={previous} />
       <PerformanceCard range={range} points={activity.points} unit={activity.unit} />
       <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @5xl/main:grid-cols-2">
         <AffiliateLinkCard
@@ -76,23 +67,10 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
           totals={portal.totals}
           outlook={portal.outlook ? outlookLines(portal.outlook) : []}
           program={<ProgramDetails program={p} />}
+          payoutHref={a.payoutHint ? null : portalHref(base, '/settings/payout')}
         />
       </div>
-      <CommissionsTable
-        rows={portal.recent}
-        empty={affiliateContent.dashboard.recentEmpty}
-        pageSize={5}
-        toolbar={
-          <Button
-            variant="outline"
-            size="sm"
-            nativeButton={false}
-            render={<Link href={portalHref(base, '/commissions')} />}
-          >
-            {copy.seeAll}
-          </Button>
-        }
-      />
+      <RecentCommissions rows={portal.recent} href={portalHref(base, '/commissions')} />
     </>
   )
 }
