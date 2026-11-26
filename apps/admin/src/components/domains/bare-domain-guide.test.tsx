@@ -1,12 +1,16 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { LocaleContext } from '@/hooks/use-copy'
+import { loadHindi } from '@/lib/hindi'
 import BareDomainGuide from './bare-domain-guide'
 
 const targets = { aRecord: '13.232.151.16', cnameTarget: 'shops.koomerce.app' }
 
 describe('BareDomainGuide', () => {
+  // The Hindi overlays load on demand (`lib/hindi.ts`), as LocaleProvider does in the app.
+  beforeAll(() => loadHindi())
+
   it('shows the apex A record and the www CNAME with their values', () => {
     render(<BareDomainGuide apex="brand.in" targets={targets} apexRedirectOnly={false} />)
     expect(screen.getByText('brand.in: A record, name @, value 13.232.151.16')).toBeTruthy()
