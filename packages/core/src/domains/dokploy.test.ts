@@ -157,6 +157,25 @@ describe('createDokployClient', () => {
     expect(JSON.parse(f.calls[0]?.init.body as string)).toEqual({ domainId: 'd1' })
   })
 
+  it("reads and writes the storefront app's Traefik file", async () => {
+    const f = fakeFetch((call) => (call.init.method === 'GET' ? json('http:\n') : json(true)))
+    const client = createDokployClient(config, { fetch: f.fetch })
+    expect(await client.readTraefikConfig?.()).toBe('http:\n')
+    await client.updateTraefikConfig?.('http: {}\n')
+    expect(f.calls[0]?.url).toBe(
+      'https://dokploy.example.com/api/application.readTraefikConfig?applicationId=app_1',
+    )
+    expect(f.calls[1]?.url).toBe('https://dokploy.example.com/api/application.updateTraefikConfig')
+    expect(JSON.parse(f.calls[1]?.init.body as string)).toEqual({
+      applicationId: 'app_1',
+      traefikConfig: 'http: {}\n',
+    })
+    const none = fakeFetch(() => json(null))
+    expect(await createDokployClient(config, { fetch: none.fetch }).readTraefikConfig?.()).toBe(
+      null,
+    )
+  })
+
   it('turns a non-2xx answer into a DokployError that never quotes the key or the body', async () => {
     const f = fakeFetch(() => json({ message: 'bad key secret-key-123' }, 401))
     const err = await createDokployClient(config, { fetch: f.fetch })
