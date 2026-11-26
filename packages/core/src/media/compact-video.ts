@@ -186,6 +186,30 @@ export async function markVideoNoCopy(tx: StoreTx, id: string): Promise<void> {
 }
 
 /**
+ * `process_error` of a file whose object is gone from its bucket. The row stays in Files (so the
+ * merchant sees it and can delete it), and no sweep looks at it again.
+ */
+export const MEDIA_MISSING_ERROR = 'File missing from storage'
+
+/**
+ * Records that the file's object is missing: looked at for a copy (`NO_COPY_SIZE`) with the
+ * missing error, so the hourly video sweep and `bun run media:videos` stop retrying it. A
+ * `--force` run looks again, and a replace or re-process clears `process_error`.
+ */
+export async function markMediaMissing(tx: StoreTx, id: string): Promise<void> {
+  await tx
+    .update(media)
+    .set({
+      compactUrl: null,
+      compactKey: null,
+      compactSize: NO_COPY_SIZE,
+      processError: MEDIA_MISSING_ERROR,
+      processedAt: new Date(),
+    })
+    .where(eq(media.id, id))
+}
+
+/**
  * Queues the smaller copy for one video on the video queue (`{media}-video`, one encode at a
  * time), job id `<mediaId>-video` so a repeat is a no-op. `backfill` puts it behind every
  * upload. Never throws: the video plays its original without it, and the hourly backfill sweep
