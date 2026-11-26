@@ -18,7 +18,7 @@ import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can } from '../procedures'
 import { getStoreApps } from '../services/apps.service'
-import { variantLabel, variantLabels } from '../services/back-in-stock.service'
+import { variantLabels } from '../services/back-in-stock.service'
 
 type Ctx = { tx: StoreTx; scope: { storeId: string } }
 
@@ -73,19 +73,27 @@ export const backInStockRouter = {
       .handler(async ({ context, input }) => {
         await requireInstalled(context)
         const rows = await listSignups(context.tx, context.scope.storeId, input)
-        return Promise.all(
-          rows.map(async (r) => ({
+        // One lookup for every row's names (the list shows the product, then the variant under it).
+        const labels = await variantLabels(
+          context.tx,
+          rows.map((r) => r.variantId),
+        )
+        return rows.map((r) => {
+          const info = labels.get(r.variantId)
+          return {
             id: r.id,
             variantId: r.variantId,
-            variantLabel: await variantLabel(context.tx, r.variantId),
+            variantLabel: info?.label ?? r.variantId,
+            productTitle: info?.productTitle ?? r.variantId,
+            variantTitle: info?.variantTitle ?? null,
             contact: maskContact(r.email, r.phone),
             status: r.status,
             createdAt: r.createdAt,
             confirmedAt: r.confirmedAt,
             notifiedAt: r.notifiedAt,
             unsubscribedAt: r.unsubscribedAt,
-          })),
-        )
+          }
+        })
       }),
     /**
      * Every signup with its full contact, for "Export signups" (CSV). Manage permission, since

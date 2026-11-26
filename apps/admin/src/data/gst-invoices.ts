@@ -210,6 +210,9 @@ export const gstInvoicesContent = {
   },
   detail: {
     back: 'All invoices',
+    /** The line under the title: the invoice date and its order (the number is in the title). */
+    summary: (order: string, date: string | null) =>
+      date ? `${date} · Order ${order}` : `Order ${order}`,
     download: 'Download PDF',
     print: 'Print',
     cancel: 'Cancel invoice',

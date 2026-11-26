@@ -14,8 +14,8 @@ const ROOM = 'data-app-actions-room'
  * Makes room for the floating actions beside the page's first heading only: the page header
  * (or a page's first section heading) gets right padding as wide as the actions, so tables and
  * cards below keep the page's full width (owner, 26 Nov 2026). A page whose first heading is not
- * at the top starts below the actions instead. Re-applied as the page's content changes
- * (loading, another app page).
+ * at the top, or is a detail page's header with a back link, starts below the actions instead.
+ * Re-applied as the page's content changes (loading, another app page).
  */
 function makeRoom(host: HTMLElement, actions: HTMLElement) {
   for (const n of host.querySelectorAll<HTMLElement>(`[${ROOM}]`)) {
@@ -28,7 +28,14 @@ function makeRoom(host: HTMLElement, actions: HTMLElement) {
     ...host.querySelectorAll<HTMLElement>('[data-page-header],[data-section-head]'),
   ].find((h) => !actions.contains(h))
   const top = host.getBoundingClientRect().top
-  if (head && head.getBoundingClientRect().top - top < TOP_SLACK_PX) {
+  // A detail page's header (back link, title, its own Print or Save on the right) starts below
+  // the actions: beside them its back link sat under the GSTIN pill and its buttons were pushed
+  // to the middle of the row (owner, 27 Nov 2026).
+  if (
+    head &&
+    !head.hasAttribute('data-page-back') &&
+    head.getBoundingClientRect().top - top < TOP_SLACK_PX
+  ) {
     head.style.paddingRight = `${actions.offsetWidth / 16 + 1}rem`
     head.setAttribute(ROOM, '')
   } else {
