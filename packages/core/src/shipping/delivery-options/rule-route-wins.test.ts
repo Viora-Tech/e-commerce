@@ -113,7 +113,10 @@ describe('a rule’s preferred route wins on a Standard card (fixed layout)', ()
     expect(out.delivery.route?.key).toBe('delhivery:E')
     expect(out.delivery.courierCostPaise).toBe(9500)
 
-    const rows = [rateRow('delhivery', 'E', 'Express', 9500), rateRow('rapidshyp', '50', 'Amazon Shipping Surface', 5200)]
+    const rows = [
+      rateRow('delhivery', 'E', 'Express', 9500),
+      rateRow('rapidshyp', '50', 'Amazon Shipping Surface', 5200),
+    ]
     const plan = bookingPlan(
       rows,
       { delivery: out.delivery, option: STANDARD, rules: [MICE], settings: [] },
@@ -147,7 +150,10 @@ describe('a rule’s preferred route wins on a Standard card (fixed layout)', ()
   })
 
   it('never a courier outside the rule, whatever the preferred route does', () => {
-    for (const answers of [[delhivery(), rapidshyp], [delhivery(false), rapidshyp]]) {
+    for (const answers of [
+      [delhivery(), rapidshyp],
+      [delhivery(false), rapidshyp],
+    ]) {
       const key = find(run([mouse], answers), 'std')?.pick?.route.carrierKey
       expect(['delhivery', 'amazon', 'bluedart', 'ekart']).toContain(key)
     }
@@ -174,8 +180,14 @@ describe('a rule’s preferred route wins on a Standard card (fixed layout)', ()
     const r = resolveParcelDeliveries(
       { ...base, config: cfg },
       [
-        { cart: { valuePaise: 100_000, weightGrams: 600, items: [glass] }, answers: [delhivery(), rapidshyp] },
-        { cart: { valuePaise: 50_000, weightGrams: 200, items: [mouse] }, answers: [delhivery(), rapidshyp] },
+        {
+          cart: { valuePaise: 100_000, weightGrams: 600, items: [glass] },
+          answers: [delhivery(), rapidshyp],
+        },
+        {
+          cart: { valuePaise: 50_000, weightGrams: 200, items: [mouse] },
+          answers: [delhivery(), rapidshyp],
+        },
       ],
       150_000,
     )
