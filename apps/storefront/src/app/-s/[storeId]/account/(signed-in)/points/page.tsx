@@ -10,7 +10,7 @@ import { loyaltyAccountContent } from '@/data/loyalty'
 import { storeTimeZone } from '@/lib/account'
 import { accountHistory, historyLimit, shownFrom } from '@/lib/account-history'
 import { requireCustomer } from '@/lib/customer-session'
-import { loyaltyViewFor } from '@/lib/loyalty-view'
+import { loyaltyViewFor, storeBrandFor } from '@/lib/loyalty-view'
 import { requestOrigin } from '@/lib/seo'
 import { inStore } from '@/lib/store-context'
 
@@ -32,7 +32,7 @@ export default async function PointsPage({ params, searchParams }: PointsPagePro
   const me = await requireCustomer(storeId, '/account/points')
   const data = await inStore(storeId, async (tx) => {
     const state = await loyaltyState(tx, storeId)
-    if (!state.installed) return null
+    if (!state.installed || !state.settings.pages.account) return null
     return {
       settings: state.settings,
       points: await shopperPoints({ storeId, tx }, me.id, historyLimit(shown)),
@@ -43,7 +43,10 @@ export default async function PointsPage({ params, searchParams }: PointsPagePro
   const { settings, points, timeZone } = data
   const history = accountHistory(points.entries, shown)
   // Loyalty v2: tier, rewards, codes, ways to earn and the referral link (the widget's cards).
-  const view = await loyaltyViewFor(storeId, await requestOrigin())
+  const [view, brand] = await Promise.all([
+    loyaltyViewFor(storeId, await requestOrigin()),
+    storeBrandFor(storeId).catch(() => null),
+  ])
   const member = view?.member ?? null
   return (
     <>
@@ -58,7 +61,7 @@ export default async function PointsPage({ params, searchParams }: PointsPagePro
           moreHref={history.moreHref}
           timeZone={timeZone}
         />
-        {view && member ? <PointsLoyalty view={view} member={member} /> : null}
+        {view && member ? <PointsLoyalty view={view} member={member} brand={brand} /> : null}
         {view && member && view.waysToEarn.length > 0 ? null : (
           <PointsEarnWays settings={settings} />
         )}

@@ -1,58 +1,53 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { loyaltyWidgetContent as copy } from '../../data/loyalty-widget'
-import { loadEarnInfo } from './loyalty-client'
-import LoyaltyIcon from './loyalty-icon'
-import { earnPreview } from './loyalty-math'
-import type { LoyaltyEarnInfo } from './loyalty-types'
+import { type CSSProperties, useEffect, useState } from 'react'
+import { loadLoyaltyView } from './loyalty-client'
+import { earnInfoOf, earnPreview, pointsWorthPaise } from './loyalty-math'
+import LoyaltyProductLine from './loyalty-product-line'
+import { loyaltyStyleVars, resolveLoyaltyWidgetSettings } from './loyalty-settings'
+import type { LoyaltyView } from './loyalty-types'
 
 type LoyaltyProductPointsProps = {
   /** The price the line counts from (the product's default variant); null in the editor. */
   pricePaise: number | null
-  /** `line` (text under the price) or `card` (a soft box). */
-  look: 'line' | 'card'
+  /** Add "(worth ₹N)" to the points. */
+  showWorth: boolean
 }
 
+/** The block draws in the widget's default colours (the store's brand is applied by the embed). */
+const VARS = loyaltyStyleVars(resolveLoyaltyWidgetSettings({})) as CSSProperties
+
 /**
- * The "Points on product" block: "Earn 12 points with this order" from the store's order spend
- * rule and the shopper's tier multiplier; a visitor who is not signed in sees "Join rewards to
- * earn points" (a link to sign in). Read after the page draws, so it never slows the product page.
+ * The "Points on product" app block (Essential's "Custom position"): the same points line the
+ * widget puts above the buy buttons, where the merchant placed it. Its marker tells the widget
+ * not to add a second one. Read after the page draws, so it never slows the product page.
  */
-export default function LoyaltyProductPoints({ pricePaise, look }: LoyaltyProductPointsProps) {
+export default function LoyaltyProductPoints({ pricePaise, showWorth }: LoyaltyProductPointsProps) {
   // Hooks
-  const [info, setInfo] = useState<LoyaltyEarnInfo | null>(null)
+  const [view, setView] = useState<LoyaltyView | null>(null)
   useEffect(() => {
     let live = true
-    void loadEarnInfo().then((v) => {
-      if (live) setInfo(v)
+    void loadLoyaltyView().then((v) => {
+      if (live) setView(v)
     })
     return () => {
       live = false
     }
   }, [])
 
-  // Early returns
-  if (!info?.live || info.pointsPer100 <= 0 || !pricePaise) return null
-  if (info.signedIn && !info.open) return null
-
   // Render logic
-  const points = earnPreview(pricePaise, info)
-  if (points <= 0) return null
-  const box =
-    look === 'card'
-      ? 'rounded-[var(--radius-m,0.5rem)] border border-line bg-surface px-3 py-2'
-      : ''
+  const points = view && pricePaise ? earnPreview(pricePaise, earnInfoOf(view)) : 0
+  const shown = !!view?.live && points > 0 && !(view.signedIn && !view.member)
   return (
-    <p className={`m-0 flex items-center gap-2 text-sm text-ink ${box}`}>
-      <LoyaltyIcon name="gift" className="size-4 shrink-0" />
-      {info.signedIn ? (
-        <span>{copy.product.earn(copy.points(points, info.pointsName))}</span>
-      ) : (
-        <a href="/account/login" className="underline">
-          {copy.product.join}
-        </a>
-      )}
-    </p>
+    <div data-kl-product-block className={`kl-loyalty ${shown ? 'py-3' : ''}`} style={VARS}>
+      {shown && view ? (
+        <LoyaltyProductLine
+          points={points}
+          names={view.pointsName}
+          balance={view.member ? view.member.points : null}
+          worthPaise={showWorth ? pointsWorthPaise(points, view) : null}
+        />
+      ) : null}
+    </div>
   )
 }

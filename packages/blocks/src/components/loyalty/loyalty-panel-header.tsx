@@ -1,49 +1,48 @@
 'use client'
 
 import { loyaltyWidgetContent as copy } from '../../data/loyalty-widget'
-import Icon from '../icon'
 import LoyaltyIcon from './loyalty-icon'
+import { ICON_BUTTON } from './loyalty-styles'
 
 type LoyaltyPanelHeaderProps = {
   /** The program's name ("{Store} Rewards"), or a list screen's title ("Ways to earn"). */
   title: string
-  /** Home: the small line above the name ("Welcome to"); a list screen has a back arrow instead. */
+  /** Home, visitor: the small line above the name ("Welcome to"). */
   welcome?: string | undefined
-  /** Home: the store's name in the top row. */
-  storeName?: string | undefined
+  /** Home, member: the balance shown in a pill instead of the name ("Your balance" · 1,250). */
+  balance?: number | undefined
+  /** A list screen: a back arrow before the title. */
   onBack?: (() => void) | undefined
   onClose: () => void
+  /** The id the panel's `aria-labelledby` points at. */
+  titleId: string
 }
 
-const ROUND =
-  'inline-flex size-8 shrink-0 items-center justify-center rounded-full border-0 bg-white/15 p-0 text-(--kl-head-text) hover:bg-white/25'
-
 /** Imported themes style h2 with !important; these keep the widget's own type. */
-const HEADING = 'm-0 font-[inherit] font-bold! tracking-normal! normal-case!'
+const HEADING = 'm-0 font-[inherit] font-bold! tracking-normal! normal-case! text-(--kl-head-text)!'
 
 /**
- * The panel's header in the merchant's colours, Essential Loyalty's way: a gradient
- * (`--kl-hero`) with two soft circles, a gift badge and the store's name in the top row,
- * "Welcome to" over the large program name, and room at the bottom for the first card to
- * overlap. A list screen gets a compact row: back arrow, title and close.
+ * The panel's header on the brand colour, Essential Loyalty's way. Home: "Welcome to" over the
+ * program name (a visitor) or "Your balance" over a pill with the points (a member), close at the
+ * top right. A list screen: back arrow, title and close on one row. The colour carries on behind
+ * the first card and fades to white (the panel's scroll area paints that).
  */
 export default function LoyaltyPanelHeader({
   title,
   welcome,
-  storeName,
+  balance,
   onBack,
   onClose,
+  titleId,
 }: LoyaltyPanelHeaderProps) {
   // Early returns
   if (onBack)
     return (
-      <div className="flex shrink-0 items-center gap-2 bg-(image:--kl-hero) bg-(--kl-head-solid) px-3 py-3 text-(--kl-head-text)">
-        <button type="button" onClick={onBack} aria-label={copy.back} className={ROUND}>
+      <div className="flex items-center gap-2 px-4 pt-4 pb-5 text-(--kl-head-text)">
+        <button type="button" onClick={onBack} aria-label={copy.back} className={ICON_BUTTON}>
           <LoyaltyIcon name="chevron-left" className="size-5" />
         </button>
-        <h2
-          className={`${HEADING} min-w-0 flex-1 truncate text-[1rem]! leading-tight! text-(--kl-head-text)`}
-        >
+        <h2 id={titleId} className={`${HEADING} min-w-0 flex-1 truncate text-[1.0625rem]!`}>
           {title}
         </h2>
         <CloseButton onClose={onClose} />
@@ -52,42 +51,37 @@ export default function LoyaltyPanelHeader({
 
   // Render logic
   return (
-    // A div, not <header>: imported themes style `header` (padding, position). `shrink-0`: the
-    // scrolling panel must not squeeze it under the first card.
-    <div className="relative isolate flex shrink-0 flex-col gap-6 overflow-hidden bg-(image:--kl-hero) bg-(--kl-head-solid) px-5 pt-4 pb-16 text-(--kl-head-text)">
-      <span
-        aria-hidden
-        className="absolute -top-12 -right-10 -z-10 size-40 rounded-full bg-white/10"
-      />
-      <span
-        aria-hidden
-        className="absolute -bottom-16 -left-8 -z-10 size-36 rounded-full bg-white/[0.07]"
-      />
-      <div className="flex items-center justify-between gap-3">
-        <span className="flex min-w-0 items-center gap-2">
-          <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-white/20">
-            <LoyaltyIcon name="gift" className="size-[1.125rem]" />
+    // A div, not <header>: imported themes style `header` (padding, position).
+    <div className="flex items-start justify-between gap-3 px-5 pt-6 pb-7 text-(--kl-head-text)">
+      {balance === undefined ? (
+        <div className="flex min-w-0 flex-col gap-3">
+          {welcome ? <span className="text-[0.9375rem] font-semibold">{welcome}</span> : null}
+          <h2 id={titleId} className={`${HEADING} text-[1.375rem]! leading-tight!`}>
+            {title}
+          </h2>
+        </div>
+      ) : (
+        <div className="flex min-w-0 flex-col gap-3">
+          <h2 id={titleId} className={`${HEADING} text-[0.9375rem]! font-semibold!`}>
+            {copy.headerBalance}
+          </h2>
+          <span className="inline-flex items-center gap-2 self-start rounded-full bg-white/20 px-3 py-1.5">
+            <LoyaltyIcon name="coin" className="size-[1.125rem]" />
+            <span className="text-[1.25rem] font-bold leading-none tabular-nums">
+              {balance.toLocaleString('en-IN')}
+            </span>
           </span>
-          {storeName ? (
-            <span className="truncate text-[0.875rem] font-semibold opacity-90">{storeName}</span>
-          ) : null}
-        </span>
-        <CloseButton onClose={onClose} />
-      </div>
-      <div className="flex flex-col gap-1">
-        {welcome ? <span className="text-[0.875rem] opacity-85">{welcome}</span> : null}
-        <h2 className={`${HEADING} text-[1.625rem]! leading-tight! text-(--kl-head-text)`}>
-          {title}
-        </h2>
-      </div>
+        </div>
+      )}
+      <CloseButton onClose={onClose} />
     </div>
   )
 }
 
 function CloseButton({ onClose }: { onClose: () => void }) {
   return (
-    <button type="button" onClick={onClose} aria-label={copy.close} className={ROUND}>
-      <Icon name="close" size={14} />
+    <button type="button" onClick={onClose} aria-label={copy.close} className={ICON_BUTTON}>
+      <LoyaltyIcon name="close" className="size-5" />
     </button>
   )
 }

@@ -189,7 +189,8 @@ describe('embed settings', () => {
     })
     expect(s.layout).toBe('sidebar')
     expect(s.position).toBe('left')
-    expect(s.headerColor).toBe(LOYALTY_WIDGET_DEFAULTS.headerColor)
+    // Not a colour: the store's brand (none given here, so the fallback blue).
+    expect(s.headerColor).toBe('#3c56e9')
     expect(s.headerGradient).toBe('#ABCDEF')
     expect(s.headerText).toBe('#fff')
     expect(s.launcherIcon).toBe('gift')
@@ -203,17 +204,15 @@ describe('embed settings', () => {
       resolveLoyaltyWidgetSettings({ headerColor: '#111111', headerGradient: '#222222' }),
     )
     expect(grad['--kl-head']).toBe('linear-gradient(135deg, #111111, #222222)')
-    // The panel header is always a gradient: the merchant's, or one made from their colour.
-    expect(grad['--kl-hero']).toBe(grad['--kl-head'])
-    expect(flat['--kl-hero']).toContain('linear-gradient(135deg, #111111')
+    // The header fades from its first colour behind the first card.
+    expect(grad['--kl-head-solid']).toBe('#111111')
   })
 
   it('keeps the accent readable: a pale header colour gives way to the ink colour', () => {
-    const dark = loyaltyStyleVars(resolveLoyaltyWidgetSettings({ headerColor: '#1f2937' }))
-    expect(dark['--kl-accent']).toBe('#1f2937')
+    const dark = loyaltyStyleVars(resolveLoyaltyWidgetSettings({ headerColor: '#1e3a8a' }))
+    expect(dark['--kl-accent']).toBe('#1e3a8a')
     const pale = loyaltyStyleVars(resolveLoyaltyWidgetSettings({ headerColor: '#fafafa' }))
     expect(pale['--kl-accent']).not.toBe('#fafafa')
-    expect(pale['--kl-accent-text']).toBe('#ffffff')
   })
 
   it('names the program after the store unless the merchant named it', () => {

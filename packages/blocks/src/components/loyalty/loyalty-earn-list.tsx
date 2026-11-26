@@ -6,7 +6,6 @@ import LoyaltyCard from './loyalty-card'
 import { claimWayToEarn } from './loyalty-client'
 import { wayGlyph, wayPoints, wayTitle } from './loyalty-format'
 import LoyaltyIcon from './loyalty-icon'
-import { ICON_TILE } from './loyalty-styles'
 import type { LoyaltyPointsName, LoyaltyWayToEarn } from './loyalty-types'
 
 type LoyaltyEarnListProps = {
@@ -53,7 +52,7 @@ export default function LoyaltyEarnList({
   // Render logic
   return (
     <LoyaltyCard title={heading ? copy.earn.title : undefined}>
-      <ul className="m-0 flex list-none flex-col p-0">
+      <ul className="m-0 -my-2 flex list-none flex-col p-0">
         {ways.map((w) => {
           const got = earned[w.id]
           const done = w.claimed || got !== undefined
@@ -63,11 +62,12 @@ export default function LoyaltyEarnList({
               key={w.id}
               className="flex items-center gap-3 border-t border-(--kl-line) py-3 first:border-t-0"
             >
-              <span className={ICON_TILE}>
-                <LoyaltyIcon name={wayGlyph(w.type)} className="size-[1.125rem]" />
-              </span>
-              <span className="flex min-w-0 flex-1 flex-col">
-                <span className="font-semibold text-(--kl-ink)">{wayTitle(w)}</span>
+              <LoyaltyIcon
+                name={wayGlyph(w.type)}
+                className="size-6 shrink-0 self-start text-(--kl-accent)"
+              />
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="text-[0.875rem] font-semibold text-(--kl-ink)">{wayTitle(w)}</span>
                 <span className="text-[0.8125rem] text-(--kl-muted)">
                   {got ? copy.earn.earned(copy.points(got, names)) : wayPoints(w, names)}
                 </span>
@@ -76,7 +76,7 @@ export default function LoyaltyEarnList({
                 <button
                   type="button"
                   onClick={() => handleGo(w)}
-                  className="shrink-0 rounded-full border border-(--kl-line) bg-transparent px-3.5 py-1.5 text-[0.8125rem] font-semibold text-(--kl-ink)"
+                  className="shrink-0 cursor-pointer rounded-[0.375rem]! border-0! bg-(--kl-button)! px-3.5! py-1.5! text-[0.8125rem]! font-semibold! text-(--kl-button-text)!"
                 >
                   {copy.earn.go}
                 </button>
