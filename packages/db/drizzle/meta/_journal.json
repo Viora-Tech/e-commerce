@@ -1793,6 +1793,13 @@
       "when": 1796040000000,
       "tag": "0271_gst_stale_queue_drafts",
       "breakpoints": true
+    },
+    {
+      "idx": 256,
+      "version": "7",
+      "when": 1796100000000,
+      "tag": "0272_founding_offer",
+      "breakpoints": true
     }
   ]
 }

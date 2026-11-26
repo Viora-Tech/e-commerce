@@ -169,6 +169,7 @@ export default function BillingPage({ view, apps, autopay, nextBill }: BillingPa
         currentInterval={view.interval}
         paid={view.status === 'active'}
         busy={null}
+        founding={view.founding}
         onChoose={handleChoose}
       />
       <PlanMoveDialog view={view} target={target} onClose={handleCloseMove} boughtApps={bought} />

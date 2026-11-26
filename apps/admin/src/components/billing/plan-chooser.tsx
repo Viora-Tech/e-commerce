@@ -4,7 +4,9 @@ import {
   APP_PRICING,
   type BillingInterval,
   breakEvenOrders,
+  type FoundingView,
   feesAtPace,
+  foundingPriceOf,
   type MonthPace,
   PLAN_IDS,
   PLANS,
@@ -33,6 +35,8 @@ type PlanChooserProps = {
   suggested?: PlanId | null | undefined
   /** This month's orders, for "Based on N orders" and each card's "at your pace" line. */
   pace?: MonthPace | null | undefined
+  /** The founding offer: monthly Growth's card shows its price, the normal one struck through. */
+  founding?: FoundingView | undefined
 }
 
 /** Paid apps a plan includes from, by name: Growth's "Reviews, Back in stock, Forms, Affiliates". */
@@ -60,6 +64,7 @@ export default function PlanChooser({
   onChoose,
   suggested = null,
   pace = null,
+  founding = null,
 }: PlanChooserProps) {
   // Hooks
   const copy = useCopy(billingContent)
@@ -112,6 +117,7 @@ export default function PlanChooser({
           const plan = PLANS[p]
           const isCurrent = paid && p === current && interval === currentInterval
           const line = paceLine(p)
+          const foundingPrice = foundingPriceOf(founding, p, interval)
           return (
             <section
               key={p}
@@ -127,16 +133,24 @@ export default function PlanChooser({
                   {p === suggested && !isCurrent ? (
                     <StatusChip tone="info">{d.suggested}</StatusChip>
                   ) : null}
+                  {foundingPrice !== null ? (
+                    <StatusChip tone="info">{copy.founding.chip}</StatusChip>
+                  ) : null}
                 </h3>
                 <p className="text-caption text-muted-foreground">{copy.plans[p].blurb}</p>
               </div>
               <p className="flex items-baseline gap-1">
                 <span className="text-page-title text-ink-strong tabular-nums">
-                  {format.money(plan.pricePaise[interval])}
+                  {format.money(foundingPrice ?? plan.pricePaise[interval])}
                 </span>
                 <span className="text-caption text-muted-foreground">
                   {interval === 'year' ? c.perYearUnit : c.perMonthUnit}
                 </span>
+                {foundingPrice !== null ? (
+                  <span className="text-caption text-muted-foreground line-through">
+                    {copy.founding.was(format.money(plan.pricePaise[interval]))}
+                  </span>
+                ) : null}
               </p>
               <div className="flex flex-col gap-0.5 rounded-md bg-muted px-3 py-2">
                 <span className="text-body text-ink-strong">
