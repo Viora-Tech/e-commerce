@@ -30,7 +30,9 @@ export default function TrackOrderForm({ another = false, signedIn = false }: Tr
   return (
     <form action={submit} className={another ? 'track-order w-full!' : 'track-order'}>
       <div className="track-order__head">
-        <Heading className="track-order__title">{another ? copy.another.title : copy.title}</Heading>
+        <Heading className="track-order__title">
+          {another ? copy.another.title : copy.title}
+        </Heading>
         <p className="track-order__body">{another ? copy.another.body : copy.body}</p>
       </div>
       <label className="track-order__field" htmlFor={`${id}-number`}>
