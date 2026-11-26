@@ -40,7 +40,9 @@ turn them off". No migration.
 - New `packages/api/test/account-push.test.ts`: the list shows only the caller's devices, marks
   this one and leaks no endpoint or keys; Turn off removes only this browser's row; another
   member's endpoint removes nothing; Remove deletes the caller's own device; Remove refuses
-  another member's device and another store's device and leaves them in place.
+  another member's device and another store's device and leaves them in place. Run here: 6
+  passed. Also run: tsc for core, api and admin; biome and the component checker on the changed
+  files; sweeps `router-permissions` and `mcp-action-docs`; admin `src/data` tests (i18n).
 
 ## Left to do / for the owner to check
 

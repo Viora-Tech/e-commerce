@@ -110,7 +110,10 @@ export async function listPushDevices(
     .from(memberPushSubscription)
     .where(eq(memberPushSubscription.userId, userId))
     .orderBy(desc(memberPushSubscription.createdAt))
-  return rows.map(({ endpoint: e, ...r }) => ({ ...r, thisDevice: Boolean(endpoint) && e === endpoint }))
+  return rows.map(({ endpoint: e, ...r }) => ({
+    ...r,
+    thisDevice: Boolean(endpoint) && e === endpoint,
+  }))
 }
 
 /**

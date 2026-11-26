@@ -4,7 +4,14 @@
  * worker to push to.
  */
 import { createMerchantAuth } from '@commerce/auth'
-import { authSchema, createDb, memberPushSubscription, role, store, storeMember } from '@commerce/db'
+import {
+  authSchema,
+  createDb,
+  memberPushSubscription,
+  role,
+  store,
+  storeMember,
+} from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
 import { and, eq } from 'drizzle-orm'
@@ -194,7 +201,11 @@ describe('account push devices', () => {
     const theirs = await device(shop.storeId, helper.userId, 'https://push.example/h', CHROME_WIN)
 
     await expect(
-      call(appRouter.account.removePushDeviceById, { id: theirs.id }, { context: ctx(shop.headers) }),
+      call(
+        appRouter.account.removePushDeviceById,
+        { id: theirs.id },
+        { context: ctx(shop.headers) },
+      ),
     ).rejects.toThrow('already removed')
     expect(await rowsOf(helper.userId)).toHaveLength(1)
   })
