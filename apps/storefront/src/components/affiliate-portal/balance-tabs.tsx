@@ -50,7 +50,7 @@ export default function BalanceTabs({ totals, outlook, program, payoutHref }: Ba
           <CardTitle>{copy.tabs.commission}</CardTitle>
           <CardDescription>{copy.balanceHelp}</CardDescription>
           <CardAction>
-            <TabsList>
+            <TabsList className="gap-1">
               <TabsTrigger value="balance">{copy.tabs.commission}</TabsTrigger>
               <TabsTrigger value="program">{copy.tabs.program}</TabsTrigger>
             </TabsList>

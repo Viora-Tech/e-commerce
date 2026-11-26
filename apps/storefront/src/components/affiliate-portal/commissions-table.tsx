@@ -72,7 +72,7 @@ export default function CommissionsTable({
             </NativeSelectOption>
           ))}
         </NativeSelect>
-        <TabsList className="hidden @4xl/main:flex **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1">
+        <TabsList className="hidden gap-1 @4xl/main:flex **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1">
           {TABS.map((t) => (
             <TabsTrigger key={t} value={t}>
               {copy.tabs[t]}
