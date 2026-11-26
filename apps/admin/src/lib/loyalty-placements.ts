@@ -41,3 +41,30 @@ export function customizeHref(editorPath: string, kind: Placement['kind'], embed
     return `${editorPath}?panel=apps&embed=${encodeURIComponent(embed)}`
   return `${editorPath}?panel=${kind === 'embed' ? 'apps' : 'sections'}`
 }
+
+/** A page the program adds to the store, switched in the Loyalty settings (`settings.pages`). */
+export type LoyaltyPageId = 'landing' | 'account' | 'accountStatus'
+
+export type LoyaltyPage = {
+  id: LoyaltyPageId
+  /** The Placements section it is listed under. */
+  section: 'embedded' | 'accounts'
+  /** Where it shows on the storefront. */
+  path: string
+}
+
+export const LOYALTY_PAGES: readonly LoyaltyPage[] = [
+  { id: 'landing', section: 'embedded', path: '/pages/rewards' },
+  { id: 'account', section: 'accounts', path: '/account/points' },
+  { id: 'accountStatus', section: 'accounts', path: '/account' },
+]
+
+/**
+ * The product line and the cart box come with the floating widget (it injects them above Add
+ * to cart and Checkout), so their status is the widget embed's; the app blocks only move them.
+ */
+export function placementEmbedType(p: Placement): string | null {
+  if (p.kind === 'embed') return p.type
+  if (p.id === 'productPoints' || p.id === 'cartRedeem') return 'loyalty/Widget'
+  return null
+}
