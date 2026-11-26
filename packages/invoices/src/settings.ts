@@ -8,7 +8,7 @@ import type { DocumentKind } from './snapshot'
 export const ISSUE_ON = ['payment', 'fulfilment', 'manual'] as const
 export type IssueOn = (typeof ISSUE_ON)[number]
 
-export const TEMPLATE_IDS = ['classic', 'minimal', 'compact'] as const
+export const TEMPLATE_IDS = ['classic', 'minimal', 'compact', 'polish'] as const
 export type TemplateId = (typeof TEMPLATE_IDS)[number]
 
 export const FONT_IDS = ['inter', 'noto', 'geist'] as const

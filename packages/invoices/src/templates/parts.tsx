@@ -4,10 +4,23 @@ import { formatAmount, formatRupees } from '../money'
 import type { DocumentSnapshot, Party } from '../snapshot'
 import type { TemplateView } from './view'
 
-type BarcodeProps = { value: string; height?: number; module?: number; color?: string }
+type BarcodeProps = {
+  value: string
+  height?: number
+  module?: number
+  color?: string
+  /** Overrides for the number under the bars (the Polish template's grey caption). */
+  textStyle?: { fontSize?: number; fontWeight?: number; color?: string; letterSpacing?: number }
+}
 
 /** Code 128 drawn as rectangles; no image step, crisp at any zoom. */
-export function Barcode({ value, height = 28, module = 0.9, color = '#000000' }: BarcodeProps) {
+export function Barcode({
+  value,
+  height = 28,
+  module = 0.9,
+  color = '#000000',
+  textStyle,
+}: BarcodeProps) {
   const widths = code128Widths(value)
   const quiet = 10 * module
   const total = widths.reduce((a, w) => a + w, 0) * module + quiet * 2
@@ -24,7 +37,9 @@ export function Barcode({ value, height = 28, module = 0.9, color = '#000000' }:
           <Rect key={b.x} x={b.x} y={0} width={b.w} height={height} fill={color} />
         ))}
       </Svg>
-      <Text style={{ fontSize: 6.5, marginTop: 1.5, letterSpacing: 0.6 }}>{value}</Text>
+      <Text style={{ fontSize: 6.5, marginTop: 1.5, letterSpacing: 0.6, ...textStyle }}>
+        {value}
+      </Text>
     </View>
   )
 }
