@@ -42,9 +42,16 @@ consent), different hunks, merged cleanly.
 - Test: "the Medium tab lists only medium-risk orders" in `packages/core/src/cod-rto/cod-rto.test.ts`
   (database-backed).
 
+## Checks run here (27 Nov)
+
+- Typecheck clean: core, api, blocks, plugin-back-in-stock, worker, storefront, storefront-hono,
+  admin.
+- Vitest passed: blocks 805, worker 92, storefront 811 (1 skipped), storefront-hono 8, admin 1333
+  (after fixing `bare-domain-guide.test.tsx`, which rendered Hindi before `loadHindi()`).
+- Not run: core, api, plugin-back-in-stock vitest (database-backed; Docker/Postgres was not
+  running, ECONNREFUSED). Run them on dev, including the new COD & RTO "Medium tab" test.
+
 ## Left to do / for the owner to check
 
-- See the release candidate's check results in the session report (DB-backed suites need the
-  local Postgres).
 - On localhost: a cached page with `/api/consent-region` blocked shows no banner; COD & RTO ›
   Risky orders opens on "Medium" with no high-risk rows.
