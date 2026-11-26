@@ -76,7 +76,7 @@ async function bundle(storeId: string, themeId: string, search: URLSearchParams)
   const parts: { file: string; version: string; css: string }[] = []
   for (const [n, asset] of assets.entries()) {
     const file = files[n] as string
-    if (!asset || asset.contentType !== 'text/css') return notFound()
+    if (asset?.contentType !== 'text/css') return notFound()
     parts.push({
       file,
       version: asset.checksum,

@@ -18,7 +18,6 @@ const flushFrames = () => {
   frames = []
   for (const run of now) run(0)
 }
-const flushMutations = () => new Promise((resolve) => setTimeout(resolve, 0))
 
 let stop: () => void = () => {}
 const tuck = vi.fn()
@@ -45,10 +44,9 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
+/** MutationObserver callbacks run as microtasks: let them run (timers stay fake). */
 async function settleMutations() {
-  vi.useRealTimers()
-  await flushMutations()
-  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+  for (let i = 0; i < 5; i++) await Promise.resolve()
 }
 
 describe('watchLauncher', () => {

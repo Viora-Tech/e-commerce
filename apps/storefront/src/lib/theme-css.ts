@@ -127,7 +127,8 @@ export function bundleThemeStylesheets(html: string): string {
     const current: Run | null = run
     if (
       !part ||
-      (current && (current.parts[0]?.themeId !== part.themeId || current.parts.length >= MAX_BUNDLE_FILES))
+      (current &&
+        (current.parts[0]?.themeId !== part.themeId || current.parts.length >= MAX_BUNDLE_FILES))
     ) {
       close()
       if (!part) continue
@@ -191,14 +192,13 @@ export function bundleFiles(list: string | null): string[] | null {
 export function joinCss(files: readonly string[]): string {
   const imports: string[] = []
   const bodies = files.map((css, n) =>
-    css.replace(/@charset\s+["'][^"']*["']\s*;/gi, '').replace(
-      /@import\s+(?:url\([^)]*\)|"[^"]*"|'[^']*')[^;]*;/gi,
-      (rule) => {
+    css
+      .replace(/@charset\s+["'][^"']*["']\s*;/gi, '')
+      .replace(/@import\s+(?:url\([^)]*\)|"[^"]*"|'[^']*')[^;]*;/gi, (rule) => {
         if (n === 0) return rule
         imports.push(rule)
         return ''
-      },
-    ),
+      }),
   )
   return [...imports, ...bodies].join('\n')
 }

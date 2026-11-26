@@ -1,11 +1,11 @@
-import { describe, expect, it } from 'vitest'
 import { PORTRAIT_COPY } from '@commerce/core'
+import { describe, expect, it } from 'vitest'
 import {
   ffmpegArgs,
   ffprobeArgs,
+  POSTER_AT_SEC,
   parseMaxVolume,
   parseProbe,
-  POSTER_AT_SEC,
   posterFrameArgs,
   runProgram,
   volumeArgs,
@@ -14,23 +14,23 @@ import {
 describe('ffmpegArgs', () => {
   it('keeps the settings #1783 tested: 1080p wide, CRF 26 capped at 3.5 Mbps, faststart, 2 threads', () => {
     const args = ffmpegArgs('/tmp/in', '/tmp/out.mp4')
-    const after = (flag: string) => args[args.indexOf(flag) + 1]
-    expect(after('-vf')).toBe("scale='min(1920,iw)':-2")
-    expect(after('-crf')).toBe('26')
-    expect(after('-maxrate')).toBe('3500k')
-    expect(after('-b:a')).toBe('96k')
-    expect(after('-movflags')).toBe('+faststart')
-    expect(after('-threads')).toBe('2')
+    const arg = (flag: string) => args[args.indexOf(flag) + 1]
+    expect(arg('-vf')).toBe("scale='min(1920,iw)':-2")
+    expect(arg('-crf')).toBe('26')
+    expect(arg('-maxrate')).toBe('3500k')
+    expect(arg('-b:a')).toBe('96k')
+    expect(arg('-movflags')).toBe('+faststart')
+    expect(arg('-threads')).toBe('2')
     expect(args.at(-1)).toBe('/tmp/out.mp4')
   })
 
   it('encodes a phone copy at 720 wide, about 1 Mbps, and leaves out a silent track', () => {
     const args = ffmpegArgs('/tmp/in', '/tmp/out.mp4', { shape: PORTRAIT_COPY, audio: false })
-    const after = (flag: string) => args[args.indexOf(flag) + 1]
-    expect(after('-vf')).toBe("scale='min(720,iw)':-2")
-    expect(after('-crf')).toBe('28')
-    expect(after('-maxrate')).toBe('1000k')
-    expect(after('-bufsize')).toBe('2000k')
+    const arg = (flag: string) => args[args.indexOf(flag) + 1]
+    expect(arg('-vf')).toBe("scale='min(720,iw)':-2")
+    expect(arg('-crf')).toBe('28')
+    expect(arg('-maxrate')).toBe('1000k')
+    expect(arg('-bufsize')).toBe('2000k')
     expect(args).toContain('-an')
     expect(args).not.toContain('0:a:0?')
     expect(args).not.toContain('-c:a')

@@ -16,7 +16,8 @@
 /** One of our media variants as WebP: `…/media/<file>-w<width>.webp`. */
 const WEBP_VARIANT = /\/media\/[^\s"'?]+-w\d+\.webp(?=$|[\s"'?,])/g
 
-const PRELOAD_IMAGE = /<link\b(?=[^>]*\brel\s*=\s*["']?preload\b)(?=[^>]*\bas\s*=\s*["']?image\b)[^>]*>/gi
+const PRELOAD_IMAGE =
+  /<link\b(?=[^>]*\brel\s*=\s*["']?preload\b)(?=[^>]*\bas\s*=\s*["']?image\b)[^>]*>/gi
 
 /** Image preloads of our WebP variants in `html` as their AVIF twins (see the header). */
 export function avifImagePreloads(html: string): string {
