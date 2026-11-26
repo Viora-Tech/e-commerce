@@ -39,22 +39,21 @@ export default function PortalAddressCard() {
   const [busy, setBusy] = useState(false)
   const [checking, setChecking] = useState(false)
 
-  const canRead =
-    hasPermission(permissions.MARKETING_READ) && hasPermission(permissions.SETTINGS_READ)
-  const canManage =
-    hasPermission(permissions.MARKETING_WRITE) && hasPermission(permissions.SETTINGS_MANAGE)
-
   // biome-ignore lint/correctness/useExhaustiveDependencies: `loadAttempt` is Try again
   useEffect(() => {
-    if (!canRead) return
+    if (!(hasPermission(permissions.MARKETING_READ) && hasPermission(permissions.SETTINGS_READ)))
+      return
     setLoadFailed(false)
     api.affiliates.portalDomain.get().then(setState, () => setLoadFailed(true))
-  }, [canRead, loadAttempt])
+  }, [hasPermission, loadAttempt])
 
   // Check a pending host again while the tab is visible, until it is live or failed.
-  const settling = state?.domain ? ['pending', 'certificate'].includes(portalPhase(state.domain)) : false
   useEffect(() => {
-    if (!canManage || !settling) return
+    const domain = state?.domain
+    const manage =
+      hasPermission(permissions.MARKETING_WRITE) && hasPermission(permissions.SETTINGS_MANAGE)
+    const settling = domain ? ['pending', 'certificate'].includes(portalPhase(domain)) : false
+    if (!manage || !settling) return
     const timer = setInterval(() => {
       if (document.visibilityState !== 'visible') return
       api.affiliates.portalDomain
@@ -63,7 +62,7 @@ export default function PortalAddressCard() {
         .catch(() => {})
     }, POLL_MS)
     return () => clearInterval(timer)
-  }, [canManage, settling])
+  }, [hasPermission, state?.domain])
 
   // Event handlers
   const handleConnect = async () => {
@@ -107,6 +106,10 @@ export default function PortalAddressCard() {
   }
 
   // Early returns
+  const canRead =
+    hasPermission(permissions.MARKETING_READ) && hasPermission(permissions.SETTINGS_READ)
+  const canManage =
+    hasPermission(permissions.MARKETING_WRITE) && hasPermission(permissions.SETTINGS_MANAGE)
   if (!canRead) {
     return (
       <SettingsCard title={copy.title} description={copy.description}>
@@ -176,7 +179,7 @@ export default function PortalAddressCard() {
           />
         ) : (
           <div className="flex flex-col gap-3 border-border border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-body text-muted-foreground">{copy.useHelp(hostname)}</p>
+            <p className="text-body text-muted-foreground">{copy.connectHelp(hostname)}</p>
             {canManage ? (
               <Button className="shrink-0" loading={busy} disabled={busy} onClick={handleConnect}>
                 <PlugConnect aria-hidden="true" />

@@ -5,7 +5,7 @@ export const affiliatePortalDomainContent = {
   current: 'Affiliates use',
   fallbackNote: 'This address keeps working after you connect the portal address.',
   use: (host: string) => `Use ${host}`,
-  useHelp: (host: string) =>
+  connectHelp: (host: string) =>
     `Give the portal its own address, ${host}. You add two DNS records where your domain is registered, then press Verify.`,
   connected: (host: string) => `${host} added. Add the two DNS records, then press Verify.`,
   verify: 'Verify',

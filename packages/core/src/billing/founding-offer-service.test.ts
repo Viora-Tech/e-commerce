@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: founding offer database tests — WHAT: sign-ups taking the 20 places (also at once), the 30-day trial, a founding bill's sales order and invoice discount, the 12 months counted from paid bills, renewal at the normal price, AutoPay at ₹999 for the months left / WHY: the cap and the end of the offer must hold under real transactions */
 import { randomUUID } from 'node:crypto'
-import { createDb, order, planPayment, storePlan, withStore } from '@commerce/db'
+import { createDb, order, orderNote, planPayment, storePlan, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
@@ -101,7 +101,11 @@ describe('founding bills', () => {
       discountPaise: 1_18_000,
       discountLabel: FOUNDING_OFFER_LABEL,
     })
-    expect(o?.note).toContain('Founding offer: Growth at ₹999 a month, month 1 of 12')
+    const notes = await owner
+      .select()
+      .from(orderNote)
+      .where(eq(orderNote.orderId, bill?.salesOrderId as string))
+    expect(notes[0]?.body).toContain('Founding offer: Growth at ₹999 a month, month 1 of 12')
   })
 
   it('counts only paid full founding months, and renews at the normal price after 12', async () => {

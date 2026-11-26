@@ -8,7 +8,7 @@ export default [
     current: 'एफ़िलिएट इस्तेमाल करते हैं',
     fallbackNote: 'पोर्टल का पता जोड़ने के बाद भी यह पता चलता रहेगा।',
     use: (host: string) => `${host} इस्तेमाल करें`,
-    useHelp: (host: string) =>
+    connectHelp: (host: string) =>
       `पोर्टल को उसका अपना पता दें, ${host}। जहाँ आपका डोमेन रजिस्टर है वहाँ दो DNS रिकॉर्ड जोड़ें, फिर Verify दबाएँ।`,
     connected: (host: string) => `${host} जोड़ा गया। दो DNS रिकॉर्ड जोड़ें, फिर Verify दबाएँ।`,
     verify: 'Verify',
