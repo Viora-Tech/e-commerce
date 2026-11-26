@@ -10,13 +10,13 @@
  * - The option that decides is the one a rule price applies to: the courier list's option, else
  *   the first enabled Standard option. Other options are priced per group as they come.
  * - The pool is the same as `rulePool`'s: the option's own routes for these answers (any speed
- *   for a list), each item under only its most specific rules (`matchRules`).
+ *   for a list) plus the rules' preferred or forced routes (`optionCandidates`), each item under only its most specific rules (`matchRules`).
  * - Grouping: items under the same winning rules form a group; groups are merged, largest
  *   first, into the first group whose pool still shares a courier with theirs. Items no rule
  *   matches take any courier and join the largest group.
  */
 import type { DeliveryConfig, DeliveryOption, RouteRule } from './config'
-import { optionAllows } from './pick'
+import { optionCandidates } from './pick'
 import { type ProviderAnswer, type Route, routesFromAnswers, selectorMatches } from './routes'
 import { type CartItemFacts, matchRules } from './rules'
 
@@ -55,11 +55,10 @@ export function ruleGroups(
   const option = ruleSplitOption(config)
   if (!option || items.length < 2) return null
   const listed = config.layout === 'list' || option.couriers.show === 'list'
-  const candidates = routesFromAnswers(answers, config.routeSettings, weightGrams).filter(
-    (r) => optionAllows(option, r) && (listed || r.speed === option.speed),
-  )
-  if (candidates.length === 0) return null
   const all = matchRules(config.rules, option.id, items).winners
+  const routes = routesFromAnswers(answers, config.routeSettings, weightGrams)
+  const candidates = optionCandidates(routes, option, listed, all)
+  if (candidates.length === 0) return null
   // Something in common (or no rule at all): one parcel, as today.
   if (all.length === 0 || poolOf(all, candidates).size > 0) return null
 

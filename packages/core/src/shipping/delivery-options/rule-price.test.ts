@@ -180,13 +180,29 @@ describe('a rule’s price', () => {
   it('Express keeps its own price; the rule prices the Standard option', () => {
     const r = resolveDeliveryOptions(
       input({
-        config: config({ options: [STANDARD, EXPRESS], rules: [mice({ mode: 'free' })] }),
+        config: config({
+          options: [STANDARD, EXPRESS],
+          rules: [mice({ mode: 'free' }, { defaultRoute: null })],
+        }),
         cart: { valuePaise: 150_000, weightGrams: 400, items: [MOUSE] },
         answers: answers(),
       }),
     )
     expect(find(r, 'std')?.pricePaise).toBe(0)
     expect(find(r, 'exp')?.pricePaise).toBeGreaterThan(0)
+  })
+
+  it('preferred Delhivery Air carries Standard too, so Express is not faster and hides', () => {
+    const r = resolveDeliveryOptions(
+      input({
+        config: config({ options: [STANDARD, EXPRESS], rules: [mice({ mode: 'free' })] }),
+        cart: { valuePaise: 150_000, weightGrams: 400, items: [MOUSE] },
+        answers: answers(),
+      }),
+    )
+    expect(find(r, 'std')?.pick?.route.key).toBe('delhivery:E')
+    expect(find(r, 'std')?.pricePaise).toBe(0)
+    expect(find(r, 'exp')).toBeUndefined()
   })
 })
 

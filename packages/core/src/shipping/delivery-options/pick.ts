@@ -4,7 +4,7 @@
  * the pick (`withRulePrice`) and the alternatives a rule offers / WHY: checkout, place order and
  * Try a PIN must pick the same courier at the same price. Pure. Split from resolve.ts.
  */
-import { courierId, type DeliveryOption, type RouteSelector } from './config'
+import { courierId, type DeliveryOption, type RouteRule, type RouteSelector } from './config'
 import { byCheapest, type Candidate, priceFromPick, storeCost } from './courier-list'
 import { datesFor, priceRoute } from './price'
 import type { DropReason, PricedRoute, ResolveInput, WhyPicked } from './resolve-types'
@@ -27,6 +27,26 @@ export const optionAllows = (option: DeliveryOption, route: Route): boolean => {
   return r.mode === 'allow' ? hit : !hit
 }
 
+/**
+ * The routes an option can use for a cart: its own (its courier switches and its speed; a
+ * courier list takes every speed), plus the preferred or forced route of any rule the cart
+ * matches, whatever its speed. A rule's courier wins: mice preferring Delhivery Air ship by Air
+ * on a Standard card (owner, 27 Nov 2026).
+ */
+export function optionCandidates(
+  routes: readonly Route[],
+  option: DeliveryOption,
+  listed: boolean,
+  rules: readonly RouteRule[],
+): Route[] {
+  const named = rules.flatMap((r) => (r.defaultRoute ? [r.defaultRoute] : []))
+  return routes.filter(
+    (r) =>
+      (optionAllows(option, r) && (listed || r.speed === option.speed)) ||
+      named.some((s) => selectorMatches(r, s)),
+  )
+}
+
 export type Need = {
   insured: boolean
   cod: boolean
@@ -36,8 +56,9 @@ export type Need = {
 
 /**
  * Why this route cannot carry the option, or null when it can. Order matters for the trace.
- * `forced`: a rule forces this route (`forceRoute`), so the option's own courier switches and
- * speed do not keep it out.
+ * `ruleRoute`: a rule names this route as its preferred or forced courier, so the option's own
+ * courier switches and speed do not keep it out (a rule's courier wins, owner 27 Nov 2026). The
+ * rule pool, the PIN and the rest still apply.
  */
 function dropReason(
   route: Route,
@@ -45,10 +66,10 @@ function dropReason(
   pool: RulePool,
   input: ResolveInput,
   need: Need,
-  forced = false,
+  ruleRoute = false,
 ): DropReason | null {
-  if (!forced && !optionAllows(option, route)) return 'not_allowed'
-  if (!forced && route.speed !== option.speed && option.couriers.show !== 'list')
+  if (!ruleRoute && !optionAllows(option, route)) return 'not_allowed'
+  if (!ruleRoute && route.speed !== option.speed && option.couriers.show !== 'list')
     return 'wrong_speed'
   if (!poolAllows(pool, route)) return 'rule'
   if (!route.enabled) return 'disabled'
@@ -142,8 +163,12 @@ export function pickFor(
   const fits: Candidate[] = []
   const forcedFits: Candidate[] = []
   for (const route of routes) {
-    const isForced = def?.force === true && selectorMatches(route, def.selector)
-    const reason = dropReason(route, option, pool, input, need)
+    const named = def !== null && selectorMatches(route, def.selector)
+    const isForced = named && def.force
+    /* A preferred route is one of the option's own, whatever its speed: first when it fits; when
+       it cannot reach the PIN the strategy picks the next courier the rules allow (owner, 27 Nov
+       2026). A forced route stays out of the usual routes, which price it (#1782). */
+    const reason = dropReason(route, option, pool, input, need, named && !def.force)
     const forcedReason = isForced ? dropReason(route, option, pool, input, need, true) : reason
     /* A rule's price, or a COD charge shown on its own line, starts from the prepaid price:
        the charge is added once, after the pick (`finish`). */
