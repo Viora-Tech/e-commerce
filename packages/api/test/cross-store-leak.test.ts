@@ -128,6 +128,9 @@ const SKIP: Record<string, string> = {
     'AI model provider (reads in the request without a queue); covered by purchase-documents.test.ts',
   'domains.connect': 'DNS and certificate provider',
   'domains.verify': 'DNS and certificate provider',
+  'affiliates.portalDomain.connect':
+    'connects a domain like domains.connect; covered by affiliates-portal-domain.test.ts',
+  'affiliates.portalDomain.verify': 'DNS and certificate provider',
   'onboarding.create': 'creates another store and switches the session to it',
   'invitations.accept': 'switches the session to another store',
   'staff.removeMember': 'can remove the caller from the store mid-walk',

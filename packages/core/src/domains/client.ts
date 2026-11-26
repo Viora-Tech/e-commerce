@@ -2,3 +2,4 @@
 export * from './hostname'
 export type { DnsState, DomainCheck, SslState } from './provider'
 export * from './records'
+export * from './portal'
