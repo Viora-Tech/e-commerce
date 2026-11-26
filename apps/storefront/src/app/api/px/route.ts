@@ -1,5 +1,4 @@
 import { loadEnv } from '@commerce/config'
-import { CONSENT_COOKIE, currentConsent, decodeConsent } from '@commerce/core/consent'
 import {
   collectorStore,
   collectPixelEvent,
@@ -16,6 +15,7 @@ import { logger } from '@commerce/observability/logging'
 import { pixelSendQueue } from '@commerce/queue'
 import { cookies, headers } from 'next/headers'
 import { readCartId } from '@/lib/cart-cookie'
+import { requestConsent } from '@/lib/consent-cookie'
 import { clientIp, rateLimited } from '@/lib/rate-limit'
 import { withEvlog } from '@/lib/request-log'
 import { inStore } from '@/lib/store-context'
@@ -64,10 +64,10 @@ export const POST = withEvlog(async (request: Request) => {
   if (!beacon) return done()
 
   const jar = await cookies()
-  const stored = decodeConsent(jar.get(CONSENT_COOKIE)?.value)
   const store = await inStore(storeId, (tx) => collectorStore(tx, storeId))
-  const consent = currentConsent(stored, store.bannerVersion)
-  if (!store.installed || !stored || !consent?.marketing) return done()
+  // A yes on the banner, or a region where the banner does not ask (`lib/consent-cookie.ts`).
+  const { consent, stored, bannerVersion } = await requestConsent(storeId)
+  if (!store.installed || !consent?.marketing) return done()
 
   const now = new Date()
   const ids = firstPartyIds(
@@ -98,7 +98,7 @@ export const POST = withEvlog(async (request: Request) => {
     consent: {
       marketing: consent.marketing,
       analytics: consent.analytics,
-      version: stored.version,
+      version: stored?.version ?? bannerVersion,
       at: now.toISOString(),
     },
   }

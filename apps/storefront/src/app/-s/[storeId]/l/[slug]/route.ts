@@ -7,7 +7,6 @@ import {
   pickAttribution,
   shortLinkTarget,
 } from '@commerce/core/marketing'
-import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { logger } from '@commerce/observability/logging'
 import { cookies, headers } from 'next/headers'
 import { NextResponse } from 'next/server'
@@ -57,7 +56,7 @@ export const GET = withEvlog(async (request: Request, { params }: Params) => {
   const cookie = { httpOnly: true, sameSite: 'lax' as const, secure, path: '/' }
   response.cookies.set(LINK_CLICK_COOKIE, link.id, { ...cookie, maxAge: MARKETING_CLICK_MAX_AGE })
   const jar = await cookies()
-  if (analyticsAllowed(jar.get(CONSENT_COOKIE)?.value)) {
+  if (await analyticsAllowed(storeId)) {
     const current = attributionFromVisit({
       landingUrl: target.href,
       referrer: h.get('referer'),

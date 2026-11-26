@@ -153,6 +153,7 @@ describe('island modules', () => {
   it('the inline island loads the pixels module only with the app, and drops the legacy pixel', () => {
     const base = {
       bannerVersion: 2,
+      region: 'ask' as const,
       tracking: { ga4: '', gtm: '', metaPixel: '1234567890', googleAds: '' },
       umami: null,
     }

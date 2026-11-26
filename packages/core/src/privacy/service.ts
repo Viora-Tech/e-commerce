@@ -35,7 +35,11 @@ async function writeSettings(ctx: StoreContext, customerPrivacy: CustomerPrivacy
  */
 export async function saveCustomerPrivacySettings(
   ctx: StoreContext,
-  input: { bannerMessage: string; requestDueDays: number },
+  input: {
+    bannerMessage: string
+    requestDueDays: number
+    bannerRegions?: CustomerPrivacySettings['bannerRegions'] | undefined
+  },
   actor: PrivacyActor,
 ): Promise<CustomerPrivacySettings> {
   const current = await loadCustomerPrivacySettings(ctx)
@@ -43,6 +47,7 @@ export async function saveCustomerPrivacySettings(
     ...current,
     bannerMessage: input.bannerMessage,
     requestDueDays: input.requestDueDays,
+    bannerRegions: input.bannerRegions ?? current.bannerRegions,
   })
   await writeSettings(ctx, next)
   await recordPrivacyEvent(ctx, {
@@ -50,6 +55,7 @@ export async function saveCustomerPrivacySettings(
     actor,
     detail: {
       requestDueDays: next.requestDueDays,
+      bannerRegions: next.bannerRegions,
       bannerMessageChanged: next.bannerMessage !== current.bannerMessage,
     },
   })

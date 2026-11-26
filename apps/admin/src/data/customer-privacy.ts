@@ -17,7 +17,21 @@ export const customerPrivacyContent = {
   loadFailed: 'Could not load customer privacy settings.',
   banner: {
     heading: 'Cookie banner',
-    body: 'Shoppers choose whether to allow analytics and marketing cookies. Nothing optional runs until they say yes, including your store analytics, Google tags and the Meta pixel.',
+    body: 'Choose which shoppers are asked about analytics and marketing cookies. Where the banner asks, nothing optional runs until they say yes, including your store analytics, Google tags and the Meta pixel.',
+    regions: {
+      label: 'Who sees the banner',
+      help: 'Works like Shopify: visitors are placed by the country they browse from.',
+      options: {
+        consent_required: {
+          title: 'Only where consent is required (recommended)',
+          body: 'Visitors from the EU, the EEA, the UK and Switzerland see the banner and are asked first. Everyone else, India included, is tracked from their first page with no banner, and can still turn tracking off from Cookie settings in your footer.',
+        },
+        everyone: {
+          title: 'Ask everyone',
+          body: 'Every visitor sees the banner, and nothing optional runs until they say yes.',
+        },
+      },
+    },
     message: 'Banner message',
     messageHelp: 'Leave empty to use the standard message.',
     messagePlaceholder:

@@ -30,6 +30,7 @@ describe('customer privacy settings', () => {
     expect(parseCustomerPrivacySettings(null)).toEqual({
       bannerMessage: '',
       bannerVersion: 1,
+      bannerRegions: 'consent_required',
       requestDueDays: 30,
     })
   })

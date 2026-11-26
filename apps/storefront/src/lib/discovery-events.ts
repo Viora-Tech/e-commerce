@@ -7,7 +7,6 @@ import {
   recordDiscoveryCheckout,
   recordDiscoveryEvent,
 } from '@commerce/core'
-import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { logger } from '@commerce/observability/logging'
 import { cookies } from 'next/headers'
 import { analyticsAllowed } from './consent-cookie'
@@ -88,9 +87,9 @@ export async function recordBeaconDiscovery(
  * The shopper behind this request, when Search & discovery may count them: a yes to analytics
  * and our anonymous browser id. Null otherwise.
  */
-export async function discoveryVisitor(): Promise<string | null> {
+export async function discoveryVisitor(storeId: string): Promise<string | null> {
   const jar = await cookies()
-  if (!analyticsAllowed(jar.get(CONSENT_COOKIE)?.value)) return null
+  if (!(await analyticsAllowed(storeId))) return null
   return parseVisitorId(jar.get(VISITOR_COOKIE)?.value)
 }
 

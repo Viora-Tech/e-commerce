@@ -13,10 +13,9 @@ import {
   storefrontOriginFor,
 } from '@commerce/core'
 import { defaultCheckoutCountry } from '@commerce/core/checkout-address'
-import { CONSENT_COOKIE, currentConsent, decodeConsent } from '@commerce/core/consent'
 import { initiateCheckoutEventId } from '@commerce/core/pixels'
-import { collectorStore, orderSharingOffered } from '@commerce/core/pixels/server'
-import { cookies, headers } from 'next/headers'
+import { orderSharingOffered } from '@commerce/core/pixels/server'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import PixelTrack from '@/components/analytics/pixel-track'
 import CheckoutForm from '@/components/checkout/checkout-form'
@@ -24,6 +23,7 @@ import { emiHintContent } from '@/data/product'
 import { readCartId } from '@/lib/cart-cookie'
 import { withThemeLogo } from '@/lib/checkout-look'
 import { readCheckoutSession } from '@/lib/checkout-session'
+import { requestConsent } from '@/lib/consent-cookie'
 import { currentCustomer } from '@/lib/customer-session'
 import { cartDiscountView } from '@/lib/discount-view'
 import { storeEmiOffers } from '@/lib/emi-offers'
@@ -111,11 +111,10 @@ export default async function CheckoutPage({ params }: Params) {
   const text = checkoutTextFor(settings.content, requestHeaders.get(MARKET_HEADERS.locale) ?? 'en')
   // "Share this order with our advertising partners": only when the store sends Purchase to an
   // ad pixel server side, and not when the banner already has their yes to marketing.
-  const consent = decodeConsent((await cookies()).get(CONSENT_COOKIE)?.value)
+  const { consent } = await requestConsent(storeId)
   const orderSharing = await inStore(storeId, async (tx) => {
     if (!(await orderSharingOffered(tx, storeId))) return false
-    const { bannerVersion } = await collectorStore(tx, storeId)
-    return currentConsent(consent, bannerVersion)?.marketing !== true
+    return consent?.marketing !== true
   })
   // A new address opens in the shopper's market country, or the country they browse from.
   const defaultCountry = defaultCheckoutCountry(

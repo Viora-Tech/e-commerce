@@ -19,7 +19,7 @@
  *   in Shopify's shape (`lib/recommendations-route.ts`), JSON or the theme's section filled;
  *   a failed answer reads as an empty row.
  * - `Shopify.customerPrivacy` (the theme's cookie banner) → our consent: whether to ask
- *   comes from our consent cookie, and the answer goes to `ConsentManager`
+ *   comes from our consent cookie and the visitor's region (`lib/consent-cookie.ts`), and the answer goes to `ConsentManager`
  *   (`commerce:consent` event), which stores it and loads the allowed tags.
  * - The theme's deferred and module scripts (parked by `lib/liquid-defer.ts`) →
  *   `window.__commerceBootTheme()`, called once React has hydrated (`liquid-boot.tsx`):
@@ -38,6 +38,17 @@ import { VIDEO_FALLBACK_SCRIPT } from './liquid-video-fallback'
 export type LiquidShimConfig = {
   /** No consent stored yet (or for an older banner version): the theme's banner may ask. */
   askConsent: boolean
+  /**
+   * The page was drawn without the visitor's consent region (a copy a shared cache may keep):
+   * the banner waits until `ConsentManager` or the plain page's island learns it and calls
+   * `window.__commerceConsentRegion(ask)` (`lib/liquid-consent-reveal.ts` shows it then).
+   */
+  consentPending?: boolean | undefined
+  /**
+   * What `analyticsProcessingAllowed()` and `marketingAllowed()` answer before any choice on this
+   * page: true in a region that does not require consent (Shopify's model), else false.
+   */
+  granted?: { analytics: boolean; marketing: boolean } | undefined
   /**
    * The market's path prefix (`/ae`), or empty. The theme's links carry it
    * (`lib/liquid-market-links.ts`), so its calls do too: they are matched without it.
@@ -80,19 +91,32 @@ const SHIM = `(function () {
   if (window.__commerceShim) return;
   window.__commerceShim = true;
   var config = __CONFIG__;
+  var granted = config.granted || { analytics: false, marketing: false };
   var consent = {
-    shouldShowBanner: function () { return config.askConsent; },
+    shouldShowBanner: function () { return config.askConsent === true && !config.consentPending; },
+    regionPending: function () { return config.consentPending === true; },
     setTrackingConsent: function (choice, done) {
       config.askConsent = false;
       var detail = { analytics: !!(choice && choice.analytics), marketing: !!(choice && choice.marketing) };
+      granted = detail;
       // Kept until a listener takes it: a shopper can answer before the page's listener exists
       // (the plain page's island script, or ConsentManager before React hydrates).
       window.__commerceConsentAnswer = detail;
       window.dispatchEvent(new CustomEvent('commerce:consent', { detail: detail }));
       if (typeof done === 'function') done();
     },
-    analyticsProcessingAllowed: function () { return false; },
-    marketingAllowed: function () { return false; }
+    analyticsProcessingAllowed: function () { return granted.analytics; },
+    marketingAllowed: function () { return granted.marketing; }
+  };
+  // The region, learned after the page was drawn: an asking banner shows now, else all is allowed.
+  window.__commerceConsentRegion = function (ask) {
+    if (!config.consentPending) return;
+    config.consentPending = false;
+    config.askConsent = !!ask;
+    if (!ask) granted = { analytics: true, marketing: true };
+    var waiting = window.__commerceConsentReveal || [];
+    window.__commerceConsentReveal = [];
+    if (ask) for (var i = 0; i < waiting.length; i++) { try { waiting[i](); } catch (e) {} }
   };
   window.Shopify = window.Shopify || {};
   if (config.designMode) window.Shopify.designMode = true;

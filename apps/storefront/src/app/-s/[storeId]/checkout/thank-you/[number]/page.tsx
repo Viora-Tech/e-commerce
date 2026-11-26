@@ -195,7 +195,7 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
     (await abPurchaseMeasured(storeId))
   // Search & discovery: the funnel's last step, when this browser added from a search or a
   // recommendation in the last 30 minutes (a reload within the window is not counted again).
-  const discoveryShopper = data.order.isTest || isDraft ? null : await discoveryVisitor()
+  const discoveryShopper = data.order.isTest || isDraft ? null : await discoveryVisitor(storeId)
   if (discoveryShopper) after(() => recordDiscoveryOrder(storeId, discoveryShopper))
   return (
     <>

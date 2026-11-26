@@ -5,6 +5,7 @@ import { islandScript } from './islands'
 
 const base = {
   bannerVersion: 2,
+  region: 'ask' as const,
   tracking: { ga4: '', gtm: '', metaPixel: '', googleAds: '' },
   umami: null,
 }

@@ -173,6 +173,7 @@ describe('customer privacy settings', () => {
     expect(settings).toEqual({
       bannerMessage: 'Cookies help',
       bannerVersion: 2,
+      bannerRegions: 'consent_required',
       requestDueDays: 15,
     })
     const [s] = await owner.select().from(store).where(eq(store.id, storeId))

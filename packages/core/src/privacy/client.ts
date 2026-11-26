@@ -1,5 +1,6 @@
-/** SOURCE OF TRUTH: customer privacy settings, data request rules, marketing consent channels — WHAT: Settings → Customer privacy (cookie banner text and version, how many days a data request may take) stored on `store.preferences.customerPrivacy`, the data request kinds, statuses and due dates, and which customer flag holds consent for each marketing channel / WHY: the admin queue, the storefront account page, the banner and every marketing send must agree on these, and client code needs them without a database import */
+/** SOURCE OF TRUTH: customer privacy settings, data request rules, marketing consent channels — WHAT: Settings → Customer privacy (cookie banner text, version and who sees it, how many days a data request may take) stored on `store.preferences.customerPrivacy`, the data request kinds, statuses and due dates, and which customer flag holds consent for each marketing channel / WHY: the admin queue, the storefront account page, the banner and every marketing send must agree on these, and client code needs them without a database import */
 import { z } from 'zod'
+import { BANNER_REGIONS, DEFAULT_BANNER_REGIONS } from '../online-store/consent'
 
 /*
  * Pure: no database import, so admin and storefront client components can use
@@ -23,6 +24,11 @@ export const CustomerPrivacySettingsSchema = z.object({
   bannerMessage: z.string().trim().max(PRIVACY_LIMITS.bannerMessage).default(''),
   /** Bumped by "Ask everyone again": choices made for an older banner stop counting. */
   bannerVersion: z.number().int().min(1).default(1),
+  /**
+   * Who sees the banner, as on Shopify: only visitors from regions that require consent (the
+   * default, also for stores saved before this existed) or everyone.
+   */
+  bannerRegions: z.enum(BANNER_REGIONS).default(DEFAULT_BANNER_REGIONS),
   /** Days the store gives itself to answer a data request; sets each request's due date. */
   requestDueDays: z
     .number()

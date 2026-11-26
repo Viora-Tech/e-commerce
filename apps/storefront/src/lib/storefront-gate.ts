@@ -3,6 +3,8 @@ import { settingsSecret } from '@commerce/config'
 import {
   ACCESS_COOKIE,
   ACCESS_MAX_AGE,
+  type BannerRegions,
+  parseCustomerPrivacySettings,
   parsePreferences,
   readThemePreviewToken,
   searchIndexable,
@@ -32,6 +34,10 @@ type Lock = {
   honoProduct: boolean
   /** Preferences › Product feeds: `/feeds/products.xml` and `.csv` answer; off by default. */
   productFeed: boolean
+  /** Settings › Customer privacy: who sees the cookie banner (`lib/consent-region.ts`). */
+  bannerRegions: BannerRegions
+  /** Settings › Customer privacy: the banner version answers must match where it asks. */
+  bannerVersion: number
 }
 
 const LOCK_TTL_MS = 10_000
@@ -53,12 +59,15 @@ export async function storefrontLock(storeId: string): Promise<Lock> {
   watch()
   const hit = locks.get(storeId)
   if (hit && hit.expiresAt > Date.now()) return hit.lock
-  const prefs = await withStore(db(), storeId, async (tx) => {
+  const { prefs, privacy } = await withStore(db(), storeId, async (tx) => {
     const [row] = await tx
       .select({ preferences: store.preferences })
       .from(store)
       .where(eq(store.id, storeId))
-    return parsePreferences(row?.preferences)
+    return {
+      prefs: parsePreferences(row?.preferences),
+      privacy: parseCustomerPrivacySettings(row?.preferences),
+    }
   })
   const search = searchIndexable(prefs)
   const lock = {
@@ -69,6 +78,8 @@ export async function storefrontLock(storeId: string): Promise<Lock> {
     plainHtml: prefs.delivery.plainHtml,
     honoProduct: prefs.delivery.honoProduct,
     productFeed: prefs.feeds.products,
+    bannerRegions: privacy.bannerRegions,
+    bannerVersion: privacy.bannerVersion,
   }
   locks.set(storeId, { lock, expiresAt: Date.now() + LOCK_TTL_MS })
   return lock
