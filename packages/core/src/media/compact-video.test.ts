@@ -5,8 +5,11 @@ import {
   COMPACT_VIDEO_JOB,
   compactPlan,
   compactVideoKey,
+  copyShapeFor,
   enqueueCompactVideo,
   isVideoUrl,
+  LANDSCAPE_COPY,
+  PORTRAIT_COPY,
   POSTER_PORTRAIT_WIDTH,
   POSTER_WIDTH,
   posterWidthFor,
@@ -52,6 +55,28 @@ describe('compactPlan', () => {
   it('encodes when ffprobe could not tell the duration or width', () => {
     expect(compactPlan({ bytes: 20 * MB, durationSec: null, width: 1920 })).toBe('encode')
     expect(compactPlan({ bytes: 20 * MB, durationSec: 80, width: null })).toBe('encode')
+  })
+
+  it('holds a portrait phone video to the phone settings', () => {
+    // 6 MB over 10 s is 4.8 Mbps, and 1080 wide is wider than the 720 phone copy.
+    expect(compactPlan({ bytes: 6 * MB, durationSec: 10, width: 1080, height: 1920 })).toBe(
+      'encode',
+    )
+    // 2.1 Mbps is lean for a landscape video but not for a phone one.
+    expect(compactPlan({ bytes: 20 * MB, durationSec: 80, width: 720, height: 1280 })).toBe(
+      'encode',
+    )
+    expect(compactPlan({ bytes: 5 * MB, durationSec: 40, width: 720, height: 1280 })).toBe('lean')
+  })
+})
+
+describe('copyShapeFor', () => {
+  it('gives a portrait video the phone copy and anything else the usual one', () => {
+    expect(copyShapeFor({ width: 1080, height: 1920 })).toBe(PORTRAIT_COPY)
+    expect(copyShapeFor({ width: 1920, height: 1080 })).toBe(LANDSCAPE_COPY)
+    expect(copyShapeFor({ width: 1920, height: null })).toBe(LANDSCAPE_COPY)
+    expect(PORTRAIT_COPY.maxWidth).toBeLessThanOrEqual(720)
+    expect(PORTRAIT_COPY.maxrateKbps).toBeLessThanOrEqual(1200)
   })
 })
 

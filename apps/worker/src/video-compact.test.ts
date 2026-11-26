@@ -36,6 +36,8 @@ vi.mock('@commerce/core', async () => {
   return {
     compactPlan: rules.compactPlan,
     compactVideoKey: rules.compactVideoKey,
+    copyShapeFor: rules.copyShapeFor,
+    LANDSCAPE_COPY: rules.LANDSCAPE_COPY,
     videoPosterKey: rules.videoPosterKey,
     linkAutoPoster: async (_tx: unknown, _storeId: string, id: string, poster: unknown) => {
       state.marks.push({ kind: 'poster', id, copy: poster })
@@ -71,10 +73,20 @@ async function storeVideo(bytes: number) {
 }
 
 /** A stand-in for ffmpeg: ffprobe answers `probe`, the encode writes a copy of `copyBytes`. */
-function tools(copyBytes: number, probe = { width: 1920, durationSec: 20 }) {
+function tools(
+  copyBytes: number,
+  probe: { width: number | null; durationSec: number | null; height?: number | null } = {
+    width: 1920,
+    durationSec: 20,
+  },
+  silent = false,
+) {
   return {
-    probe: vi.fn(async () => probe),
-    encode: vi.fn(async (_in: string, out: string) => writeFile(out, new Uint8Array(copyBytes))),
+    probe: vi.fn(async () => ({ height: null, ...probe })),
+    encode: vi.fn(async (_in: string, out: string, _opts: unknown) =>
+      writeFile(out, new Uint8Array(copyBytes)),
+    ),
+    silent: vi.fn(async () => silent),
     poster: vi.fn(async (_in: string, _frame: string, out: string) => {
       await writeFile(out, new Uint8Array(40 * 1024))
       return { width: 1280, height: 720, size: 40 * 1024 }
@@ -116,6 +128,26 @@ describe('compactVideo', () => {
         },
       },
     ])
+  })
+
+  it('encodes a portrait phone video at the phone settings, without a silent track', async () => {
+    await storeVideo(12 * MB)
+    const t = tools(1 * MB, { width: 1080, height: 1920, durationSec: 10 }, true)
+    await expect(run(t)).resolves.toBe('made')
+    expect(t.encode).toHaveBeenCalledWith(expect.any(String), expect.any(String), {
+      shape: expect.objectContaining({ maxWidth: 720, maxrateKbps: 1000 }),
+      audio: false,
+    })
+  })
+
+  it('keeps a landscape video at the usual settings, with its sound', async () => {
+    await storeVideo(12 * MB)
+    const t = tools(3 * MB)
+    await expect(run(t)).resolves.toBe('made')
+    expect(t.encode).toHaveBeenCalledWith(expect.any(String), expect.any(String), {
+      shape: expect.objectContaining({ maxWidth: 1920, maxrateKbps: 3500 }),
+      audio: true,
+    })
   })
 
   it('never downloads a small video: its size comes from the bucket', async () => {
