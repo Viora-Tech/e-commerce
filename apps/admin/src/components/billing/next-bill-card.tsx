@@ -32,7 +32,9 @@ export default function NextBillCard({ bill, appNames, autopay, billingReady }: 
   const rows = [
     {
       id: 'plan',
-      label: c.plan(copy.plans[bill.plan].name, month(bill.dueAt)),
+      label: [c.plan(copy.plans[bill.plan].name, month(bill.dueAt)), bill.founding ? copy.founding.chip : null]
+        .filter(Boolean)
+        .join(' · '),
       paise: bill.planPaise,
     },
     {

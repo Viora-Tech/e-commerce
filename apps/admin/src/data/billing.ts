@@ -246,4 +246,14 @@ export const billingContent = {
     noFee: 'None',
   },
   loadFailed: 'Could not load your plan. Try again.',
+  founding: {
+    chip: 'Founding offer',
+    line: (price: string, list: string, left: number, total: number) =>
+      left > 0
+        ? `Founding merchant: Growth at ${price} a month instead of ${list} for your first ${total} paid months. ${left} of ${total} ${left === 1 ? 'month' : 'months'} left.`
+        : `Founding merchant: your ${total} months at the founding price are done. Growth renews at ${list} a month.`,
+    autopay:
+      'UPI AutoPay turned on during the offer stops after your last founding month. Turn it on again then for the normal price.',
+    was: (list: string) => `was ${list}`,
+  },
 } as const

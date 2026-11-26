@@ -24,7 +24,10 @@ export type SiteConfig = {
   }
   contact: {
     supportEmail: string
-    /** International format, digits only (wa.me style). PLACEHOLDER. */
+    /**
+     * International format, digits only (wa.me style). The Waimers support WhatsApp (owner,
+     * 27 Nov 2026), the same number as `phone`; change it here when Koomerce gets its own.
+     */
     whatsappNumber: string
     whatsappGreeting: string
     phone: string
@@ -99,7 +102,7 @@ export const siteConfig: SiteConfig = {
   },
   contact: {
     supportEmail: 'support@koomerce.app',
-    whatsappNumber: '910000000000',
+    whatsappNumber: '919355074123',
     whatsappGreeting: 'Hi, I need help with my store.',
     phone: '+91 93550 74123',
   },

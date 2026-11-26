@@ -13,6 +13,7 @@ import {
 import { and, eq } from 'drizzle-orm'
 import { lockStoreApps } from '../apps/locked'
 import { installApp } from '../apps/settings'
+import { startSignupPlan } from '../billing/founding-offer-service'
 import { PREINSTALLED_APPS } from '../automations/app'
 import { createCollection } from '../collections/service'
 import { requestDomainRoute } from '../domains/routes'
@@ -254,6 +255,8 @@ export async function createStore(input: CreateStoreInput): Promise<CreateStoreR
     await ensurePrimaryMarket(tx, storeId)
     await seedWaimersShipping(tx, storeId)
     if (input.profile) await applyBusinessProfile(tx, storeId, input.profile)
+    // The trial starts at sign-up: a founding place (30 days) while the offer has places left.
+    await startSignupPlan(tx, storeId)
     // Built-in apps every store starts with (Automations, like Shopify Flow), then any asked for.
     await installStoreApps(tx, storeId, [...PREINSTALLED_APPS, ...(input.installApps ?? [])])
   })

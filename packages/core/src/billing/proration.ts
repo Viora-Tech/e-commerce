@@ -91,6 +91,12 @@ const isDowngrade = (from: Pick<CurrentPlan, 'plan' | 'interval'>, to: Target): 
 type Target = { plan: PlanId; interval: BillingInterval }
 
 /**
+ * Prices before GST that differ from the list (the founding offer): `target` for the plan and
+ * interval moved to, `current` for what the current period was paid at (its unused days).
+ */
+export type PlanPrices = { target?: number | undefined; current?: number | undefined }
+
+/**
  * What moving `current` to `target` costs at `now`.
  *
  * - A downgrade on a paid plan with time left is scheduled for the period end (no refund).
@@ -111,13 +117,14 @@ export function quotePlanChange(
   target: Target,
   now: Date,
   feesPaise = 0,
+  prices: PlanPrices = {},
 ): PlanChangeQuote {
   const paidTimeLeft =
     current.status === 'active' &&
     current.periodStart !== null &&
     current.periodEnd !== null &&
     current.periodEnd > now
-  const renewalPaise = PLANS[target.plan].pricePaise[target.interval]
+  const renewalPaise = prices.target ?? PLANS[target.plan].pricePaise[target.interval]
 
   if (paidTimeLeft && isDowngrade(current, target)) {
     return {
@@ -174,7 +181,11 @@ export function quotePlanChange(
   const start = current.periodStart as Date
   const end = current.periodEnd as Date
   const { total, left } = daysLeft(start, end, now)
-  const creditPaise = share(PLANS[current.plan].pricePaise[current.interval], left, total)
+  const creditPaise = share(
+    prices.current ?? PLANS[current.plan].pricePaise[current.interval],
+    left,
+    total,
+  )
 
   if (target.interval === 'year' && current.interval === 'month') {
     return charge({
@@ -190,7 +201,9 @@ export function quotePlanChange(
 
   // Same interval, or a yearly plan moving to a bigger monthly one: the rest of this period.
   const periodPrice =
-    target.interval === current.interval ? renewalPaise : PLANS[target.plan].pricePaise.month * 12
+    target.interval === current.interval
+      ? renewalPaise
+      : (prices.target ?? PLANS[target.plan].pricePaise.month) * 12
   return charge({
     periodStart: now,
     periodEnd: end,

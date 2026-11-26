@@ -2,7 +2,7 @@
 
 import { PLAN_QUOTAS } from '@commerce/ai/client'
 import type { PlanView } from '@commerce/core'
-import { PLANS } from '@commerce/core/billing'
+import { foundingPriceOf, PLANS } from '@commerce/core/billing'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Progress } from '@commerce/ui/shadcn/progress'
@@ -37,7 +37,10 @@ export default function CurrentPlanCard({ view, onKeepPlan }: CurrentPlanCardPro
 
   // Render logic
   const plan = PLANS[view.plan]
-  const price = plan.pricePaise[view.interval]
+  const listPrice = plan.pricePaise[view.interval]
+  const foundingPrice = foundingPriceOf(view.founding, view.plan, view.interval)
+  const price = foundingPrice ?? listPrice
+  const founding = view.founding
   const percent = feePercent(plan.feeBasisPoints)
   const orders = format.number(plan.orders)
   const when =
@@ -75,6 +78,9 @@ export default function CurrentPlanCard({ view, onKeepPlan }: CurrentPlanCardPro
           <div className="flex items-center gap-2">
             <h2 className="text-section-title text-ink-strong">{copy.plans[view.plan].name}</h2>
             <StatusChip tone={STATUS_TONE[view.status]}>{copy.status[view.status]}</StatusChip>
+            {foundingPrice !== null ? (
+              <StatusChip tone="info">{copy.founding.chip}</StatusChip>
+            ) : null}
           </div>
           <p className="text-caption text-muted-foreground">
             {[copy.interval[view.interval], when].filter(Boolean).join(' · ')}
@@ -92,8 +98,28 @@ export default function CurrentPlanCard({ view, onKeepPlan }: CurrentPlanCardPro
           <span className="text-caption text-muted-foreground">
             {view.interval === 'year' ? copy.current.perYearGst : copy.current.perMonthGst}
           </span>
+          {foundingPrice !== null ? (
+            <span className="text-caption text-muted-foreground line-through">
+              {copy.founding.was(format.money(listPrice))}
+            </span>
+          ) : null}
         </div>
       </div>
+      {founding ? (
+        <div className="flex flex-col gap-1 rounded-md border border-border bg-muted/40 px-3 py-2">
+          <p className="text-body text-ink-strong">
+            {copy.founding.line(
+              format.money(founding.pricePaise),
+              format.money(founding.listPricePaise),
+              founding.monthsLeft,
+              founding.monthsTotal,
+            )}
+          </p>
+          {founding.monthsLeft > 0 ? (
+            <p className="text-caption text-muted-foreground">{copy.founding.autopay}</p>
+          ) : null}
+        </div>
+      ) : null}
       {view.nextPlan && view.periodEnd ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-body">
           <span>

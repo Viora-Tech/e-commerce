@@ -101,6 +101,7 @@ describe('projectNextBill', () => {
       plan: 'growth',
       interval: 'month',
       planPaise: 1_99_900,
+      founding: false,
       feesPaise: 0,
       feesMonth: '2026-11',
       apps: [{ pluginId: 'emi-pay-later', pricePaise: 149_00 }],

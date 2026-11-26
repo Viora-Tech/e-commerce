@@ -7,6 +7,8 @@ import { storePlan, usageBill, withStore } from '@commerce/db'
 import { and, eq, sql } from 'drizzle-orm'
 import { CommerceError } from '../errors'
 import { planName } from './emails'
+import { FOUNDING_OFFER, foundingApplies } from './founding-offer'
+import { lastPaidWasFounding, loadFoundingState } from './founding-offer-service'
 import type { BillingInterval, PlanId } from './plans'
 import { type PlanChangeQuote, type PlanChargeQuote, quotePlanChange } from './proration'
 import {
@@ -58,12 +60,20 @@ export async function loadPlanChangeQuote(
   input: { plan: PlanId; interval: BillingInterval },
   now = new Date(),
 ): Promise<PlanChangeQuote> {
-  const { row, fees } = await withStore(db, storeId, async (tx) => ({
+  const { row, fees, founding, paidFounding } = await withStore(db, storeId, async (tx) => ({
     row: await ensureStorePlan(tx, storeId, now),
     fees: await dueFeesPaise(tx, storeId),
+    founding: await loadFoundingState(tx, storeId),
+    paidFounding: await lastPaidWasFounding(tx, storeId),
   }))
   if (row.unlimited) throw new UnlimitedPlan()
-  return quotePlanChange(row, input, now, fees)
+  // The founding offer: the bill `createPlanBill` places is priced the same way.
+  return quotePlanChange(row, input, now, fees, {
+    target: foundingApplies(founding, input.plan, input.interval)
+      ? FOUNDING_OFFER.pricePaise
+      : undefined,
+    current: paidFounding ? FOUNDING_OFFER.pricePaise : undefined,
+  })
 }
 
 /**
