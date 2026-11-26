@@ -310,9 +310,7 @@ export async function handleAutopayWebhook(
       tx
         .update(autopayMandate)
         .set({ lastPaymentId: mandate.lastPaymentId })
-        .where(
-          and(eq(autopayMandate.id, mandate.id), eq(autopayMandate.lastPaymentId, paymentId)),
-        ),
+        .where(and(eq(autopayMandate.id, mandate.id), eq(autopayMandate.lastPaymentId, paymentId))),
     )
     throw err
   }

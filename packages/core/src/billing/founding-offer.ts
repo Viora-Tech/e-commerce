@@ -62,9 +62,10 @@ export const foundingDiscountPaise = (): number =>
 
 /** The sales order note: `Founding offer: Growth at ₹999 a month, month 3 of 12`. */
 export const foundingNote = (s: FoundingState): string =>
-  `${FOUNDING_OFFER_LABEL}: Growth at ₹${FOUNDING_OFFER.pricePaise / 100} a month, month ${
-    Math.min(FOUNDING_OFFER.months, s.monthsPaid + 1)
-  } of ${FOUNDING_OFFER.months}`
+  `${FOUNDING_OFFER_LABEL}: Growth at ₹${FOUNDING_OFFER.pricePaise / 100} a month, month ${Math.min(
+    FOUNDING_OFFER.months,
+    s.monthsPaid + 1,
+  )} of ${FOUNDING_OFFER.months}`
 
 /** What the Plan & billing page shows; null without a place. */
 export type FoundingView = {
