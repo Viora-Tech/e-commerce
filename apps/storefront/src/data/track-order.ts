@@ -14,4 +14,17 @@ export const trackOrderContent = {
   limited: 'Too many tries. Wait a minute and try again.',
   account: 'Have an account?',
   signIn: 'Sign in to see all orders',
+  /** Signed in: the shopper's latest orders above the lookup, as Shopify's order status page. */
+  recent: {
+    intro: 'Your latest orders. Open one to see where it is.',
+    viewAll: 'View all orders',
+  },
+  /** Signed in: the lookup form under the recent orders. */
+  another: {
+    title: 'Track another order',
+    body: 'Placed as a guest or with another email or mobile? Enter its number and the details you used.',
+  },
 } as const
+
+/** How many of a signed-in shopper's orders the page lists; the rest are on `/account`. */
+export const RECENT_ORDERS_LIMIT = 5
