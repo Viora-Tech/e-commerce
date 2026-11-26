@@ -63,7 +63,7 @@ export const codRtoContent = {
     title: 'Risky orders',
     subtitle: 'Orders the score calls risky, and COD orders waiting for the customer.',
     tabs: {
-      risky: 'Medium and high',
+      medium: 'Medium',
       high: 'High risk',
       unconfirmed: 'No answer',
       pending: 'Waiting',

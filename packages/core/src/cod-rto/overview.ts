@@ -107,8 +107,8 @@ export async function codRtoOverview(ctx: StoreContext, days = 30, now = new Dat
 function filterWhere(filter: RiskOrderFilter) {
   const level = sql`${order.rtoRisk}->>'level'`
   switch (filter) {
-    case 'risky':
-      return sql`${level} in ('medium', 'high')`
+    case 'medium':
+      return sql`${level} = 'medium'`
     case 'high':
       return sql`${level} = 'high'`
     case 'unconfirmed':

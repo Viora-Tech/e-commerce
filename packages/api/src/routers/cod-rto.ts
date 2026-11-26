@@ -53,7 +53,7 @@ export const codRtoRouter = {
   orders: can(permissions.ORDERS_READ)
     .input(
       z.object({
-        filter: z.enum(RISK_ORDER_FILTERS).default('risky'),
+        filter: z.enum(RISK_ORDER_FILTERS).default('medium'),
         openOnly: z.boolean().default(true),
         page: z.number().int().min(1).max(PAGE_MAX).default(1),
         perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),

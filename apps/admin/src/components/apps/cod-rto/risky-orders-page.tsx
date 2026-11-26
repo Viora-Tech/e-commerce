@@ -39,7 +39,7 @@ export default function RiskyOrdersPage() {
   const copy = useCopy(codRtoContent)
   const apps = useCopy(appsContent)
   const f = useFormat()
-  const [filter, setFilter] = useState<RiskOrderFilter>('risky')
+  const [filter, setFilter] = useState<RiskOrderFilter>('medium')
   const [openOnly, setOpenOnly] = useState(true)
   const [page, setPage] = useState(1)
   const { data, failed, retry } = useLoad(

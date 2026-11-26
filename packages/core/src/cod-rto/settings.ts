@@ -16,7 +16,7 @@ const COD_VERIFICATIONS = ['pending', 'confirmed', 'cancelled', 'unconfirmed'] a
 export type CodVerification = (typeof COD_VERIFICATIONS)[number]
 
 /** The risky-orders page's tabs: medium and high, high only, no answer, waiting, everything checked. */
-export const RISK_ORDER_FILTERS = ['risky', 'high', 'unconfirmed', 'pending', 'all'] as const
+export const RISK_ORDER_FILTERS = ['medium', 'high', 'unconfirmed', 'pending', 'all'] as const
 export type RiskOrderFilter = (typeof RISK_ORDER_FILTERS)[number]
 
 /** Hour limits for the confirmation deadlines (1 hour to a week). */
