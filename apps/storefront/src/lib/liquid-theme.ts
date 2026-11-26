@@ -81,6 +81,7 @@ import { requestOrigin } from './seo'
 import { CACHE_TTL_MS, cachedForStore, peekForStore, rememberForStore } from './store-cache'
 import { inStore } from './store-context'
 import { readPreview } from './storefront-gate'
+import { bundleThemeStylesheets } from './theme-css'
 
 /**
  * The storefront side of imported Shopify themes (`@commerce/core` theme-import): the
@@ -582,7 +583,8 @@ export async function liquidLayoutFor(
     if (live.ctx.cache.missing) trace.failed = true
     const layout: LiquidLayout = {
       ...parts,
-      head: compactThemeHtml(deferThemeScripts(parts.head)),
+      // One request for the head's run of theme stylesheets (`theme-css.ts`).
+      head: bundleThemeStylesheets(compactThemeHtml(deferThemeScripts(parts.head))),
       beforeHeader: compactThemeHtml(deferThemeScripts(parts.beforeHeader)),
       afterFooter: compactThemeHtml(deferThemeScripts(parts.afterFooter)),
       fontsHref: googleFontsHref(parts.fonts),
