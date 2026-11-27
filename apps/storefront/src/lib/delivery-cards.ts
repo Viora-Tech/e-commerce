@@ -104,8 +104,8 @@ export type CourierLogo = {
 
 /**
  * Logos shipped in `public/courier-logos/`, by the carrier key `normaliseCarrier` gives (the
- * same files as the admin's `public/app-logos`). A courier with no file (Amazon Shipping, Ecom
- * Express, Gati, Smartr) gets an initials tile; drop its file here and add a line to show it.
+ * same files as the admin's `public/app-logos`). A courier with no file (Ecom Express, Gati,
+ * Smartr) gets an initials tile; drop its file here and add a line to show it.
  * The proxy must skip `courier-logos/` (`src/proxy.ts` matcher) or every file 404s.
  */
 const COURIER_LOGOS: Record<string, { file: string; light?: boolean }> = {
@@ -114,6 +114,7 @@ const COURIER_LOGOS: Record<string, { file: string; light?: boolean }> = {
   dtdc: { file: 'dtdc.png' },
   xpressbees: { file: 'xpressbees.png' },
   ekart: { file: 'ekart.png' },
+  amazon: { file: 'amazon.svg', light: true },
   shadowfax: { file: 'shadowfax.png' },
   'india-post': { file: 'india-post.png' },
   dhl: { file: 'dhl.svg', light: true },
