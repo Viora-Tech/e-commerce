@@ -29,7 +29,7 @@ type DeliveryQuestionsProps = {
 }
 
 const WHO_PAYS: readonly WhoPays[] = ['route', 'zone', 'free']
-const FASTER: readonly FasterAnswer[] = ['no', 'difference', 'full']
+const FASTER: readonly FasterAnswer[] = ['no', 'difference', 'full', 'own']
 
 /**
  * The 3 questions the owner chose (21 Nov 2026): "Who pays for delivery?" (`price.source`),
@@ -61,6 +61,7 @@ export default function DeliveryQuestions({
     no: null,
     difference: money(amounts.extraPaise),
     full: money(amounts.fullPaise),
+    own: null,
   }
   const roundStep = askFaster ? 3 : 2
   const ids = {

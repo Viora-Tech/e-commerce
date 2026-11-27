@@ -65,7 +65,14 @@ export function optionExample(o: Pricing): OptionExample {
   const more = Math.max(0, cost - EXAMPLE_COSTS[firstSpeed])
   const extra = o.couriers.extra
   let other: ExampleCard
-  if (more === 0 || extra === 'none') {
+  if (extra === 'own') {
+    // Every other courier at its own price, cheaper for the store or not (owner, 28 Nov 2026).
+    other = {
+      speed: otherSpeed,
+      pricePaise: Math.max(base ?? 0, ownPrice(o, cost)),
+      extraPaise: null,
+    }
+  } else if (more === 0 || extra === 'none') {
     other = { speed: otherSpeed, pricePaise: base, extraPaise: null }
   } else if (extra === 'full') {
     other = {

@@ -73,19 +73,51 @@ export function fullPricePaise(c: Candidate, option: DeliveryOption): number {
   return roundPrice(storeCost(c) + markup, option.price.rounding)
 }
 
+/** What an `own` card adds besides the courier's shipping (`priceFromPick`). */
+export type OwnExtras = {
+  /** The cart's packing (`packingFor`), charged on every card. */
+  packingPaise: number
+  /** The shopper pays the courier's insurance (ticked, not required by a rule). */
+  insurance: boolean
+}
+
+const NO_EXTRAS: OwnExtras = { packingPaise: 0, insurance: true }
+
+/**
+ * A courier's own price on an `own` list: its shipping and markup rounded the option's way plus
+ * the cart's packing, and its insurance rounded the same way on its own, so two couriers of one
+ * aggregator add the same insurance (owner, 28 Nov 2026: Amazon and Ekart both via RapidShyp).
+ */
+export function ownPricePaise(c: Candidate, option: DeliveryOption, extras: OwnExtras): number {
+  const cost = c.priced.courierCostPaise
+  const markup = option.price.markupPaise + Math.ceil((cost * option.price.markupPercent) / 100)
+  const insurance = extras.insurance ? (c.priced.insurancePaise ?? 0) : 0
+  return (
+    roundPrice(cost + markup, option.price.rounding) +
+    extras.packingPaise +
+    (insurance > 0 ? roundPrice(insurance, option.price.rounding) : 0)
+  )
+}
+
 /**
  * A card priced from the pick: a cheaper courier costs what the pick costs (free when it is
  * free). A dearer one adds the difference rounded the option's way (`difference`, owner 20 Nov
  * 2026), costs its own full price but never less than the pick (`full`, owner 21 Nov 2026), or
- * costs what the pick costs (`none`).
+ * costs what the pick costs (`none`). `own`: every other courier, cheaper or dearer, costs its
+ * own price (`ownPricePaise`), never less than the pick (owner, 28 Nov 2026).
  */
 export function priceFromPick(
   c: Candidate,
   winner: Candidate,
   option: DeliveryOption,
+  extras: OwnExtras = NO_EXTRAS,
 ): PricedRoute {
-  const more = Math.max(0, storeCost(c) - storeCost(winner))
   const mode = option.couriers.extra
+  if (mode === 'own') {
+    const price = Math.max(winner.priced.pricePaise, ownPricePaise(c, option, extras))
+    return { ...c.priced, pricePaise: price, listPricePaise: price }
+  }
+  const more = Math.max(0, storeCost(c) - storeCost(winner))
   if (mode === 'full' && more > 0) {
     const own = fullPricePaise(c, option)
     return {
@@ -127,6 +159,8 @@ export function courierList(
   rulePriced = false,
   /** A Fixed rule names couriers' own prices (`ruleCardPricer`); null: all from the pick. */
   cardPrice: CardPricer | null = null,
+  /** What an `own` card adds besides shipping. */
+  extras: OwnExtras = NO_EXTRAS,
 ): PricedRoute[] {
   const base = withCod(winner.priced, winner.route, option, rulePriced)
   const seen = new Set<string>([`${winner.route.carrierKey}:${winner.route.speed}`])
@@ -136,7 +170,7 @@ export function courierList(
     if (c.route.key === winner.route.key || seen.has(id)) continue
     if (preferred && c.route.carrierKey === winner.route.carrierKey) continue
     seen.add(id)
-    const fromPick = priceFromPick(c, winner, option)
+    const fromPick = priceFromPick(c, winner, option, extras)
     const card = cardPrice ? cardPrice(c, fromPick) : fromPick
     rest.push(withCod(card, c.route, option, rulePriced))
   }

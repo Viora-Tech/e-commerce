@@ -28,11 +28,13 @@ export const deliveryOptionSectionsContent = {
       difference: 'Your price plus the difference',
       full: 'The courier’s full price',
       none: 'Your price, nothing extra',
+      own: 'Only the recommended courier gets your price; others pay their own price',
     },
     help: {
       difference: 'A courier that costs you ₹30 more shows “+ ₹30” at checkout.',
       full: 'Each faster courier shows its own delivery price, like “₹99”, never less than the first courier. A Free price or a product rule’s price covers only the first courier.',
       none: 'Every courier costs the shopper the same. You pay what faster ones cost more.',
+      own: 'The first courier keeps your price, such as Free. Every other courier shows its own shipping price, plus its own insurance when ticked, never cheaper than the first.',
     },
   },
   example: {
