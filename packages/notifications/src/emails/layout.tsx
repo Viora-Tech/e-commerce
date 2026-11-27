@@ -45,6 +45,7 @@ const RESPONSIVE = `
   .k-pad { padding-left: 22px !important; padding-right: 22px !important; }
   .k-title { font-size: 31px !important; line-height: 36px !important; }
   .k-stack { display: block !important; width: 100% !important; }
+  .k-gap { display: block !important; width: 100% !important; height: 12px !important; }
 }`
 
 /**
