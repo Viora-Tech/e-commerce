@@ -1424,6 +1424,11 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'the pure ranking, used inside this file and tested directly',
   },
   {
+    file: 'packages/plugin-gst-invoices/src/edit-invoice.ts',
+    names: ['gstr1DueDate', 'editLockOf'],
+    reason: 'the edit lock rule and due date, pure and tested directly by edit-lock.test.ts',
+  },
+  {
     file: 'packages/plugin-gst-invoices/src/credit-notes.ts',
     names: ['creditNoteCutoff', 'issueCreditNote'],
     reason: 'no external importer today — investigate before removing',

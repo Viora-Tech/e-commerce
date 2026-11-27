@@ -111,10 +111,38 @@ for cotton T-shirts) and **GST rate (%)**. Leave the rate blank to use the store
   portal, copy the GSTR-3B figures, then **Mark filed** and **Close period**. See
   [GST returns](/merchant-guide/money-and-gst/gst-returns).
 
+## Edit an invoice before you file
+
+Until you file the month's GSTR-1, a wrong invoice can be corrected in place, as Zoho Books and
+Tally allow. Open the invoice from **Invoices** and select **Edit invoice**.
+
+- **What you can change:** each item's quantity, unit price and discount, the shipping and other
+  charges, and the buyer's name, address, GSTIN and place of supply. Set a quantity to 0 to
+  take an item off.
+- **What is worked out again:** CGST and SGST (or IGST), the taxable value, the totals, the
+  amount in words and the HSN summary, with the same tax rules as when the invoice was issued.
+- **What stays:** the invoice number and date.
+- After you save, the PDF is drawn again, the GSTR-1 export, the Returns page and the Queue's
+  **Issued this month** figures use the new amounts, and you can **Email corrected invoice to
+  buyer**. The order's timeline notes the change.
+- **Edit history** on the invoice shows each earlier version with who changed it, when, why and
+  its totals. **Open PDF** shows that version as it was.
+
+Editing is allowed while all of these hold:
+
+- the invoice is not cancelled;
+- its month is not marked filed (or closed) on the **Returns** page;
+- today is on or before the GSTR-1 due date for that month, the 11th of the next month;
+- it is not an e-invoice with an IRN, and no credit note has been issued against it.
+
+Otherwise the invoice page says why it is locked (for example "November 2026 is marked filed"
+or "The GSTR-1 due date for November 2026 has passed"). From the 1st to the 11th, the Queue and
+Invoices pages remind you: "File November GSTR-1 by 11 Dec, then mark November filed."
+
 <Callout type="warning">
-  Once issued, an invoice keeps its number forever. To correct one, issue a credit note and a
-  fresh invoice, never edit the old number. That's what GST law expects, and what your CA will
-  look for.
+  Once the month is filed, an invoice keeps its amounts for good. To correct it then, issue a
+  credit note to reduce it, or a new invoice for anything extra. That's what GST law expects
+  after filing, and what your CA will look for.
 </Callout>
 
 ## How the tax split works
@@ -164,7 +192,8 @@ With one GST number nothing changes: there is no picker and your numbers carry o
 | --- | --- | --- |
 | Nothing is being queued | **Queue orders** is **Only when I add them**, or the app isn't set up. | Check **Queue and delivery** and **Business details**. |
 | A queued invoice won't issue | A required detail (like GSTIN) is missing. | The queue shows the reason; fix it in Settings and issue again. |
-| Wrong HSN on an invoice | The product has no HS code, so **Default HSN** was used. | Add the HS code on the product; for the issued invoice, credit note and re-issue. |
+| Wrong HSN on an invoice | The product has no HS code, so **Default HSN** was used. | Add the HS code on the product, then **Recalculate GST** on the invoice before its month is filed; after filing, credit note and re-issue. |
+| Wrong quantity, price or buyer on an invoice | It was issued before the order was corrected. | Before the month is filed, **Edit invoice** on the invoice page; after filing, credit note and re-issue. |
 | IGST where you expected CGST/SGST | The order was billed from a GST number in another state (see **Billed from** on the order). | Check which GST number the warehouse bills under on **Settings → Locations & warehouses**. |
 | Two invoices with the same number | They come from two different GST numbers, which is allowed. | Add `{GST}` to the prefix so each GST number's invoices look different. |
 

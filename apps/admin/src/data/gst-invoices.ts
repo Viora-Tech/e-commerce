@@ -274,7 +274,7 @@ export const gstInvoicesContent = {
     /** Why an issued invoice is not edited, and the lawful ways to change it (issue 1009). */
     changes: {
       toggle: 'Need to change this invoice?',
-      body: 'An issued tax invoice cannot be edited. GST law keeps it exactly as issued; changes go through a new document.',
+      body: 'This invoice can no longer be edited (its month is filed or the GSTR-1 due date has passed). Changes go through a new document.',
       open: [
         'Items or shipping changed: edit the order. When the edit adds to the bill, this invoice is cancelled and re-issued for you; when it lowers it, refund the difference and issue a credit note.',
         'Anything else: open the invoice, cancel it (its number stays used), then add the order to the queue again.',

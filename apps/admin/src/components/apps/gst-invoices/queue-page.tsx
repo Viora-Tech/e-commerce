@@ -34,6 +34,7 @@ import {
 } from '@/lib/gst-list-filters'
 import { routes } from '@/lib/routes'
 import AlreadyInvoicedDialog from './already-invoiced-dialog'
+import FilingReminder from './filing-reminder'
 import GstExportButton from './gst-export-button'
 import { isReadyRow, type QueueRow, queueColumns } from './queue-columns'
 import QueueEmpty from './queue-empty'
@@ -255,6 +256,7 @@ function QueueList() {
           ]}
         />
       ) : null}
+      <FilingReminder />
       <QueueStats
         gst={q.gst ?? undefined}
         waiting={result === null ? null : counts.all}

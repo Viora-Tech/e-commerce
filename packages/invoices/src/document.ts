@@ -270,7 +270,7 @@ export function buildDocument(input: BuildDocumentInput): DocumentSnapshot {
 }
 
 /** Each rate's amount and tax: as recorded at checkout when it lines up, else computed now. */
-function groupsFor(
+export function groupsFor(
   rates: number[],
   amounts: number[],
   recorded: Recorded | null,
