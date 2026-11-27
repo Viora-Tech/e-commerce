@@ -117,7 +117,7 @@ export type ResolvedOption = {
   /** `list`: checkout draws each choice as its own card (the option's Couriers setting). */
   layout: 'one' | 'list'
   /**
-   * A list whose other couriers cost their own full price (`couriers.extra: 'full'`): checkout
+   * A list whose other couriers cost their own full price (`couriers.extra: 'full'` or `'own'`): checkout
    * shows each card's price, not "+ ₹X" over the first. Absent: the difference.
    */
   fullPrices?: boolean | undefined

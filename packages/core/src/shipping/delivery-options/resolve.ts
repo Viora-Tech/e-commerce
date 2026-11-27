@@ -20,7 +20,7 @@ import type {
   TraceRoute,
 } from './resolve-types'
 import { insurancePrice, type Route, routesFromAnswers } from './routes'
-import { cartRulePrices, type RulePriceContext, ruleCardPricer } from './rule-price'
+import { cartRulePrices, packingFor, type RulePriceContext, ruleCardPricer } from './rule-price'
 import { matchRules, poolAllows, rulePool } from './rules'
 
 function traceRoute(
@@ -179,6 +179,11 @@ export function resolveDeliveryOptions(
       rulePrice && before
         ? ruleCardPricer(before, winner.priced, option, rulePrice, { insured, required })
         : null
+    // An `own` list: what every other card adds besides its shipping (packing, insurance).
+    const extras = {
+      packingPaise: rulePrice ? packingFor(rulePrice) : 0,
+      insurance: insured && !required,
+    }
     // A forced route carries the parcel alone: no alternatives, no other courier cards.
     const alternatives = prepaid.forced
       ? []
@@ -189,6 +194,7 @@ export function resolveDeliveryOptions(
           winner,
           rulePrice !== null,
           cardPrice,
+          extras,
         )
     const codPick = codAllowed ? pickOf({ insured, cod: true }).picked : null
     const pick = winner.priced
@@ -201,6 +207,7 @@ export function resolveDeliveryOptions(
             why.kind === 'rule_default',
             rulePrice !== null,
             cardPrice,
+            extras,
           )
         : []
     /* The tick: priced both ways, so "+₹X" is what ticking really adds after rounding. A route
@@ -235,7 +242,10 @@ export function resolveDeliveryOptions(
           ? [pick, ...alternatives]
           : [],
       layout: listChoices.length ? 'list' : 'one',
-      ...(listChoices.length && option.couriers.extra === 'full' ? { fullPrices: true } : {}),
+      ...(listChoices.length &&
+      (option.couriers.extra === 'full' || option.couriers.extra === 'own')
+        ? { fullPrices: true }
+        : {}),
       pricePaise: pick.pricePaise,
       listPricePaise: pick.listPricePaise,
       earliest: pick.earliest,
