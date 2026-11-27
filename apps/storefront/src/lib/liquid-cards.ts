@@ -6,15 +6,9 @@ import { currentCustomer } from './customer-session'
 import { type CachedLiquid, keepable, renderTtl, sectionCacheKey, servable } from './liquid-cache'
 import { toLiquidCart } from './liquid-cart'
 import { compactThemeHtml } from './liquid-compact'
+import { importedTheme, tracedContext } from './liquid-context'
 import { deferThemeScripts } from './liquid-defer'
-import {
-  cacheScope,
-  finish,
-  importedTheme,
-  requestScope,
-  signedOut,
-  tracedContext,
-} from './liquid-theme'
+import { cacheScope, finish, requestScope, signedOut } from './liquid-scope'
 import { cartIsEmpty, requestCart } from './request-cart'
 import { CACHE_TTL_MS, peekForStore, rememberForStore } from './store-cache'
 import { inStore } from './store-context'

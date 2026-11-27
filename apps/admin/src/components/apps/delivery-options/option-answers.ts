@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: the 3 questions on the Options page and an option's page, as settings
  * WHAT:  "Who pays for delivery?" is `price.source`; "Can shoppers pick a faster courier?" is
- *        `couriers.max` 1 (No) or `couriers.extra` (`difference`, `full`); "Round prices to" is
+ *        `couriers.max` 1 (No) or `couriers.extra` (`difference`, `full`, `own`); "Round prices to" is
  *        `price.rounding`. Also the made-up amounts the faster-courier cards name, and which
  *        "More settings" differ from their default (the "3 changed" count, and whether the
  *        disclosure starts open).
@@ -24,7 +24,7 @@ export const ONE_COURIER = 1
 export type WhoPays = DeliveryOption['price']['source']
 
 /** Question 2's cards; `null` when the option charges nothing extra (set in More settings). */
-export type FasterAnswer = 'no' | 'difference' | 'full'
+export type FasterAnswer = 'no' | 'difference' | 'full' | 'own'
 
 type Couriers = Pick<DeliveryOption['couriers'], 'max' | 'extra'>
 

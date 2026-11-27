@@ -9,7 +9,6 @@ import {
   enqueueCompactVideo,
   isVideoUrl,
   LANDSCAPE_COPY,
-  PORTRAIT_COPY,
   POSTER_PORTRAIT_WIDTH,
   POSTER_WIDTH,
   posterWidthFor,
@@ -72,11 +71,12 @@ describe('compactPlan', () => {
 
 describe('copyShapeFor', () => {
   it('gives a portrait video the phone copy and anything else the usual one', () => {
-    expect(copyShapeFor({ width: 1080, height: 1920 })).toBe(PORTRAIT_COPY)
+    const portrait = copyShapeFor({ width: 1080, height: 1920 })
+    expect(portrait).not.toBe(LANDSCAPE_COPY)
     expect(copyShapeFor({ width: 1920, height: 1080 })).toBe(LANDSCAPE_COPY)
     expect(copyShapeFor({ width: 1920, height: null })).toBe(LANDSCAPE_COPY)
-    expect(PORTRAIT_COPY.maxWidth).toBeLessThanOrEqual(720)
-    expect(PORTRAIT_COPY.maxrateKbps).toBeLessThanOrEqual(1200)
+    expect(portrait.maxWidth).toBeLessThanOrEqual(720)
+    expect(portrait.maxrateKbps).toBeLessThanOrEqual(1200)
   })
 })
 

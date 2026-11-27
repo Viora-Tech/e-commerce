@@ -5,7 +5,13 @@
  * Try a PIN must pick the same courier at the same price. Pure. Split from resolve.ts.
  */
 import { courierId, type DeliveryOption, type RouteRule, type RouteSelector } from './config'
-import { byCheapest, type Candidate, priceFromPick, storeCost } from './courier-list'
+import {
+  byCheapest,
+  type Candidate,
+  type OwnExtras,
+  priceFromPick,
+  storeCost,
+} from './courier-list'
 import { datesFor, priceRoute } from './price'
 import type { DropReason, PricedRoute, ResolveInput, WhyPicked } from './resolve-types'
 import { type Route, selectorMatches } from './routes'
@@ -17,7 +23,7 @@ import {
 } from './rule-price'
 import { poolAllows, type RulePool } from './rules'
 
-export const optionAllows = (option: DeliveryOption, route: Route): boolean => {
+const optionAllows = (option: DeliveryOption, route: Route): boolean => {
   // The courier list's switches: a courier not turned on (new ones start off) never shows.
   const allow = option.couriers.allow
   if (allow != null && !allow.includes(courierId(route.carrierKey, route.speed))) return false
@@ -242,6 +248,8 @@ export function alternativesFor(
   rulePriced = false,
   /** A Fixed rule names couriers' own prices (`ruleCardPricer`). */
   cardPrice: CardPricer | null = null,
+  /** What an `own` card adds besides shipping (`priceFromPick`). */
+  extras?: OwnExtras,
 ): PricedRoute[] {
   const out: PricedRoute[] = []
   for (const sel of selectors) {
@@ -250,7 +258,7 @@ export function alternativesFor(
       option,
     )
     if (best && !out.some((p) => p.route.key === best.winner.route.key)) {
-      const fromPick = priceFromPick(best.winner, winner, option)
+      const fromPick = priceFromPick(best.winner, winner, option, extras)
       if (!rulePriced) out.push(best.winner.priced)
       else out.push(cardPrice ? cardPrice(best.winner, fromPick) : fromPick)
     }

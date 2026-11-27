@@ -90,7 +90,7 @@ export const OptionEtaSchema = z.object({
 })
 
 /** How a list's other couriers are priced; see `OptionCouriersSchema.extra`. */
-export const COURIER_EXTRAS = ['difference', 'full', 'none'] as const
+export const COURIER_EXTRAS = ['difference', 'full', 'none', 'own'] as const
 export type CourierExtra = (typeof COURIER_EXTRAS)[number]
 
 /**
@@ -131,7 +131,11 @@ export const OptionCouriersSchema = z.object({
    * `difference`: the pick's price plus what it costs the store more; `none`: every card at the
    * pick's price; `full` (owner, 21 Nov 2026): the courier's own full price (its cost, markup
    * and insurance, rounded the option's way), never below the pick's price. A cheaper courier
-   * always costs what the pick costs.
+   * always costs what the pick costs. `own` (owner, 28 Nov 2026): only the pick gets the
+   * option's or rule's price (a Free mouse stays ₹0 by Delhivery Air); every other courier shows
+   * its own price, cheaper for the store or not (`ownPricePaise`: shipping, markup and the cart's
+   * packing rounded the option's way, plus its own insurance rounded the same way when ticked),
+   * never below the pick's price.
    */
   extra: z.enum(COURIER_EXTRAS).default('difference'),
 })

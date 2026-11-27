@@ -1,4 +1,4 @@
-import { PORTRAIT_COPY } from '@commerce/core'
+import { copyShapeFor } from '@commerce/core'
 import { describe, expect, it } from 'vitest'
 import {
   ffmpegArgs,
@@ -25,7 +25,10 @@ describe('ffmpegArgs', () => {
   })
 
   it('encodes a phone copy at 720 wide, about 1 Mbps, and leaves out a silent track', () => {
-    const args = ffmpegArgs('/tmp/in', '/tmp/out.mp4', { shape: PORTRAIT_COPY, audio: false })
+    const args = ffmpegArgs('/tmp/in', '/tmp/out.mp4', {
+      shape: copyShapeFor({ width: 1080, height: 1920 }),
+      audio: false,
+    })
     const arg = (flag: string) => args[args.indexOf(flag) + 1]
     expect(arg('-vf')).toBe("scale='min(720,iw)':-2")
     expect(arg('-crf')).toBe('28')

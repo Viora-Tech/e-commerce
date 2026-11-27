@@ -1,4 +1,6 @@
-/**
+/** SOURCE OF TRUTH: affiliate portal address — WHAT: the `affiliate.<store domain>` host to pre-fill, the `/affiliate` fallback URL and the connected portal row / WHY: the admin card and the API must read the same rules */
+
+/*
  * The affiliate portal's own address (Affiliates app, Settings › Portal address). The portal
  * answers on `affiliate.<store domain>` once that host is connected like any other custom
  * domain; until then it lives at `/affiliate` on every store domain. Pure and browser-safe: the
@@ -7,20 +9,20 @@
  */
 
 /** The subdomain the portal answers on. */
-export const PORTAL_SUBDOMAIN = 'affiliate'
+const PORTAL_SUBDOMAIN = 'affiliate'
 /** The portal's path on the store's own domains. */
 export const PORTAL_PATH = '/affiliate'
 
 type DomainLike = { hostname: string; kind: string; isPrimary: boolean }
 
 /** The store's primary domain when it is its own (custom), else null. */
-export function primaryCustomDomain<T extends DomainLike>(domains: readonly T[]): T | null {
+function primaryCustomDomain<T extends DomainLike>(domains: readonly T[]): T | null {
   const primary = domains.find((d) => d.isPrimary)
   return primary && primary.kind === 'custom' ? primary : null
 }
 
 /** `www.waimers.in` and `waimers.in` → `affiliate.waimers.in`; `shop.brand.in` → `affiliate.shop.brand.in`. */
-export function portalHostnameFor(hostname: string): string {
+function portalHostnameFor(hostname: string): string {
   const base = hostname.startsWith('www.') ? hostname.slice(4) : hostname
   return `${PORTAL_SUBDOMAIN}.${base}`
 }

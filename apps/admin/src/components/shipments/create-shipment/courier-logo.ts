@@ -10,6 +10,7 @@ const LOGOS: ReadonlyArray<{ match: RegExp; src: string; light?: boolean }> = [
   { match: /blue\s*dart/i, src: '/app-logos/bluedart.svg', light: true },
   { match: /xpress\s*bees/i, src: '/app-logos/xpressbees.png' },
   { match: /ekart/i, src: '/app-logos/ekart.png' },
+  { match: /amazon/i, src: '/app-logos/amazon-shipping.svg', light: true },
   { match: /shadowfax/i, src: '/app-logos/shadowfax.png' },
   { match: /dtdc/i, src: '/app-logos/dtdc.png' },
   { match: /india\s*post|speed\s*post/i, src: '/app-logos/india-post.png' },

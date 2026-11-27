@@ -13,8 +13,8 @@ import { monthLabel, recentMonths } from './return-months'
 import { saveFile } from './save-file'
 
 /**
- * The app bar's "Export GSTR-1" (Figma 928:10728): the portal JSON (Returns › GSTR-1 › Prepare
- * offline › Upload) for last month, the one due for filing, or this month so far, for the main
+ * "Export GSTR-1" (Figma 928:10728), in the app bar and in the Queue page's own header: the
+ * portal JSON (Returns › GSTR-1 › Prepare offline › Upload) for last month, the one due for filing, or this month so far, for the main
  * GST number, and the CA's sales register (Excel) for the same months. Other GST numbers and
  * months, the CSVs and GSTR-3B stay on the Returns tab.
  */

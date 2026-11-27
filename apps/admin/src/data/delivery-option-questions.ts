@@ -42,6 +42,10 @@ export const deliveryOptionQuestionsContent = {
             : 'Yes, shopper pays the faster courier’s full price',
         help: 'Each courier shows its own price. A faster one never shows cheaper than the first.',
       },
+      own: {
+        label: () => 'Only the recommended courier gets your price; others pay their own price',
+        help: 'The first courier keeps your price, such as Free. Every other courier shows its own shipping price, plus its own insurance when ticked, never cheaper than the first.',
+      },
     },
     sameNote:
       'Faster couriers now cost the same as the first, set in More settings. Pick a card to change it.',
@@ -75,6 +79,7 @@ export const deliveryOptionQuestionsContent = {
       no: 'One courier',
       difference: 'Faster couriers: the extra',
       full: 'Faster couriers: full price',
+      own: 'Other couriers: their own price',
       same: 'Every courier at one price',
     },
     rounding: {

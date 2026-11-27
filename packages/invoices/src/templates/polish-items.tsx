@@ -161,9 +161,10 @@ export function HsnTable({ doc, p }: { doc: DocumentSnapshot; p: Palette }) {
   const head = inter
     ? ['HSN', 'Taxable', 'IGST %', 'IGST']
     : ['HSN', 'Taxable', 'GST %', 'CGST', 'SGST']
-  const flex = inter ? [50, 62, 62, 62] : [44, 56, 40, 48, 48]
+  // Fixed column widths in pt, as in the frame; the box is wider and the rest stays empty.
+  const widths = inter ? [50, 62, 62, 62] : [50, 62, 40, 42, 42]
   const cell = (i: number) => ({
-    flex: flex[i] ?? 1,
+    width: widths[i] ?? 40,
     textAlign: i === 0 ? ('left' as const) : ('right' as const),
   })
   return (

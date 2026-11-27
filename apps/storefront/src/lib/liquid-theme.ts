@@ -1,91 +1,49 @@
 import 'server-only'
 import {
-  CollectionDrop,
   compactVideosByUrl,
-  createPageContext,
-  getCart,
   googleFontsHref,
-  type LiquidCartData,
-  type LiquidPageContext,
-  type LiquidSectionInput,
   liquidPlacement,
-  liquidSectionKey,
-  loadTemplate,
-  loadThemeBundle,
-  loadThemeDraftBundle,
   mainProductStylesheets,
-  mainThemeId,
-  ProductDrop,
-  peekThemeBundle,
-  type RecommendationIntent,
   renderLiquidLayout,
   renderLiquidSection,
-  resolveThemeProductId,
-  type SignedInCustomer,
   sectionWrapper,
   showsCookieSettingsLink,
-  storeLiquidData,
-  type TemplateKey,
-  type ThemeBundle,
-  themeImportFor,
   videoSources,
   withCompactVideos,
 } from '@commerce/core'
 import { pickVariantUrls } from '@commerce/core/media-loader'
-import { product as productTable, type StoreTx, store } from '@commerce/db'
+import type { StoreTx } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
-import { reviewsLiquidSource } from '@commerce/plugin-reviews/server'
-import { eq } from 'drizzle-orm'
-import { headers } from 'next/headers'
-import { cache } from 'react'
 import { privacyContent } from '@/data/privacy'
-import { readCartId } from './cart-cookie'
-import { NONCE_HEADER } from './csp'
-import { currentCustomer, customerIn } from './customer-session'
-import { liquidExperimentsFor } from './experiments'
-import { formsInstalled } from './forms-context'
+import { currentCustomer } from './customer-session'
 import {
   type CachedLiquid,
   type CachedReads,
   keepable,
-  type LiquidRenderScope,
   layoutCacheKey,
-  liquidRequestPath,
   NONCE_MARK,
-  newTrace,
   type RenderTrace,
   renderTtl,
   sectionCacheKey,
   servable,
-  traceContextReads,
-  withNonce,
 } from './liquid-cache'
 import { toLiquidCart } from './liquid-cart'
 import { compactThemeHtml } from './liquid-compact'
 import { revealConsentEarly } from './liquid-consent-reveal'
+import { importedTheme, tracedContext } from './liquid-context'
 import { withCookieSettingsLink } from './liquid-cookie-settings'
-import { cachedLiquidData } from './liquid-data-cache'
 import { deferThemeScripts } from './liquid-defer'
 import { belowTheFold } from './liquid-fold'
-import { liquidMarketFor } from './liquid-market'
-import { withMarketPrefix } from './liquid-market-links'
 import { avifImagePreloads } from './liquid-preload'
+import { cacheScope, finish, type RequestScope, requestScope, signedOut } from './liquid-scope'
 import { withoutVideoCovers } from './liquid-video-cover'
 import { withVideoPosters } from './liquid-video-poster'
-import { requestCatalogId } from './market-catalog'
-import { marketPricingFor, pricingKey } from './market-pricing'
-import { MARKET_HEADERS } from './markets'
 import { postersByVideoUrl } from './media-lookup'
 import { RenderAbortedError } from './render-gate'
 import { withRenderSlot } from './render-slot'
 import { cartIsEmpty, requestCart } from './request-cart'
-import './search-engine'
-import { abThemeId } from './rollout-ab'
-import { MISSING_ROUTE_HEADER } from './routing'
-import { requestOrigin } from './seo'
-import { CACHE_TTL_MS, cachedForStore, peekForStore, rememberForStore } from './store-cache'
+import { CACHE_TTL_MS, peekForStore, rememberForStore } from './store-cache'
 import { inStore } from './store-context'
-import { readPreview } from './storefront-gate'
 import { bundleThemeStylesheets } from './theme-css'
 
 /**
@@ -97,280 +55,15 @@ import { bundleThemeStylesheets } from './theme-css'
  * whose sections are all cached renders no Liquid and reads no theme data. Sections that read
  * the cart are kept only as rendered for an empty cart, and sections that read `customer` only
  * as rendered for a signed-out shopper; a theme preview is never cached.
+ *
+ * The request's scope lives in `liquid-scope.ts`, the theme bundle and page context in
+ * `liquid-context.ts`, and the section rendering endpoints in `liquid-static-section.ts`.
  */
-
-/** Payment marks the theme's footer draws, from the methods this store offers. */
-const PAYMENT_TYPES = ['upi', 'visa', 'master', 'rupay', 'american_express']
-
-/** Shopify's `template.name` for a storefront path. */
-export function liquidTemplateFor(path: string): string {
-  if (path === '/' || path === '') return 'index'
-  if (path.startsWith('/products/')) return 'product'
-  if (path === '/collections' || path === '/collections/') return 'list-collections'
-  if (path.startsWith('/collections/')) return 'collection'
-  if (path.startsWith('/pages/')) return 'page'
-  if (/^\/blogs\/[^/]+\/[^/]+/.test(path)) return 'article'
-  if (path.startsWith('/blogs/')) return 'blog'
-  if (path.startsWith('/cart')) return 'cart'
-  if (path.startsWith('/search')) return 'search'
-  if (path.startsWith('/account')) return 'customers/account'
-  return '404'
-}
-
-/** What this request renders Liquid for: from the headers the proxy set, once per request. */
-export const requestScope = cache(async (storeId: string) => {
-  const h = await headers()
-  // A path no route serves renders as one page, so its 404 is drawn once per theme version.
-  const path = liquidRequestPath(h.get('x-pathname') ?? '/', h.get(MISSING_ROUTE_HEADER) === '1')
-  const template = liquidTemplateFor(path)
-  // Filters, sort and page shape a collection or search page's listing (`listingSearch`).
-  const listing =
-    template === 'collection' || template === 'search' ? (h.get('x-listing') ?? '') : ''
-  const preview = readPreview(storeId, h.get('x-theme-preview')) !== null
-  return {
-    origin: await requestOrigin(),
-    market: liquidMarketFor(h),
-    // The market's currency, rate and rounding when it shows another currency than rupees.
-    pricing: await marketPricingFor(storeId, h.get(MARKET_HEADERS.id)),
-    // Markets › Catalogs: the market lists only its catalog's products (null: every product).
-    catalogId: await requestCatalogId(storeId),
-    path,
-    listing,
-    template,
-    postedForm: h.get('x-form-posted'),
-    nonce: h.get(NONCE_HEADER) ?? '',
-    preview,
-    ...(await liquidExperimentsFor(storeId, preview)),
-  }
-})
-
-type RequestScope = Awaited<ReturnType<typeof requestScope>>
-
-/** Rendered theme HTML for this request: its nonce, and its links under the market prefix. */
-export const finish = (html: string, scope: RequestScope) =>
-  withMarketPrefix(withNonce(html, scope.nonce), scope.market.market?.prefix ?? '')
-
-/**
- * The scope of a section rendered for another page (`theme-actions/section?path=`): that page's
- * template and, on a collection or search page, the filters, sort and page the request carried.
- */
-async function scopeAt(scope: RequestScope, path: string): Promise<RequestScope> {
-  const template = liquidTemplateFor(path)
-  const listing =
-    template === 'collection' || template === 'search'
-      ? ((await headers()).get('x-listing') ?? '')
-      : ''
-  return { ...scope, path, template, listing }
-}
-
-/** True when nobody is signed in; needs no query without a session cookie. */
-export async function signedOut(storeId: string): Promise<boolean> {
-  return (await currentCustomer(storeId)) === null
-}
-
-/** What a market changes about the data: its prices and its catalog's products. */
-function marketKey(scope: RequestScope): string {
-  return [pricingKey(scope.pricing), scope.catalogId ? `catalog:${scope.catalogId}` : '']
-    .filter(Boolean)
-    .join('|')
-}
-
-/** `listingSearch` params as the Liquid listing reads them: one key, its values. */
-function listingQuery(search: string): Record<string, string[]> {
-  const out: Record<string, string[]> = {}
-  for (const [k, v] of new URLSearchParams(search)) {
-    const list = out[k] ?? []
-    list.push(v)
-    out[k] = list
-  }
-  return out
-}
-
-type ImportedTheme = { bundle: ThemeBundle; shopifyHost: string | null }
-
-/** Runs `read` in `tx` when the caller holds one, else in a transaction of its own. */
-function within<T>(storeId: string, tx: StoreTx | null, read: (tx: StoreTx) => Promise<T>) {
-  return tx ? read(tx) : inStore(storeId, read)
-}
-
-/**
- * An imported theme's bundle, or null for one of our own themes. The import row's version is
- * cached per store version; the bundle itself is built once per theme version (core keeps it).
- * Pass `tx` when the caller already holds a transaction, so no second connection is taken.
- */
-export async function importedTheme(
-  storeId: string,
-  themeId: string,
-  tx: StoreTx | null = null,
-): Promise<ImportedTheme | null> {
-  const info = await cachedForStore(storeId, `theme-import|${themeId}`, () =>
-    within(storeId, tx, async (t) => {
-      const record = await themeImportFor(t, themeId)
-      return record
-        ? {
-            version: record.updatedAt.toISOString(),
-            shopifyHost: record.themeInfo.shopifyHost ?? null,
-          }
-        : null
-    }),
-  )
-  if (!info) return null
-  // Previewing this theme (Edit code → Preview) shows its unpublished saves.
-  const preview = readPreview(storeId, (await headers()).get('x-theme-preview'))
-  const draft =
-    preview?.themeId === themeId
-      ? await within(storeId, tx, (t) => loadThemeDraftBundle(t, themeId))
-      : null
-  const bundle =
-    draft ??
-    peekThemeBundle(themeId, info.version) ??
-    (await within(storeId, tx, (t) => loadThemeBundle(t, themeId)))
-  return bundle ? { bundle, shopifyHost: info.shopifyHost } : null
-}
-
-/** One page context for `tx`, its theme data read through the store cache. */
-async function createLiquidContext(
-  tx: StoreTx,
-  storeId: string,
-  themeId: string,
-  theme: ImportedTheme,
-  scope: RequestScope,
-  cart: LiquidCartData,
-  customer: SignedInCustomer | null,
-  nonce: string,
-): Promise<LiquidPageContext> {
-  const host = new URL(scope.origin).host
-  const data = await storeLiquidData(tx, {
-    storeId,
-    host,
-    origin: scope.origin,
-    cart: async () => cart,
-    customer,
-    reviews: await reviewsLiquidSource(tx, storeId),
-    pricing: scope.pricing,
-  })
-  return createPageContext({
-    bundle: theme.bundle,
-    data: cachedLiquidData(storeId, scope.origin, data, marketKey(scope)),
-    request: {
-      template: scope.template,
-      path: scope.path,
-      host,
-      origin: scope.origin,
-      marketPrefix: scope.market.market?.prefix ?? '',
-      designMode: false,
-      postedForm: scope.postedForm,
-      listing: listingQuery(scope.listing),
-      formsAvailable: await cachedForStore(storeId, 'forms-installed', () =>
-        formsInstalled(tx, storeId),
-      ),
-      nonce,
-      experiments: scope.experiments,
-      market: scope.market.market,
-    },
-    assetBase: `/theme-assets/${themeId}`,
-    shopifyHost: theme.shopifyHost,
-    // The store's price format (`Rs. {{amount}}` from Shopify), for `| money` and `shop.money_format`.
-    moneyFormat: await cachedForStore(storeId, 'money-format', async () => {
-      const [s] = await tx
-        .select({ moneyFormat: store.moneyFormat })
-        .from(store)
-        .where(eq(store.id, storeId))
-      return s?.moneyFormat ?? null
-    }),
-    paymentTypes: PAYMENT_TYPES,
-  })
-}
-
-/**
- * A context whose renders are traced (cart, customer and clock reads, failures), written with
- * the nonce placeholder so its output can be cached. `start()` begins a new trace for the next
- * render.
- */
-export async function tracedContext(
-  tx: StoreTx,
-  storeId: string,
-  themeId: string,
-  theme: ImportedTheme,
-  scope: RequestScope,
-  cart: LiquidCartData,
-  customer: SignedInCustomer | null,
-) {
-  let current = newTrace()
-  const ctx = await createLiquidContext(
-    tx,
-    storeId,
-    themeId,
-    theme,
-    scope,
-    cart,
-    customer,
-    NONCE_MARK,
-  )
-  traceContextReads(ctx, () => current)
-  return {
-    ctx,
-    start: (): RenderTrace => {
-      current = newTrace()
-      return current
-    },
-  }
-}
-
-/**
- * The Liquid context for this request when `themeId` is an imported theme, else null, for the
- * section rendering endpoints (`theme-actions`). Not cached: they change its globals. Runs in
- * the caller's transaction.
- */
-export async function liquidContextFor(
-  tx: StoreTx,
-  storeId: string,
-  themeId: string,
-  pagePath?: string,
-): Promise<LiquidPageContext | null> {
-  const theme = await importedTheme(storeId, themeId, tx)
-  if (!theme) return null
-  const request = await requestScope(storeId)
-  const scope = pagePath ? await scopeAt(request, pagePath) : request
-  const cartId = await readCartId()
-  const cart = cartId ? await getCart({ storeId, tx }, cartId) : null
-  return createLiquidContext(
-    tx,
-    storeId,
-    themeId,
-    theme,
-    scope,
-    toLiquidCart(cart, scope.pricing),
-    await customerIn(tx, storeId),
-    scope.nonce,
-  )
-}
 
 /** Template key → the location Liquid sees (`section.location`). */
 const LOCATION: Record<string, string> = { header: 'header-group', footer: 'footer-group' }
 
 export type LiquidSectionHtml = { html: string; tag: string; id: string; className: string }
-
-/** What the cache keys a render by, or null when nothing may be cached (a theme preview). */
-export function cacheScope(
-  scope: RequestScope,
-  themeId: string,
-  bundle: ThemeBundle,
-): LiquidRenderScope | null {
-  if (scope.preview) return null
-  return {
-    themeId,
-    themeVersion: bundle.version,
-    origin: scope.origin,
-    // A filtered listing is its own page.
-    path: scope.listing ? `${scope.path}?${scope.listing}` : scope.path,
-    template: scope.template,
-    postedForm: scope.postedForm,
-    experiments: scope.experimentsKey,
-    // Subfolder markets share the origin: their prices are their own pages.
-    market: [scope.market.key, marketKey(scope)].filter(Boolean).join('|'),
-  }
-}
 
 /** Which of a template's sections one call renders, and where the fold is. */
 export type LiquidPart = {
@@ -384,11 +77,6 @@ export type LiquidPart = {
 /** Every section, none below the fold (header and footer groups, theme previews). */
 export const WHOLE_TEMPLATE: LiquidPart = { start: 0, end: Infinity, fold: Infinity }
 
-/**
- * The `LiquidSection`s of a template within `part`, keyed by Puck id: from the cache, or
- * rendered now (all the missing ones in one transaction). Null when `themeId` is not an
- * imported theme.
- */
 /** Links for the theme stylesheets of the product section `MainProduct` replaces. */
 export async function mainProductStylesheetUrls(storeId: string, themeId: string) {
   const theme = await importedTheme(storeId, themeId)
@@ -425,6 +113,11 @@ async function posterAddresses(
 const withCookieLink = (p: { cookieLink: boolean }, html: string) =>
   p.cookieLink ? withCookieSettingsLink(html, privacyContent.cookieSettings) : html
 
+/**
+ * The `LiquidSection`s of a template within `part`, keyed by Puck id: from the cache, or
+ * rendered now (all the missing ones in one transaction). Null when `themeId` is not an
+ * imported theme.
+ */
 export async function renderLiquidSections(
   storeId: string,
   themeId: string,
@@ -619,139 +312,6 @@ export async function liquidLayoutFor(
     })
   }
   return layoutWithNonce(layout, scope)
-}
-
-/**
- * The theme this request renders: the verified preview's, else an A/B rollout's Treatment theme
- * for a visitor in that arm, else the live one.
- */
-export async function requestThemeId(tx: StoreTx, storeId: string): Promise<string | null> {
-  const preview = readPreview(storeId, (await headers()).get('x-theme-preview'))
-  return preview?.themeId ?? (await abThemeId(storeId)) ?? (await mainThemeId(tx))
-}
-
-/**
- * Our answer to Shopify's section rendering (`/collections/x?section_id=tab-panel-cards`):
- * the theme's own section rendered with the collection or product of `path` in scope,
- * inside Shopify's wrapper. Theme JS uses it to fill lazy tabs and carousels.
- */
-export async function renderStaticLiquidSection(
-  tx: StoreTx,
-  storeId: string,
-  sectionType: string,
-  path: string,
-  prepare?: (ctx: LiquidPageContext) => Promise<void>,
-): Promise<string | null> {
-  const themeId = await requestThemeId(tx, storeId)
-  const ctx = themeId ? await liquidContextFor(tx, storeId, themeId, path) : null
-  if (!themeId || !ctx) return null
-  // Shopify's section ids read `template--123__<key>`; the key is the section's type for
-  // the sections a theme ships by default.
-  const key = sectionType.split('__').pop() ?? sectionType
-  const type = [sectionType, key].find((t) => ctx.bundle.sections.has(t))
-  // A JSON template's key is not always its type (`"related": { "type": "related-products" }`):
-  // the section placed under that key in the path's template, with its own settings.
-  const placed = type ? null : await placedSection(tx, themeId, ctx.bundle, path, key)
-  if (!type && !placed) return null
-  const collection = /^\/collections\/([^/]+)/.exec(path)?.[1]
-  const product = /^\/products\/([^/]+)/.exec(path)?.[1]
-  if (collection) {
-    const found = await ctx.options.data.collection(decodedSegment(collection))
-    if (found) {
-      const drop = new CollectionDrop(found, ctx.cache)
-      // As on the page itself: the request's filters, sort and page shape its products.
-      if (ctx.options.request.listing) drop.listOn(ctx.options.request.listing)
-      ctx.globals.collection = drop
-    }
-  }
-  if (product) {
-    const found = await ctx.options.data.product(decodedSegment(product))
-    if (found) ctx.globals.product = new ProductDrop(found, ctx.cache)
-  }
-  await prepare?.(ctx)
-  const section: LiquidSectionInput = placed ?? {
-    id: type ?? key,
-    type: type ?? key,
-    settings: {},
-    blocks: [],
-    location: 'template',
-    index: 0,
-  }
-  const html = withMarketPrefix(
-    await renderLiquidSection(ctx, section),
-    (await requestScope(storeId)).market.market?.prefix ?? '',
-  )
-  const w = sectionWrapper(ctx.bundle, section)
-  return `<${w.tag} id="${w.id}" class="${w.className}">${html}</${w.tag}>`
-}
-
-/** The template a storefront path renders (`/products/x` → `product`). */
-function templateKeyFor(path: string): TemplateKey {
-  const name = liquidTemplateFor(path)
-  if (name === 'index') return 'home'
-  if (name === '404' || name === 'list-collections' || name === 'customers/account')
-    return 'not_found'
-  return name as TemplateKey
-}
-
-/**
- * The Liquid section placed under `key` in the template of `path` (Shopify's section ids end
- * in the template key), as the page itself renders it; null when that template has none.
- */
-async function placedSection(
-  tx: StoreTx,
-  themeId: string,
-  bundle: ThemeBundle,
-  path: string,
-  key: string,
-): Promise<LiquidSectionInput | null> {
-  const { data } = await loadTemplate(tx, themeId, templateKeyFor(path))
-  const liquid = data.content.filter((item) => item.type === 'LiquidSection')
-  const index = liquid.findIndex((item) => liquidSectionKey(item.props) === key)
-  const item = liquid[index]
-  const type = typeof item?.props.sectionType === 'string' ? item.props.sectionType : ''
-  if (!item || !bundle.sections.has(type)) return null
-  return liquidPlacement(item.props, bundle.sections.get(type)?.schema, 'template', index)
-}
-
-/**
- * Our answer to Shopify's `/recommendations/products?product_id=&limit=&section_id=&intent=`:
- * the theme's own section rendered on the product's page with `recommendations` filled. For
- * `related`, the merchant's Search & Discovery picks, then shared collection, type and tags; for
- * `complementary`, the picks only. Published and in stock only. Null when the section is not in
- * the theme, or the product is not ours.
- */
-export async function renderRecommendations(
-  tx: StoreTx,
-  storeId: string,
-  input: { sectionId: string; productId: string; limit: number; intent: RecommendationIntent },
-): Promise<string | null> {
-  const productId = await resolveThemeProductId(tx, input.productId)
-  if (!productId) return null
-  const [row] = await tx
-    .select({ handle: productTable.handle })
-    .from(productTable)
-    .where(eq(productTable.id, productId))
-  if (!row) return null
-  const path = `/products/${encodeURIComponent(row.handle)}`
-  return renderStaticLiquidSection(tx, storeId, input.sectionId, path, async (ctx) => {
-    const related = await ctx.options.data.relatedProducts(productId, input.limit, input.intent)
-    ctx.globals.recommendations = {
-      performed: true,
-      intent: input.intent,
-      products: related.map((p) => new ProductDrop(p, ctx.cache)),
-      products_count: related.length,
-    }
-  })
-}
-
-/** A path segment decoded, or as it came when it is not valid percent-encoding (never a 500). */
-function decodedSegment(segment: string): string {
-  try {
-    return decodeURIComponent(segment)
-  } catch {
-    return segment
-  }
 }
 
 /** Theme layout attributes (`class`, `data-*`, `lang`) as React props; handlers and styles dropped. */

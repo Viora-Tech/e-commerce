@@ -52,12 +52,17 @@ export const gstQueuePageContent = {
   },
   issue: 'Issue',
   fix: 'Fix',
-  issueMany: (n: number) => (n === 1 ? 'Issue 1 invoice' : `Issue ${n} invoices`),
+  /** The header's primary action, while no row is ticked (the bulk bar issues ticked rows). */
+  issueAll: (n: number) =>
+    n === 0 ? 'Issue all invoices' : n === 1 ? 'Issue 1 invoice' : `Issue all ${n} invoices`,
+  /** The meta line under the title: the seller's GSTIN and this financial year's numbering. */
+  meta: (gstin: string, year: string) => `GSTIN ${gstin} · Numbering ${year}`,
+  metaNoGstin: (year: string) => `No GSTIN yet · Numbering ${year}`,
   selectAll: 'Select every order shown',
   selectRow: (order: string) => `Select ${order}`,
   moreItems: (n: number) => `+ ${n} more`,
   selected: (n: number) => `${n} selected`,
-  more: 'More queue actions',
+  more: 'More actions',
   addByNumber: 'Add orders by number',
   filterDates: 'Filter by date',
   removeSelected: 'Remove selected from queue',

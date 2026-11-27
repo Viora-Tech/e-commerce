@@ -183,9 +183,10 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'apps/storefront/src/lib/store-context.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/storefront/src/lib/storefront-gate.ts', exact: true, reason: STOREFRONT_LIB },
   {
-    path: 'apps/storefront/src/proxy.ts',
+    path: 'apps/storefront/src/lib/proxy-hosts.ts',
     exact: true,
-    reason: 'resolves the store from the db in middleware — move behind a core service',
+    reason:
+      'resolves the store from the db in middleware (split from proxy.ts) — move behind a core service',
   },
   {
     path: 'apps/admin/src/app/api/channels/[provider]/callback/route.ts',
@@ -194,7 +195,12 @@ const ALLOWLIST: AllowEntry[] = [
       'sales-channel OAuth callback opens withStore for the core connect call — no raw query, only the tx',
   },
   {
-    path: 'apps/storefront/src/lib/liquid-theme.ts',
+    path: 'apps/storefront/src/lib/liquid-context.ts',
+    exact: true,
+    reason: STOREFRONT_LIB,
+  },
+  {
+    path: 'apps/storefront/src/lib/liquid-static-section.ts',
     exact: true,
     reason: STOREFRONT_LIB,
   },

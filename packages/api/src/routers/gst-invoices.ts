@@ -30,6 +30,7 @@ import {
   emailBatch,
   mediaUrls,
   orderRefunds,
+  storeGstin,
   storeName,
 } from '../services/gst-invoices.service'
 import {
@@ -81,6 +82,7 @@ export const gstInvoicesRouter = {
       return {
         settings,
         storeName: await storeName(context.tx, context.scope.storeId),
+        storeGstin: await storeGstin(context.tx, context.scope.storeId),
         media: { logo: urlOf(settings.logoMediaId), signature: urlOf(settings.signatureMediaId) },
       }
     }),

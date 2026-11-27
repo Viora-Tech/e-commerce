@@ -9,7 +9,6 @@ import {
   foundingNote,
   foundingPriceOf,
   foundingView,
-  planPriceFor,
   withPlanGst,
 } from './founding-offer'
 import { projectNextBill } from './next-bill'
@@ -50,11 +49,11 @@ describe('founding offer', () => {
   it('counts 12 paid months, then renews at the normal price', () => {
     expect(foundingMonthsLeft(place(0))).toBe(12)
     expect(foundingMonthsLeft(place(11))).toBe(1)
-    expect(planPriceFor(place(11), 'growth', 'month')).toBe(99_900)
+    expect(foundingApplies(place(11), 'growth', 'month')).toBe(true)
     expect(foundingMonthsLeft(place(12))).toBe(0)
-    expect(planPriceFor(place(12), 'growth', 'month')).toBe(1_99_900)
-    expect(planPriceFor(place(14), 'growth', 'month')).toBe(1_99_900)
-    expect(planPriceFor(none, 'growth', 'month')).toBe(1_99_900)
+    expect(foundingApplies(place(12), 'growth', 'month')).toBe(false)
+    expect(foundingApplies(place(14), 'growth', 'month')).toBe(false)
+    expect(foundingApplies(none, 'growth', 'month')).toBe(false)
   })
 
   it('bills ₹999 + GST as the normal line less a "Founding offer" discount', () => {

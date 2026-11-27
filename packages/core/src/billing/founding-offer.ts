@@ -44,10 +44,6 @@ export const foundingApplies = (
 ): boolean =>
   foundingMonthsLeft(s) > 0 && plan === FOUNDING_OFFER.plan && interval === FOUNDING_OFFER.interval
 
-/** The plan's price before GST for this store: the founding price where it applies. */
-export const planPriceFor = (s: FoundingState, plan: PlanId, interval: BillingInterval): number =>
-  foundingApplies(s, plan, interval) ? FOUNDING_OFFER.pricePaise : PLANS[plan].pricePaise[interval]
-
 /** A price before GST with 18% GST on top, as the GST-inclusive sales store charges it. */
 export const withPlanGst = (paise: number): number => paise + gstOn(paise)
 
