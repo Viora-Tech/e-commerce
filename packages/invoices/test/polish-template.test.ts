@@ -122,6 +122,35 @@ describe('Polish (logo left) template', () => {
     expect(labels.slice(0, 3)).toEqual(['Invoice date', 'Order', 'Order date'])
   })
 
+  it('lists the other Figma frames as their own templates', () => {
+    expect(TEMPLATES['polish-centre'].label).toBe('Logo centre')
+    expect(TEMPLATES['polish-right'].label).toBe('Logo right')
+    expect(TEMPLATES['polish-minimal'].label).toBe('White header')
+    for (const template of ['polish-centre', 'polish-right', 'polish-minimal'] as const) {
+      const t = texts('tax_invoice', { ...settings, template })
+      for (const s of ['Tax Invoice', 'Original for recipient', 'Customer GSTIN', 'Subtotal']) {
+        expect(t, `${template} ${s}`).toContain(s)
+      }
+      expect(t, template).toContain('Ritika Sharma')
+    }
+  })
+
+  it('renders the other layouts to a PDF on A4 and A5', async () => {
+    for (const template of ['polish-centre', 'polish-right', 'polish-minimal'] as const) {
+      for (const kind of ['tax_invoice', 'credit_note', 'packing_slip'] as const) {
+        for (const paper of ['A4', 'A5'] as const) {
+          const s = { ...settings, template, paper }
+          const pdf = await renderDocumentToBuffer({
+            doc: sampleDocument(s, kind, 'Wmr', NOW),
+            settings: s,
+            assets,
+          })
+          expect(new TextDecoder().decode(pdf.slice(0, 5)), `${template} ${kind}`).toBe('%PDF-')
+        }
+      }
+    }
+  }, 60_000)
+
   it('renders every document type to a PDF', async () => {
     const kinds = [
       'tax_invoice',

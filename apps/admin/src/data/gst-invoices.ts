@@ -98,6 +98,18 @@ export const gstInvoicesContent = {
           minimal: { label: 'Minimal', description: 'Ruled grid, no fills.' },
           compact: { label: 'GST compact', description: 'One column, A5 and thermal friendly.' },
           polish: { label: 'Logo left', description: 'Colour header band, logo on the left.' },
+          'polish-centre': {
+            label: 'Logo centre',
+            description: 'Colour header band, logo and number centred.',
+          },
+          'polish-right': {
+            label: 'Logo right',
+            description: 'Colour header band, logo on the right, signature on the left.',
+          },
+          'polish-minimal': {
+            label: 'White header',
+            description: 'White header under a colour rule, colour accents.',
+          },
         },
       },
       issuing: {
@@ -137,6 +149,9 @@ export const gstInvoicesContent = {
           minimal: 'Minimal',
           compact: 'GST compact',
           polish: 'Logo left',
+          'polish-centre': 'Logo centre',
+          'polish-right': 'Logo right',
+          'polish-minimal': 'White header',
         },
         packingPrices: 'Show prices on packing slips',
         fields: 'Show on this document',
