@@ -12,6 +12,7 @@ import { formatAgo } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
 import AppNav from './app-nav'
 import AppShellActions from './app-shell-actions'
+import AppShellContext from './app-shell-context'
 import AppUninstallButton from './app-uninstall-button'
 
 type AppShellProps = {
@@ -37,6 +38,8 @@ type AppShellProps = {
   fixHref?: string | undefined
   /** The app's one primary action, beside the "…" menu. */
   headerAction?: ReactNode
+  /** The page draws the app's actions in its own header (registry `ownHeader`): float none. */
+  ownHeader?: boolean
   children: ReactNode
 }
 
@@ -59,6 +62,7 @@ export default async function AppShell({
   problem,
   fixHref,
   headerAction,
+  ownHeader = false,
   children,
 }: AppShellProps) {
   // Render logic
@@ -79,21 +83,23 @@ export default async function AppShell({
           only the first heading leaves room for them (AppShellActions), so tables and cards keep
           the page's full width like Orders (owner, 26 Nov 2026). */}
       <div className="relative flex flex-col gap-5">
-        <AppShellActions>
-          {pillText && statusPill ? (
-            // Shown in full (owner, 26 Nov 2026: "GSTIN … · numbering 2026-27" was cut); the
-            // page header's room grows with it (AppShellActions).
-            <StatusChip tone={statusPill.tone} variant="outline" className="whitespace-nowrap">
-              {pillText}
-            </StatusChip>
-          ) : null}
-          {headerAction}
-          <AppUninstallButton
-            appId={appId}
-            name={name}
-            settingsHref={hasSettings ? hrefFor(appId, 'settings') : undefined}
-          />
-        </AppShellActions>
+        {ownHeader ? null : (
+          <AppShellActions>
+            {pillText && statusPill ? (
+              // Shown in full (owner, 26 Nov 2026: "GSTIN … · numbering 2026-27" was cut); the
+              // page header's room grows with it (AppShellActions).
+              <StatusChip tone={statusPill.tone} variant="outline" className="whitespace-nowrap">
+                {pillText}
+              </StatusChip>
+            ) : null}
+            {headerAction}
+            <AppUninstallButton
+              appId={appId}
+              name={name}
+              settingsHref={hasSettings ? hrefFor(appId, 'settings') : undefined}
+            />
+          </AppShellActions>
+        )}
         {status === 'needsSetup' || status === 'error' ? (
           // Figma "WhatsApp · Needs setup": the raised card with what is wrong and the way out.
           <NextStepBanner
@@ -139,7 +145,17 @@ export default async function AppShell({
               />
             </div>
           ) : null}
-          <div className="flex min-w-0 flex-1 flex-col gap-5">{children}</div>
+          <div className="flex min-w-0 flex-1 flex-col gap-5">
+            <AppShellContext
+              value={{
+                appId,
+                name,
+                settingsHref: hasSettings ? hrefFor(appId, 'settings') : undefined,
+              }}
+            >
+              {children}
+            </AppShellContext>
+          </div>
         </div>
       </div>
     </PageBody>

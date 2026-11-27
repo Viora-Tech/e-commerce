@@ -82,6 +82,7 @@ export default async function AppPage({ params }: Params) {
       tabs={tabs}
       active={match.page.path}
       headerAction={registered.HeaderAction ? <registered.HeaderAction /> : undefined}
+      ownHeader={registered.ownHeader?.includes(match.page.path) ?? false}
     >
       <Page params={match.params} />
     </AppShell>

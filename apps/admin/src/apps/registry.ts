@@ -154,6 +154,11 @@ export type AdminApp = {
    * pages, which draw their own header with the way back to the app.
    */
   fullPages?: readonly string[]
+  /**
+   * Pages whose own header draws the app's actions (one row, one "…" menu with the app's
+   * Settings and Uninstall, read through `useAppShell`), so the shell floats none beside it.
+   */
+  ownHeader?: readonly string[]
 }
 
 export const ADMIN_APPS: Record<string, AdminApp> = {
@@ -340,6 +345,8 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
   },
   'gst-invoices': {
     HeaderAction: GstExportButton,
+    // The Queue's header holds Export GSTR-1, the one "…" menu and Issue all (owner, 28 Nov 2026).
+    ownHeader: [''],
     pages: {
       '': QueuePage,
       invoices: InvoicesList,
