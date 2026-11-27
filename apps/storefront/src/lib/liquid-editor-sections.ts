@@ -7,7 +7,8 @@ import {
 } from '@commerce/core'
 import { headers } from 'next/headers'
 import { z } from 'zod'
-import { liquidContextFor, requestThemeId } from './liquid-theme'
+import { liquidContextFor } from './liquid-context'
+import { requestThemeId } from './liquid-static-section'
 import { inStore } from './store-context'
 import { readPreview } from './storefront-gate'
 

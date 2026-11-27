@@ -17,7 +17,7 @@ import {
 } from './rule-price'
 import { poolAllows, type RulePool } from './rules'
 
-export const optionAllows = (option: DeliveryOption, route: Route): boolean => {
+const optionAllows = (option: DeliveryOption, route: Route): boolean => {
   // The courier list's switches: a courier not turned on (new ones start off) never shows.
   const allow = option.couriers.allow
   if (allow != null && !allow.includes(courierId(route.carrierKey, route.speed))) return false

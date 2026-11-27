@@ -173,7 +173,7 @@ export const LANDSCAPE_COPY: CopyShape = {
   leanBps: LOW_BITRATE_BPS,
 }
 
-export const PORTRAIT_COPY: CopyShape = {
+const PORTRAIT_COPY: CopyShape = {
   maxWidth: 720,
   crf: 28,
   maxrateKbps: 1000,

@@ -1,5 +1,5 @@
 import 'server-only'
-import { renderRecommendations } from './liquid-theme'
+import { renderRecommendations } from './liquid-static-section'
 import { clientIp, rateLimited, retryAfterSeconds } from './rate-limit'
 import { recommendationsJson, recommendationsParams, validSectionId } from './recommendations-json'
 import { recommendedProducts } from './recommended-products'

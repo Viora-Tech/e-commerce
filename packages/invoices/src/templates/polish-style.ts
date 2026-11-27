@@ -14,7 +14,7 @@ export const track = (size: number, percent: number) => (size * percent) / 100
 const channel = (hex: string, i: number) => Number.parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16)
 
 /** `a` moved towards `b` by `t` (0 to 1). Both must be #rrggbb. */
-export function mix(a: string, b: string, t: number): string {
+function mix(a: string, b: string, t: number): string {
   const out = [0, 1, 2].map((i) => {
     const v = Math.round(channel(a, i) + (channel(b, i) - channel(a, i)) * t)
     return v.toString(16).padStart(2, '0')
@@ -44,8 +44,11 @@ export function palette(accent: string) {
 }
 export type Palette = ReturnType<typeof palette>
 
-/** "S&S" style initials for the logo tile when the store has no logo. */
-export function initials(name: string): string {
+/**
+ * "S&S" style monogram for the logo tile when the store has no logo: the first letters of the
+ * first two words joined by "&". Not the admin's avatar `initials` (two plain letters).
+ */
+export function logoMonogram(name: string): string {
   const words = name.split(/\s+/).filter((w) => /^[\p{L}\p{N}]/u.test(w))
   const letters = words.slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '')
   return letters.join(letters.length === 2 ? '&' : '') || '?'
