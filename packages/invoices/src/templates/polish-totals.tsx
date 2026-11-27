@@ -63,16 +63,31 @@ function Row({ label, value }: { label: string; value: string }) {
   )
 }
 
-/** Taxable value, each tax and the one Total GST figure, as `totalsRows` but in rupees. */
-function rupeeRows(doc: DocumentSnapshot, view: TemplateView) {
+/**
+ * The frame's totals box: Subtotal (goods), Discount, Shipping and other charges, then Taxable
+ * value and each tax. Subtotal − Discount + charges is the Total, as in the Figma frame.
+ */
+export function rupeeRows(doc: DocumentSnapshot, view: TemplateView) {
   const t = doc.totals
   const rows: { label: string; value: string }[] = []
+  const goods = doc.lines.filter((l) => !l.charge)
+  const charges = doc.lines.filter((l) => l.charge)
+  rows.push({ label: 'Subtotal', value: formatRupees(goods.reduce((a, l) => a + l.grossPaise, 0)) })
   if (view.fields.discount && t.discountPaise > 0) {
-    rows.push({ label: 'Subtotal', value: formatRupees(t.grossPaise) })
     rows.push({
       label: doc.discountLabel ? `Discount (${doc.discountLabel})` : 'Discount',
       value: `−${formatRupees(t.discountPaise)}`,
     })
+  }
+  const shipping = charges.filter((l) => l.description.startsWith('Shipping'))
+  // A shipped order with no shipping charge went out free, as the frame shows it.
+  if (!shipping.length && doc.shipTo && goods.length)
+    rows.push({ label: 'Shipping', value: 'Free' })
+  for (const l of charges) {
+    const label = l.description.startsWith('Shipping charges')
+      ? l.description.replace('Shipping charges', 'Shipping')
+      : l.description
+    rows.push({ label, value: formatRupees(l.grossPaise) })
   }
   if (view.taxDocument) {
     rows.push({ label: 'Taxable value', value: formatRupees(t.taxablePaise) })
@@ -80,9 +95,10 @@ function rupeeRows(doc: DocumentSnapshot, view: TemplateView) {
     else {
       rows.push({ label: 'CGST', value: formatRupees(t.cgstPaise) })
       rows.push({ label: 'SGST/UTGST', value: formatRupees(t.sgstPaise) })
+      // One GST figure for the customer when it is split in two (the frame's IGST row is
+      // already that figure); the split above stays for the returns (Rule 46).
+      rows.push({ label: 'Total GST', value: formatRupees(t.cgstPaise + t.sgstPaise) })
     }
-    // One GST figure for the customer; the split above stays for the returns (Rule 46).
-    rows.push({ label: 'Total GST', value: formatRupees(t.igstPaise + t.cgstPaise + t.sgstPaise) })
   }
   return rows
 }
@@ -187,7 +203,7 @@ function Signature({ doc, view, settings, assets }: Omit<BottomProps, 'p'>) {
     <View style={{ alignItems: 'flex-end', gap: 3 }}>
       <Text style={{ fontSize: 6.5, fontWeight: 500, color: MUTED }}>For {doc.seller.name}</Text>
       {assets.signature ? (
-        <Image src={assets.signature} style={{ height: 32, width: 118, objectFit: 'contain' }} />
+        <Image src={assets.signature} style={{ height: 32, width: 78, objectFit: 'contain' }} />
       ) : (
         <View style={{ height: 32 }} />
       )}

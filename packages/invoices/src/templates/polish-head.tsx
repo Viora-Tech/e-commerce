@@ -220,7 +220,9 @@ export function PartyCards({
       key: 'gstin',
       label: 'Customer GSTIN',
       title: buyer.gstin,
-      lines: [buyer.name, stateLine(buyer)].filter((s): s is string => Boolean(s)),
+      // As in the frame: GSTIN and legal name only. The GSTIN's first two digits are the
+      // state code, and the place of supply sits in the meta strip.
+      lines: [buyer.name],
     })
   }
   return (

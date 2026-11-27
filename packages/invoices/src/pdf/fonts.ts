@@ -10,6 +10,7 @@ import type { FontId } from '../settings'
 export const FONT_FILES = {
   inter: {
     400: 'inter/Inter-Regular.ttf',
+    500: 'inter/Inter-Medium.ttf',
     600: 'inter/Inter-SemiBold.ttf',
     700: 'inter/Inter-Bold.ttf',
   },

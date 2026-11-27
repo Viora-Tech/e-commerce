@@ -20,6 +20,8 @@ export default function PolishTemplate(props: TemplateProps & { fontFamily: stri
   const { doc, settings, assets, fontFamily } = props
   const view = templateView(props)
   const p = palette(view.accent)
+  // The frame says "Computer-generated invoice"; other documents keep their own name.
+  const footerTitle = view.title.replace(/^tax /i, '').toLowerCase()
 
   return (
     <Document
@@ -70,7 +72,7 @@ export default function PolishTemplate(props: TemplateProps & { fontFamily: stri
           <Text
             style={{ fontSize: 6, color: MUTED }}
             render={({ pageNumber, totalPages }) =>
-              `Computer-generated ${view.title.toLowerCase()} · Page ${pageNumber} of ${totalPages}`
+              `Computer-generated ${footerTitle} · Page ${pageNumber} of ${totalPages}`
             }
           />
         </View>
