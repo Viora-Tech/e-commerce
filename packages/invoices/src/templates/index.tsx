@@ -24,7 +24,26 @@ export const TEMPLATES: Record<TemplateId, { label: string; description: string 
     label: 'Logo left',
     description: 'Colour header band with the logo on the left, tinted totals.',
   },
+  'polish-centre': {
+    label: 'Logo centre',
+    description: 'Colour header band with the logo, name and number centred.',
+  },
+  'polish-right': {
+    label: 'Logo right',
+    description: 'Colour header band with the logo on the right; signature on the left.',
+  },
+  'polish-minimal': {
+    label: 'White header',
+    description: 'White header under a colour rule, colour accents, no tinted cards.',
+  },
 }
+
+const POLISH_LAYOUTS = {
+  polish: 'left',
+  'polish-centre': 'centre',
+  'polish-right': 'right',
+  'polish-minimal': 'minimal',
+} as const
 
 /**
  * The react-pdf <Document> for a snapshot with the store's template, colour
@@ -35,6 +54,9 @@ export function documentElement(props: TemplateProps): ReactElement<DocumentProp
   const id = templateFor(props.settings, props.doc.kind)
   if (id === 'minimal') return <MinimalTemplate {...props} fontFamily={fontFamily} />
   if (id === 'compact') return <CompactTemplate {...props} fontFamily={fontFamily} />
-  if (id === 'polish') return <PolishTemplate {...props} fontFamily={fontFamily} />
+  if (id in POLISH_LAYOUTS) {
+    const layout = POLISH_LAYOUTS[id as keyof typeof POLISH_LAYOUTS]
+    return <PolishTemplate {...props} fontFamily={fontFamily} layout={layout} />
+  }
   return <ClassicTemplate {...props} fontFamily={fontFamily} />
 }

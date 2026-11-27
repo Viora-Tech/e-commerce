@@ -1,4 +1,5 @@
 import {
+  gstInvoicesContent,
   gstNumberPickerContent,
   gstQueueEmptyContent,
   gstReturnsContent,
@@ -8,6 +9,33 @@ import { gstProductTaxContent } from '@/data/gst-product-tax'
 import { translation } from '@/lib/i18n'
 
 export default [
+  translation(gstInvoicesContent.settings.groups.look, {
+    title: 'टेम्पलेट और स्टाइल',
+    body: 'एक लेआउट चुनें, फिर उसे अपने हिसाब से बदलें।',
+    template: 'टेम्पलेट',
+    color: 'मुख्य रंग',
+    font: 'फ़ॉन्ट',
+    paper: 'काग़ज़',
+    fonts: { inter: 'Inter', noto: 'Noto Sans', geist: 'Geist' },
+    templates: {
+      classic: { label: 'क्लासिक', description: 'रंगीन हेडर, हल्के रंग वाले कार्ड।' },
+      minimal: { label: 'मिनिमल', description: 'लाइनों वाला ग्रिड, कोई भराव नहीं।' },
+      compact: { label: 'GST कॉम्पैक्ट', description: 'एक कॉलम, A5 और थर्मल प्रिंटर के लिए।' },
+      polish: { label: 'लोगो बाएँ', description: 'रंगीन हेडर पट्टी, लोगो बाईं ओर।' },
+      'polish-centre': {
+        label: 'लोगो बीच में',
+        description: 'रंगीन हेडर पट्टी, लोगो और नंबर बीच में।',
+      },
+      'polish-right': {
+        label: 'लोगो दाएँ',
+        description: 'रंगीन हेडर पट्टी, लोगो दाईं ओर, हस्ताक्षर बाईं ओर।',
+      },
+      'polish-minimal': {
+        label: 'सफ़ेद हेडर',
+        description: 'ऊपर रंगीन लाइन के नीचे सफ़ेद हेडर, रंगीन झलक।',
+      },
+    },
+  }),
   translation(gstQueueEmptyContent, {
     heading: 'इनवॉइस के लिए कोई ऑर्डर बाकी नहीं',
     body: 'इस कतार में वे ऑर्डर रहते हैं जो टैक्स इनवॉइस के लिए तैयार हैं पर अभी जारी नहीं हुए। तारीख़ें जाँचें, फिर उन्हें एक साथ जारी करें; नंबर तभी दिए जाते हैं।',

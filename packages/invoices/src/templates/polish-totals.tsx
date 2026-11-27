@@ -2,6 +2,7 @@ import { Image, Text, View } from '@react-pdf/renderer'
 import { formatRupees } from '../money'
 import type { InvoiceSettings } from '../settings'
 import type { DocumentSnapshot } from '../snapshot'
+import type { PolishLayout } from './polish-band'
 import { Eyebrow } from './polish-head'
 import { HsnTable } from './polish-items'
 import { INK, MUTED, type Palette } from './polish-style'
@@ -18,6 +19,7 @@ type BottomProps = {
   settings: InvoiceSettings
   assets: TemplateAssets
   p: Palette
+  layout: PolishLayout
 }
 
 function Note({
@@ -63,16 +65,31 @@ function Row({ label, value }: { label: string; value: string }) {
   )
 }
 
-/** Taxable value, each tax and the one Total GST figure, as `totalsRows` but in rupees. */
-function rupeeRows(doc: DocumentSnapshot, view: TemplateView) {
+/**
+ * The frame's totals box: Subtotal (goods), Discount, Shipping and other charges, then Taxable
+ * value and each tax. Subtotal − Discount + charges is the Total, as in the Figma frame.
+ */
+export function rupeeRows(doc: DocumentSnapshot, view: TemplateView) {
   const t = doc.totals
   const rows: { label: string; value: string }[] = []
+  const goods = doc.lines.filter((l) => !l.charge)
+  const charges = doc.lines.filter((l) => l.charge)
+  rows.push({ label: 'Subtotal', value: formatRupees(goods.reduce((a, l) => a + l.grossPaise, 0)) })
   if (view.fields.discount && t.discountPaise > 0) {
-    rows.push({ label: 'Subtotal', value: formatRupees(t.grossPaise) })
     rows.push({
       label: doc.discountLabel ? `Discount (${doc.discountLabel})` : 'Discount',
       value: `−${formatRupees(t.discountPaise)}`,
     })
+  }
+  const shipping = charges.filter((l) => l.description.startsWith('Shipping'))
+  // A shipped order with no shipping charge went out free, as the frame shows it.
+  if (!shipping.length && doc.shipTo && goods.length)
+    rows.push({ label: 'Shipping', value: 'Free' })
+  for (const l of charges) {
+    const label = l.description.startsWith('Shipping charges')
+      ? l.description.replace('Shipping charges', 'Shipping')
+      : l.description
+    rows.push({ label, value: formatRupees(l.grossPaise) })
   }
   if (view.taxDocument) {
     rows.push({ label: 'Taxable value', value: formatRupees(t.taxablePaise) })
@@ -80,15 +97,37 @@ function rupeeRows(doc: DocumentSnapshot, view: TemplateView) {
     else {
       rows.push({ label: 'CGST', value: formatRupees(t.cgstPaise) })
       rows.push({ label: 'SGST/UTGST', value: formatRupees(t.sgstPaise) })
+      // One GST figure for the customer when it is split in two (the frame's IGST row is
+      // already that figure); the split above stays for the returns (Rule 46).
+      rows.push({ label: 'Total GST', value: formatRupees(t.cgstPaise + t.sgstPaise) })
     }
-    // One GST figure for the customer; the split above stays for the returns (Rule 46).
-    rows.push({ label: 'Total GST', value: formatRupees(t.igstPaise + t.cgstPaise + t.sgstPaise) })
   }
   return rows
 }
 
-export function BottomBlock({ doc, view, settings, assets, p }: BottomProps) {
+/** Signature image height per frame: M in the logo-left and minimal frames, L centred, S left. */
+const SIGNATURE_HEIGHT: Record<PolishLayout, number> = {
+  left: 32,
+  minimal: 32,
+  centre: 44,
+  right: 22,
+}
+
+export function BottomBlock({ doc, view, settings, assets, p, layout }: BottomProps) {
   const f = view.fields
+  const signed = f.signature && view.taxDocument
+  // The logo-right frame signs on the left, under the notes; the others under the totals.
+  const signLeft = layout === 'right'
+  const signature = (
+    <Signature
+      doc={doc}
+      view={view}
+      settings={settings}
+      assets={assets}
+      align={signLeft ? 'flex-start' : 'flex-end'}
+      height={SIGNATURE_HEIGHT[layout]}
+    />
+  )
   return (
     <View wrap={false} style={{ flexDirection: 'row', gap: 22 }}>
       <View style={{ flex: 1, gap: 10 }}>
@@ -105,6 +144,7 @@ export function BottomBlock({ doc, view, settings, assets, p }: BottomProps) {
         {f.notes && settings.notes ? (
           <Note label={view.label('notes')} text={settings.notes} p={p} />
         ) : null}
+        {signed && signLeft ? signature : null}
       </View>
 
       <View style={{ width: 220, gap: 14 }}>
@@ -136,9 +176,7 @@ export function BottomBlock({ doc, view, settings, assets, p }: BottomProps) {
           </View>
         ) : null}
         <AdvanceAndCollect doc={doc} p={p} />
-        {f.signature && view.taxDocument ? (
-          <Signature doc={doc} view={view} settings={settings} assets={assets} />
-        ) : null}
+        {signed && !signLeft ? signature : null}
       </View>
     </View>
   )
@@ -182,14 +220,21 @@ function AdvanceAndCollect({ doc, p }: { doc: DocumentSnapshot; p: Palette }) {
 }
 
 /** "For <seller>", the signature image, the signatory's name and role, right-aligned. */
-function Signature({ doc, view, settings, assets }: Omit<BottomProps, 'p'>) {
+function Signature({
+  doc,
+  view,
+  settings,
+  assets,
+  align,
+  height,
+}: Omit<BottomProps, 'p' | 'layout'> & { align: 'flex-start' | 'flex-end'; height: number }) {
   return (
-    <View style={{ alignItems: 'flex-end', gap: 3 }}>
+    <View style={{ alignItems: align, gap: 3 }}>
       <Text style={{ fontSize: 6.5, fontWeight: 500, color: MUTED }}>For {doc.seller.name}</Text>
       {assets.signature ? (
-        <Image src={assets.signature} style={{ height: 32, width: 118, objectFit: 'contain' }} />
+        <Image src={assets.signature} style={{ height, width: 78, objectFit: 'contain' }} />
       ) : (
-        <View style={{ height: 32 }} />
+        <View style={{ height }} />
       )}
       {settings.signatoryName ? (
         <Text style={{ fontSize: 7.5, fontWeight: 600, color: INK }}>{settings.signatoryName}</Text>
