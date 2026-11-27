@@ -137,7 +137,7 @@ const LOCK_MESSAGES: Record<EditLockReason, (period: string) => string> = {
   not_tax_invoice: () => 'Only a tax invoice can be edited',
   not_issued: () => 'A queued invoice is issued from the order as it is',
   cancelled: () => 'This invoice is cancelled',
-  external: () => 'This invoice was issued outside Koomerce; correct it there',
+  external: () => 'This invoice was issued in another billing system; correct it there',
   irn: () =>
     'An e-invoice with an IRN cannot be edited; cancel it on the IRP or issue a credit note',
   filed: (p) => `${p} is marked filed; issue a credit note instead`,

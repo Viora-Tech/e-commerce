@@ -359,6 +359,7 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'packages/plugin-reviews/src/storefront.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-reviews/src/submit.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-gst-invoices/src/credit-notes.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-gst-invoices/src/edit-invoice.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-gst-invoices/src/issue.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-gst-invoices/src/links.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-gst-invoices/src/next-number.ts', exact: true, reason: PLUGIN },

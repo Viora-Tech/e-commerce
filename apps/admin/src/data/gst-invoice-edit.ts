@@ -19,7 +19,7 @@ export const gstInvoiceEditContent = {
       irn: 'This e-invoice has an IRN, so it cannot be edited.',
       credited: 'A credit note is issued against this invoice, so it can no longer be edited.',
       cancelled: 'This invoice is cancelled.',
-      external: 'This invoice was issued outside Koomerce. Correct it there.',
+      external: 'This invoice was issued in another billing system. Correct it there.',
       not_issued: 'A queued invoice is issued from the order as it is.',
       not_tax_invoice: 'Only a tax invoice can be edited.',
     },
