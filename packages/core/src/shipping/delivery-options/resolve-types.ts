@@ -210,7 +210,14 @@ export type DeliveryResolveResult = {
     providers: Array<
       Pick<
         ProviderAnswer,
-        'providerId' | 'providerLabel' | 'status' | 'source' | 'ms' | 'error' | 'serviceable'
+        | 'providerId'
+        | 'providerLabel'
+        | 'status'
+        | 'source'
+        | 'ms'
+        | 'error'
+        | 'serviceable'
+        | 'notServed'
       >
     >
   }

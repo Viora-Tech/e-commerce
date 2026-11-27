@@ -9,7 +9,7 @@
  *   GET  /api/dc/expected_tat?origin_pin=&destination_pin=   transit days
  *   GET  /waybill/api/bulk/json/?count=1                     reserve a waybill
  *   POST /api/cmu/create.json  (form: format=json&data=…)    create shipment
- *   GET  /api/v1/packages/json/?waybill=                     tracking
+ *   GET  /api/v1/packages/json/?waybill=a,b,c                tracking, up to 50 per call
  *   POST /api/p/edit (cancel), packing slip and pickup request: see label-pickup.ts
  *
  * TWO CALLS FOR AN ESTIMATE, NOT ONE
@@ -40,6 +40,7 @@ import {
   courierBaseUrlProblem,
   courierFetch,
   courierJson,
+  courierTimeToIso,
   isValidPincode,
   type NdrActionInput,
   type NdrActionResult,
@@ -102,13 +103,37 @@ export type DelhiveryConfig = {
   fetchImpl?: typeof fetch | undefined
 }
 
+/** One delivery centre on a PIN code; `e` is when it stopped serving it (blank: current). */
+type DeliveryCentre = { code?: string; cn?: string; s?: string; e?: string }
+
 type PostalCode = {
   pin?: number
   /** "Y" / "N" - cash on delivery. */
   cod?: string
   /** "Y" / "N" - prepaid accepted. */
   pre_paid?: string
+  /** "Embargo" when Delhivery has stopped taking parcels there (cod and pre_paid still "Y"). */
   remarks?: string
+  center?: DeliveryCentre[]
+}
+
+/**
+ * True when Delhivery lists the PIN code but is not taking parcels there: its remarks say
+ * "Embargo", or the current delivery centre is "NSZ" (no service zone) or has no centre code.
+ * Those answers still say cod "Y" and pre_paid "Y", so reading only the flags offered Delhivery
+ * for PIN 682301 and it refused the booking twice (order #2503, 27 Nov 2026).
+ */
+export function delhiveryEmbargoed(entry: PostalCode): boolean {
+  if (typeof entry.remarks === 'string' && /embargo/i.test(entry.remarks)) return true
+  const centres = Array.isArray(entry.center) ? entry.center : []
+  if (!centres.length) return false
+  const open = centres.filter((c) => !(typeof c.e === 'string' && c.e.trim()))
+  const current = open.length ? open : centres.slice(-1)
+  return current.some(
+    (c) =>
+      (typeof c.cn === 'string' && c.cn.trim().toUpperCase() === 'NSZ') ||
+      !(typeof c.code === 'string' && c.code.trim()),
+  )
 }
 
 type ServiceabilityResponse = { delivery_codes?: Array<{ postal_code?: PostalCode }> }
@@ -175,32 +200,83 @@ type CreateResponse = {
   success?: boolean
   rmk?: string
   error?: string | boolean
-  packages?: Array<{ waybill?: string; status?: string; error?: string; remarks?: string[] }>
-}
-
-type TrackResponse = {
-  ShipmentData?: Array<{
-    Shipment?: {
-      AWB?: string
-      Status?: {
-        Status?: string
-        StatusType?: string
-        StatusDateTime?: string
-        Instructions?: string
-      }
-      Scans?: Array<{
-        ScanDetail?: {
-          Scan?: string
-          ScanType?: string
-          ScanDateTime?: string
-          ScannedLocation?: string
-          Instructions?: string
-        }
-      }>
-      ExpectedDeliveryDate?: string
-    }
+  packages?: Array<{
+    waybill?: string
+    status?: string
+    error?: string | boolean
+    remarks?: string[] | string
   }>
 }
+
+/**
+ * The waybill Delhivery booked, or null when it refused. A package counts only with
+ * `status: "Success"` and its own waybill: a "Fail" (an embargoed PIN) comes back with a blank
+ * waybill, and reading anything else as booked saved a "Label created" shipment on a waybill
+ * Delhivery never used (order #2503, twice). The waybill reserved before the call is never used
+ * in its place.
+ */
+export function delhiveryBookedWaybill(result: CreateResponse): string | null {
+  const packages = Array.isArray(result.packages) ? result.packages : []
+  const own = packages[0]?.waybill
+  if (result.success === false || typeof own !== 'string') return null
+  const booked = packages.every(
+    (p) =>
+      typeof p.status === 'string' &&
+      p.status.trim().toLowerCase() === 'success' &&
+      typeof p.waybill === 'string' &&
+      p.waybill.trim() !== '',
+  )
+  return booked ? own.trim() : null
+}
+
+/** Delhivery's own words for a refused booking: each package's error and remarks, then `rmk`. */
+function delhiveryRefusal(result: CreateResponse): string {
+  const packages = Array.isArray(result.packages) ? result.packages : []
+  const words = [
+    ...packages.flatMap((p) => [
+      p.error,
+      ...(Array.isArray(p.remarks) ? p.remarks : [p.remarks]),
+      p.status && p.status.trim().toLowerCase() !== 'success' && !p.error && !p.remarks
+        ? `status ${p.status}`
+        : undefined,
+    ]),
+    result.rmk,
+    result.error,
+  ]
+    // `error` is sometimes the boolean `true`; only text explains anything.
+    .filter((d): d is string => typeof d === 'string' && d.trim() !== '')
+    .map((d) => d.trim())
+  const detail = [...new Set(words)].join(' | ')
+  if (detail) return detail
+  return packages.length === 0 ? 'no package in the answer' : 'no waybill in the answer'
+}
+
+/** Waybills per tracking call: Delhivery's documented maximum for `?waybill=a,b,c`. */
+export const DELHIVERY_TRACK_BATCH = 50
+
+type TrackShipment = {
+  Shipment?: {
+    AWB?: string
+    Status?: {
+      Status?: string
+      StatusType?: string
+      StatusDateTime?: string
+      Instructions?: string
+    }
+    Scans?: Array<{
+      ScanDetail?: {
+        Scan?: string
+        ScanType?: string
+        ScanDateTime?: string
+        ScannedLocation?: string
+        Instructions?: string
+      }
+    }>
+    ExpectedDeliveryDate?: string
+  }
+}
+
+type TrackResponse = { ShipmentData?: TrackShipment[] }
 
 /** Shape returned by /api/p/update, per the "Asynchronous NDR Package Action API" reference doc. */
 type NdrUpdateResponse = { upl?: string; UploadWbns?: string; success?: boolean; error?: string }
@@ -232,9 +308,35 @@ export function mapDelhiveryStatus(
   return 'in_transit'
 }
 
+/** One shipment of a tracking answer in our terms. Scan times are India time (IST, +05:30). */
+function delhiveryTracking(
+  waybill: string,
+  shipment: NonNullable<TrackShipment['Shipment']>,
+): Tracking {
+  const events: TrackingEvent[] = (shipment.Scans ?? [])
+    .map((s) => s.ScanDetail)
+    .filter((d): d is NonNullable<typeof d> => Boolean(d))
+    .map((d) => ({
+      // Delhivery writes India time without an offset; read as UTC it landed 5 h 30 min late.
+      at: courierTimeToIso(d.ScanDateTime) ?? new Date(0).toISOString(),
+      status: mapDelhiveryStatus(d.ScanType, d.Scan),
+      description: d.Instructions || d.Scan || '',
+      location: d.ScannedLocation,
+    }))
+    .sort((a, b) => a.at.localeCompare(b.at))
+  return {
+    waybill,
+    status: mapDelhiveryStatus(shipment.Status?.StatusType, shipment.Status?.Status),
+    events,
+    trackingUrl: `https://www.delhivery.com/track/package/${encodeURIComponent(waybill)}`,
+    expectedDate: shipment.ExpectedDeliveryDate?.slice(0, 10),
+  }
+}
+
 export class DelhiveryProvider implements ShippingProvider {
   readonly id = 'delhivery'
   readonly label = 'Delhivery'
+  readonly trackBatchSize = DELHIVERY_TRACK_BATCH
 
   private readonly baseUrl: string
   private readonly fetchImpl: typeof fetch
@@ -348,6 +450,18 @@ export class DelhiveryProvider implements ShippingProvider {
         minTransitDays: null,
         maxTransitDays: null,
         reason: 'Delhivery does not currently deliver to this PIN code.',
+      }
+    }
+    if (delhiveryEmbargoed(entry)) {
+      return {
+        provider: this.id,
+        serviceable: false,
+        codAvailable: false,
+        prepaidAvailable: false,
+        minTransitDays: null,
+        maxTransitDays: null,
+        reason: 'Delhivery has this PIN code under embargo: it is not taking parcels there.',
+        notServed: 'embargo',
       }
     }
 
@@ -491,19 +605,11 @@ export class DelhiveryProvider implements ShippingProvider {
       `format=json&data=${encodeURIComponent(JSON.stringify(payload))}`,
     )
 
-    const packages = result.packages ?? []
-    const ok =
-      result.success === true ||
-      (packages.length > 0 && packages.every((p) => !p.error && p.status !== 'Error'))
-    if (!ok) {
-      const detail = [
-        ...packages.map((p) => p.error ?? p.remarks?.join(' ')),
-        result.rmk,
-        result.error,
-      ]
-        // `error` is sometimes the boolean `true`; only text explains anything.
-        .filter((d): d is string => typeof d === 'string' && d.trim() !== '')
-        .join(' | ')
+    /* Only the package's own waybill counts. On a refusal the one reserved above is dropped,
+       never stored: Delhivery did not book anything on it. */
+    const assigned = delhiveryBookedWaybill(result)
+    if (!assigned) {
+      const detail = delhiveryRefusal(result)
       if (NO_WAREHOUSE.test(detail)) {
         const name = payload.pickup_location.name
         throw new CourierError(
@@ -513,14 +619,9 @@ export class DelhiveryProvider implements ShippingProvider {
           { detail: { code: 'no_pickup_location', pickupLocationName: name } },
         )
       }
-      throw new CourierError(
-        'rejected',
-        this.id,
-        `Delhivery rejected the shipment: ${detail || 'no detail returned'}`,
-      )
+      throw new CourierError('rejected', this.id, `Delhivery rejected the shipment: ${detail}`)
     }
 
-    const assigned = packages[0]?.waybill || waybill
     /* The packing slip needs the token, so it is never a browser link: the admin's label route
        asks `getLabel` server-side. */
     return { waybill: assigned, providerRef: assigned, labelViaProvider: true }
@@ -591,54 +692,45 @@ export class DelhiveryProvider implements ShippingProvider {
       '/api/cmu/create.json',
       `format=json&data=${encodeURIComponent(JSON.stringify(payload))}`,
     )
-    const packages = result.packages ?? []
-    const ok =
-      result.success === true ||
-      (packages.length > 0 && packages.every((p) => !p.error && p.status !== 'Error'))
-    if (!ok) {
-      const detail = [
-        ...packages.map((p) => p.error ?? p.remarks?.join(' ')).filter(Boolean),
-        result.rmk,
-        result.error,
-      ]
-        .filter(Boolean)
-        .join(' | ')
+    const assigned = delhiveryBookedWaybill(result)
+    if (!assigned) {
       throw new CourierError(
         'rejected',
         this.id,
-        `Delhivery rejected the return pickup: ${detail || 'no detail returned'}`,
+        `Delhivery rejected the return pickup: ${delhiveryRefusal(result)}`,
       )
     }
-    const assigned = packages[0]?.waybill || waybill
     return { waybill: assigned, providerRef: assigned }
   }
 
   async track(waybill: string): Promise<Tracking> {
-    const data = await this.getJson<TrackResponse>(
-      `/api/v1/packages/json/?waybill=${encodeURIComponent(waybill)}`,
-    )
-    const shipment = data.ShipmentData?.[0]?.Shipment
-    if (!shipment)
+    const tracking = (await this.trackMany([waybill])).get(waybill)
+    if (!tracking)
       throw new CourierError('bad_response', this.id, 'Delhivery has no record of this waybill.')
+    return tracking
+  }
 
-    const events: TrackingEvent[] = (shipment.Scans ?? [])
-      .map((s) => s.ScanDetail)
-      .filter((d): d is NonNullable<typeof d> => Boolean(d))
-      .map((d) => ({
-        at: d.ScanDateTime ? new Date(d.ScanDateTime).toISOString() : new Date(0).toISOString(),
-        status: mapDelhiveryStatus(d.ScanType, d.Scan),
-        description: d.Instructions || d.Scan || '',
-        location: d.ScannedLocation,
-      }))
-      .sort((a, b) => a.at.localeCompare(b.at))
-
-    return {
-      waybill: shipment.AWB ?? waybill,
-      status: mapDelhiveryStatus(shipment.Status?.StatusType, shipment.Status?.Status),
-      events,
-      trackingUrl: `https://www.delhivery.com/track/package/${encodeURIComponent(waybill)}`,
-      expectedDate: shipment.ExpectedDeliveryDate?.slice(0, 10),
+  /**
+   * Tracking for many waybills, `DELHIVERY_TRACK_BATCH` per call (`?waybill=a,b,c`). One call
+   * per parcel ran into Delhivery's rate limit: 207 calls refused with 429 in 15 h (27 Nov 2026).
+   * A waybill missing from the answer maps to null.
+   */
+  async trackMany(waybills: string[]): Promise<Map<string, Tracking | null>> {
+    const unique = [...new Set(waybills.filter((w) => w.trim()))]
+    const out = new Map<string, Tracking | null>(unique.map((w) => [w, null]))
+    for (let i = 0; i < unique.length; i += DELHIVERY_TRACK_BATCH) {
+      const batch = unique.slice(i, i + DELHIVERY_TRACK_BATCH)
+      const data = await this.getJson<TrackResponse>(
+        `/api/v1/packages/json/?waybill=${batch.map(encodeURIComponent).join(',')}`,
+      )
+      for (const item of data.ShipmentData ?? []) {
+        const shipment = item.Shipment
+        const awb = shipment?.AWB ?? (batch.length === 1 ? batch[0] : undefined)
+        if (!shipment || !awb || !out.has(awb)) continue
+        out.set(awb, delhiveryTracking(awb, shipment))
+      }
     }
+    return out
   }
 
   /** Cancel Order API; a refusal carries Delhivery's remark (see `cancelDelhivery`). */

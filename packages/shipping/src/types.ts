@@ -54,6 +54,12 @@ export type Serviceability = {
   maxTransitDays: number | null
   /** Why not serviceable, when the API says. Never shown raw to customers. */
   reason: string | null
+  /**
+   * A known reason the courier is not taking parcels there, for staff (Try a PIN's trace):
+   * `embargo` is Delhivery's "Embargo" remark or its NSZ (no service zone) centre, which still
+   * answers COD and prepaid "Y" (order #2503, PIN 682301, 27 Nov 2026).
+   */
+  notServed?: 'embargo' | undefined
 }
 
 export type ShipmentAddress = {
@@ -473,6 +479,15 @@ export type ShippingProvider = {
   /** Take back a pending order sent with `pushOrder` (the order was cancelled here). */
   cancelPushedOrder?(pushed: PushOrderResult): Promise<void>
   track(waybill: string): Promise<Tracking>
+  /**
+   * Optional: tracking for many waybills in one call (Delhivery takes up to 50, comma-separated).
+   * The map has an entry for every waybill asked: its tracking, or null when the courier has no
+   * record of it. Throws CourierError when the call itself failed. The poll job prefers it over
+   * one `track()` per parcel, which Delhivery refused with 429 (207 times in 15 h, 27 Nov 2026).
+   */
+  trackMany?(waybills: string[]): Promise<Map<string, Tracking | null>>
+  /** How many waybills one `trackMany` call takes. */
+  readonly trackBatchSize?: number | undefined
   /**
    * Cancel a booked consignment. Throw CourierError('rejected', ...) with the courier's reason
    * when it refuses (already picked up, already cancelled), so the merchant sees why.

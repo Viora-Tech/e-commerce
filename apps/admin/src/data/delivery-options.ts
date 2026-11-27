@@ -184,7 +184,8 @@ export const deliveryOptionsContent = {
       'Picked first when it delivers to the PIN, before the option’s cheapest or fastest courier.',
     noPreferred: 'No preferred courier',
     preferredAny: (courier: string) => `${courier} (any speed)`,
-    forceRoute: 'Always send by the preferred courier at the option’s price (you pay the difference)',
+    forceRoute:
+      'Always send by the preferred courier at the option’s price (you pay the difference)',
     forceRouteHelp:
       'Like Delhivery Air at the Standard price. The difference shows in the order’s shipping margin.',
     more: 'More',
@@ -306,6 +307,10 @@ export const deliveryOptionsContent = {
     providers: 'Courier apps asked',
     failed: (app: string, why: string) => `${app}: ${why}`,
     saidNo: (app: string) => `${app}: does not deliver here`,
+    /** The app said no for a known reason (Delhivery's "Embargo" or no-service centre). */
+    notServed: {
+      embargo: (app: string) => `${app}: PIN under embargo`,
+    },
   },
   option: {
     newTitle: 'New delivery option',

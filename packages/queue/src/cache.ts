@@ -35,7 +35,8 @@ export const serviceabilityKey = (
   providerSettings: unknown,
   pincode: string,
 ) =>
-  `{shipping}:serviceability:${storeId}:${provider}:${courierSettingsFingerprint(providerSettings)}:${pincode}`
+  // v2 (28 Nov 2026): v1 answers said Delhivery serves embargoed PINs (682301).
+  `{shipping}:serviceability:v2:${storeId}:${provider}:${courierSettingsFingerprint(providerSettings)}:${pincode}`
 
 /** Add one; the key expires `ttlSeconds` after its first count. */
 async function cacheIncr(redis: IORedis, key: string, ttlSeconds: number): Promise<number> {

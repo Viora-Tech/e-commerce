@@ -19,13 +19,27 @@ export const labelSheetContent = {
   failed: 'Could not make the label file. Try again.',
   noneReady: 'None of these labels is ready yet. The couriers have not sent them.',
   tooMany: (max: number) => `Print up to ${max} labels at a time. Select fewer and try again.`,
-  /** Toast after printing when some were left out: "2 labels left out: #1047 not sent yet…". */
+  /** Toast after printing when some were left out: "1 label left out: #2503 Delhivery: no label yet". */
   leftOut: (n: number, list: string) => `${plural(n, 'label', 'labels')} left out: ${list}`,
+  /** One left-out label: "#2503 Delhivery: no label yet"; without an order or courier, less. */
+  skipLine: (order: number | null, courier: string | null, reason: string) =>
+    [order === null ? null : `#${order}`, courier ? `${courier}: ${reason}` : reason]
+      .filter(Boolean)
+      .join(' '),
   reasons: {
     not_found: 'not found',
     cancelled: 'cancelled',
-    no_label: 'courier has not sent it yet',
-    failed: 'courier did not hand it over, try again',
+    no_label: 'no label yet',
+    failed: 'did not hand it over, try again',
     unreadable: 'not a PDF',
   } as Record<LabelSheetSkipReason, string>,
+}
+
+/**
+ * The page "Print label" opens when the courier cannot hand the label over
+ * (`/api/shipments/<id>/label`): the courier's sentence from the server, under this title.
+ */
+export const labelPageContent = {
+  title: 'Label not ready',
+  close: 'Close this tab and try again from the order.',
 }

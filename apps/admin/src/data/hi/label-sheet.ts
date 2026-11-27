@@ -1,4 +1,4 @@
-import { labelSheetContent } from '@/data/label-sheet'
+import { labelPageContent, labelSheetContent } from '@/data/label-sheet'
 import { translation } from '@/lib/i18n'
 
 export default [
@@ -15,12 +15,20 @@ export default [
     noneReady: 'इनमें से कोई लेबल अभी तैयार नहीं है। कूरियर ने अभी नहीं भेजे।',
     tooMany: (max) => `एक बार में ज़्यादा से ज़्यादा ${max} लेबल प्रिंट करें। कम चुनकर फिर कोशिश करें।`,
     leftOut: (n, list) => `${n} लेबल छोड़े गए: ${list}`,
+    skipLine: (order, courier, reason) =>
+      [order === null ? null : `#${order}`, courier ? `${courier}: ${reason}` : reason]
+        .filter(Boolean)
+        .join(' '),
     reasons: {
       not_found: 'नहीं मिला',
       cancelled: 'रद्द',
-      no_label: 'कूरियर ने अभी नहीं भेजा',
-      failed: 'कूरियर से नहीं मिला, फिर कोशिश करें',
+      no_label: 'अभी लेबल नहीं',
+      failed: 'नहीं दिया, फिर कोशिश करें',
       unreadable: 'PDF नहीं है',
     },
+  }),
+  translation(labelPageContent, {
+    title: 'लेबल तैयार नहीं',
+    close: 'यह टैब बंद करें और ऑर्डर से फिर कोशिश करें।',
   }),
 ]

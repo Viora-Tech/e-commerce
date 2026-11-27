@@ -95,7 +95,10 @@ export async function courierRefusalReason(response: Response): Promise<string |
  * `no_pickup_location`: the courier has no pickup location (warehouse) by the name we sent; the
  * admin shows the exact name and where to find the right one on the courier's dashboard.
  */
-export type CourierErrorDetail = { code: 'no_pickup_location'; pickupLocationName: string }
+export type CourierErrorDetail =
+  | { code: 'no_pickup_location'; pickupLocationName: string }
+  /** The booking stands, but the courier has not made its label yet: try again later. */
+  | { code: 'label_not_ready' }
 
 /**
  * Wall-clock budget for a courier call.

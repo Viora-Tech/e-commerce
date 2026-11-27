@@ -5,10 +5,16 @@
  * WHERE: `printLabelSheet` (packages/api label-sheet.service.ts) passes the store's rows and
  *        a reader; `mergeLabelSheet` (label-sheet.ts) draws what comes back.
  */
+import { CourierError, describeCourierFailureForStaff } from '@commerce/shipping'
 import type { LabelFile } from './label-sheet'
 
 /** Labels fetched at once: gentle on courier APIs, still quick for a batch. */
 const CONCURRENCY = 4
+/** Wait before the one retry of a label the courier could not hand over just now. */
+export const LABEL_RETRY_DELAY_MS = 1500
+
+/** The courier's "no label for it yet" in its own words (Delhivery's packing slip). */
+const NOT_READY = /\bno label\b|label (?:is )?not (?:yet )?(?:ready|generated|available)/i
 
 export type LabelSheetSkipReason =
   /** Not a shipment of this store. */
@@ -25,6 +31,10 @@ export type LabelSheetSkip = {
   shipmentId: string
   orderNumber: number | null
   reason: LabelSheetSkipReason
+  /** The courier's name ("Delhivery"), when the shipment was found. */
+  courier?: string | undefined
+  /** What the courier said, for staff and the server log (no URLs, no customer data). */
+  detail?: string | undefined
 }
 
 export type LabelRow = {
@@ -34,18 +44,54 @@ export type LabelRow = {
   provider: string
   waybill: string
   labelUrl: string | null
+  /** The courier's name for the skip list; the provider id when absent. */
+  courier?: string | undefined
+}
+
+/** A courier refusal that says the label is not made yet. */
+function notReady(error: unknown): boolean {
+  if (error instanceof CourierError && error.detail?.code === 'label_not_ready') return true
+  return error instanceof Error && NOT_READY.test(error.message)
+}
+
+/** Worth one more try in a moment: a slow, busy or rate-limited courier, or a label not made yet. */
+function retryable(error: unknown): boolean {
+  if (notReady(error)) return true
+  return (
+    error instanceof CourierError &&
+    (error.kind === 'timeout' || error.kind === 'unavailable' || error.kind === 'rate_limited')
+  )
+}
+
+/** The courier's words for a failed label, as staff read them. */
+function failureText(error: unknown): string {
+  if (error instanceof CourierError) return describeCourierFailureForStaff(error)
+  return error instanceof Error ? error.message : String(error)
 }
 
 /**
  * Every requested label's bytes, in the order asked, and the ones skipped with why. `rows` are
  * the caller's store's shipments only, so an id it does not hold is `not_found`. `read` gives a
  * label's bytes, null when the courier has none yet, and throws when it could not be fetched.
+ * A timeout, an unavailable or rate-limited courier, or a label not made yet is asked once more
+ * after `retryDelayMs`; a skip keeps the courier's words as `detail`.
  */
 export async function collectLabelFiles(
   ids: string[],
   rows: LabelRow[],
   read: (row: LabelRow) => Promise<Uint8Array | null>,
+  opts: { retryDelayMs?: number | undefined } = {},
 ): Promise<{ files: LabelFile[]; skipped: LabelSheetSkip[] }> {
+  const retryDelayMs = opts.retryDelayMs ?? LABEL_RETRY_DELAY_MS
+  const readWithRetry = async (row: LabelRow) => {
+    try {
+      return await read(row)
+    } catch (error) {
+      if (!retryable(error)) throw error
+      await new Promise((resolve) => setTimeout(resolve, retryDelayMs))
+      return read(row)
+    }
+  }
   const byId = new Map(rows.map((r) => [r.id, r]))
   const unique = [...new Set(ids)]
   const results: ({ file: LabelFile } | { skip: LabelSheetSkip })[] = new Array(unique.length)
@@ -60,8 +106,14 @@ export async function collectLabelFiles(
         results[i] = { skip: { shipmentId: id, orderNumber: null, reason: 'not_found' } }
         continue
       }
-      const skip = (reason: LabelSheetSkipReason) => ({
-        skip: { shipmentId: id, orderNumber: row.orderNumber, reason },
+      const skip = (reason: LabelSheetSkipReason, detail?: string) => ({
+        skip: {
+          shipmentId: id,
+          orderNumber: row.orderNumber,
+          reason,
+          courier: row.courier ?? row.provider,
+          ...(detail ? { detail } : {}),
+        },
       })
       if (row.status === 'cancelled') {
         results[i] = skip('cancelled')
@@ -72,10 +124,10 @@ export async function collectLabelFiles(
         continue
       }
       try {
-        const bytes = await read(row)
+        const bytes = await readWithRetry(row)
         results[i] = bytes && bytes.byteLength > 0 ? { file: { id, bytes } } : skip('no_label')
-      } catch {
-        results[i] = skip('failed')
+      } catch (error) {
+        results[i] = skip(notReady(error) ? 'no_label' : 'failed', failureText(error))
       }
     }
   }

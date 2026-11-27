@@ -130,9 +130,9 @@ describe('shipments.labelSheet', () => {
       [288, 432],
     ])
     expect(res.skipped).toEqual([
-      { shipmentId: waiting, orderNumber: 103, reason: 'no_label' },
-      { shipmentId: cancelled, orderNumber: 104, reason: 'cancelled' },
-      { shipmentId: lost, orderNumber: 105, reason: 'no_label' },
+      { shipmentId: waiting, orderNumber: 103, reason: 'no_label', courier: 'Blue Dart' },
+      { shipmentId: cancelled, orderNumber: 104, reason: 'cancelled', courier: 'Blue Dart' },
+      { shipmentId: lost, orderNumber: 105, reason: 'no_label', courier: 'Blue Dart' },
       // Another store's shipment is never read: not found, and no order number leaks.
       { shipmentId: other, orderNumber: null, reason: 'not_found' },
     ])
@@ -161,7 +161,9 @@ describe('shipments.labelSheet', () => {
       { context: a.ctx },
     )
     expect(res).toMatchObject({ file: null, printed: 0 })
-    expect(res.skipped).toEqual([{ shipmentId: id, orderNumber: 9, reason: 'no_label' }])
+    expect(res.skipped).toEqual([
+      { shipmentId: id, orderNumber: 9, reason: 'no_label', courier: 'Blue Dart' },
+    ])
   })
 
   it('refuses more than 100 labels at once', async () => {
