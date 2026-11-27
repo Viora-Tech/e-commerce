@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { defaultInvoiceSettings, type InvoiceSettings, sampleDocument } from '../src'
 import { renderDocumentToBuffer } from '../src/pdf/render'
 import { documentElement, TEMPLATES } from '../src/templates'
-import { stripItems } from '../src/templates/polish-head'
-import { initials, mix, palette } from '../src/templates/polish-style'
+import { stripItems } from '../src/templates/polish-meta'
+import { logoMonogram, palette } from '../src/templates/polish-style'
 import { templateView } from '../src/templates/view'
 
 const settings: InvoiceSettings = {
@@ -46,8 +46,8 @@ describe('Polish (logo left) template', () => {
     expect(p.strip).toBe('#f1f1f9')
     expect(p.head).toBe('#e3e2f2')
     expect(p.onBandSoft).toBe('#cdcbe8')
-    expect(mix('#000000', '#ffffff', 0.5)).toBe('#808080')
-    expect(initials('Saffron & Sage Studio')).toBe('S&S')
+    expect(palette('#000000').onBandSoft).toBe('#bfbfbf')
+    expect(logoMonogram('Saffron & Sage Studio')).toBe('S&S')
   })
 
   it('prints the tax invoice parts', () => {

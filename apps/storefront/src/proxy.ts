@@ -1,15 +1,11 @@
 import { loadEnv, settingsSecret } from '@commerce/config'
-import { readHonoPreviewToken } from '@commerce/core/hono-preview'
-import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { withQuery } from '@commerce/core/redirects'
 import { THEME_PREVIEW_PARAM } from '@commerce/core/theme'
 import { THEME_DESIGN_MODE_PARAM } from '@commerce/core/theme-design-mode'
-import { type HostRoute, resolveHost, type StoreMarketRoute, storeMarkets } from '@commerce/db'
 import { type NextRequest, NextResponse } from 'next/server'
 import { FEED_FILES } from './data/product-feed'
 import { SEO_FILES } from './data/seo'
-import { accountsHostname } from './lib/accounts-host'
-import { CONSENT_PENDING_HEADER, consentOf } from './lib/consent-cookie'
+import { CONSENT_PENDING_HEADER } from './lib/consent-cookie'
 import {
   forwardNonce,
   ISOLATED_FRAME_ANCESTORS,
@@ -19,29 +15,17 @@ import {
   scriptCsp,
   storefrontFrameAncestors,
 } from './lib/csp'
-import { db } from './lib/db'
-import { edgeCacheControl, isSharedPage } from './lib/edge-cache'
-import {
-  HONO_COOKIE,
-  HONO_COOKIE_MAX_AGE,
-  honoPath,
-  honoPreviewLink,
-  wantsHono,
-} from './lib/hono-island/route'
+import { edgeCacheControl } from './lib/edge-cache'
+import { honoPath, wantsHono } from './lib/hono-island/route'
 import { honoEnv, honoResting } from './lib/hono-island/state'
 import {
   MARKET_COOKIE,
-  MARKET_COOKIE_MAX_AGE,
   MARKET_HEADERS,
-  type MarketPick,
   marketHeaders,
   marketPath,
-  marketRedirect,
   pickMarket,
-  savedChoice,
   withoutMarketSegment,
 } from './lib/markets'
-import { ORDER_VIEW_COOKIE, ORDER_VIEW_MAX_AGE, orderTokenSwap } from './lib/order-token-swap'
 import {
   PLAIN_SKIP_HEADER,
   plainPath,
@@ -55,12 +39,11 @@ import {
   portalHostFor,
   portalPathRest,
   portalRedirect,
-  portalStoreHosts,
-  routeForPortalHost,
 } from './lib/portal-routing'
-import { noteVisit, WARM_USER_AGENT } from './lib/recent-pages'
+import { marketsOf, resolve, routeOwnHost, watchRouting } from './lib/proxy-hosts'
+import { honoPreviewMove, marketMove, orderTokenMove } from './lib/proxy-moves'
+import { finishPageResponse } from './lib/proxy-page-response'
 import { redirectFor } from './lib/redirects'
-import { noteReferral } from './lib/referral-landing'
 import {
   PRIORITY,
   RETRY_AFTER_S,
@@ -69,7 +52,6 @@ import {
   SHOPPER_COOKIES,
 } from './lib/render-gate'
 import {
-  checkoutHostname,
   DERIVED_HEADERS,
   listingSearch,
   MISSING_ROUTE_HEADER,
@@ -77,24 +59,25 @@ import {
   primaryRedirect,
   RENDER_TICKET_HEADER,
   redirectHostFor,
-  routeForAccounts,
-  routeForCheckoutHost,
   routeForStore,
   THEME_VERSION_ID,
   visitorCountry,
 } from './lib/routing'
 import { toSectionRendering } from './lib/section-rendering'
-import { watchResolvers } from './lib/store-changes'
-import { createStoreResolver, hostnameFromHeader } from './lib/store-resolver'
+import { hostnameFromHeader } from './lib/store-resolver'
 import {
   ACCESS_COOKIE,
   hasAccess,
   PREVIEW_COOKIE,
-  PREVIEW_MAX_AGE,
   readPreview,
   storefrontLock,
 } from './lib/storefront-gate'
-import { parseVisitorId, VISITOR_COOKIE, VISITOR_COOKIE_MAX_AGE } from './lib/visitor-cookie'
+
+/*
+ * The storefront's proxy: every request's store, market and route. The host lookups and the
+ * hosts that are not a store's pages are in `lib/proxy-hosts.ts`, the early redirects in
+ * `lib/proxy-moves.ts`, and the cookies a page answer carries in `lib/proxy-page-response.ts`.
+ */
 
 /** Seconds a CDN may keep a shared page when `STOREFRONT_EDGE_TTL` is unset. */
 const DEFAULT_EDGE_TTL = 30
@@ -107,27 +90,6 @@ const edgeTtlSeconds = () =>
 let plainKilled: boolean | null = null
 /** `STOREFRONT_PLAIN_HTML=off`, read once per process: no page goes out as plain HTML. */
 const plainHtmlKilled = () => (plainKilled ??= loadEnv(process.env).STOREFRONT_PLAIN_HTML === 'off')
-
-const resolve = createStoreResolver<HostRoute>({
-  lookup: (hostname) => resolveHost(db(), hostname),
-  // A miss belongs to no store: any store's change drops it (a domain may have been added).
-  storeOf: (_hostname, route) => route?.storeId ?? null,
-})
-
-/**
- * A store's markets, cached like hosts. A failed lookup (a database blip, or this storefront
- * running before migration 0177) serves the primary market rather than failing the page.
- */
-const marketsOf = createStoreResolver<StoreMarketRoute[]>({
-  lookup: (storeId) => storeMarkets(db(), storeId).catch(() => []),
-  storeOf: (storeId) => storeId,
-})
-
-/**
- * Hosts and markets follow the store's writes (a domain or market saved in the admin) at once,
- * through the storefront's cache notifications; their TTL only covers a lost listener.
- */
-const watchRouting = watchResolvers(resolve, marketsOf)
 
 /**
  * Every answer carries the script Content-Security-Policy with a fresh nonce
@@ -171,53 +133,8 @@ async function routeRequest(
 ) {
   const host = request.headers.get('host')
   const hostname = hostnameFromHeader(host)
-  // The platform login domain (ACCOUNTS_URL) is no store: it serves provider sign-in only.
-  if (hostname && hostname === accountsHostname()) {
-    const route = routeForAccounts(request.nextUrl.pathname)
-    if (route.kind === 'forbidden') return new NextResponse('Not found', { status: 404 })
-    const headers = new Headers(request.headers)
-    for (const h of DERIVED_HEADERS) headers.delete(h)
-    withNonce(headers)
-    if (route.kind === 'passthrough') return NextResponse.next({ request: { headers } })
-    const url = request.nextUrl.clone()
-    url.pathname = route.path
-    return NextResponse.rewrite(url, { request: { headers } })
-  }
-  // A store's branded checkout host (`<CHECKOUT_SUBDOMAIN>.<primary>`, D-01 phase B): resolve the
-  // store from its primary, and serve only the `/c` hand-off entry and the checkout pages there.
-  const checkoutBase = checkoutHostname(hostname, process.env.CHECKOUT_SUBDOMAIN?.trim() || null)
-  if (hostname && checkoutBase) {
-    const store = await resolve(checkoutBase)
-    if (!store) return new NextResponse('Not found', { status: 404 })
-    const route = routeForCheckoutHost(store.storeId, request.nextUrl.pathname)
-    if (route.kind === 'forbidden') return new NextResponse('Not found', { status: 404 })
-    const headers = new Headers(request.headers)
-    for (const h of DERIVED_HEADERS) headers.delete(h)
-    withNonce(headers)
-    headers.set('x-store-id', store.storeId)
-    if (route.kind === 'passthrough') return NextResponse.next({ request: { headers } })
-    const url = request.nextUrl.clone()
-    url.pathname = route.path
-    return NextResponse.rewrite(url, { request: { headers } })
-  }
-
-  // The affiliate portal's own host (`affiliate.<store domain>`, `lib/portal-routing.ts`): the
-  // store from the domain under it; every path is the portal's.
-  const portalStore = await portalHostStore(hostname)
-  if (hostname && portalStore) {
-    const route = routeForPortalHost(portalStore, request.nextUrl.pathname)
-    if (route.kind === 'forbidden') return new NextResponse('Not found', { status: 404 })
-    const headers = new Headers(request.headers)
-    for (const h of DERIVED_HEADERS) headers.delete(h)
-    withNonce(headers)
-    headers.set('x-store-id', portalStore)
-    headers.set('x-pathname', request.nextUrl.pathname)
-    if (route.kind === 'passthrough') return NextResponse.next({ request: { headers } })
-    headers.set(PORTAL_BASE_HEADER, '')
-    const url = request.nextUrl.clone()
-    url.pathname = route.path
-    return NextResponse.rewrite(url, { request: { headers } })
-  }
+  const own = await routeOwnHost(request, hostname, withNonce)
+  if (own) return own
 
   const hostRoute = hostname ? await resolve(hostname) : null
   if (!hostname || !hostRoute) {
@@ -253,49 +170,11 @@ async function routeRequest(
   })
   if (target) return NextResponse.redirect(target, 301)
 
-  // An order page's `?t=` token moves into a cookie for that page before any HTML (and so any
-  // pixel or tag reading `location.href`) exists; the page reads it back (`lib/order-token-swap.ts`).
-  if (request.method === 'GET' || request.method === 'HEAD') {
-    const swap = orderTokenSwap(request.nextUrl.pathname, request.nextUrl.search)
-    if (swap) {
-      const moved = NextResponse.redirect(new URL(swap.location, request.nextUrl), 302)
-      moved.headers.set('cache-control', 'no-store')
-      if (swap.token) {
-        moved.cookies.set(ORDER_VIEW_COOKIE, swap.token, {
-          httpOnly: true,
-          sameSite: 'lax',
-          secure: request.nextUrl.protocol === 'https:',
-          path: swap.cookiePath,
-          maxAge: ORDER_VIEW_MAX_AGE,
-        })
-      }
-      return moved
-    }
-  }
+  const tokenMove = orderTokenMove(request)
+  if (tokenMove) return tokenMove
 
-  // The faster product pages' link (`?hono=`, `lib/hono-island/route.ts`): this browser's
-  // `wc_hono` cookie, then the same page without the param. Only a token the admin signed for this
-  // store turns the preview on, so a shared link turns nothing on for anyone else.
-  if ((request.method === 'GET' || request.method === 'HEAD') && !request.headers.has('rsc')) {
-    const link = honoPreviewLink(request.nextUrl, (token) =>
-      readHonoPreviewToken({ secret: settingsSecret(), storeId, token }),
-    )
-    if (link) {
-      const back = NextResponse.redirect(new URL(link.location, request.nextUrl), 302)
-      back.headers.set('cache-control', 'private, no-store')
-      if (link.cookie === 'clear') back.cookies.delete(HONO_COOKIE)
-      else if (link.cookie !== 'keep') {
-        back.cookies.set(HONO_COOKIE, link.cookie, {
-          httpOnly: true,
-          sameSite: 'lax',
-          secure: request.nextUrl.protocol === 'https:',
-          path: '/',
-          maxAge: HONO_COOKIE_MAX_AGE,
-        })
-      }
-      return back
-    }
-  }
+  const honoMove = honoPreviewMove(request, storeId)
+  if (honoMove) return honoMove
 
   // Markets (`lib/markets.ts`): the market, language and country this request is in. A prefix
   // comes off the path before routing, so `/ae/products/x` renders `/products/x` in that market.
@@ -349,7 +228,7 @@ async function routeRequest(
     headers.set(name, value)
   }
   // Imported Shopify themes read `form.posted_successfully?` after our form handlers
-  // redirect back with `?form_posted=<type>` (lib/liquid-theme.ts).
+  // redirect back with `?form_posted=<type>` (lib/liquid-scope.ts).
   const posted = request.nextUrl.searchParams.get('form_posted')
   if (posted && /^[a-z_]{1,40}$/.test(posted)) headers.set('x-form-posted', posted)
   headers.set('x-pathname', pick.pathname)
@@ -487,130 +366,22 @@ async function routeRequest(
         : route.path
   if (!locked) toSectionRendering(url, headers, storeId, request.method, pick.pathname)
   const response = NextResponse.rewrite(url, { request: { headers } })
-  if (preview && param && request.headers.get('sec-fetch-dest') === 'document') {
-    response.cookies.set(PREVIEW_COOKIE, param, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure,
-      path: '/',
-      maxAge: PREVIEW_MAX_AGE,
-    })
-  }
-  // A market reached by its URL becomes the shopper's saved choice, so plain links keep it.
-  const saved = savedChoice(pick.market, pick.country, pick.locale)
-  if (
-    pick.via === 'prefix' &&
-    pick.market.id &&
-    pick.country &&
-    request.cookies.get(MARKET_COOKIE)?.value !== saved
-  ) {
-    response.cookies.set(MARKET_COOKIE, saved, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure,
-      path: '/',
-      maxAge: MARKET_COOKIE_MAX_AGE,
-    })
-  }
-  // An affiliate's link (`?ref=`): the click count, and the referral cookie once the shopper
-  // said yes to marketing (`lib/referral-landing.ts`). Never twice for a page handed back.
-  if (!handedBack && referred && !seoFile && !locked && !preview)
-    await noteReferral(storeId, request, response)
-  // The first page view once analytics is allowed (a yes on the banner, or a region where the
-  // banner does not ask) mints the anonymous visitor id the beacon reports (the beacon is a keepalive POST whose Set-Cookie some browsers
-  // drop, so it is done here). Without analytics consent no visitor id is set at all. Never
-  // on robots.txt, sitemap.xml or llms.txt: they answer `cache-control: public`, and a
-  // shared cache that stored a Set-Cookie would hand one visitor id to every shopper after.
-  // The product feeds (`/feeds/products.xml`, `.csv`) are public and cacheable for the same reason.
-  if (
-    !seoFile &&
-    !(FEED_FILES as readonly string[]).includes(pick.pathname) &&
-    !parseVisitorId(request.cookies.get(VISITOR_COOKIE)?.value) &&
-    (await visitorMayBeCounted(
-      storeId,
-      headers,
-      request.cookies.get(CONSENT_COOKIE)?.value,
-      preview,
-    ))
-  ) {
-    response.cookies.set(VISITOR_COOKIE, crypto.randomUUID(), {
-      httpOnly: true,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: VISITOR_COOKIE_MAX_AGE,
-    })
-  }
-  if (shared && !response.headers.has('set-cookie')) response.headers.set('cache-control', shared)
-  // Pages shoppers view are re-rendered after the store changes (`lib/cache-warm.ts`).
-  if (
-    request.method === 'GET' &&
-    !preview &&
-    !locked &&
-    !request.headers.has('rsc') &&
-    isSharedPage(pick.pathname) &&
-    !handedBack &&
-    request.headers.get('user-agent') !== WARM_USER_AGENT
-  ) {
-    noteVisit(storeId, {
-      host: host ?? hostname,
-      proto: request.headers.get('x-forwarded-proto'),
-      path: request.nextUrl.pathname,
-    })
-  }
-  return response
-}
-
-/**
- * Analytics is allowed for this page view: a yes on the banner, or a region where the banner does
- * not ask. A theme preview (nobody being tracked there) only counts an explicit yes.
- */
-async function visitorMayBeCounted(
-  storeId: string,
-  headers: Headers,
-  raw: string | undefined,
-  preview: unknown,
-): Promise<boolean> {
-  const { consent, stored } = await consentOf(storeId, headers, raw)
-  if (consent?.analytics !== true) return false
-  return !preview || stored?.analytics === true
-}
-
-/**
- * The store a portal host (`affiliate.waimers.in`) belongs to: the store of the domain under it
- * (`waimers.in`, or its www twin). Null for any other host, and for a host that is itself another
- * store's domain (a store whose own address starts with `affiliate.`).
- */
-async function portalHostStore(hostname: string | null): Promise<string | null> {
-  const base = portalHostBase(hostname)
-  if (!hostname || !base) return null
-  let storeId: string | null = null
-  for (const h of portalStoreHosts(base)) {
-    storeId = (await resolve(h))?.storeId ?? null
-    if (storeId) break
-  }
-  if (!storeId) return null
-  const own = await resolve(hostname)
-  return own && own.storeId !== storeId ? null : storeId
-}
-
-/**
- * A browse page away from its market's own URL (`marketRedirect`). A prefix written another way
- * moves for good (301); a saved choice only for this shopper (302, never stored by a cache), and
- * only for a page load, so crawlers and the app's own fetches see what they asked for.
- */
-function marketMove(request: NextRequest, pick: MarketPick): NextResponse | null {
-  if (request.method !== 'GET' && request.method !== 'HEAD') return null
-  if (request.headers.has('rsc')) return null
-  if (pick.via === 'cookie' && request.headers.get('sec-fetch-dest') !== 'document') return null
-  if (pick.via !== 'cookie' && pick.via !== 'prefix') return null
-  const to = marketRedirect(pick, request.nextUrl.search)
-  if (!to) return null
-  const moved = NextResponse.redirect(
-    new URL(to, request.nextUrl),
-    pick.via === 'prefix' ? 301 : 302,
-  )
-  if (pick.via === 'cookie') moved.headers.set('cache-control', 'private, no-store')
-  return moved
+  return finishPageResponse(response, {
+    request,
+    storeId,
+    headers,
+    host,
+    hostname,
+    pick,
+    preview,
+    param,
+    secure,
+    locked,
+    seoFile,
+    referred,
+    shared,
+    handedBack,
+  })
 }
 
 export const config = {

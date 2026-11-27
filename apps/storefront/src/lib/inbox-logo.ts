@@ -6,7 +6,7 @@ import {
   mainThemeId,
   parseCheckoutSettings,
 } from '@commerce/core'
-import { importedTheme } from './liquid-theme'
+import { importedTheme } from './liquid-context'
 import { storeRead } from './store-cache'
 
 type ChatLogoInput = {

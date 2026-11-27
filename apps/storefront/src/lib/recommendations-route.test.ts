@@ -4,7 +4,7 @@ const recommendedProducts = vi.fn()
 const renderRecommendations = vi.fn()
 const rateLimited = vi.fn()
 
-vi.mock('./liquid-theme', () => ({ renderRecommendations }))
+vi.mock('./liquid-static-section', () => ({ renderRecommendations }))
 vi.mock('./recommended-products', () => ({ recommendedProducts }))
 vi.mock('./rate-limit', () => ({
   clientIp: () => '1.2.3.4',

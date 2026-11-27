@@ -36,7 +36,6 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
     reason:
       'the settings search index, one entry per settings page and field — split by settings group when it next changes',
   },
-  'apps/storefront/src/lib/liquid-theme.ts': { lines: 669, reason: SPLIT },
   'packages/api/src/routers/store.ts': { lines: 524, reason: SPLIT },
   'packages/api/src/services/analytics-reports.ts': { lines: 554, reason: SPLIT },
   'packages/api/src/services/dashboard.service.ts': { lines: 950, reason: SPLIT },

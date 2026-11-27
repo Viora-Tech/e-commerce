@@ -1,7 +1,8 @@
 import { Image, Text, View } from '@react-pdf/renderer'
 import type { DocumentSnapshot, Party } from '../snapshot'
 import { Barcode, QrSlot } from './parts'
-import { INK, initials, MUTED, type Palette, track } from './polish-style'
+import { stripItems } from './polish-meta'
+import { INK, logoMonogram, MUTED, type Palette, track } from './polish-style'
 import type { TemplateAssets, TemplateView } from './view'
 
 /**
@@ -48,7 +49,7 @@ export function HeaderBand({ doc, view, assets, p }: BandProps) {
             <Image src={assets.logo} style={{ width: 44, height: 44, objectFit: 'contain' }} />
           ) : (
             <Text style={{ fontSize: 17.92, fontWeight: 700, color: p.accent }}>
-              {initials(seller.name)}
+              {logoMonogram(seller.name)}
             </Text>
           )}
         </View>
@@ -83,27 +84,6 @@ export function HeaderBand({ doc, view, assets, p }: BandProps) {
       </View>
     </View>
   )
-}
-
-const DATE_LABELS: Partial<Record<DocumentSnapshot['kind'], string>> = {
-  tax_invoice: 'Invoice date',
-  credit_note: 'Credit note date',
-}
-
-/** The meta rows as the strip shows them: number dropped (it is in the band), order split. */
-export function stripItems(doc: DocumentSnapshot, view: TemplateView) {
-  const items: { label: string; value: string }[] = []
-  for (const m of view.meta) {
-    if (doc.number && m.value === doc.number) continue
-    if (m.label === 'Date') {
-      items.push({ label: DATE_LABELS[doc.kind] ?? 'Date', value: m.value })
-    } else if (m.label === 'Order') {
-      const [name, ...rest] = m.value.split(', ')
-      items.push({ label: 'Order', value: name ?? m.value })
-      if (rest.length) items.push({ label: 'Order date', value: rest.join(', ') })
-    } else items.push(m)
-  }
-  return items
 }
 
 /** Tinted strip of dates, order, place of supply and payment, barcode on the right. */
