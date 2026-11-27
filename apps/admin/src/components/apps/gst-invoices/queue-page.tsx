@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { financialYear, type IssueOn } from '@commerce/invoices'
+import type { IssueOn } from '@commerce/invoices'
 import { CircleCheck, ReceiptIcon, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
@@ -37,6 +37,7 @@ import AlreadyInvoicedDialog from './already-invoiced-dialog'
 import GstExportButton from './gst-export-button'
 import { isReadyRow, type QueueRow, queueColumns } from './queue-columns'
 import QueueEmpty from './queue-empty'
+import { headerGstin, numberingYear } from './queue-meta'
 import QueueMoreMenu from './queue-more-menu'
 import QueueStats from './queue-stats'
 import ReviewPanel from './review-panel'
@@ -46,12 +47,6 @@ type Result = Awaited<ReturnType<typeof api.gstInvoices.queue.list>>
 
 /** One issue batch at most (the API's limit): "Issue all" reviews the first 200 ready rows. */
 const BATCH = 200
-
-/** "2026-27": the financial year invoices are numbered in now (Indian FY, April to March). */
-function numberingYear(at: Date): string {
-  const fy = financialYear(at)
-  return `${fy.startYear}-${fy.label.slice(3)}`
-}
 
 /**
  * The GST invoices Queue (Figma 928:10728): this month's figures, then every order waiting for
@@ -93,6 +88,8 @@ function QueueList() {
   const [marking, setMarking] = useState<string[] | null>(null)
   const [busy, setBusy] = useState(false)
   const [gstin, setGstin] = useState<string | null | undefined>(undefined)
+  /** The meta line's GSTIN: the seller's, else the store's (`headerGstin`); undefined loading. */
+  const [shownGstin, setShownGstin] = useState<string | null | undefined>(undefined)
   const [issueOn, setIssueOn] = useState<IssueOn | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
 
@@ -101,6 +98,7 @@ function QueueList() {
       .get()
       .then((s) => {
         setGstin(s.settings.seller.gstin || null)
+        setShownGstin(headerGstin(s.settings.seller.gstin, s.storeGstin))
         setIssueOn(s.settings.issueOn)
       })
       // A failed read leaves the GSTIN unknown; null would show the "add your GSTIN" checklist.
@@ -224,9 +222,9 @@ function QueueList() {
         summary={
           <span className="flex flex-col gap-1">
             <span>{copy.subtitle[issueOn ?? 'payment']}</span>
-            {gstin === undefined ? null : (
+            {shownGstin === undefined ? null : (
               <span className="text-caption text-muted-foreground">
-                {gstin ? copy.meta(gstin, year) : copy.metaNoGstin(year)}
+                {shownGstin ? copy.meta(shownGstin, year) : copy.metaNoGstin(year)}
               </span>
             )}
           </span>

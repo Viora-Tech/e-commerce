@@ -33,8 +33,11 @@ biome on changed files, admin typecheck, lint:components (223, baseline), vitest
 `src/components/apps/gst-invoices` + `src/lib/i18n.test.ts` (28 passed). Not checked in a
 browser; the owner checks on localhost.
 
-## Note
+## GSTIN fallback (follow-up commit)
 
-The shell's pill fell back to the store's GSTIN when the app's seller GSTIN was empty; the
-Queue's meta line uses the app setting only (the same value its "add your GSTIN" checklist
-reads).
+The meta line keeps the old chip's fallback: the app's seller GSTIN, else the store's own GSTIN
+(Settings › Store details); "No GSTIN yet" only when both are blank. `gstInvoices.settings.get`
+now also returns `storeGstin` (`storeGstin` in `packages/api/src/services/gst-invoices.service.ts`),
+and the choice is the pure `headerGstin` in `components/apps/gst-invoices/queue-meta.ts`, with
+`queue-meta.test.ts`. The "add your GSTIN" checklist still reads the app's seller GSTIN only,
+as before.

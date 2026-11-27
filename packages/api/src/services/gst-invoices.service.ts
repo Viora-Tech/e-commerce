@@ -26,6 +26,15 @@ export async function storeName(tx: StoreTx, storeId: string): Promise<string> {
   return s?.name ?? ''
 }
 
+/**
+ * The store's own GSTIN (Settings › Store details), `null` when blank: the Queue's GSTIN line
+ * falls back to it while the app's seller GSTIN is empty, as the app bar does (`queueBarRead`).
+ */
+export async function storeGstin(tx: StoreTx, storeId: string): Promise<string | null> {
+  const [s] = await tx.select({ gstin: store.gstin }).from(store).where(eq(store.id, storeId))
+  return s?.gstin || null
+}
+
 /** Public URLs of library images, for the settings preview. */
 export async function mediaUrls(tx: StoreTx, ids: (string | null)[]): Promise<Map<string, string>> {
   const wanted = ids.filter((x): x is string => Boolean(x))
