@@ -4,7 +4,7 @@ import { Settings, Trash2 } from '@commerce/ui/icons'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import ActionMenu from '@/components/layout/action-menu'
+import ActionMenu, { type ActionItem } from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
@@ -17,13 +17,28 @@ type AppUninstallButtonProps = {
   name: string
   /** The app's own settings page, first in the menu; left out when the app has none. */
   settingsHref?: string | undefined
+  /** A page's own actions, above Settings: the one "…" menu of a page header (`ownHeader`). */
+  items?: readonly ActionItem[]
+  /** The menu's name; the app's "More actions for …" when left out. */
+  label?: string
+  /** `outline` beside a page header's outline buttons; the app bar's `ghost` otherwise. */
+  variant?: 'ghost' | 'outline'
+  disabled?: boolean
 }
 
 /**
- * The app bar's "…" menu (Figma App layout v2, 928:10728): the app's Settings, then Uninstall
- * with the Installed apps list's confirmation.
+ * The app bar's "…" menu (Figma App layout v2, 928:10728): the page's own actions when it brings
+ * some, the app's Settings, then Uninstall with the Installed apps list's confirmation.
  */
-export default function AppUninstallButton({ appId, name, settingsHref }: AppUninstallButtonProps) {
+export default function AppUninstallButton({
+  appId,
+  name,
+  settingsHref,
+  items = [],
+  label,
+  variant = 'ghost',
+  disabled,
+}: AppUninstallButtonProps) {
   // Hooks
   const copy = useCopy(appsContent)
   const router = useRouter()
@@ -45,12 +60,20 @@ export default function AppUninstallButton({ appId, name, settingsHref }: AppUni
   return (
     <>
       <ActionMenu
-        label={copy.gallery.kebabLabel(name)}
+        label={label ?? copy.gallery.kebabLabel(name)}
         trigger="kebab"
-        variant="ghost"
+        variant={variant}
         size="md"
+        disabled={disabled}
         items={[
-          { label: copy.settings, icon: Settings, href: settingsHref, hidden: !settingsHref },
+          ...items,
+          {
+            label: copy.settings,
+            icon: Settings,
+            href: settingsHref,
+            hidden: !settingsHref,
+            separatorBefore: items.length > 0,
+          },
           {
             label: copy.uninstall,
             icon: Trash2,

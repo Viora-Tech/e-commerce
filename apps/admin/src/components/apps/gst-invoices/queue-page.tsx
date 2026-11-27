@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import type { IssueOn } from '@commerce/invoices'
+import { financialYear, type IssueOn } from '@commerce/invoices'
 import { CircleCheck, ReceiptIcon, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
@@ -34,6 +34,7 @@ import {
 } from '@/lib/gst-list-filters'
 import { routes } from '@/lib/routes'
 import AlreadyInvoicedDialog from './already-invoiced-dialog'
+import GstExportButton from './gst-export-button'
 import { isReadyRow, type QueueRow, queueColumns } from './queue-columns'
 import QueueEmpty from './queue-empty'
 import QueueMoreMenu from './queue-more-menu'
@@ -45,6 +46,12 @@ type Result = Awaited<ReturnType<typeof api.gstInvoices.queue.list>>
 
 /** One issue batch at most (the API's limit): "Issue all" reviews the first 200 ready rows. */
 const BATCH = 200
+
+/** "2026-27": the financial year invoices are numbered in now (Indian FY, April to March). */
+function numberingYear(at: Date): string {
+  const fy = financialYear(at)
+  return `${fy.startYear}-${fy.label.slice(3)}`
+}
 
 /**
  * The GST invoices Queue (Figma 928:10728): this month's figures, then every order waiting for
@@ -158,10 +165,8 @@ function QueueList() {
       throw err
     }
   }
-  /** The header's Issue: the ticked ready rows, else every ready row (up to one batch). */
+  /** The header's Issue all: every ready row (up to one batch); ticked rows issue from the bulk bar. */
   const handleIssueAll = async () => {
-    const ticked = readyAmong(picked)
-    if (ticked.length) return setReviewing(ticked)
     setBusy(true)
     try {
       const ready = await api.gstInvoices.queue.list({
@@ -201,25 +206,41 @@ function QueueList() {
   // Render logic
   const rows = result?.rows ?? []
   const counts = result?.counts ?? { all: 0, ready: 0, fix: 0, hsnMissing: 0 }
-  const pickedReady = readyAmong(picked)
   const groups = queueFilterGroups(q, lists, panel, numbers, (patch) => setQ({ ...patch, page: 1 }))
   const narrowed = q.query !== '' || q.view !== null || groups.some(hasFilter)
-  const toIssue = pickedReady.length || Math.min(counts.ready, BATCH)
+  const toIssue = Math.min(counts.ready, BATCH)
+  const year = numberingYear(new Date())
   /* Nothing waits at all: say how orders get here, in place of the table. */
   const queueEmpty = result !== null && !failed && counts.all === 0 && !narrowed
 
   return (
     <div className="flex flex-col gap-4">
+      {/* One row like Orders: Export GSTR-1, the one "…" menu (with the app's Settings and
+          Uninstall, registry `ownHeader`) and Issue all last. GSTIN and numbering are a meta line
+          under the title, and Issue all steps aside while rows are ticked: the bulk bar issues
+          them (owner, 28 Nov 2026). */}
       <PageHeader
         title={copy.title}
-        summary={copy.subtitle[issueOn ?? 'payment']}
-        actions={
-          <span className="flex flex-wrap items-center gap-2">
-            <QueueMoreMenu onAdded={reload} busy={busy} />
-            <Button disabled={busy || toIssue === 0} onClick={handleIssueAll}>
-              {copy.issueMany(toIssue)}
-            </Button>
+        summary={
+          <span className="flex flex-col gap-1">
+            <span>{copy.subtitle[issueOn ?? 'payment']}</span>
+            {gstin === undefined ? null : (
+              <span className="text-caption text-muted-foreground">
+                {gstin ? copy.meta(gstin, year) : copy.metaNoGstin(year)}
+              </span>
+            )}
           </span>
+        }
+        actions={
+          <>
+            <GstExportButton />
+            <QueueMoreMenu onAdded={reload} busy={busy} />
+            {picked.length === 0 ? (
+              <Button disabled={busy || toIssue === 0} onClick={handleIssueAll}>
+                {copy.issueAll(toIssue)}
+              </Button>
+            ) : null}
+          </>
         }
       />
       {gstin === null ? (
