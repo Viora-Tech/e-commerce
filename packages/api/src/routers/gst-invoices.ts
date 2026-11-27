@@ -16,7 +16,7 @@ import {
   loadSettings,
   markFiled,
   queueStats,
-  regenerateDocument,
+  regenerateKeepingEdits,
   removeFromQueue,
   renderAndStore,
   saveSettings,
@@ -42,6 +42,7 @@ import {
   renderDeps,
   requireInstalled,
 } from './gst-invoices-context'
+import { invoiceEditProcedures } from './gst-invoices-edit'
 import { fileProcedures } from './gst-invoices-files'
 import { documentList, documentListIds, queueList } from './gst-invoices-lists'
 import {
@@ -310,7 +311,7 @@ export const gstInvoicesRouter = {
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
       try {
-        const row = await regenerateDocument(context.tx, context.scope.storeId, input.id, {
+        const row = await regenerateKeepingEdits(context.tx, context.scope.storeId, input.id, {
           buyerGstin: input.buyerGstin,
           exportDetails: input.exportDetails
             ? Object.fromEntries(
@@ -350,6 +351,7 @@ export const gstInvoicesRouter = {
   listIds: documentListIds,
 
   ...invoiceFixProcedures,
+  ...invoiceEditProcedures,
   ...fileProcedures,
 
   /** Queue an email of each document to its buyer; poll `batch` for progress. */

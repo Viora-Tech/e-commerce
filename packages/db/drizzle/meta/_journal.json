@@ -1800,6 +1800,13 @@
       "when": 1796100000000,
       "tag": "0272_founding_offer",
       "breakpoints": true
+    },
+    {
+      "idx": 257,
+      "version": "7",
+      "when": 1796160000000,
+      "tag": "0273_gst_invoice_version",
+      "breakpoints": true
     }
   ]
 }

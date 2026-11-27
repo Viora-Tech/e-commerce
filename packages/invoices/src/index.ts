@@ -1,6 +1,7 @@
 export * from './barcode'
 export * from './credit-note'
 export * from './document'
+export * from './edit'
 export * from './gst-return-checks'
 export * from './gstr1'
 export * from './gstr1-json'

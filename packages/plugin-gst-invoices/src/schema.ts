@@ -282,3 +282,29 @@ export const invoicePeriod = pgTable(
     unique('invoice_period_store').on(t.storeId, t.gstRegistrationId, t.period).nullsNotDistinct(),
   ],
 )
+
+/**
+ * An issued tax invoice as it stood before each in-place edit (`edit-invoice.ts`), allowed until
+ * its month's GSTR-1 is filed. `version` 1 is the invoice as first issued; the invoice row always
+ * holds the latest, which the PDF, GSTR-1 and the dashboards read (0273).
+ */
+export const invoiceVersion = pgTable(
+  'invoice_version',
+  {
+    id: id(),
+    storeId: storeId(),
+    invoiceId: uuid('invoice_id')
+      .notNull()
+      .references(() => invoice.id, { onDelete: 'cascade' }),
+    version: integer('version').notNull(),
+    /** The DocumentSnapshot the edit replaced. */
+    snapshot: jsonb('snapshot').notNull(),
+    /** What the edit changed, one line each ("Total: ₹2,000.00 → ₹1,000.00"). */
+    changes: jsonb('changes').notNull().default([]),
+    reason: text('reason'),
+    /** The staff member's email. */
+    createdBy: text('created_by'),
+    createdAt: at('created_at'),
+  },
+  (t) => [uniqueIndex('invoice_version_invoice_version').on(t.invoiceId, t.version)],
+)

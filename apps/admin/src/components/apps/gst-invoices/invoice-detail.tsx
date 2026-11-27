@@ -27,6 +27,7 @@ import { errorText } from '@/lib/api-errors'
 import { formatDay } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
+import InvoiceEditCard from './invoice-edit-card'
 import InvoiceLinesCard from './invoice-lines-card'
 import { saveFile } from './save-file'
 import TextField from './text-field'
@@ -106,6 +107,8 @@ export default function InvoiceDetail({ params }: AppPageProps) {
       },
       copy.cancelled,
     )
+  /** Saved in the Edit invoice sheet: show the rebuilt invoice. */
+  const handleEdited = () => run('edit', async () => undefined)
   const handleRefreshGst = () =>
     run('refresh', async () => {
       const r = await api.gstInvoices.refreshGst({ id: params.id ?? '' })
@@ -248,6 +251,15 @@ export default function InvoiceDetail({ params }: AppPageProps) {
         ) : null}
       </DataCard>
       <InvoiceLinesCard snapshot={s} />
+      {doc.kind === 'tax_invoice' && doc.status === 'issued' && !outside ? (
+        <InvoiceEditCard
+          invoiceId={doc.id}
+          orderId={doc.orderId}
+          number={doc.number ?? s.order.name}
+          snapshot={s}
+          onSaved={handleEdited}
+        />
+      ) : null}
       {s.exportSupply && doc.status !== 'cancelled' && !doc.reportedPeriod ? (
         <DataCard bodyClassName="flex flex-col" title={copy.shipping}>
           <div className="grid gap-3 md:grid-cols-3">

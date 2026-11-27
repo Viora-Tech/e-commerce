@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: "Recalculate GST from products" on an issued tax invoice — WHAT the guard (issued, unfiled tax invoice only), the order-line refresh and the rebuild under the same number / WHY an order keeps the GST it was placed with, so a product whose Charge GST or rate was fixed later needs this to correct an invoice that is not yet in GSTR-1 */
 import { refreshOrderLineGst } from '@commerce/core/refresh-gst'
 import type { StoreTx } from '@commerce/db'
+import { wasEdited } from './edit-invoice'
 import { getDocument, InvoiceError, regenerateDocument } from './issue'
 import type { invoice } from './schema'
 
@@ -38,6 +39,13 @@ export async function refreshInvoiceGst(tx: StoreTx, storeId: string, invoiceId:
   if (!row) throw new InvoiceError('not_found', `invoice ${invoiceId} not found`)
   const block = gstRefreshBlock(row)
   if (block) throw block
+  // Rebuilding from the order would undo an edit made by hand on the invoice page.
+  if (await wasEdited(tx, row.id)) {
+    throw new InvoiceError(
+      'invalid',
+      `${row.number} was edited by hand; change it with Edit invoice`,
+    )
+  }
   const changedLines = await refreshOrderLineGst(tx, row.orderId)
   const updated = await regenerateDocument(tx, storeId, row.id)
   return { row: updated, changedLines }

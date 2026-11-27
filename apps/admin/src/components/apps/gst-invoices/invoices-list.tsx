@@ -25,6 +25,7 @@ import {
   sortParam,
 } from '@/lib/gst-list-filters'
 import { routes } from '@/lib/routes'
+import FilingReminder from './filing-reminder'
 import { invoiceColumns } from './invoice-columns'
 import InvoicesBulkActions from './invoices-bulk-actions'
 import { useGstNumbers } from './use-gst-numbers'
@@ -112,6 +113,7 @@ function InvoicesTable() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title={copy.title} summary={copy.subtitle} />
+      <FilingReminder />
       <ResourceTable
         resourceName={lists.invoiceResource}
         columns={invoiceColumns({ list: copy, kinds, lists, record: recordCopy })}

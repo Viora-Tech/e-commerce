@@ -1,5 +1,6 @@
 /** Services for the API routers and the storefront download route. Server only. */
 export * from './credit-notes'
+export * from './edit-invoice'
 export * from './email-documents'
 export * from './issue'
 export * from './links'
