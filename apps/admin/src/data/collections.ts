@@ -10,16 +10,6 @@ export const collectionsListContent = {
       `${empty} empty`,
     ].join(' · '),
   list: {
-    tiles: {
-      all: 'All collections',
-      allNote: 'All time',
-      automatic: 'Automatic',
-      automaticNote: 'Rule based',
-      manual: 'Manual',
-      manualNote: 'Hand picked',
-      empty: 'Empty',
-      emptyNote: 'Nothing inside yet',
-    },
     tabs: { all: 'All', automatic: 'Automatic', manual: 'Manual', empty: 'Empty' },
     filters: {
       image: 'Has image',
@@ -111,13 +101,6 @@ export const collectionsListContent = {
     heading: 'No collections yet',
     body: 'Group products into collections so shoppers can browse by type, brand or season.',
     action: 'Create collection',
-  },
-  tiles: {
-    total: 'Collections',
-    automatic: 'Automatic',
-    manual: 'Manual',
-    empty: 'Empty',
-    period: 'All time',
   },
   resource: { singular: 'product', plural: 'products' },
   nextPage: 'Show more collections',

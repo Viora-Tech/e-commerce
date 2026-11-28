@@ -17,15 +17,6 @@ export default [
       newThisWeek: (n: number) => `इस हफ़्ते ${n} नए`,
       repeat: (n: number) => `${n} ने एक से ज़्यादा बार ऑर्डर किया`,
     },
-    stats: {
-      total: 'कुल ग्राहक',
-      newCustomers: 'नए ग्राहक',
-      repeat: 'दोबारा ख़रीदने वाले',
-      subscribed: 'सब्सक्राइब किए हुए',
-      vsLastWeek: 'पिछले हफ़्ते से',
-      shareOfAll: (percent: number) => `सभी ग्राहकों का ${percent}%`,
-      canGetEmails: 'आपके ईमेल पा सकते हैं',
-    },
     segmentsLink: 'सेगमेंट',
     loadFailed: {
       heading: 'ग्राहक लोड नहीं हो पाए',

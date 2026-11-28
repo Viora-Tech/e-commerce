@@ -25,16 +25,6 @@ export default [
       ]
         .filter(Boolean)
         .join(' · '),
-    tiles: {
-      total: 'कुल प्रोडक्ट',
-      low: 'कम स्टॉक',
-      out: 'स्टॉक खत्म',
-      draft: 'ड्राफ़्ट',
-      totalNote: 'एक्टिव, ड्राफ़्ट और आर्काइव',
-      lowNote: '5 या कम बचे',
-      outNote: 'दोबारा स्टॉक आने तक बिक्री बंद',
-      draftNote: 'पब्लिश करने तक छिपा',
-    },
     filters: {
       label: 'फ़िल्टर',
       vendor: 'वेंडर',

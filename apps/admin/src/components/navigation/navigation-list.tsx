@@ -101,6 +101,7 @@ export default function NavigationList({
       }
     >
       <ResourceTable
+        fill
         resourceName={copy.resource}
         columns={columns}
         items={shown}

@@ -125,6 +125,7 @@ function SuppliersContent({ initial }: { initial: SuppliersInitial }) {
   return (
     <ProoflyListPage title={copy.heading} summary={copy.summary} actions={addButton}>
       <ResourceTable
+        fill
         resourceName={copy.resource}
         columns={supplierColumns(copy)}
         items={result.rows}

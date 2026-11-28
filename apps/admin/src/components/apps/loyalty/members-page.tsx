@@ -1,6 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs'
@@ -26,6 +27,7 @@ import {
   memberSortParam,
   parseMemberSort,
 } from '@/lib/loyalty-insights'
+import { PAGE_FILL_CHAIN } from '@/lib/page-fill'
 import { routes } from '@/lib/routes'
 
 type Row = Awaited<ReturnType<typeof api.loyalty.members.list>>['rows'][number]
@@ -177,7 +179,7 @@ function MembersTable() {
   const filtered = q.query.length > 0 || q.tier !== '' || q.status !== ''
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={cn('flex flex-col gap-5', PAGE_FILL_CHAIN)}>
       <PageHeader
         title={m.title}
         summary={m.summary}
@@ -204,6 +206,7 @@ function MembersTable() {
         }
       />
       <ResourceTable
+        fill
         resourceName={m.resource}
         columns={columns}
         items={data?.rows ?? []}

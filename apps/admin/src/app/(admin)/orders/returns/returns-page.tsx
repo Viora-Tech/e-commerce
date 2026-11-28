@@ -151,6 +151,7 @@ function ReturnsContent({ initial }: { initial: ReturnsInitial }) {
       }
     >
       <ResourceTable
+        fill
         resourceName={copy.resource}
         columns={returnColumns(copy, fmt)}
         items={items}

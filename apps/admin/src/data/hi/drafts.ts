@@ -36,12 +36,6 @@ export default [
       [`${total} ड्राफ़्ट`, invoiced > 0 ? `${invoiced} इनवॉइस भेजे गए` : null]
         .filter(Boolean)
         .join(' · '),
-    tiles: {
-      open: { label: 'खुले ड्राफ़्ट', note: 'कन्वर्ट या भेजने के लिए तैयार' },
-      checkout: { label: 'बिना पेमेंट के चेकआउट', note: 'जिन ग्राहकों ने अभी पेमेंट नहीं किया' },
-      invoiced: { label: 'भेजे गए इनवॉइस', note: 'ग्राहक के पेमेंट का इंतज़ार' },
-      value: { label: 'ड्राफ़्ट में वैल्यू', note: (n: number) => `सभी ${n} ड्राफ़्ट मिलाकर` },
-    },
     noResults: 'इस खोज से कोई ड्राफ़्ट नहीं मिला',
     openDraft: 'ड्राफ़्ट खोलें',
     deleteDraft: 'ड्राफ़्ट हटाएँ',

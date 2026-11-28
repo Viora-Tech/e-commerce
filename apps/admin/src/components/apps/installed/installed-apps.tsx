@@ -197,6 +197,7 @@ export default function InstalledApps({ installId }: InstalledAppsProps) {
       }
     >
       <ResourceTable
+        fill
         resourceName={copy.resource}
         columns={installedColumns(copy, fmt, byline)}
         items={pageItems}

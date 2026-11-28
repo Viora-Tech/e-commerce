@@ -9,15 +9,14 @@ import { discountsContent } from '@/data/discounts'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { discountFilterGroups, NO_DISCOUNT_FILTERS } from '@/lib/discount-list-filters'
 
-/* Create discount; the strip's four tiles (active, scheduled, expired, used in 30 days). */
+/* Create discount. No stat strip (28 Nov). */
 const HEADER_ACTIONS = 1
-const TILES = 4
 
 function noop() {}
 
 /**
- * The Discounts list while its route loads, as Orders and Products do it: the real title, the
- * four tiles with skeleton figures and the real ResourceTable in its loading state with the
+ * The Discounts list while its route loads, as Orders and Products do it: the real title and
+ * the real ResourceTable in its loading state with the
  * discount columns, view select and filter button, so nothing moves when the rows arrive.
  */
 export default function DiscountsSkeleton() {
@@ -56,7 +55,5 @@ export default function DiscountsSkeleton() {
     />
   )
 
-  return (
-    <ListPageSkeleton title={copy.title} actions={HEADER_ACTIONS} tiles={TILES} table={table} />
-  )
+  return <ListPageSkeleton title={copy.title} actions={HEADER_ACTIONS} tiles={0} table={table} />
 }

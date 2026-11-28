@@ -26,7 +26,6 @@ import {
   rowName,
 } from '@/components/inventory/inventory-columns'
 import InventoryStrip from '@/components/inventory/inventory-strip'
-import InventoryTiles, { type InventoryStats } from '@/components/inventory/inventory-tiles'
 import {
   expandAll,
   groupByProduct,
@@ -60,6 +59,8 @@ import {
   STOCK_CHANGED,
 } from './inventory-query'
 
+type InventoryStats = Awaited<ReturnType<typeof api.inventory.stats>>
+
 type ListResult = Awaited<ReturnType<typeof api.inventory.list>>
 
 /** First page rendered on the server so the table never paints empty. */
@@ -74,7 +75,7 @@ export type InventoryInitial = {
   facets: InventoryFacets
 }
 
-/** One page of rows plus the tiles for the same location. */
+/** One page of rows plus the counts (summary, tabs, low-stock line) for the same location. */
 function fetchPage(locationId: string, q: InventoryQuery) {
   return Promise.all([
     api.inventory.list({ ...listFilters(locationId, q), page: q.page, perPage: q.perPage }),
@@ -200,7 +201,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
   }
 
   // Event handlers
-  /* Try again on a failed read: the rows and tiles are read again in place, under the same header. */
+  /* Try again on a failed read: rows and counts are read again in place, under the same header. */
   const handleRetry = () => {
     setFailed(false)
     setLoading(true)
@@ -298,7 +299,6 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
           ) : null}
         </>
       }
-      stats={<InventoryTiles stats={stats} />}
       controls={
         <InventoryStrip
           locations={locations}
@@ -314,6 +314,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
       }
     >
       <ResourceTable
+        fill
         resourceName={copy.resource}
         columns={inventoryColumns({
           copy,

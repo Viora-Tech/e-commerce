@@ -2,6 +2,7 @@
 
 import { siteConfig } from '@commerce/config/site'
 import { Users } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs'
 import { Suspense, useState } from 'react'
@@ -28,6 +29,7 @@ import {
   CLEAR_AFFILIATE_FILTERS,
 } from '@/lib/affiliate-list-filters'
 import { api } from '@/lib/api-client'
+import { PAGE_FILL_CHAIN } from '@/lib/page-fill'
 import { routes } from '@/lib/routes'
 
 type Row = Awaited<ReturnType<typeof api.affiliates.list>>[number]
@@ -160,7 +162,7 @@ function AffiliatesTable() {
   const none = !filtered && !failed && rows !== null && rows.length === 0
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={cn('flex flex-col gap-5', PAGE_FILL_CHAIN)}>
       <PageHeader
         title={l.title}
         actions={<Button onClick={() => setAdding(true)}>{l.add}</Button>}
@@ -175,6 +177,7 @@ function AffiliatesTable() {
         />
       ) : (
         <ResourceTable
+          fill
           resourceName={l.resource}
           columns={columns}
           items={visible}

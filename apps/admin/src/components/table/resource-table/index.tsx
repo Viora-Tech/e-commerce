@@ -31,7 +31,7 @@ import { type ResourceTableFeatures, resourceTableFeatures } from './features'
 import ResourceTablePagination from './pagination'
 import { useExpanded, useRowSelection, viewOf } from './row-state'
 import SelectionBar from './selection-bar'
-import { CELL, HEAD, SKELETON_ROWS } from './styles'
+import { CELL, FILL, HEAD, SKELETON_ROWS } from './styles'
 import TableFeedback from './table-feedback'
 import {
   listScopeKey,
@@ -112,6 +112,12 @@ export type ResourceTableProps<T extends RowData> = {
    * vertical dividers. Use `RowIconCells` for the content; the value is how many cells it draws.
    */
   rowIconCells?: { count: 1 | 2 | 3; render: (item: T) => ReactNode }
+  /**
+   * From `md`, fit the page's height: the toolbar and the header row stay put and only the rows
+   * scroll (pager in view). The boxes around it take part through `PAGE_FILL_CHAIN`
+   * (`lib/page-fill`); PageBody and AppShell already do (owner, 28 Nov).
+   */
+  fill?: boolean
   /** Kept for older call sites; every table now uses the one Saleor-style density. */
   size?: 'compact' | 'frame'
   /** The order the server sends, shown ticked in the sort menu (Orders: Date, newest first). */
@@ -332,7 +338,12 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   const skeletonRows = Math.max(1, Math.min(props.items.length || SKELETON_ROWS, props.perPage))
 
   return (
-    <Card gap="none" inset="y-none" className="overflow-hidden">
+    <Card
+      gap="none"
+      inset="y-none"
+      className={cn('overflow-hidden', props.fill && FILL.card)}
+      data-page-fill={props.fill ? '' : undefined}
+    >
       <ResourceTableToolbar
         table={table}
         plural={props.resourceName.plural}
@@ -347,7 +358,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
         columnOrder={columnPrefs.order}
         onResetColumns={resetColumns}
       />
-      <div className="relative">
+      <div className={cn('relative', props.fill && FILL.frame)}>
         {/* While rows are ticked the bulk bar takes the header row. It sits outside the sideways
             scroller so its actions stay in view; the header cells stay underneath (inert) so the
             columns keep their widths. */}
@@ -371,7 +382,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
             />
           </div>
         ) : null}
-        <div className="no-scrollbar overflow-x-auto">
+        <div className={cn('no-scrollbar overflow-x-auto', props.fill && FILL.scroller)}>
           <Table
             className="w-full min-w-(--table-min-width) table-fixed border-separate border-spacing-0"
             style={minWidth}
@@ -384,7 +395,12 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
                     return (
                       <TableHead
                         key={header.id}
-                        className={cn(HEAD, ALIGN[meta?.align ?? 'start'], meta?.className)}
+                        className={cn(
+                          HEAD,
+                          props.fill && FILL.head,
+                          ALIGN[meta?.align ?? 'start'],
+                          meta?.className,
+                        )}
                       >
                         {header.isPlaceholder ? null : <table.FlexRender header={header} />}
                       </TableHead>

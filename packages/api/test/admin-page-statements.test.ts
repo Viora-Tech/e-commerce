@@ -361,21 +361,19 @@ describe('orders.listPage', () => {
   it.each(inputs)('answers what the four separate calls did (%o)', async (input) => {
     const context = request()
     const page = await call(appRouter.orders.listPage, input, { context })
-    const [result, counts, tiles, appActions] = await Promise.all([
+    const [result, counts, readyToShip, appActions] = await Promise.all([
       call(appRouter.orders.list, input, { context }),
       call(appRouter.orders.tabCounts, undefined, { context }),
-      call(appRouter.orders.tiles, undefined, { context }),
+      call(appRouter.orders.toShipCount, undefined, { context }),
       call(appRouter.apps.orderActions, undefined, { context }),
     ])
-    expect(page).toEqual({ result, counts, tiles, appActions })
+    expect(page).toEqual({ result, counts, readyToShip, appActions })
   })
 
-  it('counts the stat cards from the orders', async () => {
-    const { tiles, result } = await call(
-      appRouter.orders.listPage,
-      { page: 1, perPage: 25 },
-      { context: request() },
-    )
+  it('counts the stat cards (orders.tiles) from the orders', async () => {
+    const context = request()
+    const { result } = await call(appRouter.orders.listPage, { page: 1, perPage: 25 }, { context })
+    const tiles = await call(appRouter.orders.tiles, undefined, { context })
     const ns = Array.from({ length: 60 }, (_, i) => i + 1)
     expect(result.testOrders).toBe(ns.filter((n) => n % 11 === 0).length)
     // Live: not cancelled, not test-mode. Placed n % 10 days ago (and a minute).

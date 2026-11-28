@@ -1,6 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -14,6 +15,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
+import { PAGE_FILL_CHAIN } from '@/lib/page-fill'
 import { exportSignups } from './export-signups'
 
 type Row = Awaited<ReturnType<typeof api.backInStock.signups.list>>[number]
@@ -125,7 +127,7 @@ export default function SignupsList() {
   const visible = matching.slice((page - 1) * perPage, page * perPage)
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={cn('flex flex-col gap-5', PAGE_FILL_CHAIN)}>
       <PageHeader
         title={copy.title}
         summary={copy.subtitle}
@@ -141,6 +143,7 @@ export default function SignupsList() {
         }
       />
       <ResourceTable
+        fill
         resourceName={copy.resource}
         columns={columns}
         items={visible}

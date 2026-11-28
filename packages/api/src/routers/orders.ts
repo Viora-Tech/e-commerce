@@ -88,8 +88,9 @@ export const ordersRouter = {
 
   /**
    * The Orders page's server render in one call and one transaction: the first page of rows
-   * (as `list`), the tab badges (`tabCounts`), the stat cards (`tiles`) and the installed apps'
-   * order actions (`apps.orderActions`). The browser still pages and filters with `list`.
+   * (as `list`), the tab badges (`tabCounts`), the orders ready to ship (`toShipCount`) and the
+   * installed apps' order actions (`apps.orderActions`). The browser still pages and filters
+   * with `list`.
    */
   listPage: can(permissions.ORDERS_READ)
     .input(listPageInput)

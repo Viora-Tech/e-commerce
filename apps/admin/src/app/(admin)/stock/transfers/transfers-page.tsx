@@ -179,6 +179,7 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
         <SingleLocation canAdd={canWrite} onAdd={() => setAdding(true)} />
       ) : (
         <ResourceTable
+          fill
           resourceName={copy.resource}
           columns={transferColumns(copy)}
           items={rows}

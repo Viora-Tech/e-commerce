@@ -10,9 +10,8 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { NO_PRODUCT_FILTERS, productFilterGroups } from '@/lib/product-list-filters'
 import { productColumns } from './product-columns'
 
-/* The header's three buttons (Import, Export, Add product) and the strip's four tiles. */
+/* The header's three buttons (Import, Export, Add product). No stat strip (owner, 28 Nov). */
 const HEADER_ACTIONS = 3
-const TILES = 4
 
 const NO_FACETS = { vendors: [], productTypes: [], tags: [], collections: [] }
 
@@ -20,8 +19,7 @@ function noop() {}
 
 /**
  * The Products list while its route loads (`products/loading.tsx`), as the Orders list does it:
- * the real page title, the four-cell stat strip with skeleton figures, and the real ResourceTable
- * in its loading state with the product columns, toolbar, view select and filter button, so the
+ * the real page title and the real ResourceTable in its loading state with the product columns, toolbar, view select and filter button, so the
  * header labels and column widths do not move when the products arrive.
  */
 export default function ProductsListSkeleton() {
@@ -58,7 +56,5 @@ export default function ProductsListSkeleton() {
     />
   )
 
-  return (
-    <ListPageSkeleton title={copy.title} actions={HEADER_ACTIONS} tiles={TILES} table={table} />
-  )
+  return <ListPageSkeleton title={copy.title} actions={HEADER_ACTIONS} tiles={0} table={table} />
 }

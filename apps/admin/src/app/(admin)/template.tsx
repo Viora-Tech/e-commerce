@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { PAGE_FILL_CHAIN } from '@/lib/page-fill'
 
 type AdminTemplateProps = { children: ReactNode }
 
@@ -15,7 +16,9 @@ type AdminTemplateProps = { children: ReactNode }
  */
 export default function AdminTemplate({ children }: AdminTemplateProps) {
   return (
-    <div className="min-h-full animate-in fade-in-0 slide-in-from-bottom-1 duration-150 ease-out motion-reduce:animate-none">
+    <div
+      className={`min-h-full animate-in fade-in-0 slide-in-from-bottom-1 duration-150 ease-out motion-reduce:animate-none ${PAGE_FILL_CHAIN}`}
+    >
       {children}
     </div>
   )

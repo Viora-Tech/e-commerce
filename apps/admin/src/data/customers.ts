@@ -34,15 +34,6 @@ export const customersContent = {
     repeat: (n: number) =>
       n === 1 ? '1 has ordered more than once' : `${n} have ordered more than once`,
   },
-  stats: {
-    total: 'Total customers',
-    newCustomers: 'New customers',
-    repeat: 'Repeat customers',
-    subscribed: 'Subscribed',
-    vsLastWeek: 'vs last week',
-    shareOfAll: (percent: number) => `${percent}% of all customers`,
-    canGetEmails: 'can get your emails',
-  },
   segmentsLink: 'Segments',
   loadFailed: {
     heading: 'Could not load customers',

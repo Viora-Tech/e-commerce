@@ -1,5 +1,6 @@
 import { cn } from '@commerce/ui/lib/utils'
 import type { ComponentProps, ReactNode } from 'react'
+import { PAGE_FILL_CHAIN } from '@/lib/page-fill'
 
 export type PageWidth = 'full' | 'detail' | 'settings' | 'form' | 'narrow'
 
@@ -36,6 +37,8 @@ export default function PageBody({ children, width = 'full', className, ...rest 
       className={cn(
         'flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8',
         WIDTH_CLASS[width],
+        // A `ResourceTable fill` inside: the page fits the panel and only its rows scroll.
+        PAGE_FILL_CHAIN,
         className,
       )}
     >

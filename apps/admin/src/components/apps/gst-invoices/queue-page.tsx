@@ -3,6 +3,7 @@
 import { siteConfig } from '@commerce/config/site'
 import type { IssueOn } from '@commerce/invoices'
 import { CircleCheck, ReceiptIcon, Trash2 } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useQueryStates } from 'nuqs'
@@ -32,6 +33,7 @@ import {
   queueInput,
   sortParam,
 } from '@/lib/gst-list-filters'
+import { PAGE_FILL_CHAIN } from '@/lib/page-fill'
 import { routes } from '@/lib/routes'
 import AlreadyInvoicedDialog from './already-invoiced-dialog'
 import FilingReminder from './filing-reminder'
@@ -40,7 +42,6 @@ import { isReadyRow, type QueueRow, queueColumns } from './queue-columns'
 import QueueEmpty from './queue-empty'
 import { headerGstin, numberingYear } from './queue-meta'
 import QueueMoreMenu from './queue-more-menu'
-import QueueStats from './queue-stats'
 import ReviewPanel from './review-panel'
 import { useGstNumbers } from './use-gst-numbers'
 
@@ -213,7 +214,7 @@ function QueueList() {
   const queueEmpty = result !== null && !failed && counts.all === 0 && !narrowed
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className={cn('flex flex-col gap-4', PAGE_FILL_CHAIN)}>
       {/* One row like Orders: Export GSTR-1, the one "…" menu (with the app's Settings and
           Uninstall, registry `ownHeader`) and Issue all last. GSTIN and numbering are a meta line
           under the title, and Issue all steps aside while rows are ticked: the bulk bar issues
@@ -257,17 +258,11 @@ function QueueList() {
         />
       ) : null}
       <FilingReminder />
-      <QueueStats
-        gst={q.gst ?? undefined}
-        waiting={result === null ? null : counts.all}
-        needHsn={counts.hsnMissing}
-        needFix={counts.fix}
-        reloadKey={reloadKey}
-      />
       {queueEmpty ? (
         <QueueEmpty issueOn={issueOn} filtered={false} />
       ) : (
         <ResourceTable
+          fill
           resourceName={lists.queueResource}
           columns={queueColumns({ queue: copy, lists, record: recordCopy }, fmt, {
             busy,

@@ -16,8 +16,8 @@ export default async function Page({ searchParams }: Props) {
   const query = parseListQuery(params, ORDER_LIST_FILTERS)
   const perPage = parseRowsPerPage(params.perPage)
   const context = await serverContext()
-  // Rows, tab badges, stat cards and the apps' order actions in one call and one transaction.
-  const [{ result, counts, tiles, appActions }, apps] = await Promise.all([
+  // Rows, tab badges, the to-ship count and the apps' order actions in one call and transaction.
+  const [{ result, counts, readyToShip, appActions }, apps] = await Promise.all([
     call(
       appRouter.orders.listPage,
       {
@@ -37,7 +37,7 @@ export default async function Page({ searchParams }: Props) {
         query,
         perPage,
         result,
-        tiles,
+        readyToShip,
         appActions,
         automations: apps.some((a) => a.installed && a.id === 'automations'),
         counts,

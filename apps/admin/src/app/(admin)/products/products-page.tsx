@@ -20,7 +20,6 @@ import ImportDialog from '@/components/products/import-dialog'
 import ProductBulkActions from '@/components/products/product-bulk-actions'
 import { productColumns } from '@/components/products/product-columns'
 import ProductRowMenu from '@/components/products/product-row-menu'
-import ProductTiles from '@/components/products/product-tiles'
 import type { FilterGroup } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
@@ -222,14 +221,6 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
     <ProoflyListPage
       title={copy.title}
       summary={copy.summary(stats.total, stats.lowStock, stats.outOfStock)}
-      stats={
-        <ProductTiles
-          stats={stats}
-          stock={q.stock}
-          status={q.status}
-          onSelect={(patch) => setQ({ ...CLEAR_PRODUCT_FILTERS, status: null, ...patch, page: 1 })}
-        />
-      }
       actions={
         <>
           <Button variant="outline" onClick={() => setImporting(true)} disabled={busy}>
@@ -262,6 +253,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         />
       ) : null}
       <ResourceTable
+        fill
         resourceName={copy.resource}
         columns={productColumns(copy, fmt, initial.facets.lowStockThreshold)}
         items={items}
