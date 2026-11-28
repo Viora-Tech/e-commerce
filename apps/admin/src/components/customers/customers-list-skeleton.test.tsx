@@ -45,10 +45,10 @@ describe('Customers list skeleton', () => {
     for (const td of firstRow?.children ?? []) expect(td.className).toContain(CELL)
   })
 
-  it('draws the real title and the four-tile strip', () => {
+  it('draws the real title and no stat strip', () => {
     const { container } = render(<CustomersListSkeleton />)
     expect(container.querySelector('h1')?.textContent).toBe(customersContent.heading)
-    expect(container.querySelector('[aria-busy="true"].grid')?.children.length).toBe(4)
+    expect(container.querySelector('[aria-busy="true"].grid')).toBeNull()
     expect(container.textContent).toContain(customersContent.tabs.all)
   })
 })
