@@ -43,6 +43,9 @@ export type OrderBookingOverride = {
   insured?: boolean | undefined
   /** The picked row's price before insurance: the courier charge when it books that courier. */
   quotedChargePaise?: number | undefined
+  /** Cash to collect when only part of the parcel ships: its share of the value, as Create
+   *  shipment's partial shipment sends. Absent, the parcel's own value. */
+  codAmountPaise?: number | undefined
 }
 
 /** One order's booking values: its own from the Edit popup, else the batch's. */
@@ -57,5 +60,6 @@ export function bookingFor(
   }
   if (own?.paymentMode) out.paymentMode = own.paymentMode
   if (own?.quotedChargePaise != null) out.quotedChargePaise = own.quotedChargePaise
+  if (own?.codAmountPaise != null) out.codAmountPaise = own.codAmountPaise
   return out
 }

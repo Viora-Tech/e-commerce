@@ -173,6 +173,18 @@ export const shipmentsRouter = {
               insured: z.boolean().optional(),
               /** The picked row's price before insurance, kept as the courier charge. */
               quotedChargePaise: z.number().int().min(0).optional(),
+              /** Cash to collect when only part of the parcel ships (its share of the value). */
+              codAmountPaise: z.number().int().min(0).optional(),
+              /** Part of the parcel ships: every line of the quoted parcel (`parcelIds`) with
+               *  how many go now. The parcel is split first; the rest stays in To ship. */
+              keep: z
+                .array(z.object({ orderLineId: z.uuid(), quantity: z.number().int().min(0) }))
+                .min(1)
+                .max(500)
+                .optional(),
+              splitReason: z.enum(PARCEL_SPLIT_REASONS).optional(),
+              /** "Tell the customer it ships in parts": queues the `order_split` message. */
+              notifyCustomer: z.boolean().optional(),
             }),
           )
           .optional(),
