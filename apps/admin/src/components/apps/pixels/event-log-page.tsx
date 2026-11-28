@@ -2,6 +2,7 @@
 
 import { siteConfig } from '@commerce/config/site'
 import { PIXEL_EVENTS } from '@commerce/core/pixels'
+import { cn } from '@commerce/ui/lib/utils'
 import { useState } from 'react'
 import EventDialog from '@/components/apps/pixels/event-dialog'
 import { type LogRow, logColumns } from '@/components/apps/pixels/log-columns'
@@ -15,6 +16,7 @@ import { pixelsContent } from '@/data/pixels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { PAGE_FILL_CHAIN } from '@/lib/page-fill'
 
 type Status = 'sent' | 'failed' | 'skipped'
 type Origin = 'storefront' | 'order' | 'test'
@@ -121,9 +123,10 @@ export default function EventLogPage() {
   const visible = (rows ?? []).filter((r) => !needle || r.eventId.toLowerCase().includes(needle))
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={cn('flex flex-col gap-5', PAGE_FILL_CHAIN)}>
       <PageHeader title={l.title} summary={l.subtitle} />
       <ResourceTable
+        fill
         resourceName={l.resource}
         columns={logColumns(copy, f, names, setOpen)}
         items={visible}

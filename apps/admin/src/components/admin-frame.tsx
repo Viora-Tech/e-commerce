@@ -123,8 +123,8 @@ export default function AdminFrame({
             2026-10-17), a hairline where it meets the top bar and the sidebar. On phones it ends
             with room for the round AI button, so the last row is never under it. On wider screens
             it ends with room for the bug-report button (bottom left, 3.25rem up), so the last
-            card's corner is never under it (#1781). A page marked `data-page-fill` (Orders) makes
-            it a flex column from `md`, so the page fits its height and scrolls inside itself. */}
+            card's corner is never under it (#1781). A page with a `ResourceTable fill` (lib/page-fill)
+            makes it a flex column from `md`, so the page fits its height and only the rows scroll. */}
         <main
           ref={mainRef}
           id="main"

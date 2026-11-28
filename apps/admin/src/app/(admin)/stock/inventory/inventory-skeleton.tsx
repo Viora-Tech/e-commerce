@@ -15,9 +15,8 @@ import {
   PER_PAGE,
 } from './inventory-query'
 
-/* Export and Add location; the strip's four tiles. */
+/* Export and Add location. No stat strip (28 Nov). */
 const HEADER_ACTIONS = 2
-const TILES = 4
 
 const FIRST_PAGE: InventoryQuery = {
   page: 1,
@@ -39,7 +38,7 @@ function noop() {}
 
 /**
  * Inventory while its route loads (`inventory/loading.tsx`): the real title, the location,
- * Show and reason row, the four-cell stat strip, and the real ResourceTable in its loading state
+ * Show and reason row, and the real ResourceTable in its loading state
  * with the inventory columns, view select and filter button, so nothing moves when stock arrives.
  */
 export default function InventorySkeleton() {
@@ -98,7 +97,7 @@ export default function InventorySkeleton() {
           onExpandAll={noop}
         />
       }
-      tiles={TILES}
+      tiles={0}
       table={table}
     />
   )

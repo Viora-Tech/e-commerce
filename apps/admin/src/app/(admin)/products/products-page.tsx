@@ -221,8 +221,6 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
     <ProoflyListPage
       title={copy.title}
       summary={copy.summary(stats.total, stats.lowStock, stats.outOfStock)}
-      // From md only the rows scroll; the header, toolbar and column row stay (owner, 28 Nov).
-      fill
       actions={
         <>
           <Button variant="outline" onClick={() => setImporting(true)} disabled={busy}>

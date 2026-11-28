@@ -189,8 +189,6 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
           </TooltipContent>
         </Tooltip>
       }
-      // From md only the rows scroll; the header, toolbar and column row stay (owner, 28 Nov).
-      fill
     >
       {/* No drafts at all: one plain empty state with Create, not filters, column
           headers and a pager (audit #34). */}

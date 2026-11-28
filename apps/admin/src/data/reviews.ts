@@ -21,17 +21,6 @@ export const reviewsContent = {
         ? 'Everyone with a delivered order was already asked.'
         : `Review requests planned for ${orders} ${orders === 1 ? 'order' : 'orders'}. They go out in the next few minutes.`,
     resource: { singular: 'review', plural: 'reviews' },
-    tiles: {
-      average: 'Average rating',
-      averageFrom: (n: number) => `from ${n} published ${n === 1 ? 'review' : 'reviews'}`,
-      noAverage: 'No published reviews yet',
-      published: 'Published',
-      publishedHelp: 'Showing on your store',
-      waiting: 'Waiting for you',
-      waitingHelp: 'Approve or hide',
-      photos: 'With photos',
-      photosHelp: (pct: number) => `${pct}% of reviews`,
-    },
     tabs: { all: 'All', pending: 'Waiting', published: 'Published', hidden: 'Hidden' },
     /** In the Product column for a review of the store itself. */
     storeReview: 'Store review',

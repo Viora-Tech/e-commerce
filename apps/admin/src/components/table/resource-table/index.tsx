@@ -114,7 +114,8 @@ export type ResourceTableProps<T extends RowData> = {
   rowIconCells?: { count: 1 | 2 | 3; render: (item: T) => ReactNode }
   /**
    * From `md`, fit the page's height: the toolbar and the header row stay put and only the rows
-   * scroll (pager in view). Pair it with `ProoflyListPage fill`. Orders only (owner, 28 Nov).
+   * scroll (pager in view). The boxes around it take part through `PAGE_FILL_CHAIN`
+   * (`lib/page-fill`); PageBody and AppShell already do (owner, 28 Nov).
    */
   fill?: boolean
   /** Kept for older call sites; every table now uses the one Saleor-style density. */
@@ -337,7 +338,12 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   const skeletonRows = Math.max(1, Math.min(props.items.length || SKELETON_ROWS, props.perPage))
 
   return (
-    <Card gap="none" inset="y-none" className={cn('overflow-hidden', props.fill && FILL.card)}>
+    <Card
+      gap="none"
+      inset="y-none"
+      className={cn('overflow-hidden', props.fill && FILL.card)}
+      data-page-fill={props.fill ? '' : undefined}
+    >
       <ResourceTableToolbar
         table={table}
         plural={props.resourceName.plural}

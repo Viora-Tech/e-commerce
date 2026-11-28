@@ -16,14 +16,6 @@ export const giftCardsContent = {
   resource: { singular: 'gift card', plural: 'gift cards' },
   create: 'Create gift card',
   addProduct: 'Add gift card product',
-  tiles: {
-    active: 'Active gift cards',
-    outstanding: 'Outstanding balance',
-    products: 'Gift card products',
-    now: 'Right now',
-    liability: 'Owed to customers',
-    onSale: (n: number) => (n === 1 ? '1 on sale' : `${n} on sale`),
-  },
   tabs: {
     all: 'All',
     active: 'Active',

@@ -99,6 +99,7 @@ function PagesContent({ storefrontOrigin }: PagesListProps) {
       actions={addButton}
     >
       <ResourceTable
+        fill
         resourceName={copy.resource}
         columns={columns}
         items={pageRows}

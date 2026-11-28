@@ -34,13 +34,14 @@ export const SIMPLE_BODY = {
 } as const
 
 /**
- * `fill` (Orders): from `md` the card fits the page's height and only the rows scroll. The card
- * shrinks to the room left under the page header (a short list stays short); the toolbar and the
+ * `fill` (lib/page-fill): from `md` the card fits the page's height and only the rows scroll.
+ * The card shrinks to the room left under the page header (a short list stays short), but never
+ * below 16rem: with banners that leave less, the page scrolls as before. The toolbar and the
  * pager keep their rows; the grid scrolls both ways in one scroller, so the header row sticks
  * on top of it with a rule under it (the first row drops its own). Phones scroll the page.
  */
 export const FILL = {
-  card: 'md:min-h-0',
+  card: 'md:min-h-64',
   frame: 'md:flex md:min-h-0 md:flex-col',
   scroller:
     'md:min-h-0 md:overflow-auto md:overscroll-contain md:[&_[data-slot=table-container]]:overflow-visible md:[&_tbody>tr:first-child>td]:border-t-0',

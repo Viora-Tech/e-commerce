@@ -1,5 +1,6 @@
 'use client'
 
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import NewProgramDialog from '@/components/apps/affiliates/new-program-dialog'
@@ -15,6 +16,7 @@ import { appsContent } from '@/data/apps'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { PAGE_FILL_CHAIN } from '@/lib/page-fill'
 import { routes } from '@/lib/routes'
 
 type Row = Awaited<ReturnType<typeof api.affiliates.programs.list>>[number]
@@ -100,7 +102,7 @@ export default function ProgramsPage() {
   )
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={cn('flex flex-col gap-5', PAGE_FILL_CHAIN)}>
       <PillTabs
         variant="underline"
         label={layout.tabsLabel}
@@ -121,6 +123,7 @@ export default function ProgramsPage() {
             actions={<Button onClick={() => setAdding(true)}>{layout.add}</Button>}
           />
           <ResourceTable
+            fill
             resourceName={copy.resource}
             columns={columns}
             items={matching}

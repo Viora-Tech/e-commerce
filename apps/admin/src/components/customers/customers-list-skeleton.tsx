@@ -13,15 +13,14 @@ type CustomersListSkeletonProps = {
   perPage?: number
 }
 
-/* The header's three buttons (Export, Segments, Add customer) and the strip's four tiles. */
+/* The header's three buttons (Export, Segments, Add customer). No stat strip (28 Nov). */
 const HEADER_ACTIONS = 3
-const TILES = 4
 
 function noop() {}
 
 /**
- * The Customers list while its route loads (`customers/loading.tsx`): the real page title, the
- * four-cell stat strip with skeleton figures, and the real ResourceTable in its loading state
+ * The Customers list while its route loads (`customers/loading.tsx`): the real page title and
+ * the real ResourceTable in its loading state
  * with the Customers columns, toolbar, view select and filter button, as the Orders list does.
  * The table header and its column widths are the loaded page's own, so nothing moves when the
  * customers arrive.
@@ -59,7 +58,5 @@ export default function CustomersListSkeleton({ perPage = 25 }: CustomersListSke
     />
   )
 
-  return (
-    <ListPageSkeleton title={copy.heading} actions={HEADER_ACTIONS} tiles={TILES} table={table} />
-  )
+  return <ListPageSkeleton title={copy.heading} actions={HEADER_ACTIONS} tiles={0} table={table} />
 }

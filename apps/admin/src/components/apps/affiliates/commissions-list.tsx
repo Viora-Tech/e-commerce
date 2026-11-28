@@ -2,6 +2,7 @@
 
 import { siteConfig } from '@commerce/config/site'
 import { Inbox } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
@@ -28,6 +29,7 @@ import {
 } from '@/lib/affiliate-list-filters'
 import { api } from '@/lib/api-client'
 import { errorText } from '@/lib/api-errors'
+import { PAGE_FILL_CHAIN } from '@/lib/page-fill'
 import { routes } from '@/lib/routes'
 
 type Affiliate = { id: string; name: string }
@@ -139,7 +141,7 @@ function CommissionsTable() {
   const summary = rows && !filtered ? layout.thisMonth(thisMonth(rows)) : copy.commissions.subtitle
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={cn('flex flex-col gap-5', PAGE_FILL_CHAIN)}>
       <PageHeader
         title={copy.commissions.title}
         summary={summary}
@@ -158,6 +160,7 @@ function CommissionsTable() {
         />
       ) : (
         <ResourceTable
+          fill
           resourceName={copy.commissions.resource}
           columns={commissionColumns(copy, f, handleChanged, { withAffiliate: true })}
           items={visible}

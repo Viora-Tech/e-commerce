@@ -1,6 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
+import { cn } from '@commerce/ui/lib/utils'
 import { useState } from 'react'
 import RelativeTime from '@/components/layout/relative-time'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
@@ -9,6 +10,7 @@ import { formsContent } from '@/data/forms'
 import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { PAGE_FILL_CHAIN } from '@/lib/page-fill'
 
 type Row = Awaited<ReturnType<typeof api.forms.submissions.list>>[number]
 
@@ -88,8 +90,9 @@ export default function SubmissionsList() {
   const visible = matching.slice((page - 1) * perPage, page * perPage)
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={cn('flex flex-col gap-5', PAGE_FILL_CHAIN)}>
       <ResourceTable
+        fill
         resourceName={copy.resource}
         columns={columns}
         items={visible}

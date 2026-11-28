@@ -343,8 +343,6 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
           loadViewIds={loadViewIds}
         />
       }
-      // From md only the rows scroll; the header, toolbar and column row stay (owner, 28 Nov).
-      fill
     >
       <ResourceTable
         fill

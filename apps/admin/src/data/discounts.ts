@@ -11,16 +11,6 @@ export const discountsContent = {
   create: 'Create discount',
   summary: (active: number, scheduled: number, used: number) =>
     `${active} active · ${scheduled} starting soon · ${used} orders used a discount in the last 30 days`,
-  tiles: {
-    active: 'Active discounts',
-    scheduled: 'Scheduled',
-    expired: 'Expired',
-    usedThisMonth: 'Orders with a discount (30 days)',
-    activeNote: 'Running now',
-    scheduledNote: 'Start later',
-    expiredNote: 'Ended',
-    month: 'Last 30 days',
-  },
   row: { edit: 'Edit discount', copyCode: 'Copy code', codeCopied: 'Code copied' },
   /** Value column for a combo deal. */
   comboCount: (n: number) => `${n} combo${n === 1 ? '' : 's'}`,

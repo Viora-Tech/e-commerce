@@ -1,6 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
+import { cn } from '@commerce/ui/lib/utils'
 import { useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import PageHeader from '@/components/layout/page-header'
@@ -24,6 +25,7 @@ import {
   parseInvoiceSort,
   sortParam,
 } from '@/lib/gst-list-filters'
+import { PAGE_FILL_CHAIN } from '@/lib/page-fill'
 import { routes } from '@/lib/routes'
 import FilingReminder from './filing-reminder'
 import { invoiceColumns } from './invoice-columns'
@@ -111,10 +113,11 @@ function InvoicesTable() {
   )
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className={cn('flex flex-col gap-4', PAGE_FILL_CHAIN)}>
       <PageHeader title={copy.title} summary={copy.subtitle} />
       <FilingReminder />
       <ResourceTable
+        fill
         resourceName={lists.invoiceResource}
         columns={invoiceColumns({ list: copy, kinds, lists, record: recordCopy })}
         items={failed ? [] : (data?.rows ?? [])}

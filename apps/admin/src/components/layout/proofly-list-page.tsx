@@ -13,12 +13,6 @@ type ProoflyListPageProps = {
   controls?: ReactNode
   /** A `StatStrip`; its tiles may act as filters. */
   stats?: ReactNode
-  /**
-   * From `md`, the page fits the panel's height and only the table's rows scroll; pass
-   * `ResourceTable fill` too. `data-page-fill` tells the shell (`admin-frame` main and the
-   * (admin) template) to hand the page its height. Phones keep the page scroll.
-   */
-  fill?: boolean
   children: ReactNode
 }
 
@@ -37,15 +31,11 @@ export default function ProoflyListPage({
   actions,
   controls,
   stats,
-  fill,
   children,
 }: ProoflyListPageProps) {
   // Render logic
   return (
-    <PageBody
-      data-page-fill={fill ? '' : undefined}
-      className={fill ? 'md:min-h-0 md:flex-1' : undefined}
-    >
+    <PageBody>
       <PageHeader title={title} summary={summary} back={back} actions={actions} />
       {controls}
       {stats}

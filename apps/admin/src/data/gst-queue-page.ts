@@ -14,19 +14,6 @@ export const gstQueuePageContent = {
     manual:
       'Orders waiting for an invoice. Add orders by number from the More menu; issue them one by one or all at once.',
   },
-  stats: {
-    issued: 'Issued this month',
-    taxable: (amount: string) => `${amount} taxable`,
-    waiting: 'Waiting',
-    needHsn: (n: number) => (n === 1 ? '1 needs an HSN code' : `${n} need an HSN code`),
-    needFix: (n: number) => (n === 1 ? '1 needs fixing' : `${n} need fixing`),
-    allReady: 'All ready to issue',
-    creditNotes: 'Credit notes',
-    nextNumber: 'Next number',
-    resets: (date: string) => `resets ${date}`,
-    neverResets: 'one running count, never resets',
-    noSeries: 'No tax invoice series',
-  },
   chips: { all: 'All', ready: 'Ready', fix: 'Needs fixing' },
   columns: {
     order: 'Order',
@@ -77,7 +64,6 @@ export const gstQueuePageContent = {
   noneToFix: 'Nothing needs fixing. Every waiting order can be issued.',
   /** An empty cell or figure. */
   none: '-',
-  statsFailed: 'Could not load this month’s figures',
 } as const
 
 /** The app bar's "Export GSTR-1": the portal JSON for a month of the main GST number. */

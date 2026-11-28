@@ -20,17 +20,6 @@ export default [
           ? 'पहुँचे हुए हर ऑर्डर वाले से पहले ही पूछा जा चुका है।'
           : `${orders} ऑर्डर के लिए रिव्यू ईमेल तैयार हैं। ये कुछ मिनट में चले जाएँगे।`,
       resource: { singular: 'रिव्यू', plural: 'रिव्यू' },
-      tiles: {
-        average: 'औसत रेटिंग',
-        averageFrom: (n) => `${n} पब्लिश रिव्यू से`,
-        noAverage: 'अभी कोई पब्लिश रिव्यू नहीं',
-        published: 'पब्लिश',
-        publishedHelp: 'आपके स्टोर पर दिख रहे हैं',
-        waiting: 'आपके इंतज़ार में',
-        waitingHelp: 'मंज़ूर करें या छिपाएँ',
-        photos: 'फ़ोटो वाले',
-        photosHelp: (pct) => `${pct}% रिव्यू`,
-      },
       tabs: { all: 'सभी', pending: 'इंतज़ार में', published: 'पब्लिश', hidden: 'छिपे हुए' },
       storeReview: 'स्टोर रिव्यू',
       columns: {

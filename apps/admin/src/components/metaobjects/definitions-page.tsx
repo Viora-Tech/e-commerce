@@ -107,6 +107,7 @@ export default function DefinitionsPage({ definitions }: DefinitionsPageProps) {
         />
       ) : (
         <ResourceTable
+          fill
           resourceName={copy.resource}
           columns={columns}
           items={shown}

@@ -3,6 +3,7 @@
 import { siteConfig } from '@commerce/config/site'
 import type { AutomationUsage, TriggerView, WorkflowSummary } from '@commerce/core/automations'
 import { Blocks, ChevronLeftIcon, Plus, Workflow } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -23,6 +24,7 @@ import { automationApi } from '@/lib/automation-api'
 import { triggerLabel } from '@/lib/automation-labels'
 import { automationRoutes } from '@/lib/automation-routes'
 import { isForbidden } from '@/lib/forbidden'
+import { PAGE_FILL_CHAIN } from '@/lib/page-fill'
 import { routes } from '@/lib/routes'
 import TriggerPickerDialog from './trigger-picker-dialog'
 import UsageMeter from './usage-meter'
@@ -140,7 +142,7 @@ export default function WorkflowsPage() {
   )
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className={cn('flex flex-col gap-4', PAGE_FILL_CHAIN)}>
       <div className="flex flex-wrap items-center justify-end gap-2">
         {origin === 'growth' ? (
           <Button
@@ -178,6 +180,7 @@ export default function WorkflowsPage() {
         />
       ) : (
         <ResourceTable
+          fill
           resourceName={all.resource}
           columns={workflowColumns(copy, triggerName, fmt.number)}
           items={shown}

@@ -37,20 +37,20 @@ function headText(root: HTMLElement): string {
 }
 
 describe('stock list skeletons', () => {
-  it('Inventory: real title, the location and reason row, four tiles and the real columns', () => {
+  it('Inventory: real title, the location and reason row, no tiles and the real columns', () => {
     const { container } = render(<InventorySkeleton />)
     expect(container.querySelector('h1')?.textContent).toBe(inventoryContent.heading)
     expect(container.querySelector('label[for="inventory-location"]')).toBeTruthy()
     expect(container.querySelector('label[for="inventory-reason"]')).toBeTruthy()
-    expect(container.querySelector('.grid[aria-busy="true"]')?.children.length).toBe(4)
+    expect(container.querySelector('.grid[aria-busy="true"]')).toBeNull()
     expect(headText(container)).toContain(inventoryContent.columns.product)
     expect(headText(container)).toContain(inventoryContent.columns.available)
   })
 
-  it('Purchase orders: four tiles and the list columns', () => {
+  it('Purchase orders: no tiles and the list columns', () => {
     const { container } = render(<PurchaseOrdersSkeleton />)
     expect(container.querySelector('h1')?.textContent).toBe(purchaseOrdersContent.heading)
-    expect(container.querySelector('.grid[aria-busy="true"]')?.children.length).toBe(4)
+    expect(container.querySelector('.grid[aria-busy="true"]')).toBeNull()
     expect(headText(container)).toContain(purchaseOrdersContent.columns.supplier)
   })
 

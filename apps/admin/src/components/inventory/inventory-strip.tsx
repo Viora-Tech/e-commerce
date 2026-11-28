@@ -25,7 +25,7 @@ type InventoryStripProps = {
   onExpandAll: (open: boolean) => void
 }
 
-/** Location picker, the reason inline edits are logged with, then the stat tiles. */
+/** Location picker and the reason inline edits are logged with. */
 export default function InventoryStrip({
   locations,
   locationId,

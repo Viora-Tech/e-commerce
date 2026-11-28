@@ -210,8 +210,6 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
           {copy.sendReminders}
         </Button>
       }
-      // From md only the rows scroll; the header, toolbar and column row stay (owner, 28 Nov).
-      fill
     >
       <ResourceTable
         fill

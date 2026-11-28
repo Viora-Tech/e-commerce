@@ -1,4 +1,4 @@
-# Orders, Drafts, Abandoned checkouts and Products lists: no stat cards, only the rows scroll
+# Admin list pages: no stat cards, only the rows scroll
 
 Branch `fix/orders-list-sticky` (from `origin/dev`). No issue. No migration.
 
@@ -44,6 +44,32 @@ Branch `fix/orders-list-sticky` (from `origin/dev`). No issue. No migration.
   extras (draft `valuePaise`, abandoned `recoveryRate`) are now unread by the admin; they stay,
   since those procedures are also MCP actions.
 - `product-skeletons.test.tsx` now expects no stat strip.
+
+## Third commit: every other list page (owner, 28 Nov)
+
+- One mechanism now: `ResourceTable fill` marks its card `data-page-fill`; the boxes around it
+  carry `PAGE_FILL_CHAIN` (`apps/admin/src/lib/page-fill.ts`): `main`, the (admin) template,
+  PageBody (always), AppShell's three wrappers, and a page's own root `div` where it has one.
+  `ProoflyListPage fill` is gone (back to its dev version). The card never shrinks below 16rem
+  (`FILL.card` `md:min-h-64`): when banners above leave less, the page scrolls as before.
+- Stat cards removed (component and its copy, English + Hindi): Customers (`customer-tiles`,
+  `customersContent.stats`), Discounts (`discount-tiles`), Inventory (`inventory-tiles`),
+  Purchase orders (`purchase-order-tiles`), Gift cards (`gift-card-tiles`), Reviews app
+  (`review-tiles`), GST invoices Queue (`queue-stats`, its own `gstInvoices.queue.stats` fetch
+  went with it), and Collections' unused `collection-tiles` (dead already). The data calls that
+  still feed summaries, tabs or badges stay; the API procedures stay (MCP actions).
+- `fill` on: Customers, Discounts, Collections, Blog posts, Returns, Shipments, Inventory,
+  Purchase orders, Transfers, Inbound shipments, Suppliers, Menus, Pages, Content types,
+  Installed apps, and the app lists Affiliates (affiliates, commissions, programs), Automations
+  (workflows, runs), Back in stock signups, Forms submissions, GST invoices (queue, invoices),
+  Loyalty members, Pixels events, Reviews, WhatsApp messages.
+- Skipped (cards or other content are the page): Gift cards keeps no fill (store credit,
+  products and settings cards under the table), Segments, Markets, Catalogs, Rollouts (settings
+  tables), Files (own grid card), Content hub, Growth automations and campaigns (sections and a
+  second card), Links (trend chart card), Preorders (overview), Loyalty campaigns (timeline card),
+  Affiliate payouts (two tables), Shopify import (cards first), Activity log (settings frame),
+  Redirects and metaobject entries (detail frame), and every Home, Analytics and app Overview.
+- Tests updated: `content-skeletons.test.tsx`, `stock-skeletons.test.tsx` expect no tiles.
 
 ## Tests
 

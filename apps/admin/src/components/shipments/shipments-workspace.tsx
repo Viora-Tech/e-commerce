@@ -306,6 +306,7 @@ function ShipmentsContent() {
         <>
           <WalletStrip wallets={liveWallets} />
           <ResourceTable
+            fill
             resourceName={copy.resource}
             columns={shipmentColumns(copy, fmt, courierName, toBookCourier, partsCopy, lostCopy)}
             items={rows}

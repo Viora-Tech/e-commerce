@@ -1,12 +1,7 @@
 import type { ReactNode } from 'react'
+import { PAGE_FILL_CHAIN } from '@/lib/page-fill'
 
 type AdminTemplateProps = { children: ReactNode }
-
-/* A page marked `data-page-fill` (ProoflyListPage `fill`, the Orders list) gets the panel's
-   height from `md`: main is a flex column then (admin-frame), and this wrapper its one growing
-   row, so the page can scroll inside itself. */
-const FILL =
-  'md:has-[[data-page-fill]]:flex md:has-[[data-page-fill]]:min-h-0 md:has-[[data-page-fill]]:flex-1 md:has-[[data-page-fill]]:flex-col'
 
 /**
  * Re-mounts on every navigation: page content fades in with a 4px rise. This is the only
@@ -22,7 +17,7 @@ const FILL =
 export default function AdminTemplate({ children }: AdminTemplateProps) {
   return (
     <div
-      className={`min-h-full animate-in fade-in-0 slide-in-from-bottom-1 duration-150 ease-out motion-reduce:animate-none ${FILL}`}
+      className={`min-h-full animate-in fade-in-0 slide-in-from-bottom-1 duration-150 ease-out motion-reduce:animate-none ${PAGE_FILL_CHAIN}`}
     >
       {children}
     </div>

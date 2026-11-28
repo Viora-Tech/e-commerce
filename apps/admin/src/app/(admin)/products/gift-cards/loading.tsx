@@ -1,5 +1,5 @@
 import ListPageSkeleton from '@/components/layout/list-page-skeleton'
 
 export default function Loading() {
-  return <ListPageSkeleton tiles={2} />
+  return <ListPageSkeleton tiles={0} />
 }

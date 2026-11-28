@@ -45,16 +45,6 @@ export default [
     location: 'लोकेशन',
     defaultBadge: 'ऑनलाइन ऑर्डर',
     reason: 'बदलाव का कारण',
-    tiles: {
-      skus: 'ट्रैक हो रहे SKU',
-      out: 'स्टॉक खत्म',
-      low: 'कम स्टॉक',
-      value: 'स्टॉक की कीमत',
-      skusCaption: 'स्टॉक ट्रैक करने वाले वेरिएंट',
-      outCaption: 'बेचने के लिए कुछ नहीं',
-      lowCaption: (n: number) => `${n} या उससे कम उपलब्ध`,
-      valueCaption: 'हाथ में मौजूद, लागत पर',
-    },
     columns: {
       product: 'प्रोडक्ट',
       sku: 'SKU',
@@ -175,16 +165,6 @@ export default [
       cancelled: 'रद्द',
     },
     tabs: { all: 'सभी' },
-    tiles: {
-      draft: 'ड्राफ़्ट',
-      open: 'खुले ऑर्डर',
-      incoming: 'आने वाली यूनिट',
-      received: 'मिल गए',
-      draftCaption: 'अभी सप्लायर को नहीं भेजा',
-      openCaption: 'ऑर्डर हो गया, स्टॉक का इंतज़ार',
-      incomingCaption: 'अभी पहुँचना बाकी',
-      receivedCaption: 'आ गए, या कम आए और बंद किए',
-    },
     columns: {
       number: 'ऑर्डर',
       supplier: 'सप्लायर',
