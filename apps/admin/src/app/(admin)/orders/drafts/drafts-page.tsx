@@ -12,7 +12,6 @@ import { draftColumns } from '@/components/drafts/draft-columns'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
-import StatStrip from '@/components/layout/stat-strip'
 import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
 import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
@@ -45,6 +44,7 @@ export type DraftsInitial = {
   query: ListQuery<DraftListFilter>
   perPage: number
   result: ListResult
+  /** The draft counts behind the view select's badges and the blank state (no stat cards). */
   tiles: Awaited<ReturnType<typeof api.orders.draftTiles>>
 }
 
@@ -189,40 +189,10 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
           </TooltipContent>
         </Tooltip>
       }
-      stats={
-        blank ? undefined : (
-          <StatStrip
-            tiles={[
-              {
-                id: 'open',
-                label: copy.tiles.open.label,
-                value: fmt.number(tiles.open),
-                note: copy.tiles.open.note,
-              },
-              {
-                id: 'checkout',
-                label: copy.tiles.checkout.label,
-                value: fmt.number(tiles.checkout),
-                note: copy.tiles.checkout.note,
-              },
-              {
-                id: 'invoiced',
-                label: copy.tiles.invoiced.label,
-                value: fmt.number(tiles.invoiced),
-                note: copy.tiles.invoiced.note,
-              },
-              {
-                id: 'value',
-                label: copy.tiles.value.label,
-                value: fmt.moneyWhole(tiles.valuePaise),
-                note: copy.tiles.value.note(tiles.total),
-              },
-            ]}
-          />
-        )
-      }
+      // From md only the rows scroll; the header, toolbar and column row stay (owner, 28 Nov).
+      fill
     >
-      {/* No drafts at all: one plain empty state with Create, not ₹0 tiles, filters, column
+      {/* No drafts at all: one plain empty state with Create, not filters, column
           headers and a pager (audit #34). */}
       {blank ? (
         <EmptyState
@@ -238,6 +208,7 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
         />
       ) : (
         <ResourceTable
+          fill
           resourceName={copy.resource}
           columns={draftColumns(copy, fmt, sourceCopy)}
           items={items}

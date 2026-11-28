@@ -34,16 +34,6 @@ export const productsListContent = {
     ]
       .filter(Boolean)
       .join(' · '),
-  tiles: {
-    total: 'Total products',
-    low: 'Low stock',
-    out: 'Out of stock',
-    draft: 'Draft',
-    totalNote: 'Active, draft and archived',
-    lowNote: '5 or fewer left',
-    outNote: 'Not on sale until restocked',
-    draftNote: 'Hidden until you publish',
-  },
   filters: {
     label: 'Filters',
     vendor: 'Vendor',

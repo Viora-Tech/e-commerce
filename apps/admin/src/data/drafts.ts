@@ -30,12 +30,6 @@ export const draftsContent = {
     ]
       .filter(Boolean)
       .join(' · '),
-  tiles: {
-    open: { label: 'Open drafts', note: 'Ready to convert or send' },
-    checkout: { label: 'Unpaid checkouts', note: 'Shoppers who have not paid yet' },
-    invoiced: { label: 'Invoices sent', note: 'Waiting for the customer to pay' },
-    value: { label: 'Value in drafts', note: (n: number) => `Across all ${n} drafts` },
-  },
   noResults: 'No drafts match that search',
   openDraft: 'Open draft',
   deleteDraft: 'Delete draft',
@@ -364,14 +358,6 @@ export const abandonedContent = {
   nothingToSend: 'No carts are waiting for a reminder',
   resource: { singular: 'checkout', plural: 'checkouts' },
   empty: 'No abandoned checkouts in this period',
-  tiles: {
-    carts: 'Abandoned carts',
-    recovered: 'Recovered',
-    value: 'Value waiting',
-    reminders: 'Reminders sent',
-    period: 'Last 7 days',
-    recoveryRate: (pct: string) => `${pct} recovery`,
-  },
   columns: {
     contact: 'Customer',
     cart: 'Cart',

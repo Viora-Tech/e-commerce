@@ -6,7 +6,6 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { abandonedColumns } from '@/components/abandoned/abandoned-columns'
-import AbandonedTiles, { type AbandonedStats } from '@/components/abandoned/abandoned-tiles'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
@@ -39,6 +38,7 @@ import { parseRowsPerPage } from '@/lib/rows-per-page'
 import { runBatched } from '@/lib/run-batched'
 
 type ListResult = Awaited<ReturnType<typeof api.orders.listAbandoned>>
+type AbandonedStats = Awaited<ReturnType<typeof api.orders.abandonedStats>>
 type Item = ListResult['items'][number]
 
 export type AbandonedInitial = {
@@ -46,7 +46,7 @@ export type AbandonedInitial = {
   perPage: number
   result: ListResult
   stats: AbandonedStats
-  /** Whole-window (30 day) counts for the tabs; `stats` is the 7 day figures for the tiles. */
+  /** Whole-window (30 day) counts for the tabs; `stats` is the 7 day figures of the summary. */
   counts: AbandonedStats
 }
 
@@ -210,15 +210,11 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
           {copy.sendReminders}
         </Button>
       }
-      stats={
-        <AbandonedTiles
-          stats={initial.stats}
-          status={status}
-          onSelect={(s) => setQ({ status: s, page: 1 })}
-        />
-      }
+      // From md only the rows scroll; the header, toolbar and column row stay (owner, 28 Nov).
+      fill
     >
       <ResourceTable
+        fill
         resourceName={copy.resource}
         columns={columns}
         items={items}

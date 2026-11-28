@@ -1,4 +1,4 @@
-# Orders list: no stat cards, and only the order rows scroll
+# Orders, Drafts, Abandoned checkouts and Products lists: no stat cards, only the rows scroll
 
 Branch `fix/orders-list-sticky` (from `origin/dev`). No issue. No migration.
 
@@ -30,6 +30,21 @@ Branch `fix/orders-list-sticky` (from `origin/dev`). No issue. No migration.
   - The bulk bar still sits over the header row outside the scroller, so it stays in view while
     the rows scroll sideways or down.
 
+## Second commit: Drafts, Abandoned checkouts, Products (owner, 28 Nov)
+
+- Same change on `/orders/drafts`, `/orders/abandoned-checkouts` and `/products`: the stat
+  strip is gone and `ProoflyListPage fill` + `ResourceTable fill` are passed. Drafts keeps its
+  blank-store empty state (no table) inside the fill page.
+- Removed `components/abandoned/abandoned-tiles.tsx`, `components/products/product-tiles.tsx`,
+  and the `tiles` copy in `data/drafts.ts` (drafts and abandoned), `data/hi/drafts.ts`,
+  `data/products.ts` and `data/hi/products.ts`. The three loading skeletons draw no strip.
+- Data kept on purpose: `orders.draftTiles` still feeds the Drafts view-select badges and the
+  blank state; `orders.abandonedStats` (7 days) still feeds the Abandoned summary line;
+  `products.stats` still feeds the Products summary line and tab counts. Only the cards' own
+  extras (draft `valuePaise`, abandoned `recoveryRate`) are now unread by the admin; they stay,
+  since those procedures are also MCP actions.
+- `product-skeletons.test.tsx` now expects no stat strip.
+
 ## Tests
 
 - `packages/api/test/admin-page-statements.test.ts`: `orders.listPage` is compared with
@@ -41,6 +56,8 @@ Branch `fix/orders-list-sticky` (from `origin/dev`). No issue. No migration.
 
 ## Left to do / for the owner to check
 
+- The same checks on Drafts, Abandoned checkouts and Products (Products also has the AI bulk
+  write banner above the table, which stays put with the header).
 - On localhost:3200 › Orders: no cards; scroll the rows and check the header, toolbar and column
   row stay; the pager stays at the bottom; tick rows and check the bulk bar; scroll sideways with
   many columns shown; narrow the window below `md` (48rem) and check the page scrolls normally.
