@@ -20,11 +20,16 @@ import {
   shippingProviderById,
   storedLabelUrl,
 } from '@commerce/core'
+import { catalogueApp } from '@commerce/core/app-catalogue'
 import type { StoreTx } from '@commerce/db'
 import { order, shipment } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import { and, eq, inArray } from 'drizzle-orm'
 import { fetchPublicLabel } from './label-link'
 import { loadShippingSettings } from './shipping.service'
+
+/** A courier's words with any link taken out (a label link can carry a signed token). */
+const stripUrls = (text: string) => text.replace(/https?:\/\/\S+/gi, '[link]').slice(0, 300)
 
 /**
  * The batch's labels as one PDF. Shipments are read with the caller's store in the filter (and
@@ -55,7 +60,12 @@ export async function printLabelSheet(
     .where(and(eq(shipment.storeId, storeId), inArray(shipment.id, ids)))
   /* Read-time, as the single Print label sees it: a courier that hands its label over on demand
      (RapidShyp, often saved with no link) goes to `getLabel` instead of being skipped. */
-  const rows = found.map((r) => ({ ...r, labelUrl: shipmentLabelUrl(r) }))
+  const rows = found.map((r) => ({
+    ...r,
+    labelUrl: shipmentLabelUrl(r),
+    // The courier's name for the skip list; an app no longer connected still reads by name.
+    courier: registry.get(r.provider)?.label ?? catalogueApp(r.provider)?.name ?? r.provider,
+  }))
   const savedLink = new Map(found.map((r) => [r.id, r.labelUrl]))
 
   const readStored = await shippingLabelReader({ storeId, tx })
@@ -90,6 +100,18 @@ export async function printLabelSheet(
       shipmentId: id,
       orderNumber: byId.get(id)?.orderNumber ?? null,
       reason: 'unreadable',
+      courier: byId.get(id)?.courier,
+    })
+  }
+  /* Why each label was left out, for support: courier, shipment id, reason and the courier's
+     words. No label links (they can carry a courier's signed token) and no customer data. */
+  for (const s of skipped) {
+    logger.warn('label sheet skipped a label', {
+      storeId,
+      courier: s.courier ?? null,
+      shipmentId: s.shipmentId,
+      reason: s.reason,
+      message: s.detail ? stripUrls(s.detail) : null,
     })
   }
   return { pdf, printed: files.filter((f) => !bad.has(f.id)).length, skipped }

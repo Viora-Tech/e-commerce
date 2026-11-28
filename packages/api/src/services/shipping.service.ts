@@ -33,7 +33,7 @@ import {
 import { getRegistries } from '@commerce/core/registries'
 import { dayKey } from '@commerce/dates'
 import type { StoreTx } from '@commerce/db'
-import { location, shipment, shipmentPickup, store } from '@commerce/db'
+import { location, order, shipment, shipmentPickup, store } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import { CourierError, describeCourierFailureForStaff, isValidPincode } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
@@ -584,6 +584,23 @@ export async function shipmentLabelFile(
     if (labelOnDemand(row.provider) && saved?.startsWith('https://') && !isKeyedLabelUrl(saved)) {
       const bytes = await fetchPublicLabel(saved).catch(() => null)
       if (bytes) return bytes
+    }
+    // "Delhivery has no label for #2503 yet": the order number staff know, not the waybill.
+    if (error instanceof CourierError && error.detail?.code === 'label_not_ready') {
+      const [o] = await tx
+        .select({ number: order.number })
+        .from(order)
+        .where(eq(order.id, row.orderId))
+      if (o) {
+        return courierToRpc(
+          new CourierError(
+            error.kind,
+            error.provider,
+            error.message.replaceAll(row.waybill, `#${o.number}`),
+            { detail: error.detail, status: error.status },
+          ),
+        )
+      }
     }
     return courierToRpc(error)
   }

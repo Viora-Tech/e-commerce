@@ -1,7 +1,5 @@
 'use client'
 
-import { errorText } from '@/lib/api-errors'
-
 /**
  * SOURCE OF TRUTH KEYWORDS: useLabelSheet, label paper choice
  * WHAT:  prints a batch's labels as one PDF in the paper the member picked (4 × 6 thermal,
@@ -23,6 +21,7 @@ import { toast } from 'sonner'
 import { labelSheetContent } from '@/data/label-sheet'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { errorText } from '@/lib/api-errors'
 import { useScopedStorageKey } from '@/lib/storage-scope'
 import { showFile } from './show-file'
 
@@ -77,22 +76,17 @@ export function useLabelSheet() {
     setPrinting(true)
     try {
       const res = await api.shipments.labelSheet({ ids, format })
+      // "#2503 Delhivery: no label yet, #2511 Shiprocket: not a PDF"
+      const list = res.skipped
+        .map((s) => copy.skipLine(s.orderNumber, s.courier ?? null, copy.reasons[s.reason]))
+        .join(', ')
       if (!res.file) {
         tab?.close()
-        toast.error(copy.noneReady)
+        toast.error(copy.noneReady, list ? { description: list } : undefined)
         return
       }
       showFile(res.file, tab)
-      if (res.skipped.length > 0) {
-        const list = res.skipped
-          .map((s) =>
-            s.orderNumber === null
-              ? copy.reasons[s.reason]
-              : `#${s.orderNumber} ${copy.reasons[s.reason]}`,
-          )
-          .join(', ')
-        toast.warning(copy.leftOut(res.skipped.length, list))
-      }
+      if (res.skipped.length > 0) toast.warning(copy.leftOut(res.skipped.length, list))
     } catch (err) {
       tab?.close()
       toast.error(errorText(err, copy.failed))

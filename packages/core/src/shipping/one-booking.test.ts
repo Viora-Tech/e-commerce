@@ -7,12 +7,13 @@ import {
   location,
   order,
   orderLine,
+  shipment,
   store,
   variant,
   withStore,
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
-import type { ShippingProvider } from '@commerce/shipping'
+import { CourierError, type ShippingProvider } from '@commerce/shipping'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { createProduct } from '../catalog/products'
@@ -115,5 +116,34 @@ describe('a double Ship now', () => {
     expect(booked).toBe(1)
     expect(second.id).toBe(first.id)
     expect(second.waybill).toBe('AWB-1')
+  })
+})
+
+describe('a booking the courier refused', () => {
+  it('leaves no shipment, nothing packed and the order unfulfilled (order #2503)', async () => {
+    const { storeId, orderId } = await seed()
+    // What the Delhivery adapter throws for a package `status: "Fail"` with a blank waybill.
+    const courier = {
+      id: 'delhivery',
+      label: 'Delhivery',
+      async createShipment() {
+        throw new CourierError(
+          'rejected',
+          'delhivery',
+          'Delhivery rejected the shipment: Shipment is under embargo for destination pincode 682301',
+        )
+      },
+    } as unknown as ShippingProvider
+    await expect(
+      withStore(app, storeId, (tx) => createShipmentForOrder({ storeId, tx }, courier, orderId)),
+    ).rejects.toMatchObject({ kind: 'rejected', message: expect.stringContaining('embargo') })
+    const after = await withStore(app, storeId, async (tx) => ({
+      shipments: await tx.select().from(shipment).where(eq(shipment.orderId, orderId)),
+      lines: await tx.select().from(fulfillmentOrderLine),
+      order: (await tx.select().from(order).where(eq(order.id, orderId)))[0],
+    }))
+    expect(after.shipments).toEqual([])
+    expect(after.lines.map((l) => l.fulfilledQuantity)).toEqual([0])
+    expect(after.order?.fulfillmentStatus).toBe('unfulfilled')
   })
 })

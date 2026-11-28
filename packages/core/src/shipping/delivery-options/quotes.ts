@@ -5,7 +5,8 @@
  * never blank the Shipping step. A late answer still lands in the cache for the next shopper.
  * An answer older than 6 h is stale: it is asked again live, and used (up to 7 days old) when
  * the live call misses its deadline or fails. An app whose breaker is open is not asked.
- * The cache is passed in (the storefront gives Redis) so core stays free of a Redis client.
+ * Key v4 (28 Nov 2026): v3 answers said Delhivery serves embargoed PINs (682301), so they are
+ * not read again. The cache is passed in (the storefront gives Redis) so core stays free of a Redis client.
  */
 import {
   ASSUMED_WEIGHT_GRAMS,
@@ -50,7 +51,7 @@ export type CheckoutQuoteQuery = {
   wantCod: boolean
 }
 
-type CachedAnswer = Pick<ProviderAnswer, 'serviceable' | 'services'>
+type CachedAnswer = Pick<ProviderAnswer, 'serviceable' | 'services' | 'notServed'>
 /** What the cache holds: the answer and when it was asked (epoch ms). */
 type CachedEntry = { at: number; answer: CachedAnswer }
 
@@ -71,7 +72,7 @@ export const deliveryQuoteKey = (
   /** The courier app's saved settings as stored (`ShippingSettings.providers[id]`); hashed in. */
   providerSettings?: unknown,
 ): string =>
-  `{shipping}:delivery-quote:v3:${storeId}:${providerId}:${courierSettingsFingerprint(providerSettings)}:${q.originPincode}>${q.destinationPincode}:${halfKgSteps(q.weightGrams) * 500}g:${valueBucket(q.valuePaise)}${boxKey(q.dimensionsCm)}`
+  `{shipping}:delivery-quote:v4:${storeId}:${providerId}:${courierSettingsFingerprint(providerSettings)}:${q.originPincode}>${q.destinationPincode}:${halfKgSteps(q.weightGrams) * 500}g:${valueBucket(q.valuePaise)}${boxKey(q.dimensionsCm)}`
 
 /** The box in the cache key, so a bigger box is never served a small box's price. No box: as before. */
 const boxKey = (d: PackageDimensionsCm | null | undefined): string =>
@@ -124,6 +125,7 @@ async function askProvider(
     )
     return {
       serviceable: service ? service.serviceable : options.length > 0 ? true : null,
+      ...(service?.notServed ? { notServed: service.notServed } : {}),
       services: options.map(
         (o): QuotedService => ({
           serviceId: o.serviceId,
@@ -150,6 +152,7 @@ async function askProvider(
   if (!service && !price) throw svc.status === 'rejected' ? svc.reason : new Error('no answer')
   return {
     serviceable: service ? service.serviceable : true,
+    ...(service?.notServed ? { notServed: service.notServed } : {}),
     services: [
       {
         serviceId: '',
