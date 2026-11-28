@@ -16,6 +16,8 @@ import { Fragment, type ReactElement } from 'react'
 
 export type ActionItem = {
   label: string
+  /** A small second line under the label, e.g. why a disabled item is locked. */
+  description?: string | null | undefined
   /** A 16px lead icon (Figma row menu). */
   icon?: IconComponent | undefined
   /** Makes the item a link: `Link` for in-app paths, a plain anchor otherwise. */
@@ -170,16 +172,30 @@ export default function ActionMenu({
               <DropdownMenuItem
                 variant={item.destructive ? 'destructive' : 'default'}
                 disabled={item.disabled}
+                className={item.description ? 'items-start' : undefined}
                 onClick={item.onSelect}
                 {...(render ? { render } : {})}
               >
                 {item.icon ? (
                   <item.icon
-                    className={cn('size-4', !item.destructive && 'text-muted-foreground')}
+                    className={cn(
+                      'size-4',
+                      !item.destructive && 'text-muted-foreground',
+                      item.description && 'mt-0.5',
+                    )}
                     aria-hidden
                   />
                 ) : null}
-                {item.label}
+                {item.description ? (
+                  <span className="flex min-w-0 flex-col gap-0.5">
+                    {item.label}
+                    <span className="max-w-64 text-caption whitespace-normal text-muted-foreground">
+                      {item.description}
+                    </span>
+                  </span>
+                ) : (
+                  item.label
+                )}
               </DropdownMenuItem>
             </Fragment>
           )

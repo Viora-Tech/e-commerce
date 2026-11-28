@@ -28,8 +28,8 @@ import { formatDay } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
 import InvoiceDetailActions from './invoice-detail-actions'
-import InvoiceEditCard from './invoice-edit-card'
 import InvoiceLinesCard from './invoice-lines-card'
+import InvoiceVersionsCard from './invoice-versions-card'
 import { saveFile } from './save-file'
 import TextField from './text-field'
 import UndoRecordedCard from './undo-recorded-card'
@@ -71,6 +71,11 @@ export default function InvoiceDetail({ params }: AppPageProps) {
     setShip(shippingOf(d))
     return d
   }, [params.id])
+  // Edit invoice (header ⋯ menu): may it be edited now, its form and its history.
+  const { data: edit, retry: retryEdit } = useLoad(
+    () => api.gstInvoices.getEdit({ id: params.id ?? '' }),
+    [params.id],
+  )
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
 
@@ -108,8 +113,11 @@ export default function InvoiceDetail({ params }: AppPageProps) {
       },
       copy.cancelled,
     )
-  /** Saved in the Edit invoice sheet: show the rebuilt invoice. */
-  const handleEdited = () => run('edit', async () => undefined)
+  /** Saved in the Edit invoice sheet: show the rebuilt invoice and its history. */
+  const handleEdited = () => {
+    retryEdit()
+    return run('edit', async () => undefined)
+  }
   const handleRefreshGst = () =>
     run('refresh', async () => {
       const r = await api.gstInvoices.refreshGst({ id: params.id ?? '' })
@@ -204,6 +212,11 @@ export default function InvoiceDetail({ params }: AppPageProps) {
           ) : (
             <InvoiceDetailActions
               invoiceId={doc.id}
+              orderId={doc.orderId}
+              number={doc.number ?? s.order.name}
+              snapshot={s}
+              edit={edit}
+              onEdited={handleEdited}
               buyerEmail={doc.buyerEmail}
               busy={busy}
               onPrint={handlePrint}
@@ -239,14 +252,8 @@ export default function InvoiceDetail({ params }: AppPageProps) {
         ) : null}
       </DataCard>
       <InvoiceLinesCard snapshot={s} />
-      {doc.kind === 'tax_invoice' && doc.status === 'issued' && !outside ? (
-        <InvoiceEditCard
-          invoiceId={doc.id}
-          orderId={doc.orderId}
-          number={doc.number ?? s.order.name}
-          snapshot={s}
-          onSaved={handleEdited}
-        />
+      {edit && !outside ? (
+        <InvoiceVersionsCard invoiceId={doc.id} versions={edit.versions} />
       ) : null}
       {s.exportSupply && doc.status !== 'cancelled' && !doc.reportedPeriod ? (
         <DataCard bodyClassName="flex flex-col" title={copy.shipping}>
