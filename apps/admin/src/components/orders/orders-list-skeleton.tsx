@@ -14,17 +14,16 @@ type OrdersListSkeletonProps = {
   perPage?: number
 }
 
-/* The header's two buttons: More actions and Add order. The strip's four tiles. */
+/* The header's two buttons: More actions and Add order. No stat strip (owner, 28 Nov). */
 const HEADER_ACTIONS = 2
-const TILES = 4
 
 function noop() {}
 
 /**
- * The Orders list while its route loads (`orders/loading.tsx`): the real page title, the four-cell
- * stat strip with skeleton figures, and the real ResourceTable in its loading state with the
- * Orders columns, toolbar, view select and filter button. The table header, its labels and the
- * column widths are the loaded page's own, so nothing moves when the orders arrive.
+ * The Orders list while its route loads (`orders/loading.tsx`): the real page title and the real
+ * ResourceTable in its loading state with the Orders columns, toolbar, view select and filter
+ * button. The table header, its labels and the column widths are the loaded page's own, so
+ * nothing moves when the orders arrive.
  */
 export default function OrdersListSkeleton({ perPage = 25 }: OrdersListSkeletonProps) {
   // Hooks
@@ -64,7 +63,5 @@ export default function OrdersListSkeleton({ perPage = 25 }: OrdersListSkeletonP
     />
   )
 
-  return (
-    <ListPageSkeleton title={copy.title} actions={HEADER_ACTIONS} tiles={TILES} table={table} />
-  )
+  return <ListPageSkeleton title={copy.title} actions={HEADER_ACTIONS} tiles={0} table={table} />
 }

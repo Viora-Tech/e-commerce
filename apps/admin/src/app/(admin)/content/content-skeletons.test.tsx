@@ -29,10 +29,10 @@ function headText(root: HTMLElement): string {
 }
 
 describe('discounts and content list skeletons', () => {
-  it('Discounts: real title, four tiles and the discount columns', () => {
+  it('Discounts: real title, no tiles (28 Nov) and the discount columns', () => {
     const { container } = render(<DiscountsSkeleton />)
     expect(container.querySelector('h1')?.textContent).toBe(discountsContent.title)
-    expect(container.querySelector('.grid[aria-busy="true"]')?.children.length).toBe(4)
+    expect(container.querySelector('.grid[aria-busy="true"]')).toBeNull()
     expect(headText(container)).toContain(discountsContent.columns.title)
   })
 

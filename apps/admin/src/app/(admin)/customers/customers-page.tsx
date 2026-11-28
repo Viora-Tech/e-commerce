@@ -16,7 +16,6 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { type CustomerRow, customerColumns } from '@/components/customers/customer-columns'
 import CustomerRowActions from '@/components/customers/customer-row-actions'
-import CustomerTiles, { type CustomerStats } from '@/components/customers/customer-tiles'
 import CustomersBulkActions from '@/components/customers/customers-bulk-actions'
 import NewCustomerDialog from '@/components/customers/new-customer-dialog'
 import TagCustomersDialog from '@/components/customers/tag-customers-dialog'
@@ -57,7 +56,8 @@ export type CustomersInitial = {
   query: ListQuery<CustomerSegment>
   perPage: number
   result: ListResult
-  stats: CustomerStats
+  /** The summary line's counts (the stat cards are gone, 28 Nov). */
+  stats: Awaited<ReturnType<typeof api.customers.stats>>
   allCount: number
   tags: string[]
   /** The Automations app is installed: "Run automation" on the bulk bar. */
@@ -254,15 +254,9 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
           </Button>
         </>
       }
-      stats={
-        <CustomerTiles
-          stats={initial.stats}
-          active={q.status}
-          onSelect={(s) => setQ({ status: s, page: 1 })}
-        />
-      }
     >
       <ResourceTable
+        fill
         resourceName={copy.resource}
         columns={columns}
         items={items}

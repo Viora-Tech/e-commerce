@@ -80,3 +80,9 @@ export async function orderIdsByNumber(tx: StoreTx, numbers: readonly number[]) 
   const found = new Set(rows.map((r) => r.number))
   return { ids: rows.map((r) => r.id), missing: numbers.filter((n) => !found.has(n)) }
 }
+
+/** The order's email, `null` when blank: the invoice page's "Email to buyer" sends to it. */
+export async function orderEmail(tx: StoreTx, orderId: string): Promise<string | null> {
+  const [o] = await tx.select({ email: order.email }).from(order).where(eq(order.id, orderId))
+  return o?.email?.trim() || null
+}

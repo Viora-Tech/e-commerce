@@ -8,7 +8,6 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useState } from 'react'
 import { toast } from 'sonner'
 import { collectionListColumns } from '@/components/collections/collection-list-columns'
-import type { CollectionTab } from '@/components/collections/collection-tiles'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTable from '@/components/table/resource-table'
@@ -37,6 +36,9 @@ export type CollectionsInitial = {
   /** The store's public origin, for the row menu's "View on store". */
   storefrontOrigin: string
 }
+
+/** The view select's narrowed views. */
+type CollectionTab = 'automatic' | 'manual' | 'empty'
 
 const TABS = ['automatic', 'manual', 'empty'] as const
 
@@ -125,6 +127,7 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
       }
     >
       <ResourceTable
+        fill
         resourceName={copy.list.resource}
         columns={collectionListColumns(copy.list, fmt)}
         items={pageRows}

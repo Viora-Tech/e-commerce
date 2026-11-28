@@ -199,6 +199,7 @@ function BlogPostsContent({ initial, storefrontOrigin }: BlogPostsPageProps) {
       }
     >
       <ResourceTable
+        fill
         resourceName={copy.resource}
         columns={articleColumns(copy, fmt)}
         items={result.rows}

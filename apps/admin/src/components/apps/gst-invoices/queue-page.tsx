@@ -3,12 +3,14 @@
 import { siteConfig } from '@commerce/config/site'
 import type { IssueOn } from '@commerce/invoices'
 import { CircleCheck, ReceiptIcon, Trash2 } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import SetupChecklist from '@/components/apps/setup-checklist'
+import ActionMenu from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import { hasFilter } from '@/components/table/filter-panel'
@@ -17,6 +19,7 @@ import ViewSelect from '@/components/table/view-select'
 import { appsContent } from '@/data/apps'
 import { filterPanelContent } from '@/data/filter-panel'
 import { gstAlreadyInvoicedContent } from '@/data/gst-already-invoiced'
+import { gstInvoiceActionsContent } from '@/data/gst-invoice-actions'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { gstListFiltersContent } from '@/data/gst-list-filters'
 import { gstQueuePageContent } from '@/data/gst-queue-page'
@@ -32,6 +35,7 @@ import {
   queueInput,
   sortParam,
 } from '@/lib/gst-list-filters'
+import { PAGE_FILL_CHAIN } from '@/lib/page-fill'
 import { routes } from '@/lib/routes'
 import AlreadyInvoicedDialog from './already-invoiced-dialog'
 import FilingReminder from './filing-reminder'
@@ -40,7 +44,6 @@ import { isReadyRow, type QueueRow, queueColumns } from './queue-columns'
 import QueueEmpty from './queue-empty'
 import { headerGstin, numberingYear } from './queue-meta'
 import QueueMoreMenu from './queue-more-menu'
-import QueueStats from './queue-stats'
 import ReviewPanel from './review-panel'
 import { useGstNumbers } from './use-gst-numbers'
 
@@ -72,6 +75,7 @@ function QueueList() {
   const panel = useCopy(filterPanelContent)
   const apps = useCopy(appsContent)
   const recordCopy = useCopy(gstAlreadyInvoicedContent)
+  const actionsCopy = useCopy(gstInvoiceActionsContent)
   const fmt = useFormat()
   const router = useRouter()
   const numbers = useGstNumbers()
@@ -213,7 +217,7 @@ function QueueList() {
   const queueEmpty = result !== null && !failed && counts.all === 0 && !narrowed
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className={cn('flex flex-col gap-4', PAGE_FILL_CHAIN)}>
       {/* One row like Orders: Export GSTR-1, the one "…" menu (with the app's Settings and
           Uninstall, registry `ownHeader`) and Issue all last. GSTIN and numbering are a meta line
           under the title, and Issue all steps aside while rows are ticked: the bulk bar issues
@@ -232,13 +236,14 @@ function QueueList() {
         }
         actions={
           <>
-            <GstExportButton />
-            <QueueMoreMenu onAdded={reload} busy={busy} />
+            {/* Buttons first, the ⋯ menu last at the right with 1rem before it (owner, 28 Nov). */}
+            <GstExportButton beforeMenu={picked.length > 0} />
             {picked.length === 0 ? (
-              <Button disabled={busy || toIssue === 0} onClick={handleIssueAll}>
+              <Button className="mr-2" disabled={busy || toIssue === 0} onClick={handleIssueAll}>
                 {copy.issueAll(toIssue)}
               </Button>
             ) : null}
+            <QueueMoreMenu onAdded={reload} busy={busy} />
           </>
         }
       />
@@ -257,17 +262,11 @@ function QueueList() {
         />
       ) : null}
       <FilingReminder />
-      <QueueStats
-        gst={q.gst ?? undefined}
-        waiting={result === null ? null : counts.all}
-        needHsn={counts.hsnMissing}
-        needFix={counts.fix}
-        reloadKey={reloadKey}
-      />
       {queueEmpty ? (
         <QueueEmpty issueOn={issueOn} filtered={false} />
       ) : (
         <ResourceTable
+          fill
           resourceName={lists.queueResource}
           columns={queueColumns({ queue: copy, lists, record: recordCopy }, fmt, {
             busy,
@@ -311,20 +310,24 @@ function QueueList() {
                 <ReceiptIcon />
                 {lists.issueSelected(readyAmong(ids).length)}
               </Button>
-              <Button size="sm" variant="outline" disabled={busy} onClick={() => setMarking(ids)}>
-                <CircleCheck />
-                {recordCopy.bulkAction}
-              </Button>
-              <Button
-                size="sm"
+              <ActionMenu
+                label={actionsCopy.bulk.more}
                 variant="outline"
-                className="text-destructive"
                 disabled={busy}
-                onClick={() => handleRemove(ids)}
-              >
-                <Trash2 />
-                {copy.removeSelected}
-              </Button>
+                items={[
+                  {
+                    label: recordCopy.bulkAction,
+                    icon: CircleCheck,
+                    onSelect: () => setMarking(ids),
+                  },
+                  {
+                    label: actionsCopy.queueBulk.remove,
+                    icon: Trash2,
+                    destructive: true,
+                    onSelect: () => handleRemove(ids),
+                  },
+                ]}
+              />
             </>
           )}
           empty={{ heading: q.view === 'ready' ? copy.noneReady : copy.noneToFix }}

@@ -205,8 +205,7 @@ export async function readyToShipCount(tx: StoreTx): Promise<number> {
 
 /**
  * The four stat cards as aggregate columns over every `order` row (drafts too: Pending UPI
- * counts transfer checkouts kept as drafts), each card with its own filter. Named `tile…` so
- * none clashes with a tab badge (`pendingUpi`) in `orderListPage`'s one select.
+ * counts transfer checkouts kept as drafts), each card with its own filter, for `orders.tiles`.
  */
 function tileColumns(now: Date) {
   const todayStart = startOfDay(now)
@@ -254,16 +253,17 @@ export async function orderTiles(tx: StoreTx, now = new Date()): Promise<OrderTi
 /**
  * Everything the Orders page renders on the server, in one transaction: the first page of rows
  * and one aggregate over the store's orders for the match count, the test orders, the tab
- * badges and the stat cards (they used to be four calls and nine statements). The rows'
- * `total` is the list's own where clause, so it matches `listOrders` exactly.
+ * badges and the "need shipping" count of the summary line. The rows' `total` is the list's own
+ * where clause, so it matches `listOrders` exactly. The page has no stat cards any more (owner,
+ * 28 Nov 2026); `orderTiles` still answers `orders.tiles` for the API.
  */
-export async function orderListPage(tx: StoreTx, input: OrderListPageInput, now = new Date()) {
+export async function orderListPage(tx: StoreTx, input: OrderListPageInput) {
   const counts = tx
     .select({
       total: countWhere(orderListWhere(input)),
       testOrders: testOrdersSql,
       ...tabCountColumns(),
-      ...tileColumns(now),
+      readyToShip: countWhere(readyToShipWhere()),
     })
     .from(order)
   // The search also matches the customer's name; nothing else in the aggregate reads it.
@@ -279,6 +279,6 @@ export async function orderListPage(tx: StoreTx, input: OrderListPageInput, now 
       unfulfilled: row?.unfulfilled ?? 0,
       pendingUpi: row?.pendingUpi ?? 0,
     },
-    tiles: tilesOf(row),
+    readyToShip: row?.readyToShip ?? 0,
   }
 }

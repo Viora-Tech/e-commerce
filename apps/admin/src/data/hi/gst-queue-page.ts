@@ -12,19 +12,6 @@ export default [
       manual:
         'इनवॉइस के इंतज़ार में ऑर्डर। More मेनू से नंबर डालकर ऑर्डर जोड़ें; इन्हें एक-एक करके या सब एक साथ जारी करें।',
     },
-    stats: {
-      issued: 'इस महीने जारी',
-      taxable: (amount) => `${amount} कर योग्य`,
-      waiting: 'इंतज़ार में',
-      needHsn: (n) => `${n} में HSN कोड चाहिए`,
-      needFix: (n) => `${n} ठीक करने हैं`,
-      allReady: 'सब जारी करने को तैयार',
-      creditNotes: 'क्रेडिट नोट',
-      nextNumber: 'अगला नंबर',
-      resets: (date) => `${date} को फिर 1 से`,
-      neverResets: 'एक ही गिनती, कभी रीसेट नहीं',
-      noSeries: 'टैक्स इनवॉइस की कोई सीरीज़ नहीं',
-    },
     chips: { all: 'सभी', ready: 'तैयार', fix: 'ठीक करना है' },
     columns: {
       order: 'ऑर्डर',
@@ -72,7 +59,6 @@ export default [
     noneReady: 'अभी कुछ जारी करने को तैयार नहीं। पहले पीले निशान वाली पंक्तियाँ ठीक करें।',
     noneToFix: 'कुछ ठीक नहीं करना है। इंतज़ार वाला हर ऑर्डर जारी किया जा सकता है।',
     none: '-',
-    statsFailed: 'इस महीने के आंकड़े लोड नहीं हो सके',
   }),
   translation(gstExportContent, {
     label: 'GSTR-1 एक्सपोर्ट करें',

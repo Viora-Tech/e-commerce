@@ -12,7 +12,6 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import DiscountBulkActions from '@/components/discounts/discount-bulk-actions'
 import { DISCOUNT_HIDDEN_COLUMNS, discountColumns } from '@/components/discounts/discount-columns'
 import DiscountRowMenu from '@/components/discounts/discount-row-menu'
-import DiscountTiles, { type DiscountStats } from '@/components/discounts/discount-tiles'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
@@ -32,9 +31,11 @@ import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { usePrimaryAction } from '@/lib/primary-action'
 import { routes } from '@/lib/routes'
 
+type DiscountStats = Awaited<ReturnType<typeof api.discounts.stats>>
+
 type ListResult = Awaited<ReturnType<typeof api.discounts.list>>
 
-/** First page, tiles and the all-discounts count rendered on the server so nothing paints empty. */
+/** First page, the summary counts and the all-discounts count rendered on the server. */
 export type DiscountsInitial = {
   query: ListQuery<DiscountLifecycle>
   result: ListResult
@@ -117,13 +118,6 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
     <ProoflyListPage
       title={copy.title}
       summary={copy.summary(stats.active, stats.scheduled, stats.usedThisMonth)}
-      stats={
-        <DiscountTiles
-          stats={stats}
-          status={q.status}
-          onSelect={(next) => setQ({ status: next, page: 1 })}
-        />
-      }
       actions={
         <Tooltip>
           <TooltipTrigger
@@ -141,6 +135,7 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
       }
     >
       <ResourceTable
+        fill
         resourceName={copy.resource}
         columns={discountColumns(copy, fmt, initial.holds)}
         defaultHidden={DISCOUNT_HIDDEN_COLUMNS}

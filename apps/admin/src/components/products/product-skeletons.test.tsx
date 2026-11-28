@@ -25,7 +25,7 @@ function headClasses(root: HTMLElement): string[] {
 }
 
 describe('Products list skeleton', () => {
-  it('has the loaded Products table header, the title, three buttons and four tiles', () => {
+  it('has the loaded Products table header, the title and three buttons, no tiles', () => {
     const skeleton = render(<ProductsListSkeleton />).container
     const loaded = render(
       <ResourceTable
@@ -51,7 +51,8 @@ describe('Products list skeleton', () => {
       loaded.querySelector('thead')?.textContent,
     )
     expect(skeleton.querySelector('h1')?.textContent).toBe(productsListContent.title)
-    expect(skeleton.querySelector('[aria-busy="true"].grid')?.children.length).toBe(4)
+    // No stat strip any more (owner, 28 Nov).
+    expect(skeleton.querySelector('[aria-busy="true"].grid')).toBeNull()
   })
 })
 

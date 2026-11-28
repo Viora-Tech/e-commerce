@@ -11,16 +11,6 @@ export default [
     summary: (total: number, automatic: number, empty: number) =>
       `${total} कलेक्शन · ${automatic} ऑटोमैटिक · ${empty} खाली`,
     list: {
-      tiles: {
-        all: 'सभी कलेक्शन',
-        allNote: 'अब तक के',
-        automatic: 'ऑटोमैटिक',
-        automaticNote: 'नियमों से बने',
-        manual: 'मैन्युअल',
-        manualNote: 'हाथ से चुने',
-        empty: 'खाली',
-        emptyNote: 'अभी कुछ नहीं',
-      },
       tabs: { all: 'सभी', automatic: 'ऑटोमैटिक', manual: 'मैन्युअल', empty: 'खाली' },
       filters: {
         image: 'इमेज है',
@@ -109,13 +99,6 @@ export default [
       heading: 'अभी कोई कलेक्शन नहीं',
       body: 'प्रोडक्ट को कलेक्शन में बाँटें ताकि ग्राहक प्रकार, ब्रांड या सीज़न से ढूँढ सकें।',
       action: 'कलेक्शन बनाएँ',
-    },
-    tiles: {
-      total: 'कलेक्शन',
-      automatic: 'ऑटोमैटिक',
-      manual: 'मैन्युअल',
-      empty: 'खाली',
-      period: 'अब तक',
     },
     resource: { singular: 'कलेक्शन', plural: 'कलेक्शन' },
     nextPage: 'और कलेक्शन दिखाएँ',

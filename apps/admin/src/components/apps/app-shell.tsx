@@ -1,5 +1,6 @@
 import { siteConfig } from '@commerce/config/site'
 import { CircleAlert, TriangleAlert } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
@@ -9,6 +10,7 @@ import StatusChip from '@/components/layout/status-chip'
 import { appsContent } from '@/data/apps'
 import { getCopy, getLocale } from '@/lib/copy-server'
 import { formatAgo } from '@/lib/format-date'
+import { PAGE_FILL_CHAIN } from '@/lib/page-fill'
 import { routes } from '@/lib/routes'
 import AppNav from './app-nav'
 import AppShellActions from './app-shell-actions'
@@ -82,7 +84,7 @@ export default async function AppShell({
           each page has its own title. The app's status pill, action and "…" menu float top right;
           only the first heading leaves room for them (AppShellActions), so tables and cards keep
           the page's full width like Orders (owner, 26 Nov 2026). */}
-      <div className="relative flex flex-col gap-5">
+      <div className={cn('relative flex flex-col gap-5', PAGE_FILL_CHAIN)}>
         {ownHeader ? null : (
           <AppShellActions>
             {pillText && statusPill ? (
@@ -130,7 +132,15 @@ export default async function AppShell({
             }
           />
         ) : null}
-        <div className="flex flex-col gap-5 md:flex-row md:items-start md:gap-8">
+        {/* An app page with a `ResourceTable fill`: from md these fit the panel (the phone
+            menu is hidden there) and only the rows scroll (lib/page-fill). */}
+        <div
+          className={cn(
+            'flex flex-col gap-5 md:flex-row md:items-start md:gap-8',
+            PAGE_FILL_CHAIN,
+            'md:has-[[data-page-fill]]:items-stretch',
+          )}
+        >
           {showNav ? (
             // Desktop: the open app's pages sit under its row in the main sidebar (owner, 14 Nov
             // 2026); the in-page menu is for phones only, where the sidebar is closed.
@@ -145,7 +155,7 @@ export default async function AppShell({
               />
             </div>
           ) : null}
-          <div className="flex min-w-0 flex-1 flex-col gap-5">
+          <div className={cn('flex min-w-0 flex-1 flex-col gap-5', PAGE_FILL_CHAIN)}>
             <AppShellContext
               value={{
                 appId,

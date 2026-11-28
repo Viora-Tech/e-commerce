@@ -100,9 +100,29 @@ export function ownPricePaise(c: Candidate, option: DeliveryOption, extras: OwnE
 }
 
 /**
+ * What a `difference` card adds to the pick: the shipping it costs the store more and the
+ * insurance it costs more, each at least ₹0 and each rounded the option's way on its own, so a
+ * cheaper courier's shipping never hides or grows its insurance (owner, 28 Nov 2026: Amazon and
+ * Ekart, both RapidShyp at the same insurance rate, showed +₹49 and +₹59 against Delhivery).
+ */
+export function differenceExtraPaise(
+  c: Candidate,
+  winner: Candidate,
+  option: DeliveryOption,
+): number {
+  const how = extraRounding(option)
+  const freight = Math.max(0, c.priced.courierCostPaise - winner.priced.courierCostPaise)
+  const insurance = Math.max(
+    0,
+    (c.priced.insurancePaise ?? 0) - (winner.priced.insurancePaise ?? 0),
+  )
+  return roundPrice(freight, how) + roundPrice(insurance, how)
+}
+
+/**
  * A card priced from the pick: a cheaper courier costs what the pick costs (free when it is
- * free). A dearer one adds the difference rounded the option's way (`difference`, owner 20 Nov
- * 2026), costs its own full price but never less than the pick (`full`, owner 21 Nov 2026), or
+ * free). A dearer one adds the difference, shipping and insurance each rounded the option's way
+ * (`difference`, owner 20 and 28 Nov 2026: `differenceExtraPaise`), costs its own full price but never less than the pick (`full`, owner 21 Nov 2026), or
  * costs what the pick costs (`none`). `own`: every other courier, cheaper or dearer, costs its
  * own price (`ownPricePaise`), never less than the pick (owner, 28 Nov 2026).
  */
@@ -126,7 +146,7 @@ export function priceFromPick(
       listPricePaise: Math.max(winner.priced.listPricePaise, own),
     }
   }
-  const extra = mode === 'difference' ? roundPrice(more, extraRounding(option)) : 0
+  const extra = mode === 'difference' ? differenceExtraPaise(c, winner, option) : 0
   return {
     ...c.priced,
     pricePaise: winner.priced.pricePaise + extra,

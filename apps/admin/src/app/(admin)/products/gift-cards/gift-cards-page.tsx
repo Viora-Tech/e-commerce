@@ -15,7 +15,6 @@ import GiftCardProductsCard from '@/components/gift-cards/gift-card-products-car
 import GiftCardRowMenu from '@/components/gift-cards/gift-card-row-menu'
 import GiftCardSettingsCard from '@/components/gift-cards/gift-card-settings-card'
 import GiftCardStateTabs from '@/components/gift-cards/gift-card-state-tabs'
-import GiftCardTiles from '@/components/gift-cards/gift-card-tiles'
 import GiftCardsBulkActions from '@/components/gift-cards/gift-cards-bulk-actions'
 import StoreCreditCardsCard from '@/components/gift-cards/store-credit-cards-card'
 import EmptyState from '@/components/layout/empty-state'
@@ -225,20 +224,7 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
   )
 
   return (
-    <ProoflyListPage
-      title={copy.heading}
-      summary={copy.summary}
-      actions={fresh ? null : actions}
-      stats={
-        fresh ? undefined : (
-          <GiftCardTiles
-            activeCount={result.activeCount}
-            outstandingPaise={result.outstandingPaise}
-            products={products}
-          />
-        )
-      }
-    >
+    <ProoflyListPage title={copy.heading} summary={copy.summary} actions={fresh ? null : actions}>
       {fresh ? (
         <Card className="py-6">
           <EmptyState

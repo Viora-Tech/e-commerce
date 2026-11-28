@@ -172,6 +172,8 @@ export class SesChannel implements NotificationChannel {
                       ContentType: f.contentType,
                       RawContent: f.content,
                       ContentDisposition: 'ATTACHMENT' as const,
+                      // Without this SES defaults to SEVEN_BIT and binary files (PDFs) arrive blank.
+                      ContentTransferEncoding: 'BASE64' as const,
                     })),
                   }
                 : {}),

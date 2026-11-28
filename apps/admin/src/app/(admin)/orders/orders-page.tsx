@@ -23,7 +23,6 @@ import { orderRowDone } from '@/components/orders/order-stage'
 import OrdersBulkActions from '@/components/orders/orders-bulk-actions'
 import type { OrdersBulkRequest } from '@/components/orders/orders-bulk-dialogs'
 import OrdersHeaderActions from '@/components/orders/orders-header-actions'
-import OrdersTiles, { type OrderTilesData } from '@/components/orders/orders-tiles'
 import ProductFilterPicker, {
   type ProductFilterValue,
 } from '@/components/orders/product-filter-picker'
@@ -82,12 +81,13 @@ function isBadRequest(err: unknown): boolean {
 type ListResult = Awaited<ReturnType<typeof api.orders.list>>
 type Item = ListResult['items'][number]
 
-/** First page, stat cards and tab counts rendered on the server so nothing paints empty. */
+/** First page, summary counts and tab counts rendered on the server so nothing paints empty. */
 export type OrdersInitial = {
   query: ListQuery<OrderListFilter>
   perPage: number
   result: ListResult
-  tiles: OrderTilesData
+  /** Paid (or COD) orders still to ship: "35 need shipping" in the summary line. */
+  readyToShip: number
   /** Installed apps' order actions for the row menus and bulk bar (`api.apps.orderActions`). */
   appActions: OrderActionGroup[]
   /** The Automations app is installed: "Run automation" on the bulk bar. */
@@ -232,7 +232,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
       .finally(() => setLoading(false))
   }
   const handleTestsDeleted = () => {
-    // The tiles and tab counts come from the server render; the rows are fetched again here.
+    // The summary and tab counts come from the server render; the rows are fetched again here.
     router.refresh()
     reload().catch(() => setFailed(true))
   }
@@ -335,11 +335,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   return (
     <ProoflyListPage
       title={copy.title}
-      summary={copy.summary(
-        initial.counts.all,
-        initial.tiles.readyToShip,
-        initial.counts.pendingUpi,
-      )}
+      summary={copy.summary(initial.counts.all, initial.readyToShip, initial.counts.pendingUpi)}
       actions={
         <OrdersHeaderActions
           testOrders={testOrders}
@@ -347,15 +343,9 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
           loadViewIds={loadViewIds}
         />
       }
-      stats={
-        <OrdersTiles
-          tiles={initial.tiles}
-          status={status}
-          onSelect={(s) => setQ({ status: s, page: 1 })}
-        />
-      }
     >
       <ResourceTable
+        fill
         resourceName={copy.resource}
         columns={columns}
         items={items}

@@ -146,6 +146,7 @@ function InboundShipmentsContent({ initial }: { initial: InboundShipmentsInitial
   return (
     <ProoflyListPage title={copy.heading} summary={copy.summary} actions={createButton}>
       <ResourceTable
+        fill
         resourceName={copy.resource}
         columns={inboundShipmentColumns(copy)}
         items={result.rows}

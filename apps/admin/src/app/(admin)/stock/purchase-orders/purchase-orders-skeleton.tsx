@@ -16,9 +16,8 @@ import {
   purchaseOrderFilterGroups,
 } from '@/lib/purchase-order-list-filters'
 
-/* Create purchase order; the strip's four tiles. */
+/* Create purchase order. No stat strip (28 Nov). */
 const HEADER_ACTIONS = 1
-const TILES = 4
 const PER_PAGE = siteConfig.ui.rowsPerPage.default
 const NO_ROWS: PurchaseOrderRow[] = []
 const NO_FACETS = { suppliers: [], locations: [] }
@@ -26,7 +25,7 @@ const NO_FACETS = { suppliers: [], locations: [] }
 function noop() {}
 
 /**
- * Purchase orders while the route loads: the real title, the four-cell stat strip and the real
+ * Purchase orders while the route loads: the real title and the real
  * ResourceTable in its loading state with the list's columns, view select and filter button.
  */
 export default function PurchaseOrdersSkeleton() {
@@ -72,7 +71,5 @@ export default function PurchaseOrdersSkeleton() {
     />
   )
 
-  return (
-    <ListPageSkeleton title={copy.heading} actions={HEADER_ACTIONS} tiles={TILES} table={table} />
-  )
+  return <ListPageSkeleton title={copy.heading} actions={HEADER_ACTIONS} tiles={0} table={table} />
 }

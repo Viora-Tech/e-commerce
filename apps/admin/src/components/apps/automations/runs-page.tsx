@@ -1,6 +1,7 @@
 'use client'
 
 import { RUN_STATUSES, type RunStatus, type RunSummary } from '@commerce/core/automations'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -20,6 +21,7 @@ import { automationApi } from '@/lib/automation-api'
 import { triggerLabel } from '@/lib/automation-labels'
 import { automationRoutes } from '@/lib/automation-routes'
 import { isForbidden } from '@/lib/forbidden'
+import { PAGE_FILL_CHAIN } from '@/lib/page-fill'
 import { runColumns } from './run-columns'
 
 const PER_PAGE = 50
@@ -118,8 +120,9 @@ export default function RunsPage() {
   )
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className={cn('flex flex-col gap-4', PAGE_FILL_CHAIN)}>
       <ResourceTable
+        fill
         resourceName={copy.resource}
         columns={runColumns(copy, triggerName)}
         items={filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)}

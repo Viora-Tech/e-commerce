@@ -43,16 +43,6 @@ export const inventoryContent = {
   location: 'Location',
   defaultBadge: 'Online orders',
   reason: 'Reason for edits',
-  tiles: {
-    skus: 'SKUs tracked',
-    out: 'Out of stock',
-    low: 'Low stock',
-    value: 'Stock value',
-    skusCaption: 'Variants that track stock',
-    outCaption: 'Nothing available to sell',
-    lowCaption: (n: number) => `${n} or fewer available`,
-    valueCaption: 'On hand at cost',
-  },
   columns: {
     product: 'Product',
     sku: 'SKU',
@@ -207,16 +197,6 @@ export const purchaseOrdersContent = {
     cancelled: 'Cancelled',
   } satisfies Record<PurchaseOrderStatus, string>,
   tabs: { all: 'All' },
-  tiles: {
-    draft: 'Drafts',
-    open: 'Open orders',
-    incoming: 'Units incoming',
-    received: 'Received',
-    draftCaption: 'Not sent to a supplier yet',
-    openCaption: 'Ordered, waiting on stock',
-    incomingCaption: 'Still to arrive',
-    receivedCaption: 'Arrived, or closed short',
-  },
   columns: {
     number: 'Order',
     supplier: 'Supplier',

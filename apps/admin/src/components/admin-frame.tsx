@@ -123,12 +123,13 @@ export default function AdminFrame({
             2026-10-17), a hairline where it meets the top bar and the sidebar. On phones it ends
             with room for the round AI button, so the last row is never under it. On wider screens
             it ends with room for the bug-report button (bottom left, 3.25rem up), so the last
-            card's corner is never under it (#1781). */}
+            card's corner is never under it (#1781). A page with a `ResourceTable fill` (lib/page-fill)
+            makes it a flex column from `md`, so the page fits its height and only the rows scroll. */}
         <main
           ref={mainRef}
           id="main"
           data-scrolled={scrolled || undefined}
-          className={`group/main no-scrollbar min-h-0 min-w-0 flex-1 overflow-y-auto bg-background max-md:pb-20 data-[save-bar]:pb-24 md:rounded-tl-lg md:rounded-tr-lg md:rounded-bl-lg md:border-panel-border md:border-t md:border-l ${bugReports ? 'md:pb-6' : ''}`}
+          className={`group/main no-scrollbar min-h-0 min-w-0 flex-1 overflow-y-auto bg-background md:has-[[data-page-fill]]:flex md:has-[[data-page-fill]]:flex-col max-md:pb-20 data-[save-bar]:pb-24 md:rounded-tl-lg md:rounded-tr-lg md:rounded-bl-lg md:border-panel-border md:border-t md:border-l ${bugReports ? 'md:pb-6' : ''}`}
         >
           {ownHeading ? null : (
             <div className="sticky top-0 z-10 border-panel-border border-b bg-background px-4 py-5 transition-shadow duration-200 group-data-[scrolled]/main:shadow-[0_6px_16px_-10px_var(--shadow-14)] md:px-6">

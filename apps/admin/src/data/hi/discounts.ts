@@ -9,16 +9,6 @@ export default [
     create: 'डिस्काउंट बनाएं',
     summary: (active, scheduled, used) =>
       `${active} चालू · ${scheduled} जल्द शुरू · पिछले 30 दिन में ${used} ऑर्डर पर डिस्काउंट लगा`,
-    tiles: {
-      active: 'चालू डिस्काउंट',
-      scheduled: 'शेड्यूल',
-      expired: 'खत्म',
-      usedThisMonth: 'डिस्काउंट वाले ऑर्डर (30 दिन)',
-      activeNote: 'अभी चल रहे',
-      scheduledNote: 'बाद में शुरू होंगे',
-      expiredNote: 'खत्म हो चुके',
-      month: 'पिछले 30 दिन',
-    },
     row: { edit: 'डिस्काउंट बदलें', copyCode: 'कोड कॉपी करें', codeCopied: 'कोड कॉपी हो गया' },
     comboCount: (n) => `${n} कॉम्बो`,
     listSummary: {

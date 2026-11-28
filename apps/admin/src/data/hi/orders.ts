@@ -67,24 +67,6 @@ export default [
       ]
         .filter(Boolean)
         .join(' · '),
-    tiles: {
-      newToday: {
-        label: 'आज के नए ऑर्डर',
-        trendNote: 'कल के मुकाबले',
-      },
-      ready: {
-        label: 'भेजने के लिए तैयार',
-        note: 'पेमेंट हो गया या ऑथराइज़ हुआ, कूरियर का इंतज़ार',
-      },
-      pendingUpi: {
-        label: 'UPI बाकी',
-        note: 'ट्रांसफ़र का इंतज़ार',
-      },
-      sales: {
-        label: 'इस हफ़्ते की बिक्री',
-        trendNote: 'पिछले हफ़्ते के मुकाबले',
-      },
-    },
     noResults: {
       heading: 'कोई ऑर्डर नहीं मिला',
       body: 'दूसरा शब्द खोजें या फ़िल्टर हटाएं।',

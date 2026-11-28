@@ -12,9 +12,6 @@ import ProoflyListPage from '@/components/layout/proofly-list-page'
 import PoBulkActions from '@/components/purchase-orders/po-bulk-actions'
 import PoRowMenu from '@/components/purchase-orders/po-row-menu'
 import { purchaseOrderColumns } from '@/components/purchase-orders/purchase-order-columns'
-import PurchaseOrderTiles, {
-  type PurchaseOrderCounts,
-} from '@/components/purchase-orders/purchase-order-tiles'
 import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
@@ -37,6 +34,8 @@ import {
   purchaseOrderFilterInput,
 } from '@/lib/purchase-order-list-filters'
 import { routes } from '@/lib/routes'
+
+type PurchaseOrderCounts = Awaited<ReturnType<typeof api.purchaseOrders.counts>>
 
 type ListResult = Awaited<ReturnType<typeof api.purchaseOrders.list>>
 
@@ -185,9 +184,9 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
           </TooltipContent>
         </Tooltip>
       }
-      stats={<PurchaseOrderTiles counts={initial.counts} />}
     >
       <ResourceTable
+        fill
         resourceName={copy.resource}
         columns={purchaseOrderColumns(copy, fmt)}
         items={rows}
