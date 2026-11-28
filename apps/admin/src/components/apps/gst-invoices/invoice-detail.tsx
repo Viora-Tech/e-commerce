@@ -1,6 +1,6 @@
 'use client'
 
-import { Download, Printer, RefreshCw, Save } from '@commerce/ui/icons'
+import { RefreshCw, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -27,6 +27,7 @@ import { errorText } from '@/lib/api-errors'
 import { formatDay } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
+import InvoiceDetailActions from './invoice-detail-actions'
 import InvoiceEditCard from './invoice-edit-card'
 import InvoiceLinesCard from './invoice-lines-card'
 import { saveFile } from './save-file'
@@ -148,7 +149,7 @@ export default function InvoiceDetail({ params }: AppPageProps) {
     )
   }
   if (!doc || !ship) {
-    // The page's frame: back link, title with Print and Download, the buyer and lines cards.
+    // The page's frame: back link, title with Email to buyer and its ⋯ menu, the buyer and lines cards.
     return (
       <div className="flex flex-col gap-4" aria-busy="true">
         <PageHeaderSkeleton back actions={2} />
@@ -201,26 +202,13 @@ export default function InvoiceDetail({ params }: AppPageProps) {
               {noDetails ? outsideCopy.noDetails : outsideCopy.outside}
             </span>
           ) : (
-            <>
-              <Button
-                variant="outline"
-                disabled={busy !== null}
-                onClick={handlePrint}
-                loading={busy === 'print'}
-              >
-                <Printer />
-                {copy.print}
-              </Button>
-              <Button
-                variant="outline"
-                disabled={busy !== null}
-                onClick={handleDownload}
-                loading={busy === 'download'}
-              >
-                <Download />
-                {copy.download}
-              </Button>
-            </>
+            <InvoiceDetailActions
+              invoiceId={doc.id}
+              buyerEmail={doc.buyerEmail}
+              busy={busy}
+              onPrint={handlePrint}
+              onDownload={handleDownload}
+            />
           )
         }
       />

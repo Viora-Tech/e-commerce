@@ -48,6 +48,9 @@ export default function GstExportButton() {
       trigger="button"
       loading={busy}
       disabled={busy}
+      // The ⋯ menu always follows it (app bar and Queue header): 1rem between the two with the
+      // row's 0.5rem gap, so ⋯ does not read as part of Export (owner, 28 Nov 2026).
+      triggerClassName="mr-2"
       items={[
         {
           label: copy.month(monthLabel(lastMonth)),
