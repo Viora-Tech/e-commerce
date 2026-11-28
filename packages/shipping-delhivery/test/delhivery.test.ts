@@ -122,7 +122,7 @@ describe('DelhiveryProvider', () => {
       '/api/cmu/create.json': () =>
         json({
           success: false,
-          packages: [{ status: 'Error', remarks: ['Pickup location not found'] }],
+          packages: [{ status: 'Fail', waybill: '', remarks: ['Pickup location not found'] }],
         }),
     })
     const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
@@ -130,6 +130,158 @@ describe('DelhiveryProvider', () => {
       kind: 'rejected',
       message: expect.stringContaining('Pickup location not found'),
     })
+  })
+
+  /** Delhivery's real answer for an embargoed PIN (order #2503, PIN 682301, 27 Nov 2026). */
+  const failAnswer = {
+    success: false,
+    rmk: 'An internal Error has occurred, Please get in touch with client.support@delhivery.com',
+    package_count: 1,
+    upload_wbn: 'UPL123',
+    packages: [
+      {
+        status: 'Fail',
+        client: 'WAIMERS',
+        sort_code: null,
+        remarks: ['Shipment is under embargo for destination pincode 682301'],
+        waybill: '',
+        cod_amount: 0,
+        payment: 'Pre-paid',
+        serviceable: false,
+        refnum: '2503',
+      },
+    ],
+  }
+
+  it("a 'Fail' package throws with Delhivery's remarks and never falls back to the reserved waybill", async () => {
+    const f = fakeFetch({
+      '/waybill/api/bulk/json/': () => json('RESERVED1'),
+      '/api/cmu/create.json': () => json(failAnswer),
+    })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    const err = await p.createShipment(sampleShipment).catch((e) => e)
+    expect(err).toBeInstanceOf(CourierError)
+    expect(err).toMatchObject({ kind: 'rejected' })
+    expect(err.message).toContain('under embargo for destination pincode 682301')
+    expect(err.message).toContain('client.support@delhivery.com')
+    expect(err.message).not.toContain('RESERVED1')
+  })
+
+  it.each([
+    [
+      'success true but a Fail package',
+      { success: true, packages: [{ status: 'Fail', waybill: 'W1' }] },
+    ],
+    ['no packages at all', { success: true, packages: [] }],
+    [
+      'a Success package with a blank waybill',
+      { success: true, packages: [{ status: 'Success', waybill: '' }] },
+    ],
+    [
+      'success false with a Success package',
+      { success: false, packages: [{ status: 'Success', waybill: 'W1' }] },
+    ],
+    ['an unknown status', { packages: [{ status: 'Pending', waybill: 'W1' }] }],
+  ])('refuses %s', async (_name, answer) => {
+    const f = fakeFetch({
+      '/waybill/api/bulk/json/': () => json('RESERVED2'),
+      '/api/cmu/create.json': () => json(answer),
+    })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    await expect(p.createShipment(sampleShipment)).rejects.toMatchObject({ kind: 'rejected' })
+  })
+
+  it("books on the package's own waybill (status matched in any case)", async () => {
+    const f = fakeFetch({
+      '/waybill/api/bulk/json/': () => json('RESERVED3'),
+      '/api/cmu/create.json': () =>
+        json({ success: true, packages: [{ status: 'success', waybill: 'OWN7' }] }),
+    })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    const r = await p.createShipment(sampleShipment)
+    expect(r).toMatchObject({ waybill: 'OWN7', providerRef: 'OWN7' })
+  })
+
+  it("a 'Fail' reverse pickup throws with the remarks", async () => {
+    const f = fakeFetch({
+      '/waybill/api/bulk/json/': () => json('RESERVED4'),
+      '/api/cmu/create.json': () => json(failAnswer),
+    })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    const err = await p.createReturnPickup(returnInput).catch((e) => e)
+    expect(err).toMatchObject({ kind: 'rejected' })
+    expect(err.message).toContain('under embargo')
+  })
+
+  it.each([
+    [
+      'remarks Embargo',
+      { cod: 'Y', pre_paid: 'Y', remarks: 'Embargo', center: [{ code: 'IXC', cn: 'Kochi' }] },
+    ],
+    ['remarks embargo in lower case', { cod: 'Y', pre_paid: 'Y', remarks: 'pin under embargo' }],
+    [
+      'the NSZ centre with no code',
+      {
+        cod: 'Y',
+        pre_paid: 'Y',
+        remarks: '',
+        center: [{ code: '', cn: 'NSZ', s: '2026-11-01', e: '' }],
+      },
+    ],
+    [
+      'a current centre with no code',
+      {
+        cod: 'Y',
+        pre_paid: 'Y',
+        center: [
+          { code: 'OLD1', cn: 'Kochi', e: '2026-10-01' },
+          { code: '', cn: 'Kochi_New' },
+        ],
+      },
+    ],
+  ])(
+    'a PIN with %s is not serviceable, whatever the cod/prepaid flags say',
+    async (_name, postal) => {
+      const f = fakeFetch({
+        '/c/api/pin-codes/json/': () =>
+          json({ delivery_codes: [{ postal_code: { pin: 682301, ...postal } }] }),
+        '/api/dc/expected_tat': () => json({ success: true, data: { tat: 9 } }),
+      })
+      const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+      const r = await p.checkServiceability({
+        originPincode: '131028',
+        destinationPincode: '682301',
+      })
+      expect(r).toMatchObject({ serviceable: false, codAvailable: false, notServed: 'embargo' })
+      // No transit-time call for a PIN Delhivery will not take.
+      expect(f.calls).toHaveLength(1)
+    },
+  )
+
+  it('a current centre with a code serves the PIN even if an old one was NSZ', async () => {
+    const f = fakeFetch({
+      '/c/api/pin-codes/json/': () =>
+        json({
+          delivery_codes: [
+            {
+              postal_code: {
+                cod: 'Y',
+                pre_paid: 'Y',
+                remarks: '',
+                center: [
+                  { code: '', cn: 'NSZ', e: '2026-10-01' },
+                  { code: 'IXCAAA', cn: 'Kochi_Hub' },
+                ],
+              },
+            },
+          ],
+        }),
+      '/api/dc/expected_tat': () => json({ success: true, data: { tat: 9 } }),
+    })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    const r = await p.checkServiceability({ originPincode: '131028', destinationPincode: '682016' })
+    expect(r).toMatchObject({ serviceable: true, codAvailable: true, maxTransitDays: 9 })
+    expect(r.notServed).toBeUndefined()
   })
 
   const returnInput = {
@@ -183,7 +335,10 @@ describe('DelhiveryProvider', () => {
     const f = fakeFetch({
       '/waybill/api/bulk/json/': () => json('RWB8'),
       '/api/cmu/create.json': () =>
-        json({ success: false, packages: [{ status: 'Error', remarks: ['Pin not serviceable'] }] }),
+        json({
+          success: false,
+          packages: [{ status: 'Fail', waybill: '', remarks: ['Pin not serviceable'] }],
+        }),
     })
     const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
     const err = await p.createReturnPickup(returnInput).catch((e) => e)
@@ -234,7 +389,57 @@ describe('DelhiveryProvider', () => {
     expect(t.status).toBe('in_transit')
     expect(t.expectedDate).toBe('2026-09-25')
     expect(t.events.map((e) => e.status)).toEqual(['picked_up', 'in_transit'])
+    // Scan times are India time: 18:00 IST is 12:30 UTC.
+    expect(t.events[0]?.at).toBe('2026-09-21T12:30:00.000Z')
+    expect(t.events[1]?.at).toBe('2026-09-22T02:30:00.000Z')
     expect(t.trackingUrl).toContain('WB123')
+  })
+
+  it('tracks many waybills in one call, comma-separated, and maps a missing one to null', async () => {
+    const shipment = (awb: string, type: string, status: string, at: string) => ({
+      Shipment: {
+        AWB: awb,
+        Status: { Status: status, StatusType: type },
+        Scans: [{ ScanDetail: { Scan: status, ScanType: type, ScanDateTime: at } }],
+      },
+    })
+    const f = fakeFetch({
+      '/api/v1/packages/json/': () =>
+        json({
+          ShipmentData: [
+            shipment('A1', 'DL', 'Delivered', '2026-11-27T10:15:00.000'),
+            shipment('B2', 'UD', 'In Transit', '2026-11-27 09:00:00'),
+          ],
+        }),
+    })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    const got = await p.trackMany(['A1', 'B2', 'C3', 'A1'])
+    expect(f.calls).toHaveLength(1)
+    expect(f.calls[0]?.url.searchParams.get('waybill')).toBe('A1,B2,C3')
+    expect(got.get('A1')?.status).toBe('delivered')
+    expect(got.get('A1')?.events[0]?.at).toBe('2026-11-27T04:45:00.000Z')
+    expect(got.get('B2')?.status).toBe('in_transit')
+    expect(got.get('B2')?.events[0]?.at).toBe('2026-11-27T03:30:00.000Z')
+    expect(got.get('C3')).toBeNull()
+    expect([...got.keys()]).toEqual(['A1', 'B2', 'C3'])
+  })
+
+  it('splits more than 50 waybills into calls of 50', async () => {
+    const f = fakeFetch({ '/api/v1/packages/json/': () => json({ ShipmentData: [] }) })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    const waybills = Array.from({ length: 120 }, (_, i) => `W${i}`)
+    const got = await p.trackMany(waybills)
+    expect(f.calls.map((c) => c.url.searchParams.get('waybill')?.split(',').length)).toEqual([
+      50, 50, 20,
+    ])
+    expect(got.size).toBe(120)
+    expect(p.trackBatchSize).toBe(50)
+  })
+
+  it('a waybill Delhivery has no record of is an error for track()', async () => {
+    const f = fakeFetch({ '/api/v1/packages/json/': () => json({ ShipmentData: [] }) })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    await expect(p.track('NOPE')).rejects.toMatchObject({ kind: 'bad_response' })
   })
 
   it('cancels with the edit endpoint: a JSON body and the token header', async () => {
@@ -301,7 +506,7 @@ describe('DelhiveryProvider', () => {
     })
     await expect(
       new DelhiveryProvider({ ...config, fetchImpl: empty.impl }).getLabel('WB2'),
-    ).rejects.toMatchObject({ kind: 'bad_response' })
+    ).rejects.toMatchObject({ kind: 'bad_response', detail: { code: 'label_not_ready' } })
   })
 
   it('a label link that is not a PDF is refused', async () => {

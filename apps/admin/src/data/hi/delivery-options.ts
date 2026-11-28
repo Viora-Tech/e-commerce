@@ -174,8 +174,7 @@ export default [
       noPreferred: 'कोई पसंदीदा कूरियर नहीं',
       preferredAny: (courier) => `${courier} (कोई भी स्पीड)`,
       forceRoute: 'हमेशा पसंदीदा कूरियर से भेजें, विकल्प की कीमत पर (अंतर आप देते हैं)',
-      forceRouteHelp:
-        'जैसे Standard की कीमत पर Delhivery Air। अंतर ऑर्डर के शिपिंग मार्जिन में दिखता है।',
+      forceRouteHelp: 'जैसे Standard की कीमत पर Delhivery Air। अंतर ऑर्डर के शिपिंग मार्जिन में दिखता है।',
       more: 'और',
       alwaysInsure: 'इन प्रोडक्ट का हमेशा बीमा करें (ग्राहक अनटिक नहीं कर सकते)',
       applyTo: 'सिर्फ़ इन पर लागू',
@@ -293,6 +292,9 @@ export default [
       providers: 'जिन कूरियर ऐप से पूछा',
       failed: (app, why) => `${app}: ${why}`,
       saidNo: (app) => `${app}: यहाँ डिलीवरी नहीं करता`,
+      notServed: {
+        embargo: (app) => `${app}: इस PIN पर एम्बार्गो है`,
+      },
     },
     option: {
       newTitle: 'नया डिलीवरी विकल्प',

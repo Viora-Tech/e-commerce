@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api-client'
-import { type EditForm, formToEdit } from './bulk-edit-state'
+import { canApply, type EditForm, formParcel, formToEdit } from './bulk-edit-state'
 import { type BulkLine, missingPackage, type OrderEdit, orderQuoteRequest } from './bulk-ship-state'
 import type { ParcelQuote } from './flow-state'
 import { debouncedAsk } from './quote-ask'
@@ -13,8 +13,8 @@ const QUOTE_DEBOUNCE_MS = 600
 const typed = (s: string) => s.trim() !== ''
 
 /**
- * What the row editor (Figma 913:9698) would ask the couriers for its typed package, or why not
- * yet. Pure. `key` is the request as text; `same` when the form still prices what the row
+ * What the row editor (Figma 913:9698) would ask the couriers for its picked items and typed
+ * package, or why not yet. Pure. `key` is the request as text; `same` when the form still prices what the row
  * already shows (nothing to ask).
  */
 export function bulkEditAsk(
@@ -23,14 +23,16 @@ export function bulkEditAsk(
   edit: OrderEdit | undefined,
 ): { state: 'same' } | { state: 'wait' } | { state: 'ready'; key: string; edit: OrderEdit } {
   const parcel = line.parcel
-  if (!parcel) return { state: 'same' }
+  const picked = formParcel(line, form)
+  // Nothing ticked: nothing to price, and Apply waits for a tick (or Skip this order).
+  if (!parcel || !picked || !canApply(form)) return { state: 'same' }
   // Half a box size typed is a typo in progress, not "no box" (as on the single-order page).
   const sizes = [form.length, form.width, form.height]
   if (sizes.some(typed) && !sizes.every(typed)) return { state: 'wait' }
   const next = formToEdit(form, line, edit)
   // No weight yet (a product without one): nothing to price, the row says so already.
-  if (missingPackage(parcel, next)) return { state: 'same' }
-  const key = JSON.stringify(orderQuoteRequest(line.order, parcel, next))
+  if (missingPackage(picked, next)) return { state: 'same' }
+  const key = JSON.stringify(orderQuoteRequest(line.order, picked, next))
   const current = JSON.stringify(orderQuoteRequest(line.order, parcel, edit))
   return key === current ? { state: 'same' } : { state: 'ready', key, edit: next }
 }

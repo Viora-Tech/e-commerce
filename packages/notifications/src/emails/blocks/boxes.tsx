@@ -142,25 +142,61 @@ export function Facts({ block: b }: { block: FactsBlock }) {
   )
 }
 
+/**
+ * The tiles are the row's own cells, so the colour, padding and corners sit on each `<td>` and
+ * every tile in the row stretches to the tallest one ("Order total" beside a two-line "Payment").
+ * A colour on a box inside the cell would only be as tall as its own text. The gap is an empty
+ * cell (`k-gap`) that turns into a 12px space between the tiles when phones stack them.
+ */
 export function Stats({ block: b, accent }: { block: StatsBlock; accent: string }) {
   return (
-    <Row>
-      {b.items.map((s, i) => {
+    <Row style={{ height: '100%' }}>
+      {b.items.flatMap((s, i) => {
         const c = toneColours(s.tone ?? 'neutral', accent)
-        return (
+        const tile = (
           <Column
             key={s.label}
             className="k-stack"
-            style={{ width: `${100 / b.items.length}%`, padding: i === 0 ? '0 6px 0 0' : '0 0 0 6px', verticalAlign: 'top' }}
+            valign="top"
+            style={{
+              width: `${100 / b.items.length}%`,
+              height: '100%',
+              backgroundColor: c.bg,
+              borderRadius: '8px',
+              padding: '14px 18px',
+              boxSizing: 'border-box',
+              verticalAlign: 'top',
+            }}
           >
-            <Section style={{ backgroundColor: c.bg, borderRadius: '8px', padding: '14px 18px' }}>
-              <Text style={{ margin: 0, fontSize: '12.5px', fontStyle: 'italic', color: s.tone ? c.ink : theme.muted }}>
-                {s.label}
-              </Text>
-              <Text style={{ margin: '2px 0 0', fontSize: '22px', lineHeight: '28px', color: theme.ink }}>{s.value}</Text>
-            </Section>
+            <Text
+              style={{
+                margin: 0,
+                fontSize: '12.5px',
+                fontStyle: 'italic',
+                color: s.tone ? c.ink : theme.muted,
+              }}
+            >
+              {s.label}
+            </Text>
+            <Text
+              style={{ margin: '2px 0 0', fontSize: '22px', lineHeight: '28px', color: theme.ink }}
+            >
+              {s.value}
+            </Text>
           </Column>
         )
+        return i === 0
+          ? [tile]
+          : [
+              <Column
+                key={`${s.label}-gap`}
+                className="k-gap"
+                style={{ width: '12px', minWidth: '12px', fontSize: '1px', lineHeight: '1px' }}
+              >
+                &nbsp;
+              </Column>,
+              tile,
+            ]
       })}
     </Row>
   )

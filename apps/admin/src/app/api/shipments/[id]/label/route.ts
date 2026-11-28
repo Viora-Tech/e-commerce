@@ -1,5 +1,6 @@
 import { ORPCError } from '@orpc/server'
 import { appRouter, call, serverContext } from '@/lib/api'
+import { labelProblemPage } from '@/lib/label-problem-page'
 import { withEvlog } from '@/lib/request-log'
 
 type Params = { params: Promise<{ id: string }> }
@@ -32,10 +33,8 @@ export const GET = withEvlog(async (_request: Request, { params }: Params) => {
     }
     // The courier could not hand the label over: say why (our wording, never the courier's raw).
     if (error instanceof ORPCError && error.code === 'BAD_REQUEST') {
-      return new Response(error.message, {
-        status: 502,
-        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
-      })
+      const data = error.data as { code?: unknown } | undefined
+      return labelProblemPage(error.message, data?.code === 'label_not_ready')
     }
     return new Response('Not found', { status: 404 })
   }

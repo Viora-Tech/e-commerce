@@ -1,9 +1,7 @@
 'use client'
 
 import type { ParcelSplitReason } from '@commerce/core'
-import { Minus, Plus } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@commerce/ui/shadcn/select'
 import { Switch } from '@commerce/ui/shadcn/switch'
@@ -12,6 +10,7 @@ import ProductThumb from '@/components/products/product-thumb'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { DraftParcel } from './flow-state'
+import ItemStepper from './item-stepper'
 import { availabilityNote, isPartial, type SplitPlan } from './partial-plan'
 
 type PartialPickerProps = {
@@ -133,31 +132,12 @@ export default function PartialPicker({
                   <span className="truncate text-caption text-muted-foreground">{sub}</span>
                 </div>
                 {pickable ? (
-                  <span className="flex shrink-0 items-center gap-1 rounded-md border border-border p-0.5">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-xs"
-                      aria-label={copy.less(l.title)}
-                      disabled={n <= 0}
-                      onClick={() => set(l.id, n - 1, l.quantity)}
-                    >
-                      <Minus aria-hidden="true" />
-                    </Button>
-                    <span className="w-12 text-center text-body tabular-nums">
-                      {copy.of(n, l.quantity)}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-xs"
-                      aria-label={copy.more(l.title)}
-                      disabled={n >= l.quantity}
-                      onClick={() => set(l.id, n + 1, l.quantity)}
-                    >
-                      <Plus aria-hidden="true" />
-                    </Button>
-                  </span>
+                  <ItemStepper
+                    title={l.title}
+                    value={n}
+                    max={l.quantity}
+                    onChange={(next) => set(l.id, next, l.quantity)}
+                  />
                 ) : (
                   <span className="shrink-0 tabular-nums text-body text-muted-foreground">
                     × {l.quantity}

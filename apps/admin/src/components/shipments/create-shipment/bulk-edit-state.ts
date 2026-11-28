@@ -1,6 +1,7 @@
 import { volumetricWeightGrams } from '@commerce/core/parcel'
-import type { BulkLine, OrderEdit } from './bulk-ship-state'
-import type { Dimensions, ShipmentDraft } from './flow-state'
+import { type BulkLine, type OrderEdit, shippingParcel } from './bulk-ship-state'
+import type { Dimensions, DraftParcel, ShipmentDraft } from './flow-state'
+import { isPartial, plannedParcel } from './partial-plan'
 
 /** The row editor's box choice besides the store's boxes. */
 export const OWN_BOX = 'own'
@@ -17,6 +18,10 @@ export type EditForm = {
   insured: boolean
   /** The courier row picked; null follows the rule. */
   optionKey: string | null
+  /** Items to send: how many of each parcel line go now (0 up to what is still to send). */
+  counts: Record<string, number>
+  /** Tell the customer it ships in parts, when only some go. */
+  notify: boolean
 }
 
 const text = (n: number | null | undefined) => (n === null || n === undefined ? '' : String(n))
@@ -33,6 +38,8 @@ export function editForm(
   boxes: ShipmentDraft['boxes'],
 ): EditForm {
   const parcel = line.parcel
+  const whole = line.whole?.lines ?? []
+  const counts = Object.fromEntries(whole.map((l) => [l.id, edit?.keep?.[l.id] ?? l.quantity]))
   const dims = edit?.dimensionsCm ?? parcel?.dimensionsCm ?? null
   const preset =
     edit?.boxId && edit.boxId !== CUSTOM_SIZE
@@ -51,7 +58,41 @@ export function editForm(
     paymentMode: line.paymentMode,
     insured: line.insured,
     optionKey: edit?.optionKey ?? (line.byHand ? (line.pick?.optionKey ?? null) : null),
+    counts,
+    notify: edit?.notify ?? true,
   }
+}
+
+/** A line's count kept between none and the units it still has to send. */
+export const clampCount = (n: number, max: number) =>
+  Math.max(0, Math.min(max, Number.isFinite(n) ? Math.round(n) : 0))
+
+/** Units ticked to go now. */
+export const pickedUnits = (form: EditForm) => Object.values(form.counts).reduce((n, c) => n + c, 0)
+
+/** Apply needs at least one unit going; with none, "Skip this order" leaves it out instead. */
+export const canApply = (form: EditForm) => pickedUnits(form) > 0
+
+/** The parcel as the typed picks would ship it (the whole parcel until some are left out). */
+export function formParcel(line: BulkLine, form: EditForm): DraftParcel | null {
+  if (!line.whole) return line.parcel
+  return shippingParcel(line.whole, { keep: form.counts })
+}
+
+/**
+ * A line's count changed (the tick or the stepper): clamped to what it still has to send, and,
+ * as the order page's partial shipment does (`useSplitPlan.change`), the weight follows the
+ * items that go now. A weight typed for a product with none stays until every such item is out.
+ */
+export function withCount(form: EditForm, line: BulkLine, lineId: string, next: number): EditForm {
+  const item = line.whole?.lines.find((l) => l.id === lineId)
+  if (!item || !line.whole) return form
+  const counts = { ...form.counts, [lineId]: clampCount(next, item.quantity) }
+  const after = { ...form, counts }
+  if (pickedUnits(after) === 0) return after
+  const now = plannedParcel(line.whole, counts)
+  if (now.lines.some((l) => l.weightGrams === null)) return after
+  return { ...after, weight: String(now.weightGrams) }
 }
 
 /** Picking a box fills its size; "Products' own box" puts the parcel's back. */
@@ -88,7 +129,8 @@ const positive = (s: string): number | null => {
  * may change, the order's own choice should not.
  */
 export function formToEdit(form: EditForm, line: BulkLine, before?: OrderEdit): OrderEdit {
-  const parcel = line.parcel
+  const parcel = formParcel(line, form)
+  const partial = line.whole !== null && isPartial(line.whole.lines, form.counts)
   const weight = positive(form.weight)
   const [l, w, h] = [positive(form.length), positive(form.width), positive(form.height)]
   const dims = l !== null && w !== null && h !== null ? { length: l, width: w, height: h } : null
@@ -103,6 +145,10 @@ export function formToEdit(form: EditForm, line: BulkLine, before?: OrderEdit): 
   }
   if (form.paymentMode !== line.order.paymentMode) out.paymentMode = form.paymentMode
   if (form.optionKey) out.optionKey = form.optionKey
+  if (partial) {
+    out.keep = { ...form.counts }
+    out.notify = form.notify
+  }
   return out
 }
 
@@ -122,11 +168,12 @@ export function typedChargedGrams(form: EditForm): number | null {
 const sameEditDims = (a: Dimensions | undefined, b: Dimensions | undefined) =>
   a === b || (a !== undefined && b !== undefined && sameDims(a, b))
 
-/** The row editor changed what the couriers price (weight, size or payment): ask them again. */
+/** The row editor changed what the couriers price (weight, size, payment or the items sent): ask them again. */
 export function repriced(before: OrderEdit | undefined, after: OrderEdit): boolean {
   return (
     (before?.weightGrams ?? null) !== (after.weightGrams ?? null) ||
     !sameEditDims(before?.dimensionsCm, after.dimensionsCm) ||
-    (before?.paymentMode ?? null) !== (after.paymentMode ?? null)
+    (before?.paymentMode ?? null) !== (after.paymentMode ?? null) ||
+    JSON.stringify(before?.keep ?? null) !== JSON.stringify(after.keep ?? null)
   )
 }

@@ -119,6 +119,8 @@ export type ProviderAnswer = {
   stale?: boolean | undefined
   /** The PIN code answer; null when serviceability did not answer. */
   serviceable: boolean | null
+  /** Why the app said no, when it named a known reason (Delhivery's embargo). */
+  notServed?: 'embargo' | undefined
   services: QuotedService[]
 }
 

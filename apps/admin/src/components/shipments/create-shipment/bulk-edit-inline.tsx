@@ -9,7 +9,7 @@ import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import BulkEditPackage from './bulk-edit-package'
 import BulkEditShipping from './bulk-edit-shipping'
-import { editForm, formToEdit } from './bulk-edit-state'
+import { canApply, editForm, formParcel, formToEdit, pickedUnits } from './bulk-edit-state'
 import type { BulkLine, OrderEdit } from './bulk-ship-state'
 import type { ParcelQuote, ShipmentDraft } from './flow-state'
 import { useBulkEditQuote } from './use-bulk-edit-quote'
@@ -69,7 +69,8 @@ export default function BulkEditInline({
   // Render logic
   const p = copy.editPopup
   const o = line.order
-  const units = line.parcel?.lines.reduce((n, l) => n + l.quantity, 0) ?? 0
+  const units = pickedUnits(form)
+  const picked = formParcel(line, form)
   const pricing = live.failed
     ? 'failed'
     : live.waiting
@@ -81,7 +82,7 @@ export default function BulkEditInline({
   const subtitle = p.subtitle([
     o.customerName ?? '',
     [o.city, o.pincode].filter(Boolean).join(' '),
-    `${line.paymentMode === 'cod' ? copy.cod : copy.prepaid} ${fmt.money(line.parcel?.valuePaise ?? o.totalPaise)}`,
+    `${line.paymentMode === 'cod' ? copy.cod : copy.prepaid} ${fmt.money(picked?.valuePaise ?? o.totalPaise)}`,
     pkg.itemCount(units),
   ])
 
@@ -131,7 +132,9 @@ export default function BulkEditInline({
               <Button variant="outline" onClick={onCancel}>
                 {p.cancel}
               </Button>
-              <Button onClick={handleApply}>{p.apply}</Button>
+              <Button onClick={handleApply} disabled={!canApply(form)}>
+                {p.apply}
+              </Button>
             </div>
           </div>
         </fieldset>

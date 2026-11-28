@@ -150,6 +150,7 @@ export async function fetchDelhiveryLabel(
     'bad_response',
     wire.id,
     `Delhivery has no label for ${waybill} yet. Try again in a minute, or print it from Delhivery One.`,
+    { detail: { code: 'label_not_ready' } },
   )
 }
 

@@ -23,6 +23,22 @@ describe('emails built from shared blocks', () => {
     expect(broken).toEqual([])
   })
 
+  it('side-by-side tiles colour their own cells, so a row of tiles is one height', async () => {
+    const d = {
+      ...sampleTemplateDataByTemplate.staff_new_order,
+      paymentState: 'unpaid' as const,
+      paymentMethodLabel: 'UPI or bank transfer',
+    }
+    const html = (await renderEmail('staff_new_order', d)).html
+    const tiles = html.match(/<td class="k-stack"[^>]*>/g) ?? []
+    const coloured = tiles.filter(
+      (td) => td.includes('background-color') && td.includes('height:100%'),
+    )
+    expect(coloured).toHaveLength(2)
+    expect(html).toContain('class="k-gap"')
+    expect(html).toContain('.k-gap {')
+  })
+
   it('delivery emails carry the route ticket with the courier and AWB', async () => {
     const d = sampleTemplateDataByTemplate.order_shipped
     const text = words((await renderEmail('order_shipped', d)).html)

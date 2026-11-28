@@ -275,6 +275,7 @@ export function resolveDeliveryOptions(
     ms: a.ms,
     error: a.error,
     serviceable: a.serviceable,
+    ...(a.notServed ? { notServed: a.notServed } : {}),
   }))
   const allSaidNo =
     answers.length > 0 && answers.every((a) => a.status === 'ok' && a.serviceable === false)

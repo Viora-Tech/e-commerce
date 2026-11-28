@@ -131,8 +131,10 @@ export const bulkShipContent = {
     subtitle: (parts: string[]) => parts.filter(Boolean).join(' · '),
     items: 'Items to send',
     itemsCount: (n: number, total: number) => `${n} of ${total} items`,
-    partNote:
-      'This parcel holds part of the order. Split it differently from the order’s own Create shipment page.',
+    /** Some items unticked: what happens to the rest. */
+    partNote: 'Unticked items stay in To ship for a later parcel.',
+    /** Every item unticked: Apply waits. */
+    noneHint: 'Tick at least one item, or use Skip this order to leave it out.',
     packageFor: 'Package for these items',
     box: 'Box',
     ownBox: 'Products’ own box',

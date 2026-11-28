@@ -54,7 +54,9 @@ export default function TryPinTrace({ result }: TryPinTraceProps) {
             {p.status === 'failed'
               ? t.failed(p.providerLabel, p.error ?? '')
               : p.serviceable === false
-                ? t.saidNo(p.providerLabel)
+                ? p.notServed
+                  ? t.notServed[p.notServed](p.providerLabel)
+                  : t.saidNo(p.providerLabel)
                 : `${p.providerLabel}: ${p.source === 'cache' ? t.cache : t.live(p.ms)}`}
           </p>
         ))}
