@@ -123,10 +123,11 @@ describe('own: only the recommended courier gets the price', () => {
     }
   })
 
-  it('difference is unchanged: Amazon +₹109 and Ekart +₹129 with insurance on, ₹0 off', () => {
+  it('difference: Amazon and Ekart add the same insurance gap with insurance on, ₹0 off', () => {
     expect(priceOf(run(false, 'difference'), 'rapidshyp:8001')).toBe(0)
     expect(priceOf(run(false, 'difference'), 'rapidshyp:7001')).toBe(0)
-    expect(priceOf(run(true, 'difference'), 'rapidshyp:8001')).toBe(10900)
+    // Was +₹109 and +₹129 before shipping and insurance were priced apart (28 Nov 2026).
+    expect(priceOf(run(true, 'difference'), 'rapidshyp:8001')).toBe(12900)
     expect(priceOf(run(true, 'difference'), 'rapidshyp:7001')).toBe(12900)
   })
 })
