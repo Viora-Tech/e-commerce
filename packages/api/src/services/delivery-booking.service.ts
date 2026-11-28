@@ -65,6 +65,7 @@ export async function bookSavedRoute(
     dimensionsCm?: { length: number; width: number; height: number } | undefined
     insured?: boolean | undefined
     paymentMode?: 'cod' | 'prepaid' | undefined
+    codAmountPaise?: number | undefined
   },
 ) {
   const route = app.delivery?.route

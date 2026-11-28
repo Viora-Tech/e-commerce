@@ -15,6 +15,7 @@ import {
   missingPackage,
   type OrderEdit,
   orderQuoteRequest,
+  shippingParcel,
 } from './bulk-ship-state'
 import { courierTotals, type ParcelQuote, type ShipmentDraft, startingBulkPick } from './flow-state'
 
@@ -106,11 +107,12 @@ export function useBulkShip(orderIds: string[], courier: string | undefined) {
   const askOne = async (orderId: string, edit: OrderEdit | undefined) => {
     const order = draft?.orders.find((o) => o.orderId === orderId)
     const parcel = order?.parcels.length === 1 ? order.parcels[0] : undefined
-    if (!order || !parcel || missingPackage(parcel, edit)) return
+    const picked = parcel && shippingParcel(parcel, edit)
+    if (!order || !picked || missingPackage(picked, edit)) return
     setAsking((s) => new Set([...s, orderId]))
     try {
       const [answer] = await api.shipments.quote({
-        parcels: [orderQuoteRequest(order, parcel, edit)],
+        parcels: [orderQuoteRequest(order, picked, edit)],
       })
       if (answer) setQuotes((q) => ({ ...q, [orderId]: answer }))
     } catch (err) {

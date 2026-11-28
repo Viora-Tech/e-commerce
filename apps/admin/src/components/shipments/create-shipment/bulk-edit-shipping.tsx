@@ -5,7 +5,7 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import { bulkShipContent } from '@/data/bulk-ship'
 import { useCopy, useFormat } from '@/hooks/use-copy'
-import type { EditForm } from './bulk-edit-state'
+import { type EditForm, formParcel } from './bulk-edit-state'
 import { type BulkLine, rulePick } from './bulk-ship-state'
 import { isBookable, type ParcelQuote } from './flow-state'
 import { insuredRows } from './insured-rows'
@@ -48,7 +48,8 @@ export default function BulkEditShipping({
   const cheapest = rows.find((r) => r.badges.includes('cheapest'))
   const fastest = rows.find((r) => r.badges.includes('fastest'))
   const choice = line.order.deliveryChoice
-  const value = line.parcel?.valuePaise ?? line.order.totalPaise
+  // The items picked to go now: COD collects their share of the value, insurance covers it.
+  const value = formParcel(line, form)?.valuePaise ?? line.order.totalPaise
 
   return (
     <div className="flex flex-col gap-4">

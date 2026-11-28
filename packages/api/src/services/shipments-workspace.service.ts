@@ -31,6 +31,7 @@ import {
   or,
   sql,
 } from 'drizzle-orm'
+import { type BulkSplit, splitBeforeBooking } from './bulk-book-split'
 import { takeOverImportedForBooking } from './bulk-book-takeover'
 import { pickupHeldByCourier } from './courier-pickup'
 import { bookSavedRoute, parcelsToBook, ruleAllowedRows } from './delivery-booking.service'
@@ -245,7 +246,7 @@ type BulkBookInput = {
   /** orderId -> the parcel (fulfilment order) Create shipment quoted for it. */
   parcelIds?: Record<string, string> | undefined
   /** orderId -> that order's own weight, box, payment mode and insurance (bulk Edit popup). */
-  perOrder?: Record<string, OrderBookingOverride> | undefined
+  perOrder?: Record<string, OrderBookingOverride & BulkSplit> | undefined
   /** Who books: an imported order still open is taken over in their name first. */
   author?: string | undefined
 }
@@ -326,8 +327,22 @@ async function bookOrders(
 
   for (const o of contexts) {
     const overrideId = input.courierOverrides?.[o.orderId]
+    // Only some items ship now: the parcel keeps them, the rest waits in To ship.
+    const pinned = input.parcelIds?.[o.orderId]
+    const refused = await splitBeforeBooking(
+      tx,
+      storeId,
+      o.orderId,
+      pinned,
+      perOrder[o.orderId],
+      input.author,
+    )
+    if (refused) {
+      results.push({ orderId: o.orderId, ok: false, error: refused })
+      continue
+    }
     // A split cart books parcel by parcel, each on the courier checkout quoted for it.
-    for (const parcelId of await parcelsToBook(tx, o.orderId, input.parcelIds?.[o.orderId])) {
+    for (const parcelId of await parcelsToBook(tx, o.orderId, pinned)) {
       const at = parcelId ? { fulfillmentOrderId: parcelId } : {}
       const app = overrideId ? null : await bookingContext(tx, storeId, o.orderId, parcelId)
       const own = bookingFor(input, perOrder[o.orderId])

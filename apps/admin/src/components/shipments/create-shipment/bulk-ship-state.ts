@@ -11,6 +11,7 @@ import {
   type ShipmentDraft,
 } from './flow-state'
 import { insuredRows } from './insured-rows'
+import { isPartial, keepOf, plannedParcel } from './partial-plan'
 
 /**
  * The bulk ship drawer's pure parts (Figma 908:8804): one line per ticked order with its
@@ -34,6 +35,11 @@ export type OrderEdit = {
   insured?: boolean | undefined
   /** The courier row picked by hand; beats the rule. */
   optionKey?: string | undefined
+  /** Items to send: how many of each parcel line ship now, set only when some stay behind
+   *  (they wait in To ship for a later parcel, as on the order page's partial shipment). */
+  keep?: Record<string, number> | undefined
+  /** Tell the customer the order ships in parts (only with `keep`). */
+  notify?: boolean | undefined
 }
 
 export type BulkProblem =
@@ -52,7 +58,10 @@ export type BulkProblem =
 
 export type BulkLine = {
   order: DraftOrder
+  /** The parcel as it ships now: only the items picked in the row editor (`shippingParcel`). */
   parcel: DraftParcel | null
+  /** The parcel with every unit still to send, for the row editor's item list. */
+  whole: DraftParcel | null
   paymentMode: 'cod' | 'prepaid'
   insured: boolean
   /** The couriers' answer; null while asking (or not asked: a problem found before). */
@@ -75,6 +84,14 @@ export function missingPackage(
   if (edit?.weightGrams) return null
   if (!parcel.lines.some((l) => l.weightGrams === null)) return null
   return { box: !edit?.dimensionsCm && !parcel.dimensionsCm && !parcel.boxName }
+}
+
+/** The parcel as it ships now: the row editor's picked items, their weight and value share
+ *  (`plannedParcel`, as the order page's partial shipment), else the whole parcel. */
+export function shippingParcel(parcel: DraftParcel, edit: OrderEdit | undefined): DraftParcel {
+  return edit?.keep && isPartial(parcel.lines, edit.keep)
+    ? plannedParcel(parcel, edit.keep)
+    : parcel
 }
 
 /** A box with every side at least 1 cm, else undefined (the server's rule). */
@@ -158,10 +175,11 @@ export function bulkLines(input: {
   const { draft, quotes, asking, edits, rule, providerId, insuredAll } = input
   return draft.orders.map((order): BulkLine => {
     const edit = edits[order.orderId]
-    const parcel = order.parcels.length === 1 ? (order.parcels[0] ?? null) : null
+    const whole = order.parcels.length === 1 ? (order.parcels[0] ?? null) : null
+    const parcel = whole && shippingParcel(whole, edit)
     const paymentMode = edit?.paymentMode ?? order.paymentMode
     const insured = orderInsured(order, edit, insuredAll)
-    const base = { order, parcel, paymentMode, insured, quote: null, rows: [], pick: null }
+    const base = { order, parcel, whole, paymentMode, insured, quote: null, rows: [], pick: null }
     const problemLine = (problem: BulkProblem): BulkLine => ({
       ...base,
       byHand: false,
@@ -254,6 +272,10 @@ export function bulkBookRequest(
       paymentMode?: 'cod' | 'prepaid'
       insured: boolean
       quotedChargePaise?: number
+      codAmountPaise?: number
+      keep?: Array<{ orderLineId: string; quantity: number }>
+      splitReason?: 'not_ready'
+      notifyCustomer?: boolean
     }
   > = {}
   for (const l of booking) {
@@ -270,6 +292,7 @@ export function bulkBookRequest(
       ...(e?.paymentMode && e.paymentMode !== l.order.paymentMode
         ? { paymentMode: e.paymentMode }
         : {}),
+      ...partOf(l, e),
     }
   }
   return {
@@ -278,6 +301,18 @@ export function bulkBookRequest(
     ...(Object.keys(serviceOverrides).length ? { serviceOverrides } : {}),
     ...(Object.keys(parcelIds).length ? { parcelIds } : {}),
     perOrder,
+  }
+}
+
+/** Only some items ship now: every line of the parcel with how many go (the server splits the
+ *  parcel first), and for COD the part's share of the value to collect, as the order page sends. */
+function partOf(l: BulkLine, e: OrderEdit | undefined) {
+  if (!e?.keep || !l.whole?.id || !l.parcel || !isPartial(l.whole.lines, e.keep)) return {}
+  return {
+    keep: keepOf(l.whole.lines, e.keep),
+    splitReason: 'not_ready' as const,
+    notifyCustomer: e.notify ?? true,
+    ...(l.paymentMode === 'cod' ? { codAmountPaise: Math.round(l.parcel.valuePaise) } : {}),
   }
 }
 
