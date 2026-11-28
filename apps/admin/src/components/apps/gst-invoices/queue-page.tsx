@@ -10,6 +10,7 @@ import { useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import SetupChecklist from '@/components/apps/setup-checklist'
+import ActionMenu from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import { hasFilter } from '@/components/table/filter-panel'
@@ -18,6 +19,7 @@ import ViewSelect from '@/components/table/view-select'
 import { appsContent } from '@/data/apps'
 import { filterPanelContent } from '@/data/filter-panel'
 import { gstAlreadyInvoicedContent } from '@/data/gst-already-invoiced'
+import { gstInvoiceActionsContent } from '@/data/gst-invoice-actions'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { gstListFiltersContent } from '@/data/gst-list-filters'
 import { gstQueuePageContent } from '@/data/gst-queue-page'
@@ -73,6 +75,7 @@ function QueueList() {
   const panel = useCopy(filterPanelContent)
   const apps = useCopy(appsContent)
   const recordCopy = useCopy(gstAlreadyInvoicedContent)
+  const actionsCopy = useCopy(gstInvoiceActionsContent)
   const fmt = useFormat()
   const router = useRouter()
   const numbers = useGstNumbers()
@@ -233,13 +236,14 @@ function QueueList() {
         }
         actions={
           <>
-            <GstExportButton />
-            <QueueMoreMenu onAdded={reload} busy={busy} />
+            {/* Buttons first, the ⋯ menu last at the right with 1rem before it (owner, 28 Nov). */}
+            <GstExportButton beforeMenu={picked.length > 0} />
             {picked.length === 0 ? (
-              <Button disabled={busy || toIssue === 0} onClick={handleIssueAll}>
+              <Button className="mr-2" disabled={busy || toIssue === 0} onClick={handleIssueAll}>
                 {copy.issueAll(toIssue)}
               </Button>
             ) : null}
+            <QueueMoreMenu onAdded={reload} busy={busy} />
           </>
         }
       />
@@ -306,20 +310,24 @@ function QueueList() {
                 <ReceiptIcon />
                 {lists.issueSelected(readyAmong(ids).length)}
               </Button>
-              <Button size="sm" variant="outline" disabled={busy} onClick={() => setMarking(ids)}>
-                <CircleCheck />
-                {recordCopy.bulkAction}
-              </Button>
-              <Button
-                size="sm"
+              <ActionMenu
+                label={actionsCopy.bulk.more}
                 variant="outline"
-                className="text-destructive"
                 disabled={busy}
-                onClick={() => handleRemove(ids)}
-              >
-                <Trash2 />
-                {copy.removeSelected}
-              </Button>
+                items={[
+                  {
+                    label: recordCopy.bulkAction,
+                    icon: CircleCheck,
+                    onSelect: () => setMarking(ids),
+                  },
+                  {
+                    label: actionsCopy.queueBulk.remove,
+                    icon: Trash2,
+                    destructive: true,
+                    onSelect: () => handleRemove(ids),
+                  },
+                ]}
+              />
             </>
           )}
           empty={{ heading: q.view === 'ready' ? copy.noneReady : copy.noneToFix }}

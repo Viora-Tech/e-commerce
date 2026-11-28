@@ -12,13 +12,18 @@ import { routes } from '@/lib/routes'
 import { monthLabel, recentMonths } from './return-months'
 import { saveFile } from './save-file'
 
+type GstExportButtonProps = {
+  /** The ⋯ menu comes right after it (the app bar; the Queue while rows are ticked). */
+  beforeMenu?: boolean
+}
+
 /**
  * "Export GSTR-1" (Figma 928:10728), in the app bar and in the Queue page's own header: the
  * portal JSON (Returns › GSTR-1 › Prepare offline › Upload) for last month, the one due for filing, or this month so far, for the main
  * GST number, and the CA's sales register (Excel) for the same months. Other GST numbers and
  * months, the CSVs and GSTR-3B stay on the Returns tab.
  */
-export default function GstExportButton() {
+export default function GstExportButton({ beforeMenu = true }: GstExportButtonProps) {
   // Hooks
   const copy = useCopy(gstExportContent)
   const [busy, setBusy] = useState(false)
@@ -48,6 +53,9 @@ export default function GstExportButton() {
       trigger="button"
       loading={busy}
       disabled={busy}
+      // Right before the ⋯ menu: 1rem between the two with the row's 0.5rem gap, so ⋯ does not
+      // read as part of Export (owner, 28 Nov 2026).
+      triggerClassName={beforeMenu ? 'mr-2' : undefined}
       items={[
         {
           label: copy.month(monthLabel(lastMonth)),

@@ -4,6 +4,8 @@ import { Download, Printer, RefreshCw, Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ActionMenu from '@/components/layout/action-menu'
+import { gstInvoiceActionsContent } from '@/data/gst-invoice-actions'
 import { gstInvoiceBulkRefreshContent } from '@/data/gst-invoice-refresh'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { useCopy } from '@/hooks/use-copy'
@@ -22,7 +24,10 @@ type InvoicesBulkActionsProps = {
   onEmailQueued: (batch: { batchId: string; total: number }) => void
 }
 
-/** The Invoices bulk bar's buttons: zip of PDFs, one PDF to print, Recalculate GST, email. */
+/**
+ * The Invoices bulk bar's actions (owner, 28 Nov 2026): Email to buyers as the one main button,
+ * then a ⋯ menu with the zip of PDFs, one PDF to print and Recalculate GST (tax invoices only).
+ */
 export default function InvoicesBulkActions({
   ids,
   taxInvoices,
@@ -32,6 +37,7 @@ export default function InvoicesBulkActions({
   // Hooks
   const copy = useCopy(gstInvoicesContent.list)
   const refreshCopy = useCopy(gstInvoiceBulkRefreshContent)
+  const actionsCopy = useCopy(gstInvoiceActionsContent.bulk)
   const [busy, setBusy] = useState<string | null>(null)
 
   // Helpers
@@ -75,42 +81,26 @@ export default function InvoicesBulkActions({
   // Render logic
   return (
     <>
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={busy !== null}
-        onClick={handleDownload}
-        loading={busy === 'download'}
-      >
-        <Download />
-        {copy.download}
-      </Button>
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={busy !== null}
-        onClick={handlePrint}
-        loading={busy === 'print'}
-      >
-        <Printer />
-        {copy.print}
-      </Button>
-      {taxInvoices ? (
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={busy !== null}
-          onClick={handleRecalculate}
-          loading={busy === 'recalculate'}
-        >
-          <RefreshCw />
-          {refreshCopy.button}
-        </Button>
-      ) : null}
       <Button size="sm" disabled={busy !== null} onClick={handleEmail} loading={busy === 'email'}>
         <Send />
         {copy.email}
       </Button>
+      <ActionMenu
+        label={actionsCopy.more}
+        variant="outline"
+        disabled={busy !== null}
+        loading={busy !== null && busy !== 'email'}
+        items={[
+          { label: copy.download, icon: Download, onSelect: handleDownload },
+          { label: copy.print, icon: Printer, onSelect: handlePrint },
+          {
+            label: refreshCopy.button,
+            icon: RefreshCw,
+            onSelect: handleRecalculate,
+            hidden: !taxInvoices,
+          },
+        ]}
+      />
     </>
   )
 }

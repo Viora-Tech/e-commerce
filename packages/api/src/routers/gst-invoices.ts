@@ -29,6 +29,7 @@ import {
   createEmailBatch,
   emailBatch,
   mediaUrls,
+  orderEmail,
   orderRefunds,
   storeGstin,
   storeName,
@@ -432,6 +433,8 @@ export const gstInvoicesRouter = {
         pdfStatus: row.pdfStatus,
         source: row.source,
         snapshot: DocumentSnapshotSchema.parse(row.snapshot),
+        /** Where "Email to buyer" sends it (the order's email); `null` disables the button. */
+        buyerEmail: await orderEmail(context.tx, row.orderId),
       }
     }),
 

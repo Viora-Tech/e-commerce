@@ -8,11 +8,13 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from '@commerce/ui
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import TableFailedRow from '@/components/apps/shared/table-failed-row'
+import ActionMenu from '@/components/layout/action-menu'
 import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import TableSkeletonRows from '@/components/table/table-skeleton-rows'
 import { appsContent } from '@/data/apps'
+import { gstInvoiceActionsContent } from '@/data/gst-invoice-actions'
 import { gstProductTaxContent } from '@/data/gst-product-tax'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -38,6 +40,7 @@ export default function ProductsTaxPage() {
   // Hooks
   const copy = useCopy(gstProductTaxContent)
   const apps = useCopy(appsContent)
+  const actionsCopy = useCopy(gstInvoiceActionsContent)
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
   const [query, setQuery] = useState('')
@@ -195,22 +198,16 @@ export default function ProductsTaxPage() {
               onChange={handleBulkRate}
             />
           </div>
-          <Button
+          {/* Charge GST and No GST in a ⋯ menu, like the other GST bulk bars (owner, 28 Nov). */}
+          <ActionMenu
+            label={actionsCopy.bulk.more}
             variant="outline"
-            size="sm"
             disabled={busy}
-            onClick={() => void save(target, { taxable: true })}
-          >
-            {copy.bulk.chargeOn}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={busy}
-            onClick={() => void save(target, { taxable: false })}
-          >
-            {copy.bulk.chargeOff}
-          </Button>
+            items={[
+              { label: copy.bulk.chargeOn, onSelect: () => void save(target, { taxable: true }) },
+              { label: copy.bulk.chargeOff, onSelect: () => void save(target, { taxable: false }) },
+            ]}
+          />
           <Button variant="ghost" size="sm" onClick={handleClear}>
             {copy.bulk.clear}
           </Button>
