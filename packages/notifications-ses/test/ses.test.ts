@@ -89,6 +89,7 @@ describe('ses specifics', () => {
         ContentType: 'application/pdf',
         RawContent: content,
         ContentDisposition: 'ATTACHMENT',
+        ContentTransferEncoding: 'BASE64',
       },
     ])
     expect(simple?.Body?.Html?.Data).toContain('href="https://s.test/d/1"')
