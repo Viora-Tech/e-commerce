@@ -32,3 +32,17 @@ export const SIMPLE_BODY = {
   compact:
     '[&_tbody_td:not([colspan])]:h-10 [&_tbody_td:not([colspan])]:px-3 [&_tbody_td:not([colspan])]:py-1.5 [&_tbody_th]:h-10 [&_tbody_th]:px-3 [&_tbody_th]:py-1.5',
 } as const
+
+/**
+ * `fill` (Orders): from `md` the card fits the page's height and only the rows scroll. The card
+ * shrinks to the room left under the page header (a short list stays short); the toolbar and the
+ * pager keep their rows; the grid scrolls both ways in one scroller, so the header row sticks
+ * on top of it with a rule under it (the first row drops its own). Phones scroll the page.
+ */
+export const FILL = {
+  card: 'md:min-h-0',
+  frame: 'md:flex md:min-h-0 md:flex-col',
+  scroller:
+    'md:min-h-0 md:overflow-auto md:overscroll-contain md:[&_[data-slot=table-container]]:overflow-visible md:[&_tbody>tr:first-child>td]:border-t-0',
+  head: 'md:sticky md:top-0 md:z-1 md:bg-card md:shadow-[inset_0_-0.0625rem_0_var(--border)]',
+} as const

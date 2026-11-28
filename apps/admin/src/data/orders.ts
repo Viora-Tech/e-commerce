@@ -68,7 +68,7 @@ export const ordersContent = {
     unarchive: 'Unarchive order',
   },
   title: 'Orders',
-  /* Frame 5:2353: "Order List" heading, Add Order + More Action, four tiles, tab group. */
+  /* Frame 5:2353: "Order List" heading, Add Order + More Action, tab group (tiles gone 28 Nov). */
   heading: 'Order list',
   /** The plain-language line under the page title: counts only, zeros left out. */
   summary: (total: number, toShip: number, pendingUpi: number) =>
@@ -81,13 +81,6 @@ export const ordersContent = {
     ]
       .filter(Boolean)
       .join(' · '),
-  /** The four stat cards above the list. */
-  tiles: {
-    newToday: { label: 'New orders today', trendNote: 'vs yesterday' },
-    ready: { label: 'Ready to ship', note: 'Paid or authorised, waiting on a courier' },
-    pendingUpi: { label: 'Pending UPI', note: 'Awaiting the transfer' },
-    sales: { label: 'Sales this week', trendNote: 'vs last week' },
-  },
   noResults: { heading: 'No orders match', body: 'Try another search, or clear the filters.' },
   loadFailed: 'Could not load orders',
   addOrder: 'Add order',
